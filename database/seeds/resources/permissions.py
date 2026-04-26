@@ -1168,6 +1168,12 @@ permissions = [
         name="Invocation Context Test",
     ),
     dict(
+        id=sid("permission/invocation/create"),
+        artifact="test",
+        operation="invocation_create",
+        name="Invocation Create Test",
+    ),
+    dict(
         id=sid("permission/invocation/decrypt"),
         artifact="test",
         operation="invocation_decrypt",
@@ -3053,6 +3059,7 @@ PERMISSION_IDS = {
     ("test", "grade"): sid("permission/test/grade"),
     ("test", "group"): sid("permission/test/group"),
     ("test", "invocation_context"): sid("permission/invocation/context"),
+    ("test", "invocation_create"): sid("permission/invocation/create"),
     ("test", "invocation_decrypt"): sid("permission/invocation/decrypt"),
     ("test", "invocation_draft"): sid("permission/invocation/draft"),
     ("test", "invocation_drafts"): sid("permission/invocation/drafts"),

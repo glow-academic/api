@@ -1,4 +1,10 @@
-"""Internal handler: test_start — canonical orchestration entry."""
+"""Internal handler: test_start — canonical client-orchestrated entry.
+
+Pure setup: creates a test_entry only. Mirrors attempt_start — does
+NOT pre-create invocation rows. The client renders the benchmark's
+invocation_entry templates and calls /test/invocation/create per card
+to materialize a test_invocation_entry on demand.
+"""
 
 from typing import Any
 from uuid import UUID
@@ -10,10 +16,8 @@ from app.infra.events.audit import (
     run_artifact_operation_with_audit,
 )
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.stream.socket_bridge import wrap_emit_with_stream_bridge
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.test.client_types import TestStartPayload
-from app.infra.test.proceed import test_proceed_internal_impl
 from app.infra.test.workflows import test_start_impl
 from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
 from app.infra.websocket.test_types import TestErrorData
@@ -21,7 +25,7 @@ from app.infra.websocket.test_types import TestErrorData
 
 class TestStartInternalResult(BaseModel):
     test_id: str
-    invocation_id: str | None = None
+    benchmark_id: str | None = None
     success: bool = True
 
 
@@ -31,9 +35,8 @@ async def test_start_internal_impl(
     emit: EmitFn | None = None,
     audit: bool = True,
 ) -> TestStartInternalResult:
-    """Run canonical test start orchestration for any surface."""
-    payload = TestStartPayload(**data)
-    del payload
+    """Run canonical test start. Returns when rows are written."""
+    TestStartPayload(**data)  # validate inbound shape
 
     profile_id = data.get("profile_id")
     if not profile_id:
@@ -52,73 +55,44 @@ async def test_start_internal_impl(
         raise ValueError("Profile context not found for test_start")
 
     async def _run() -> TestStartInternalResult:
-        downstream_emit = wrap_emit_with_stream_bridge(
-            artifact="test",
-            operation="start",
-            emit=emit or make_emit(),
-        )
         recorded: list[SocketEvent] = []
 
         async def _emit(events: list[SocketEvent]) -> None:
             recorded.extend(events)
-            await downstream_emit(events)
+            downstream = emit or make_emit()
+            await downstream(events)
+
+        # Use a stable dict reference so test_start_impl's
+        # ``data["_result"] = {...}`` write propagates back here.
+        runner_data: dict[str, Any] = {
+            **data,
+            "profiles_id": str(identity.profiles_id),
+        }
 
         await test_start_impl(
-            {
-                **data,
-                "profiles_id": str(identity.profiles_id),
-            },
+            runner_data,
             emit=_emit,
             pool=get_pool(),
             redis=get_redis_client(),
         )
 
-        proceed_events = [
-            event
-            for event in recorded
-            if event.bus == "internal" and event.event == "test.proceed.completed"
-        ]
-        created_test_id = (
-            proceed_events[0].data.get("test_id", "") if proceed_events else ""
-        )
-        if created_test_id and not data.get("sid"):
-            return TestStartInternalResult(test_id=created_test_id)
-        for event in proceed_events:
-            try:
-                await test_proceed_internal_impl(event.data, emit=_emit)
-            except ValueError:
-                # Creating the test itself is still a meaningful synchronous result.
-                # Some flows populate invocation context asynchronously after start.
-                if created_test_id:
-                    return TestStartInternalResult(test_id=created_test_id)
-                raise
-
+        # test_start_impl is now setup-only. Any error propagates via
+        # internal events; surface them as ValueError so the audit
+        # framework writes a clean failed lifecycle event.
         for event in recorded:
             if event.bus != "internal":
                 continue
-            if event.event == "test.start.completed":
-                return TestStartInternalResult(
-                    test_id=event.data.get("test_id", ""),
-                    invocation_id=event.data.get("invocation_entry_id"),
-                )
-            if event.event == "test.run.invocation_started":
-                return TestStartInternalResult(
-                    test_id=event.data.get("test_id", ""),
-                    invocation_id=event.data.get("test_invocation_id"),
-                )
-            if event.event == "test.end.completed":
-                return TestStartInternalResult(
-                    test_id=event.data.get("test_id", ""),
-                    success=bool(event.data.get("success", True)),
-                )
             if event.event.startswith("test.") and event.event.endswith(".error"):
                 error = TestErrorData(**event.data)
                 raise ValueError(error.message)
 
-        if created_test_id:
-            return TestStartInternalResult(test_id=created_test_id)
-
-        raise ValueError("Test start completed without a terminal event")
+        # Workflow writes its handoff into runner_data["_result"]
+        # (test_id + benchmark_id). Read it out.
+        result = runner_data.get("_result") or {}
+        return TestStartInternalResult(
+            test_id=result.get("test_id", ""),
+            benchmark_id=result.get("benchmark_id"),
+        )
 
     if not audit:
         return await _run()

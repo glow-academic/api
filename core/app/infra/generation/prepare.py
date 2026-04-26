@@ -42,12 +42,23 @@ def _resolve_modality_pair(
     audios_id: str | None,
     conversation_id: str | None,
 ) -> tuple[set[str], set[str]]:
-    """Resolve (input_modalities, output_modalities) for a dispatch.
+    """Resolve **dispatch-side** (input, output) modalities for an executor.
+
+    NOTE: this is the DISPATCH vocabulary, not the model vocabulary.
+    It produces the synthetic ``audio_stream`` marker so
+    ``infra.generation.dispatch.resolve_executor`` can distinguish a live
+    realtime session (``audio_stream`` in inputs + ``audio`` in outputs →
+    "realtime" executor) from a one-shot audio request (``audio`` in
+    inputs → "stt" executor). No model declares ``audio_stream`` as a
+    modality; agent SELECTION uses the model-level set
+    ``{text, audio, image, video, call}`` directly (see the
+    ``selection_in_mods`` / ``score_agents`` block in
+    ``prepare_generation``).
 
     Inputs are inferred from the request payload:
-      - conversation_id present → live streaming audio input
-      - audios_id present → one-shot audio input (STT)
-      - otherwise → text input
+      - conversation_id present → ``audio_stream`` (live streaming)
+      - audios_id present → ``audio`` (one-shot)
+      - otherwise → ``text``
 
     Outputs come directly from the client-declared modalities list, with a
     sensible default of {text, call} when omitted so the agentic text loop
@@ -101,9 +112,9 @@ async def prepare_generation(
     When soft=True, run is created with active=false — everything is set up
     but nothing executes until accepted.
     """
+    from app.infra.tool_graph import score_agents
     from app.infra.websocket.prepare_pipeline import (
         build_agent_dispatch,
-        build_agent_groups_from_scores,
         compute_createable_resources,
         enrich_tools_with_args,
         enrich_tools_with_args_outputs,
@@ -165,20 +176,86 @@ async def prepare_generation(
     providers_by_id = {p.id: p for p in ws_ctx.providers}
     config_agents = ws_ctx.agents
 
-    # --- Step 4: Agent groups from scores ---
-    if payload.operations:
-        dispatch_types = [artifact_type]
-    else:
-        dispatch_types = resource_types
+    # --- Step 4: Agent groups via canonical modality-first selection ---
+    #
+    # Selection rules (see tool_graph.score_agents):
+    #   1. Input-modality filter:  request.in ⊆ agent.input_modalities
+    #   2. Output-modality filter: request.out ⊆ agent.output_modalities
+    #   3. Tool filter (only when operations requested): every requested
+    #      (artifact, op) must be present in agent.tool_targets
+    #   4. Least-privilege rank: ascending
+    #      (len(out), len(in), len(tools), str(agent_id))
+    #
+    # Selection vocabulary is strictly the **model** modality set
+    # ``{text, audio, image, video, call}`` — derived directly from the
+    # fields the request actually carries. The dispatch layer's
+    # ``audio_stream`` marker (produced by ``_resolve_modality_pair`` for
+    # the executor classifier) is a separate concern and never enters
+    # this set.
+    selection_in_mods: set[str] = set()
+    if payload.audios_id or payload_params.get("audios_id"):
+        # One-shot audio input (e.g. STT post-realtime turn).
+        selection_in_mods.add("audio")
+    if (
+        payload.conversation_id
+        or payload_metadata.get("conversation_id")
+        or payload_params.get("conversation_id")
+    ):
+        # Live realtime audio. At the model level it's still ``audio``
+        # input — the live-stream-vs-one-shot distinction is encoded as
+        # ``audio_stream`` only on the dispatch side, for the executor.
+        selection_in_mods.add("audio")
+    if payload.instructions or payload.extra_messages:
+        selection_in_mods.add("text")
 
-    agent_groups = build_agent_groups_from_scores(
-        resource_types=dispatch_types,
-        scores=ws_ctx.scores,
-        operations=payload.operations,
-        artifact_type=artifact_type,
-        tool_graph=getattr(ws_ctx, "tool_graph", None),
-        modalities=payload.modalities,
+    # Output modalities: caller-declared (no implicit defaults at the
+    # selection layer for input; output keeps the API-level default of
+    # ``{text, call}`` to preserve agentic-text-loop behavior when the
+    # caller omits modalities — this is a request-shape default, not a
+    # selection hack).
+    selection_out_mods: set[str] = (
+        set(payload.modalities) if payload.modalities else {"text", "call"}
     )
+
+    tool_graph = getattr(ws_ctx, "tool_graph", None)
+    available_agents = list(getattr(tool_graph, "agents", []) or [])
+
+    ranked = score_agents(
+        agents=available_agents,
+        request_input_modalities=selection_in_mods,
+        request_output_modalities=selection_out_mods,
+        artifact_type=artifact_type,
+        operations=payload.operations,
+    )
+
+    logger.info(
+        f"GENERATE_ATTEMPT: score_agents in={sorted(selection_in_mods)} "
+        f"out={sorted(selection_out_mods)} ops={payload.operations or []} "
+        f"candidates={[ (a.agent_id, sorted(a.output_modalities)) for a in ranked ]}"
+    )
+
+    agent_groups: dict[uuid.UUID, list[str]] = {}
+    if payload.operations:
+        # Operations: greedy cover by best-ranked agents. Walk the ranked
+        # list, pick agents that contribute uncovered (artifact, op) pairs
+        # until every requested op is covered. Least-privilege ranking
+        # ensures a narrower agent (e.g. Attempt) is preferred over a
+        # broader one (e.g. Attempt Realtime) when both cover the ops.
+        requested = {(artifact_type, op) for op in payload.operations}
+        uncovered = set(requested)
+        for agent in ranked:
+            gained = agent.tool_targets & uncovered
+            if not gained:
+                continue
+            agent_groups[agent.agent_id] = sorted({a for (a, _) in gained})
+            uncovered -= gained
+            if not uncovered:
+                break
+    elif ranked:
+        # No operations — pure modality conversion (STT, TTS) or a
+        # tool-less variant. Pick the single best agent, empty target
+        # list (executor doesn't iterate resource_types for these).
+        agent_groups[ranked[0].agent_id] = []
 
     # --- Step 5: Enrich tools ---
     config_tools = ws_ctx.tools

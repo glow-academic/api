@@ -7,11 +7,9 @@ from . import (  # noqa: F401
     grade,
     group,
     join,
-    next,
-    proceed,
-    run,
     start,
     stop,
+    trace,
     # Grade bridge (generate_call_complete → test grade)
     generate_grade,
 )

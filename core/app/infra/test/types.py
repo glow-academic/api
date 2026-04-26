@@ -19,8 +19,8 @@ from app.tools.entries.test.types import GetTestResponse
 from app.tools.entries.test_feedback.types import GetTestFeedbackResponse
 from app.tools.entries.test_grade.types import GetTestGradeResponse
 from app.tools.entries.test_invocation.types import GetTestInvocationResponse
-from app.tools.entries.test_invocation_groups.types import (
-    GetTestInvocationGroupsResponse,
+from app.tools.entries.test_invocation_traces.types import (
+    GetTestInvocationTracesResponse,
 )
 from app.tools.entries.test_invocation_runs.types import (
     GetTestInvocationRunsResponse,
@@ -65,7 +65,7 @@ class TestEntries(BaseModel):
     tests: list[GetTestResponse] | None = Field(None, description="Test entry payloads")
     invocations: list[GetTestInvocationResponse] | None = Field(None, description="Invocation entry payloads")
     runs: list[GetTestInvocationRunsResponse] | None = Field(None, description="Run entry payloads")
-    groups: list[GetTestInvocationGroupsResponse] | None = Field(None, description="Group entry payloads")
+    groups: list[GetTestInvocationTracesResponse] | None = Field(None, description="Group entry payloads")
     grades: list[GetTestGradeResponse] | None = Field(None, description="Grade entry payloads")
     feedback: list[GetTestFeedbackResponse] | None = Field(None, description="Feedback entry payloads")
     messages: list[SearchMessageResponse] | None = Field(None, description="Message entry payloads")
@@ -113,6 +113,12 @@ class GetTestArtifactResponse(BaseModel):
     show_controls: bool = Field(False, description="Whether to show UI controls")
     current_invocation_id: str | None = Field(None, description="ID of the current invocation")
     has_runs_or_groups: bool = Field(False, description="Whether the test has runs or groups")
+
+    # Client-orchestrated state machine — next pending invocation, mirrors
+    # /attempt/get.next_chat_entry_id. Null when all invocations are done.
+    next_invocation_id: str | None = Field(
+        None, description="UUID of the next uncompleted invocation, or null if all are done"
+    )
 
     # Normalized entries and resources
     entries: TestEntries | None = Field(None, description="Entry payloads by type")

@@ -211,6 +211,10 @@ class ArtifactGenerateRequest(BaseModel):
     modalities: list[str] | None = None     # output modalities: ["text"], ["audio"], ["video"], ["audio", "text"]
     audios_id: UUID | None = None           # resource-level audio handle (STT input)
     conversation_id: UUID | None = None     # continue a realtime session
+    trace_id: UUID | None = None            # test bundle handle (test_invocation_traces_entry)
+                                             # everything else (is_dynamic, agent, tools,
+                                             # instructions, prompts, modalities) is derived
+                                             # server-side via black boxes
     idempotency_key: UUID | None = None     # ack
     accept: bool = True                     # ack
 

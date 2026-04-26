@@ -924,9 +924,9 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.test_invocation_bridge.create",
         "create_test_invocation_bridge",
     ),
-    ("create", "test_invocation_groups"): (
-        f"{_T}.entries.test_invocation_groups.create",
-        "create_test_invocation_groups",
+    ("create", "test_invocation_traces"): (
+        f"{_T}.entries.test_invocation_traces.create",
+        "create_test_invocation_traces",
     ),
     ("create", "test_invocation_runs"): (
         f"{_T}.entries.test_invocation_runs.create",
@@ -1215,9 +1215,9 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.test_invocation_bridge.refresh",
         "refresh_test_invocation_bridge",
     ),
-    ("refresh", "test_invocation_groups"): (
-        f"{_T}.entries.test_invocation_groups.refresh",
-        "refresh_test_invocation_groups",
+    ("refresh", "test_invocation_traces"): (
+        f"{_T}.entries.test_invocation_traces.refresh",
+        "refresh_test_invocation_traces",
     ),
     ("refresh", "test_invocation_runs"): (
         f"{_T}.entries.test_invocation_runs.refresh",
@@ -1491,9 +1491,9 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.test_invocation_bridge.search",
         "search_test_invocation_bridge",
     ),
-    ("search", "test_invocation_groups"): (
-        f"{_T}.entries.test_invocation_groups.search",
-        "search_test_invocation_groups",
+    ("search", "test_invocation_traces"): (
+        f"{_T}.entries.test_invocation_traces.search",
+        "search_test_invocation_traces",
     ),
     ("search", "test_invocation_runs"): (
         f"{_T}.entries.test_invocation_runs.search",
@@ -1748,9 +1748,9 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.test_invocation_bridge.docs",
         "get_test_invocation_bridge_docs",
     ),
-    ("docs", "test_invocation_groups"): (
-        f"{_T}.entries.test_invocation_groups.docs",
-        "get_test_invocation_groups_docs",
+    ("docs", "test_invocation_traces"): (
+        f"{_T}.entries.test_invocation_traces.docs",
+        "get_test_invocation_traces_docs",
     ),
     ("docs", "test_invocation_runs"): (
         f"{_T}.entries.test_invocation_runs.docs",

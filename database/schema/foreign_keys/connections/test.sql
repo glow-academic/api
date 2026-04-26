@@ -164,163 +164,145 @@ ALTER TABLE ONLY public.test_invocation_departments_connection
 
 --
 
--- Name: test_invocation_groups_agents_connection test_invocation_groups_agents_co_test_invocation_groups_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_instructions_connection test_invocation_groups_instructions_connection_instructions_id_; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_agents_connection
-    ADD CONSTRAINT test_invocation_groups_agents_co_test_invocation_groups_id_fkey FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_groups_agents_connection test_invocation_groups_agents_connection_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_groups_agents_connection
-    ADD CONSTRAINT test_invocation_groups_agents_connection_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id);
-
-
---
-
--- Name: test_invocation_groups_instructions_connection test_invocation_groups_instructions_connection_instructions_id_; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_groups_instructions_connection
+ALTER TABLE ONLY public.test_invocation_traces_instructions_connection
     ADD CONSTRAINT test_invocation_groups_instructions_connection_instructions_id_ FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_instructions_connection test_invocation_groups_instructions_connection_test_invocation_; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_instructions_connection test_invocation_groups_instructions_connection_test_invocation_; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_instructions_connection
-    ADD CONSTRAINT test_invocation_groups_instructions_connection_test_invocation_ FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_instructions_connection
+    ADD CONSTRAINT test_invocation_groups_instructions_connection_test_invocation_ FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_modalities_connection test_invocation_groups_modalities_connection_modalities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_modalities_connection test_invocation_groups_modalities_connection_modalities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_modalities_connection
+ALTER TABLE ONLY public.test_invocation_traces_modalities_connection
     ADD CONSTRAINT test_invocation_groups_modalities_connection_modalities_id_fkey FOREIGN KEY (modalities_id) REFERENCES public.modalities_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_modalities_connection test_invocation_groups_modalities_connection_test_invocation_gr; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_modalities_connection test_invocation_groups_modalities_connection_test_invocation_gr; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_modalities_connection
-    ADD CONSTRAINT test_invocation_groups_modalities_connection_test_invocation_gr FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_modalities_connection
+    ADD CONSTRAINT test_invocation_groups_modalities_connection_test_invocation_gr FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_prompts_connection test_invocation_groups_prompts_connection_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_prompts_connection test_invocation_groups_prompts_connection_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_prompts_connection
+ALTER TABLE ONLY public.test_invocation_traces_prompts_connection
     ADD CONSTRAINT test_invocation_groups_prompts_connection_prompts_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_prompts_connection test_invocation_groups_prompts_connection_test_invocation_group; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_prompts_connection test_invocation_groups_prompts_connection_test_invocation_group; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_prompts_connection
-    ADD CONSTRAINT test_invocation_groups_prompts_connection_test_invocation_group FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_prompts_connection
+    ADD CONSTRAINT test_invocation_groups_prompts_connection_test_invocation_group FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_qualities_connection test_invocation_groups_qualities_connection_qualities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_qualities_connection test_invocation_groups_qualities_connection_qualities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_qualities_connection
+ALTER TABLE ONLY public.test_invocation_traces_qualities_connection
     ADD CONSTRAINT test_invocation_groups_qualities_connection_qualities_id_fkey FOREIGN KEY (qualities_id) REFERENCES public.qualities_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_qualities_connection test_invocation_groups_qualities_connection_test_invocation_gro; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_qualities_connection test_invocation_groups_qualities_connection_test_invocation_gro; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_qualities_connection
-    ADD CONSTRAINT test_invocation_groups_qualities_connection_test_invocation_gro FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_qualities_connection
+    ADD CONSTRAINT test_invocation_groups_qualities_connection_test_invocation_gro FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_reasoning_levels_connection test_invocation_groups_reasoning_levels_connection_reasoning_le; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_reasoning_levels_connection test_invocation_groups_reasoning_levels_connection_reasoning_le; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_reasoning_levels_connection
+ALTER TABLE ONLY public.test_invocation_traces_reasoning_levels_connection
     ADD CONSTRAINT test_invocation_groups_reasoning_levels_connection_reasoning_le FOREIGN KEY (reasoning_levels_id) REFERENCES public.reasoning_levels_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_reasoning_levels_connection test_invocation_groups_reasoning_levels_connection_test_invocat; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_reasoning_levels_connection test_invocation_groups_reasoning_levels_connection_test_invocat; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_reasoning_levels_connection
-    ADD CONSTRAINT test_invocation_groups_reasoning_levels_connection_test_invocat FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_reasoning_levels_connection
+    ADD CONSTRAINT test_invocation_groups_reasoning_levels_connection_test_invocat FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_temperature_levels_connection test_invocation_groups_temperature_levels_connection_temperatur; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_temperature_levels_connection test_invocation_groups_temperature_levels_connection_temperatur; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_temperature_levels_connection
+ALTER TABLE ONLY public.test_invocation_traces_temperature_levels_connection
     ADD CONSTRAINT test_invocation_groups_temperature_levels_connection_temperatur FOREIGN KEY (temperature_levels_id) REFERENCES public.temperature_levels_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_temperature_levels_connection test_invocation_groups_temperature_levels_connection_test_invoc; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_temperature_levels_connection test_invocation_groups_temperature_levels_connection_test_invoc; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_temperature_levels_connection
-    ADD CONSTRAINT test_invocation_groups_temperature_levels_connection_test_invoc FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_groups_tools_connection test_invocation_groups_tools_connection_test_invocation_groups_; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_groups_tools_connection
-    ADD CONSTRAINT test_invocation_groups_tools_connection_test_invocation_groups_ FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_temperature_levels_connection
+    ADD CONSTRAINT test_invocation_groups_temperature_levels_connection_test_invoc FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_tools_connection test_invocation_groups_tools_connection_tools_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_tools_connection test_invocation_groups_tools_connection_test_invocation_groups_; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_tools_connection
+ALTER TABLE ONLY public.test_invocation_traces_tools_connection
+    ADD CONSTRAINT test_invocation_groups_tools_connection_test_invocation_groups_ FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
+
+
+--
+
+-- Name: test_invocation_traces_tools_connection test_invocation_groups_tools_connection_tools_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.test_invocation_traces_tools_connection
     ADD CONSTRAINT test_invocation_groups_tools_connection_tools_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id);
 
 
 --
 
--- Name: test_invocation_groups_voices_connection test_invocation_groups_voices_connection_test_invocation_groups; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_voices_connection test_invocation_groups_voices_connection_test_invocation_groups; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_voices_connection
-    ADD CONSTRAINT test_invocation_groups_voices_connection_test_invocation_groups FOREIGN KEY (test_invocation_groups_id) REFERENCES public.test_invocation_groups_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.test_invocation_traces_voices_connection
+    ADD CONSTRAINT test_invocation_groups_voices_connection_test_invocation_groups FOREIGN KEY (test_invocation_traces_id) REFERENCES public.test_invocation_traces_entry(id) ON DELETE CASCADE;
 
 
 --
 
--- Name: test_invocation_groups_voices_connection test_invocation_groups_voices_connection_voices_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_voices_connection test_invocation_groups_voices_connection_voices_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_voices_connection
+ALTER TABLE ONLY public.test_invocation_traces_voices_connection
     ADD CONSTRAINT test_invocation_groups_voices_connection_voices_id_fkey FOREIGN KEY (voices_id) REFERENCES public.voices_resource(id);
 
 
@@ -376,168 +358,6 @@ ALTER TABLE ONLY public.test_invocation_rubrics_connection
 
 ALTER TABLE ONLY public.test_invocation_rubrics_connection
     ADD CONSTRAINT test_invocation_rubrics_connection_test_invocation_id_fkey FOREIGN KEY (test_invocation_id) REFERENCES public.test_invocation_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_agents_connection test_invocation_runs_agents_connec_test_invocation_runs_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_agents_connection
-    ADD CONSTRAINT test_invocation_runs_agents_connec_test_invocation_runs_id_fkey FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_agents_connection test_invocation_runs_agents_connection_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_agents_connection
-    ADD CONSTRAINT test_invocation_runs_agents_connection_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id);
-
-
---
-
--- Name: test_invocation_runs_instructions_connection test_invocation_runs_instructions_connection_instructions_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_instructions_connection
-    ADD CONSTRAINT test_invocation_runs_instructions_connection_instructions_id_fk FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id);
-
-
---
-
--- Name: test_invocation_runs_instructions_connection test_invocation_runs_instructions_connection_test_invocation_ru; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_instructions_connection
-    ADD CONSTRAINT test_invocation_runs_instructions_connection_test_invocation_ru FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_modalities_connection test_invocation_runs_modalities_connection_modalities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_modalities_connection
-    ADD CONSTRAINT test_invocation_runs_modalities_connection_modalities_id_fkey FOREIGN KEY (modalities_id) REFERENCES public.modalities_resource(id);
-
-
---
-
--- Name: test_invocation_runs_modalities_connection test_invocation_runs_modalities_connection_test_invocation_runs; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_modalities_connection
-    ADD CONSTRAINT test_invocation_runs_modalities_connection_test_invocation_runs FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_prompts_connection test_invocation_runs_prompts_connection_prompts_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_prompts_connection
-    ADD CONSTRAINT test_invocation_runs_prompts_connection_prompts_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id);
-
-
---
-
--- Name: test_invocation_runs_prompts_connection test_invocation_runs_prompts_connection_test_invocation_runs_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_prompts_connection
-    ADD CONSTRAINT test_invocation_runs_prompts_connection_test_invocation_runs_id FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_qualities_connection test_invocation_runs_qualities_connection_qualities_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_qualities_connection
-    ADD CONSTRAINT test_invocation_runs_qualities_connection_qualities_id_fkey FOREIGN KEY (qualities_id) REFERENCES public.qualities_resource(id);
-
-
---
-
--- Name: test_invocation_runs_qualities_connection test_invocation_runs_qualities_connection_test_invocation_runs_; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_qualities_connection
-    ADD CONSTRAINT test_invocation_runs_qualities_connection_test_invocation_runs_ FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_reasoning_levels_connection test_invocation_runs_reasoning_levels_connection_reasoning_leve; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_reasoning_levels_connection
-    ADD CONSTRAINT test_invocation_runs_reasoning_levels_connection_reasoning_leve FOREIGN KEY (reasoning_levels_id) REFERENCES public.reasoning_levels_resource(id);
-
-
---
-
--- Name: test_invocation_runs_reasoning_levels_connection test_invocation_runs_reasoning_levels_connection_test_invocatio; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_reasoning_levels_connection
-    ADD CONSTRAINT test_invocation_runs_reasoning_levels_connection_test_invocatio FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_temperature_levels_connection test_invocation_runs_temperature_levels_connection_temperature_; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_temperature_levels_connection
-    ADD CONSTRAINT test_invocation_runs_temperature_levels_connection_temperature_ FOREIGN KEY (temperature_levels_id) REFERENCES public.temperature_levels_resource(id);
-
-
---
-
--- Name: test_invocation_runs_temperature_levels_connection test_invocation_runs_temperature_levels_connection_test_invocat; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_temperature_levels_connection
-    ADD CONSTRAINT test_invocation_runs_temperature_levels_connection_test_invocat FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_tools_connection test_invocation_runs_tools_connection_test_invocation_runs_id_f; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_tools_connection
-    ADD CONSTRAINT test_invocation_runs_tools_connection_test_invocation_runs_id_f FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_tools_connection test_invocation_runs_tools_connection_tools_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_tools_connection
-    ADD CONSTRAINT test_invocation_runs_tools_connection_tools_id_fkey FOREIGN KEY (tools_id) REFERENCES public.tools_resource(id);
-
-
---
-
--- Name: test_invocation_runs_voices_connection test_invocation_runs_voices_connection_test_invocation_runs_id_; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_voices_connection
-    ADD CONSTRAINT test_invocation_runs_voices_connection_test_invocation_runs_id_ FOREIGN KEY (test_invocation_runs_id) REFERENCES public.test_invocation_runs_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: test_invocation_runs_voices_connection test_invocation_runs_voices_connection_voices_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.test_invocation_runs_voices_connection
-    ADD CONSTRAINT test_invocation_runs_voices_connection_voices_id_fkey FOREIGN KEY (voices_id) REFERENCES public.voices_resource(id);
 
 
 --

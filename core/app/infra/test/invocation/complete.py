@@ -1,8 +1,9 @@
 """Internal handler: test_invocation_complete — canonical per-invocation completion.
 
-Mirrors ``/attempt/chat/complete``. Completion is a state transition only —
-grading is a separate operation surfaced at ``/test/grade``. Call grade
-before completing if you want a grade attached to the run.
+Mirrors ``/attempt/chat/complete``. Pure data primitive: writes a
+test_invocation_completion_entry row binding the invocation to a
+freshly-minted call. Grading is a separate operation surfaced at
+``/test/grade``.
 """
 
 from __future__ import annotations
@@ -17,21 +18,15 @@ from app.infra.events.audit import (
     run_artifact_operation_with_audit,
 )
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.stream.socket_bridge import wrap_emit_with_stream_bridge
 from app.infra.test.client_types import TestInvocationCompletePayload
-from app.infra.test.proceed import test_proceed_internal_impl
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
-from app.infra.websocket.socket_event import (
-    EmitFn,
-    SocketEvent,
-    make_emit,
-)
-from app.infra.websocket.test_types import TestErrorData, TestProceedData
+from app.infra.websocket.socket_event import EmitFn
 
 
 class TestInvocationCompleteInternalResult(BaseModel):
     invocation_id: str
+    completion_id: str | None = None
     success: bool = True
 
 
@@ -41,7 +36,7 @@ async def test_invocation_complete_internal_impl(
     emit: EmitFn | None = None,
     audit: bool = True,
 ) -> TestInvocationCompleteInternalResult:
-    """Run canonical per-invocation completion. State transition only."""
+    """Mark a single invocation complete by writing its completion entry."""
     payload = TestInvocationCompletePayload(**data)
     sid = data.get("sid", "")
 
@@ -58,36 +53,52 @@ async def test_invocation_complete_internal_impl(
         raise ValueError("Missing session_id for test_invocation_complete")
 
     async def _run() -> TestInvocationCompleteInternalResult:
-        downstream_emit = wrap_emit_with_stream_bridge(
-            artifact="test",
-            operation="invocation_complete",
-            emit=emit or make_emit(),
-            entity_id=payload.test_invocation_id,
+        from app.tools.entries.calls.create import create_call
+        from app.tools.entries.runs.create import create_run
+        from app.tools.entries.groups.get import get_groups
+        from app.tools.entries.test_invocation.get import get_test_invocations
+        from app.tools.entries.test_invocation_completion.create import (
+            create_test_invocation_completion,
         )
-        recorded: list[SocketEvent] = []
-
-        async def _emit(events: list[SocketEvent]) -> None:
-            recorded.extend(events)
-            await downstream_emit(events)
-
-        await test_proceed_internal_impl(
-            TestProceedData(
-                sid=sid,
-                test_id=str(payload.test_id),
-                completed_invocation_id=str(payload.test_invocation_id),
-            ).model_dump(mode="json"),
-            emit=_emit,
+        from app.tools.entries.test_invocation_completion.refresh import (
+            refresh_test_invocation_completion,
         )
 
-        for event in recorded:
-            if event.bus != "internal":
-                continue
-            if event.event.startswith("test.") and event.event.endswith(".error"):
-                error = TestErrorData(**event.data)
-                raise ValueError(error.message)
+        async with get_pool().acquire() as conn:
+            invs = await get_test_invocations(
+                conn, [payload.test_invocation_id], bypass_mv=True,
+            )
+            if not invs:
+                raise ValueError(
+                    f"Invocation {payload.test_invocation_id} not found"
+                )
+            inv = invs[0]
+            group_id = inv.group_id
+            if group_id is None:
+                raise ValueError(
+                    f"Invocation {payload.test_invocation_id} has no group_id"
+                )
+            groups = await get_groups(conn, [group_id])
+            if not groups or groups[0].session_id is None:
+                raise ValueError(
+                    f"Group {group_id} has no session_id"
+                )
+            run = await create_run(
+                conn, group_id=group_id, session_id=groups[0].session_id,
+            )
+            call = await create_call(
+                conn, run_id=run.id, session_id=groups[0].session_id,
+            )
+            completion = await create_test_invocation_completion(
+                conn,
+                invocation_id=payload.test_invocation_id,
+                call_id=call.id,
+            )
+            await refresh_test_invocation_completion(conn)
 
         return TestInvocationCompleteInternalResult(
             invocation_id=str(payload.test_invocation_id),
+            completion_id=str(completion.id),
         )
 
     if not audit:

@@ -223,20 +223,6 @@ async def test_grade_complete_impl(
         logger.exception(f"Failed to handle test grade completion: {e}")
 
 
-def _find_next_run_id(runs: list[Any], prev_run_id: Any) -> Any:
-    """Find the next run after prev_run_id in a sorted list of runs."""
-    if not runs:
-        return None
-    if prev_run_id is None:
-        return runs[0].run_id
-    found = False
-    for run in runs:
-        if found:
-            return run.run_id
-        if run.run_id == prev_run_id:
-            found = True
-    return None
-
 
 async def test_group_impl(
     data: dict[str, Any],
@@ -431,6 +417,8 @@ async def test_next_impl(
                         {
                             "sid": sid,
                             "profile_id": data.get("profile_id"),
+                            "session_id": data.get("session_id"),
+                            "profiles_id": data.get("profiles_id"),
                             "test_invocation_id": str(invocation.invocation_id),
                             "test_id": str(test_id),
                             "group_id": str(invocation.group_id),
@@ -473,6 +461,7 @@ async def test_start_impl(
     from app.tools.entries.runs.create import create_run
     from app.tools.entries.sessions.create import create_session
     from app.tools.entries.test.create import create_test
+    from app.tools.entries.test.refresh import refresh_test
     from app.tools.entries.test_invocation.refresh import (
         refresh_test_invocation,
     )
@@ -563,44 +552,10 @@ async def test_start_impl(
                     session_id=session_id,
                 )
 
-            # Non-dynamic benchmarks: seed a test_invocation_entry per template.
-            # Mirrors how attempt_start_impl pulls home_chat / practice_chat
-            # templates and binds them to the new attempt.
-            if benchmark_id is not None and not is_dynamic:
-                from app.tools.entries.invocation.search import search_invocations
-                from app.tools.entries.test_invocation.create import (
-                    create_test_invocation,
-                )
-                templates = await search_invocations(
-                    conn, benchmark_ids=[benchmark_id], limit=1000,
-                )
-                for tmpl in templates:
-                    inv_run_id = (
-                        await create_run(
-                            conn, group_id=group_id, session_id=session_id,
-                        )
-                    ).id
-                    inv_call_id = (
-                        await create_call(
-                            conn, run_id=inv_run_id, session_id=session_id,
-                        )
-                    ).id
-                    await create_test_invocation(
-                        conn,
-                        test_id=test_id,
-                        call_id=inv_call_id,
-                        position=tmpl.position,
-                        use_custom=tmpl.use_custom,
-                        department_ids=list(tmpl.department_ids or []) or None,
-                        voice_ids=list(tmpl.voice_ids or []) or None,
-                        temperature_level_ids=list(tmpl.temperature_level_ids or []) or None,
-                        reasoning_level_ids=list(tmpl.reasoning_level_ids or []) or None,
-                        modality_ids=list(tmpl.modality_ids or []) or None,
-                        quality_ids=list(tmpl.quality_ids or []) or None,
-                        # agent_ids / rubric_ids: derived lazily downstream;
-                        # bundle_snapshot reads connections that may stay empty
-                        # at seeding without affecting proceed/run/grade.
-                    )
+            # No pre-seeding of test_invocation_entry rows. Mirrors
+            # attempt_start_impl: the test owns the wrapper; the client
+            # calls /test/invocation/create per benchmark template card to
+            # materialize a row when the user runs that card.
 
             generation_run_id = data.get("generation_run_id")
             if generation_run_id and redis:
@@ -615,20 +570,18 @@ async def test_start_impl(
                         f"Failed to store generation_test_link for test {test_id}"
                     )
 
+            await refresh_test(conn)
             await refresh_test_invocation(conn)
             if redis:
                 await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 
-        await emit(
-            [
-                internal_event(
-                    "test.proceed.completed",
-                    TestProceedData(sid=sid, test_id=str(test_id)).model_dump(
-                        mode="json"
-                    ),
-                )
-            ]
-        )
+        # Client-orchestrated: /test/start returns the test_id; the
+        # client renders the benchmark's invocation templates and calls
+        # /test/invocation/create per card to materialize rows on demand.
+        data["_result"] = {
+            "test_id": str(test_id),
+            "benchmark_id": str(benchmark_id) if benchmark_id else None,
+        }
 
     except Exception as e:
         logger.exception(f"Error in test_start: {e}")
@@ -646,506 +599,7 @@ async def test_start_impl(
         )
 
 
-async def test_proceed_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-    pool: asyncpg.Pool,
-    redis: Redis | None = None,
-) -> None:
-    """Shared core: resolve context, check done, resolve invocation, emit."""
-    from app.infra.websocket.test_types import TestErrorData, TestProceedData
-    from app.tools.entries.calls.create import create_call
-    from app.tools.entries.groups.get import get_groups
-    from app.tools.entries.runs.create import create_run
-    from app.tools.entries.test.get import get_tests
-    from app.tools.entries.test_invocation.create import (
-        create_test_invocation,
-    )
-    from app.tools.entries.test_invocation.get import get_test_invocations
-    from app.tools.entries.test_invocation.refresh import (
-        refresh_test_invocation,
-    )
-    from app.tools.entries.test_invocation.search import (
-        search_test_invocation_entries_internal,
-    )
-    from app.tools.entries.test_invocation_completion.create import (
-        create_test_invocation_completion,
-    )
-    from app.utils.cache.invalidate_tags import invalidate_tags
-    from app.utils.logging.db_logger import get_logger
 
-    logger = get_logger(__name__)
-
-    async def _create_run_call(
-        conn: asyncpg.Connection,
-        *,
-        group_id: uuid.UUID,
-    ) -> uuid.UUID:
-        """Create a fresh run + call bound to the group's session.
-
-        Uses canonical black boxes only. test_invocation_entry.call_id is
-        write-only now — we still populate it on invocation creation, but
-        never read it back (the MV deliberately omits it).
-        """
-        groups = await get_groups(conn, [group_id])
-        if not groups:
-            raise ValueError(f"Group {group_id} not found")
-        session_id = groups[0].session_id
-        if session_id is None:
-            raise ValueError(f"Group {group_id} has no session_id — cannot bind a run")
-
-        run = await create_run(conn, group_id=group_id, session_id=session_id)
-        call = await create_call(conn, run_id=run.id, session_id=session_id)
-        return call.id
-
-    sid = data.get("sid", "")
-
-    try:
-        payload = TestProceedData(**data)
-    except Exception as e:
-        logger.exception(f"Invalid test_proceed payload: {e}")
-        return
-
-    try:
-        test_id = uuid.UUID(payload.test_id)
-        force_proceed = payload.force_proceed
-        completed_invocation_id = (
-            uuid.UUID(payload.completed_invocation_id)
-            if payload.completed_invocation_id
-            else None
-        )
-        complete_all = payload.complete_all
-
-        async with pool.acquire() as conn:
-            if completed_invocation_id:
-                try:
-                    invs = await get_test_invocations(conn, [completed_invocation_id])
-                    inv_group_id = invs[0].group_id if invs else None
-                    if inv_group_id is None:
-                        raise ValueError(
-                            f"Invocation {completed_invocation_id} has no group_id"
-                        )
-                    completion_call_id = await _create_run_call(
-                        conn,
-                        group_id=inv_group_id,
-                    )
-                    await create_test_invocation_completion(
-                        conn,
-                        invocation_id=completed_invocation_id,
-                        call_id=completion_call_id,
-                    )
-                except Exception:
-                    logger.warning(
-                        f"Failed to create test_completion for {completed_invocation_id} "
-                        f"(may already exist)"
-                    )
-
-            if complete_all:
-                (
-                    all_invocations,
-                    _total_count,
-                ) = await search_test_invocation_entries_internal(
-                    conn,
-                    test_ids=[test_id],
-                    limit=1000,
-                    bypass_mv=True,
-                )
-                for inv in all_invocations:
-                    if not inv.invocation_completed:
-                        try:
-                            if inv.group_id is None:
-                                continue
-                            completion_call_id = await _create_run_call(
-                                conn,
-                                group_id=inv.group_id,
-                            )
-                            await create_test_invocation_completion(
-                                conn,
-                                invocation_id=inv.invocation_id,
-                                call_id=completion_call_id,
-                            )
-                        except Exception:
-                            pass
-                await refresh_test_invocation(conn)
-                if redis:
-                    await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
-
-                await emit(
-                    [
-                        internal_event(
-                            "test.end.completed",
-                            {
-                                "sid": sid,
-                                "test_id": str(test_id),
-                                "success": True,
-                                "message": "All invocations completed",
-                            },
-                        )
-                    ]
-                )
-                return
-
-            (
-                all_invocations,
-                _total_count,
-            ) = await search_test_invocation_entries_internal(
-                conn,
-                test_ids=[test_id],
-                limit=1000,
-                bypass_mv=True,
-            )
-            from app.tools.entries.test.refresh import refresh_test
-            await refresh_test(conn)
-            tests = await get_tests(conn, ids=[test_id])
-
-        is_dynamic = tests[0].is_dynamic if tests else True
-        total_invocations = len(all_invocations)
-        completed = [inv for inv in all_invocations if inv.invocation_completed]
-        uncompleted = [inv for inv in all_invocations if not inv.invocation_completed]
-        completed_count = len(completed)
-
-        if not all_invocations:
-            await emit(
-                [
-                    internal_event(
-                        "test.proceed.error",
-                        TestErrorData(
-                            sid=sid,
-                            message="Failed to resolve test context",
-                            error_type="proceed",
-                        ).model_dump(mode="json"),
-                    )
-                ]
-            )
-            return
-
-        if not uncompleted or completed_count >= total_invocations:
-            await emit(
-                [
-                    internal_event(
-                        "test.end.completed",
-                        {
-                            "sid": sid,
-                            "test_id": str(test_id),
-                            "success": True,
-                            "message": "All invocations completed",
-                        },
-                    )
-                ]
-            )
-            return
-
-        next_invocation = uncompleted[0]
-
-        if next_invocation.use_custom and not force_proceed:
-            await emit(
-                [
-                    internal_event(
-                        "test.start.completed",
-                        {
-                            "sid": sid,
-                            "test_id": str(test_id),
-                            "invocation_entry_id": str(next_invocation.invocation_id),
-                        },
-                    )
-                ]
-            )
-            return
-
-        if is_dynamic:
-            # Dynamic tests: create a new invocation for each proceed
-            async with pool.acquire() as conn:
-                invocation_call_id = await _create_run_call(
-                    conn,
-                    group_id=next_invocation.group_id,
-                )
-                inv_result = await create_test_invocation(
-                    conn,
-                    test_id=test_id,
-                    call_id=invocation_call_id,
-                )
-                test_invocation_id = inv_result.id
-                await refresh_test_invocation(conn)
-                if redis:
-                    await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
-        else:
-            # Non-dynamic (generation eval): invocations already created
-            # by setup_generation_test — use the existing one
-            test_invocation_id = next_invocation.invocation_id
-            # Still refresh MV so Test_Get can find them
-            async with pool.acquire() as conn:
-                await refresh_test_invocation(conn)
-            if redis:
-                await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
-
-        await emit(
-            [
-                internal_event(
-                    "test.run.invocation_started",
-                    {
-                        "sid": sid,
-                        "test_id": str(test_id),
-                        "test_invocation_id": str(test_invocation_id),
-                        "is_dynamic": is_dynamic,
-                    },
-                )
-            ]
-        )
-
-        # Auto-trigger grading for non-dynamic tests (generation eval).
-        # The agent is already done — output is persisted. Grade it now
-        # without waiting for a client-side test_run event.
-        if not is_dynamic:
-            # Derive original run_id from test → call → run
-            from app.tools.entries.calls.get import get_calls
-
-            original_run_id: uuid.UUID | None = None
-            original_group_id: uuid.UUID | None = None
-            if tests and tests[0].call_id:
-                async with pool.acquire() as conn:
-                    from app.tools.entries.calls.refresh import refresh_calls_internal
-                    await refresh_calls_internal(conn, redis=redis)
-                    calls = await get_calls(conn, [tests[0].call_id])
-                if calls:
-                    original_run_id = calls[0].run_id
-                    # Derive group_id from the original run
-                    from app.tools.entries.runs.get import get_run
-                    async with pool.acquire() as conn:
-                        run = await get_run(conn, original_run_id)
-                    if run:
-                        original_group_id = run.group_id
-
-            if original_run_id:
-                await emit(
-                    [
-                        internal_event(
-                            "test.run.triggered",
-                            {
-                                "sid": sid,
-                                "test_id": str(test_id),
-                                "test_invocation_id": str(test_invocation_id),
-                                "run_id": str(original_run_id),
-                                "group_id": str(original_group_id) if original_group_id else None,
-                                "profile_id": data.get("profile_id"),
-                                "session_id": data.get("session_id"),
-                                "profiles_id": data.get("profiles_id"),
-                            },
-                        )
-                    ]
-                )
-
-    except Exception as e:
-        logger.exception(f"Error in test_proceed: {e}")
-        await emit(
-            [
-                internal_event(
-                    "test.proceed.error",
-                    TestErrorData(
-                        sid=sid,
-                        message=f"Failed to proceed: {e}",
-                        error_type="proceed",
-                    ).model_dump(mode="json"),
-                )
-            ]
-        )
-
-
-async def test_run_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-    pool: asyncpg.Pool,
-) -> None:
-    """Copy conversation from original run, create new run, run grading generation."""
-    from app.infra.generation.run_from_payload import run_generation_from_payload
-    from app.infra.globals import get_redis_client
-    from app.infra.websocket.test_types import TestErrorData
-    from app.infra.test.client_types import TestRunPayload
-    from app.tools.entries.messages.create import create_message
-    from app.tools.entries.messages.search import search_messages
-    from app.tools.entries.runs.create import create_run
-    from app.tools.entries.test_invocation.get import get_test_invocations
-    from app.utils.logging.db_logger import get_logger
-
-    logger = get_logger(__name__)
-    sid = data.get("sid", "")
-
-    profile_id_str = data.get("profile_id")
-    if not profile_id_str:
-        return
-
-    try:
-        payload = TestRunPayload(**data)
-    except Exception as e:
-        logger.exception(f"Invalid test_run payload: {e}")
-        return
-
-    try:
-        test_id = payload.test_id
-        test_invocation_id = payload.test_invocation_id
-        original_run_id = payload.run_id
-
-        async with pool.acquire() as conn:
-            invocations = await get_test_invocations(
-                conn, ids=[test_invocation_id], bypass_mv=True
-            )
-            if not invocations:
-                await emit(
-                    [
-                        internal_event(
-                            "test.run.error",
-                            TestErrorData(
-                                sid=sid,
-                                invocation_id=str(test_invocation_id),
-                                message="No group found for test invocation",
-                                error_type="run",
-                            ).model_dump(mode="json"),
-                        )
-                    ]
-                )
-                return
-
-            group_id = invocations[0].group_id
-            # Fallback: use group_id from event data (generation eval path)
-            if not group_id:
-                group_id_str = data.get("group_id")
-                group_id = uuid.UUID(group_id_str) if group_id_str else None
-            if not group_id:
-                await emit(
-                    [
-                        internal_event(
-                            "test.run.error",
-                            TestErrorData(
-                                sid=sid,
-                                invocation_id=str(test_invocation_id),
-                                message="No group_id found for test run",
-                                error_type="run",
-                            ).model_dump(mode="json"),
-                        )
-                    ]
-                )
-                return
-            session_id_str = data.get("session_id")
-            session_id = (
-                uuid.UUID(session_id_str) if session_id_str else uuid.UUID(int=0)
-            )
-            profiles_id_str = data.get("profiles_id")
-            profiles_id = uuid.UUID(profiles_id_str) if profiles_id_str else None
-
-            run_result = await create_run(
-                conn,
-                group_id=group_id,
-                session_id=session_id,
-            )
-            new_run_id = run_result.id
-
-            original_messages, _ = await search_messages(
-                conn,
-                run_ids=[original_run_id],
-                sort_order="asc",
-                bypass_mv=True,
-                limit=1000,
-            )
-            if not original_messages:
-                await emit(
-                    [
-                        internal_event(
-                            "test.run.error",
-                            TestErrorData(
-                                sid=sid,
-                                invocation_id=str(test_invocation_id),
-                                message="No messages found in original run",
-                                error_type="run",
-                            ).model_dump(mode="json"),
-                        )
-                    ]
-                )
-                return
-
-            messages_to_copy = list(original_messages)
-            for i in range(len(messages_to_copy) - 1, -1, -1):
-                if messages_to_copy[i].role == "assistant":
-                    messages_to_copy.pop(i)
-                    break
-
-            for msg in messages_to_copy:
-                await create_message(conn, run_id=new_run_id, role=msg.role)
-
-            assistant_msg = await create_message(
-                conn,
-                run_id=new_run_id,
-                role="assistant",
-            )
-
-        await emit(
-            [
-                internal_event(
-                    "test.run.started",
-                    {
-                        "sid": sid,
-                        "test_id": str(test_id),
-                        "test_invocation_id": str(test_invocation_id),
-                        "run_id": str(new_run_id),
-                        "original_run_id": str(original_run_id),
-                        "message_id": str(assistant_msg.id),
-                    },
-                )
-            ]
-        )
-
-        # Direct call into the canonical prepare → execute pipeline — resolves
-        # the grading agent, model, and tools from system config. No bus event.
-        await run_generation_from_payload(
-            {
-                "sid": sid,
-                "artifact_type": "test",
-                "profile_id": profile_id_str,
-                "profiles_id": data.get("profiles_id"),
-                "session_id": data.get("session_id"),
-                "group_id": str(group_id),
-                "operations": [
-                    "get", "grade", "feedback", "text_download", "call_download",
-                ],
-                "modalities": ["text"],
-                "run_id": str(new_run_id),
-                "params": {
-                    "test_id": str(test_id),
-                    "invocation_id": str(test_invocation_id),
-                    "run_id": str(original_run_id),
-                },
-                "metadata": {
-                    "test_id": str(test_id),
-                    "test_invocation_id": str(test_invocation_id),
-                    "original_run_id": str(original_run_id),
-                },
-            },
-            emit=emit,
-            pool=pool,
-            redis=get_redis_client(),
-        )
-
-        logger.info(
-            f"Test run started - test_id={test_id}, "
-            f"invocation_id={test_invocation_id}, "
-            f"new_run_id={new_run_id}, original_run_id={original_run_id}"
-        )
-
-    except Exception as e:
-        logger.exception(f"Error in test_run: {e}")
-        await emit(
-            [
-                internal_event(
-                    "test.run.error",
-                    TestErrorData(
-                        sid=sid,
-                        invocation_id=str(payload.test_invocation_id),
-                        message=f"Failed to run test: {e}",
-                        error_type="run",
-                    ).model_dump(mode="json"),
-                )
-            ]
-        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1153,30 +607,6 @@ async def test_run_impl(
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def determine_next_run(
-    invocation_run_ids: list[uuid.UUID],
-    run_ids: list[uuid.UUID],
-) -> tuple[uuid.UUID | None, int, int]:
-    """Determine the next pending template run to replay.
-
-    Compares configured template runs (run_ids) against completed runs
-    (invocation_run_ids) to find the next unexecuted template.
-
-    Returns:
-        (next_run_resource_id, current_run_number, total_runs)
-    """
-    total_runs = len(run_ids)
-    completed_runs = len(invocation_run_ids)
-
-    if completed_runs >= total_runs:
-        return None, total_runs, total_runs
-
-    next_run_resource_id = (
-        run_ids[completed_runs] if completed_runs < total_runs else None
-    )
-    current_run = completed_runs + 1
-
-    return next_run_resource_id, current_run, total_runs
 
 
 def build_messages_from_conversation(

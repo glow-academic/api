@@ -100,6 +100,10 @@ INFRA_OPS.update({
 INFRA_OPS.update({
     ("test", "grade"): ("app.infra.test.grade", "create_grade_impl"),
     ("test", "feedback"): ("app.infra.test.feedback", "create_feedback_impl"),
+    # Mirrors attempt.chat_create — one invocation per LLM tool call.
+    ("test", "invocation_create"): (
+        "app.infra.invocation.create", "create_invocation_impl",
+    ),
 })
 
 # --- Dashboard aliases ---
@@ -141,6 +145,11 @@ INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = _discover_items()
 # --- Manual override: attempt chat_create uses ApiRequest directly ---
 INFRA_ITEM_TYPES[("attempt", "chat_create")] = (
     f"{_I}.attempt.chat_create", "CreateAttemptChatApiRequest"
+)
+
+# --- Manual override: test invocation_create uses ApiRequest directly ---
+INFRA_ITEM_TYPES[("test", "invocation_create")] = (
+    f"{_I}.invocation.create", "CreateInvocationApiRequest"
 )
 
 

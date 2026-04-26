@@ -137,13 +137,66 @@ _EVAL_SHORT_SLUGS: dict[UUID, str] = {
 # ---------------------------------------------------------------------------
 # Per-eval × per-model cross-product helpers
 # ---------------------------------------------------------------------------
-# All evals share the same model coverage: every model seeded from
-# glow-deploy.yaml. Listing once and reusing keeps benchmark sync deterministic.
+# Coverage is now per-eval — `EVAL_MODEL_IDS` maps each eval id → the list
+# of model resource ids attached to it. Resource ids are the canonical
+# `sid("model-resource/<name>")` shape (same value used in models.py:201,
+# ROLE_MODEL_IDS, and everywhere else a model is referenced), so the
+# mapping is stable across regens and round-trippable from the model name.
+#
+# To attach more models to an eval, add their `sid("model-resource/<name>")`
+# to that eval's list. To narrow further, drop entries. The cross-product
+# helpers below (`_ids_for_eval`) walk this per-eval list, so model_flags,
+# model_rubrics, and model_positions row counts shrink/grow uniformly.
 
-_MODEL_RESOURCE_IDS: list[UUID] = [m["resource_id"] for m in _model_seeds]
+_GLOW_TEXT_RESOURCE_ID: UUID = sid("model-resource/glow-text")
+
+# Single-model coverage for v1 — every eval gets glow-text only. Swap in
+# additional ids per eval as coverage broadens.
+EVAL_MODEL_IDS: dict[UUID, list[UUID]] = {
+    RUN_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    GROUP_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    AGENT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    AUTH_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    BENCHMARK_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    CHAT_AGENT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    COHORT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    DEPARTMENT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    DOCUMENT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    EVAL_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    FIELD_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    GRADE_AGENT_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    MODEL_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    PARAMETER_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    PERSONA_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    PROFILE_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    PROVIDER_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    RUBRIC_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    SCENARIO_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    SETTING_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    SIMULATION_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    TOOL_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+    TRAINING_AGENT_EVAL: [_GLOW_TEXT_RESOURCE_ID],
+}
+
+# Reverse name lookup — model_flags / model_rubrics / model_positions sub-resource
+# ids derive from the model's *name*, so we still need to resolve resource_id → name.
 _MODEL_NAMES_BY_RESOURCE_ID: dict[UUID, str] = {
     m["resource_id"]: m["name"] for m in _model_seeds
 }
+
+# Stable, deduplicated union of model ids referenced by *any* eval. Used by
+# the runner-exported model_flags / model_rubrics / model_positions seed
+# lists (below) so we only create sub-resource rows that an eval actually
+# references — no orphan rows for unused models.
+def _all_referenced_model_ids() -> list[UUID]:
+    seen: set[UUID] = set()
+    out: list[UUID] = []
+    for ids in EVAL_MODEL_IDS.values():
+        for mid in ids:
+            if mid not in seen:
+                seen.add(mid)
+                out.append(mid)
+    return out
 
 
 def _model_flag_id(model_resource_id: UUID) -> UUID:
@@ -165,19 +218,26 @@ def _model_position_id(model_resource_id: UUID, eval_slug: str, position: int) -
 
 
 def _ids_for_eval(eval_id: UUID) -> dict:
-    """Build the four cross-product id lists for a single eval entry."""
+    """Build the four cross-product id lists for a single eval entry.
+
+    Pulls the model coverage from `EVAL_MODEL_IDS[eval_id]` so each eval
+    can target a different subset. Sub-resource ids (model_flag,
+    model_rubric, model_position) are still deterministic from the
+    (model_name, eval/rubric_slug, index) triple via sid().
+    """
     rubric_slug = EVAL_RUBRIC_SLUGS[eval_id]
     short_slug = _EVAL_SHORT_SLUGS[eval_id]
-    model_flag_ids = [_model_flag_id(mid) for mid in _MODEL_RESOURCE_IDS]
+    model_ids = list(EVAL_MODEL_IDS.get(eval_id, []))
+    model_flag_ids = [_model_flag_id(mid) for mid in model_ids]
     model_rubric_ids = [
-        _model_rubric_id(mid, rubric_slug) for mid in _MODEL_RESOURCE_IDS
+        _model_rubric_id(mid, rubric_slug) for mid in model_ids
     ]
     model_position_ids = [
         _model_position_id(mid, short_slug, idx)
-        for idx, mid in enumerate(_MODEL_RESOURCE_IDS)
+        for idx, mid in enumerate(model_ids)
     ]
     return dict(
-        model_ids=list(_MODEL_RESOURCE_IDS),
+        model_ids=model_ids,
         model_flag_ids=model_flag_ids,
         model_rubric_ids=model_rubric_ids,
         model_position_ids=model_position_ids,
@@ -343,9 +403,12 @@ evals: list[dict] = [
 # model_positions_resource BEFORE the eval module runs, so eval junction
 # inserts FK-resolve. Deduped by id.
 
+# model_flags rows: one per *referenced* model id (deduped union across
+# all evals). use_custom=true is the same flag for every model, so this
+# only needs the union — not per-eval.
 _seen_flag: set[UUID] = set()
 model_flags: list[dict] = []
-for _mid in _MODEL_RESOURCE_IDS:
+for _mid in _all_referenced_model_ids():
     _id = _model_flag_id(_mid)
     if _id in _seen_flag:
         continue
@@ -355,11 +418,14 @@ for _mid in _MODEL_RESOURCE_IDS:
     )
 
 
+# model_rubrics rows: one per (model, eval-rubric) pair, scoped to that
+# eval's model coverage from EVAL_MODEL_IDS. Models excluded from an eval
+# don't get a model_rubric row for that eval's rubric slug.
 _seen_rubric: set[UUID] = set()
 model_rubrics: list[dict] = []
 for _eval_id, _rubric_slug in EVAL_RUBRIC_SLUGS.items():
     _rubric_resource_id = sid(f"rubric-resource/{_rubric_slug}")
-    for _mid in _MODEL_RESOURCE_IDS:
+    for _mid in EVAL_MODEL_IDS.get(_eval_id, []):
         _id = _model_rubric_id(_mid, _rubric_slug)
         if _id in _seen_rubric:
             continue
@@ -369,10 +435,14 @@ for _eval_id, _rubric_slug in EVAL_RUBRIC_SLUGS.items():
         )
 
 
+# model_positions rows: one per (model, eval) pair with the position
+# index inside that eval's model list. Index is local to the eval, so two
+# evals can both have a "position 0" row for the same model — different
+# (eval, position) pairs hash to different sids.
 _seen_position: set[UUID] = set()
 model_positions: list[dict] = []
 for _eval_id, _short_slug in _EVAL_SHORT_SLUGS.items():
-    for _idx, _mid in enumerate(_MODEL_RESOURCE_IDS):
+    for _idx, _mid in enumerate(EVAL_MODEL_IDS.get(_eval_id, [])):
         _id = _model_position_id(_mid, _short_slug, _idx)
         if _id in _seen_position:
             continue

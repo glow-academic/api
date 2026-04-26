@@ -880,6 +880,8 @@ agents = [
             sid("tool-resource/test/feedback"),
             sid("tool-resource/test/text-download"),
             sid("tool-resource/test/call-download"),
+            sid("tool-resource/invocation/get"),
+            sid("tool-resource/invocation/create"),
         ],
         prompt_id=_prompt_id("Test Grade"),
         instruction_ids=[_instruction_id("Test Grade")],

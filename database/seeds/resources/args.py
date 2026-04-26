@@ -102,6 +102,7 @@ SHARED_ARGS = {
     "instruction_search": dict(id=sid("arg/instruction_search"), name="instruction_search", field_type="string"),
     "invocation_entry_id": dict(id=sid("arg/invocation_entry_id"), name="invocation_entry_id", field_type="uuid"),
     "invocation_id": dict(id=sid("arg/invocation_id"), name="invocation_id", field_type="uuid"),
+    "use_custom": dict(id=sid("arg/use_custom"), name="use_custom", field_type="boolean", description="Caller supplies the resource selections (skip template defaults)"),
     "limit": dict(id=sid("arg/limit"), name="limit", field_type="integer"),
     "message": dict(id=sid("arg/message"), name="message", field_type="string", required=True),
     "message_id": dict(id=sid("arg/message_id"), name="message_id", field_type="uuid", description="UUID of the message"),

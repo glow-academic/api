@@ -61,8 +61,6 @@ INVOCATION_CSV_COLUMNS = [
     "agents",
     "quality_id",
     "departments",
-    "run_agent_ids",
-    "group_agent_ids",
     "voice_id",
     "temperature_level_id",
     "reasoning_level_id",
@@ -188,8 +186,6 @@ async def export_benchmark_impl(
         departments_str = PIPE.join(
             department_map.get(did, str(did)) for did in (inv.department_ids or [])
         )
-        run_agent_ids_str = PIPE.join(str(aid) for aid in (inv.run_agent_ids or []))
-        group_agent_ids_str = PIPE.join(str(aid) for aid in (inv.group_agent_ids or []))
         modality_ids_str = PIPE.join(str(mid) for mid in (inv.modality_ids or []))
 
         inv_writer.writerow(
@@ -210,8 +206,6 @@ async def export_benchmark_impl(
                 agents_str,
                 str(inv.quality_id) if inv.quality_id else "",
                 departments_str,
-                run_agent_ids_str,
-                group_agent_ids_str,
                 str(inv.voice_id) if inv.voice_id else "",
                 str(inv.temperature_level_id) if inv.temperature_level_id else "",
                 str(inv.reasoning_level_id) if inv.reasoning_level_id else "",

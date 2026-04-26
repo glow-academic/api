@@ -27,8 +27,6 @@ class GetTestInvocationResponse(BaseModel):
     agent_ids: list[UUID] = []
     quality_id: UUID | None = None
     department_ids: list[UUID] = []
-    run_agent_ids: list[UUID] = []
-    group_agent_ids: list[UUID] = []
     voice_id: UUID | None = None
     temperature_level_id: UUID | None = None
     reasoning_level_id: UUID | None = None

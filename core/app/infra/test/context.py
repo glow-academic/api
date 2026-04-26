@@ -2,7 +2,7 @@
 
 Test detail is a single-test view (no drafts, no artifact table).
 Uses test_mv, test_invocation_mv, test_invocation_runs_mv,
-test_invocation_groups_mv, test_grade_mv, test_feedback_mv, messages_mv.
+test_invocation_traces_mv, test_grade_mv, test_feedback_mv, messages_mv.
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ from app.tools.entries.test_grade.search import search_test_grades
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
 )
-from app.tools.entries.test_invocation_groups.search import (
-    search_test_invocation_groups,
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
 )
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
@@ -35,15 +35,21 @@ from app.tools.resources.agents.get import get_agents
 from app.tools.resources.evals.get import get_evals
 from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.modalities.get import get_modalities
+from app.tools.resources.modalities.search import search_modalities
 from app.tools.resources.models.get import get_models
 from app.tools.resources.prompts.get import get_prompts
 from app.tools.resources.qualities.get import get_qualities
+from app.tools.resources.qualities.search import search_qualities
 from app.tools.resources.reasoning_levels.get import get_reasoning_levels
+from app.tools.resources.reasoning_levels.search import search_reasoning_levels
 from app.tools.resources.rubrics.get import get_rubrics
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.temperature_levels.get import get_temperature_levels
+from app.tools.resources.temperature_levels.search import search_temperature_levels
 from app.tools.resources.tools.get import get_tools
+from app.tools.resources.tools.search import search_tools
 from app.tools.resources.voices.get import get_voices
+from app.tools.resources.voices.search import search_voices
 
 
 async def resolve_test_context(
@@ -59,7 +65,7 @@ async def resolve_test_context(
       - tests: test_mv rows (single test)
       - invocations: test_invocation_mv rows
       - runs: test_invocation_runs_mv rows
-      - groups: test_invocation_groups_mv rows
+      - groups: test_invocation_traces_mv rows
       - grades: test_grade_mv rows
       - feedback: test_feedback_mv rows
       - messages: messages_mv rows
@@ -106,7 +112,7 @@ async def resolve_test_context(
         if not invocation_ids:
             return []
         async with pool.acquire() as c:
-            items, _total_count = await search_test_invocation_groups(
+            items, _total_count = await search_test_invocation_traces(
                 c, test_invocation_ids=invocation_ids, limit=100000
             )
             return items
@@ -198,10 +204,6 @@ async def resolve_test_context(
             rubric_ids_set.add(inv.rubric_id)
         for aid in inv.agent_ids or []:
             agent_ids_set.add(aid)
-        for aid in inv.run_agent_ids or []:
-            agent_ids_set.add(aid)
-        for aid in inv.group_agent_ids or []:
-            agent_ids_set.add(aid)
         if inv.quality_id:
             quality_ids_set.add(inv.quality_id)
         if inv.voice_id:
@@ -213,10 +215,29 @@ async def resolve_test_context(
         for mid in inv.modality_ids or []:
             modality_ids_set.add(mid)
 
-    # From runs and groups
-    for item in [*runs, *groups]:
+    # From runs (carry agent_ids; traces do not)
+    for item in runs:
         for aid in item.agent_ids or []:
             agent_ids_set.add(aid)
+        for rid in item.reasoning_level_ids or []:
+            reasoning_ids_set.add(rid)
+        for tid in item.temperature_level_ids or []:
+            temp_level_ids_set.add(tid)
+        for vid in item.voice_ids or []:
+            voice_ids_set.add(vid)
+        for pid in item.prompt_ids or []:
+            prompt_ids_set.add(pid)
+        for iid in item.instruction_ids or []:
+            instruction_ids_set.add(iid)
+        for tid in item.tool_ids or []:
+            tool_ids_set.add(tid)
+        for qid in item.quality_ids or []:
+            quality_ids_set.add(qid)
+        for mid in item.modality_ids or []:
+            modality_ids_set.add(mid)
+
+    # From traces (no agent_ids — agent lives on parent invocation)
+    for item in groups:
         for rid in item.reasoning_level_ids or []:
             reasoning_ids_set.add(rid)
         for tid in item.temperature_level_ids or []:
@@ -283,6 +304,34 @@ async def resolve_test_context(
         _get(get_standard_groups, sg_ids_set),
     )
 
+    # ── Phase 5c: Global catalogs for resource panel pickers ──────────
+    # The panel needs full lists of pickable options (not just selected).
+    # Suggestions are returned alongside the selected resources so the
+    # client can render the picker dropdowns.
+    async def _search_all(
+        searcher: Callable, *, limit: int = 1000
+    ) -> list:
+        async with pool.acquire() as c:
+            return await searcher(
+                c, redis, limit_count=limit, bypass_cache=bypass_cache,
+            )
+
+    (
+        tools_all,
+        qualities_all,
+        modalities_all,
+        reasoning_all,
+        voices_all,
+        temperature_all,
+    ) = await asyncio.gather(
+        _search_all(search_tools),
+        _search_all(search_qualities),
+        _search_all(search_modalities),
+        _search_all(search_reasoning_levels),
+        _search_all(search_voices),
+        _search_all(search_temperature_levels),
+    )
+
     # ── Phase 6: Sort messages by role priority then created_at ────────
     _ROLE_ORDER = {"system": 0, "developer": 1, "user": 2, "assistant": 3}
     messages.sort(
@@ -309,14 +358,14 @@ async def resolve_test_context(
             "rubrics": ResourcePair(selected=rubrics_res, suggestions=[]),
             "agents": ResourcePair(selected=agents_res, suggestions=[]),
             "models": ResourcePair(selected=models_res, suggestions=[]),
-            "voices": ResourcePair(selected=voices_res, suggestions=[]),
-            "temperature_levels": ResourcePair(selected=temp_res, suggestions=[]),
-            "reasoning_levels": ResourcePair(selected=reasoning_res, suggestions=[]),
-            "modalities": ResourcePair(selected=modalities_res, suggestions=[]),
+            "voices": ResourcePair(selected=voices_res, suggestions=voices_all),
+            "temperature_levels": ResourcePair(selected=temp_res, suggestions=temperature_all),
+            "reasoning_levels": ResourcePair(selected=reasoning_res, suggestions=reasoning_all),
+            "modalities": ResourcePair(selected=modalities_res, suggestions=modalities_all),
             "prompts": ResourcePair(selected=prompts_res, suggestions=[]),
             "instructions": ResourcePair(selected=instructions_res, suggestions=[]),
-            "tools": ResourcePair(selected=tools_res, suggestions=[]),
-            "qualities": ResourcePair(selected=qualities_res, suggestions=[]),
+            "tools": ResourcePair(selected=tools_res, suggestions=tools_all),
+            "qualities": ResourcePair(selected=qualities_res, suggestions=qualities_all),
             "standard_groups": ResourcePair(selected=standard_groups_res, suggestions=[]),
         },
     )

@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.26"
+    "version": "2.15.31"
   },
   "paths": {
     "/persona/get": {
@@ -18276,19 +18276,18 @@
         ]
       }
     },
-    "/test/next": {
+    "/test/trace": {
       "post": {
         "tags": [
           "test"
         ],
-        "summary": "Next Test",
-        "description": "Find next pending run in an existing test.",
-        "operationId": "next_test_test_next_post",
+        "summary": "Test Trace",
+        "operationId": "test_trace_test_trace_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TestNextPayload"
+                "$ref": "#/components/schemas/TestTracePayload"
               }
             }
           },
@@ -18300,7 +18299,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NextTestApiResponse"
+                  "$ref": "#/components/schemas/TestTraceInternalResult"
                 }
               }
             }
@@ -18326,14 +18325,14 @@
         ]
       }
     },
-    "/test/run": {
+    "/test/run/": {
       "post": {
         "tags": [
-          "test"
+          "test",
+          "test-run"
         ],
         "summary": "Run Test",
-        "description": "Run one auto-regressive replay. Returns immediately; progress via socket.",
-        "operationId": "run_test_test_run_post",
+        "operationId": "run_test_test_run__post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -18350,7 +18349,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunTestApiResponse"
+                  "$ref": "#/components/schemas/TestRunInternalResult"
                 }
               }
             }
@@ -18372,7 +18371,59 @@
           }
         ],
         "x-cache-tags": [
-          "test"
+          "test",
+          "test-run"
+        ]
+      }
+    },
+    "/test/run/end": {
+      "post": {
+        "tags": [
+          "test",
+          "test-run"
+        ],
+        "summary": "Run Test End",
+        "operationId": "run_test_end_test_run_end_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestRunEndPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestRunEndResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "test",
+          "test-run"
         ]
       }
     },
@@ -23483,6 +23534,18 @@
             ],
             "title": "Conversation Id"
           },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -25106,6 +25169,43 @@
             "title": "Test Id",
             "description": "Test identifier"
           },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Formatted date string of the test"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "UUID of the profile who owns the test"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name",
+            "description": "Display name of the profile"
+          },
           "eval_id": {
             "anyOf": [
               {
@@ -25130,7 +25230,7 @@
             "title": "Eval Name",
             "description": "Parent eval name"
           },
-          "eval_description": {
+          "rubric_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -25139,10 +25239,10 @@
                 "type": "null"
               }
             ],
-            "title": "Eval Description",
-            "description": "Parent eval description"
+            "title": "Rubric Id",
+            "description": "Rubric ID for this test"
           },
-          "created_at": {
+          "rubric_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -25151,62 +25251,161 @@
                 "type": "null"
               }
             ],
-            "title": "Created At",
-            "description": "Test creation timestamp"
+            "title": "Rubric Name",
+            "description": "Rubric display name"
           },
-          "archived": {
-            "type": "boolean",
-            "title": "Archived",
-            "description": "Whether test is archived",
-            "default": false
+          "num_models": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Models",
+            "description": "Total number of models in the test"
+          },
+          "num_models_completed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Models Completed",
+            "description": "Number of models completed"
+          },
+          "model_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Ids",
+            "description": "UUIDs of associated models"
+          },
+          "model_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Names",
+            "description": "Display names of associated models"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Overall test score (0-100)"
+          },
+          "score_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Status",
+            "description": "Score status label (e.g. high, medium, low)"
+          },
+          "pass_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Pct",
+            "description": "Pass percentage threshold from rubric"
+          },
+          "show_view": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show View",
+            "description": "Whether the view action is available"
+          },
+          "show_continue": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Continue",
+            "description": "Whether the continue action is available"
+          },
+          "is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Archived",
+            "description": "Whether the test is archived"
           },
           "infinite_mode": {
-            "type": "boolean",
-            "title": "Infinite Mode",
-            "description": "Whether test uses infinite mode",
-            "default": false
-          },
-          "total_invocations": {
-            "type": "integer",
-            "title": "Total Invocations",
-            "description": "Total number of invocations",
-            "default": 0
-          },
-          "completed_invocations": {
-            "type": "integer",
-            "title": "Completed Invocations",
-            "description": "Number of completed invocations",
-            "default": 0
-          },
-          "pending_invocations": {
-            "type": "integer",
-            "title": "Pending Invocations",
-            "description": "Number of pending invocations",
-            "default": 0
-          },
-          "best_score": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Best Score",
-            "description": "Best score across invocations"
+            "title": "Infinite Mode",
+            "description": "Whether the test uses infinite mode"
           },
-          "has_passed": {
-            "type": "boolean",
-            "title": "Has Passed",
-            "description": "Whether test has been passed",
-            "default": false
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Test status",
-            "default": "pending"
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids",
+            "description": "Associated department IDs"
           }
         },
         "type": "object",
@@ -25214,7 +25413,7 @@
           "test_id"
         ],
         "title": "BenchmarkHistoryItem",
-        "description": "History row for a test \u2014 analogous to TestHistoryItem."
+        "description": "Single test row in benchmark history list \u2014 mirrors HistoryItem shape."
       },
       "BenchmarkHistoryResponse": {
         "properties": {
@@ -25251,6 +25450,30 @@
             "type": "array",
             "title": "Eval Options",
             "description": "Eval filter options"
+          },
+          "model_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Model Options",
+            "description": "Model filter options"
+          },
+          "profile_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Profile Options",
+            "description": "Profile filter options"
+          },
+          "rubric_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Rubric Options",
+            "description": "Rubric filter options"
           }
         },
         "type": "object",
@@ -32550,6 +32773,18 @@
             "format": "uuid",
             "title": "Test Id"
           },
+          "invocation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invocation Id"
+          },
           "title": {
             "type": "string",
             "title": "Title",
@@ -32561,9 +32796,15 @@
             "default": false
           },
           "position": {
-            "type": "integer",
-            "title": "Position",
-            "default": 0
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
           },
           "agent_ids": {
             "anyOf": [
@@ -32691,7 +32932,7 @@
           "test_id"
         ],
         "title": "CreateInvocationApiRequest",
-        "description": "Create a test_invocation_entry on an existing test, optionally with\nmulti-select resource selections supplied by the user."
+        "description": "Create a test_invocation_entry on an existing test.\n\nMirrors CreateAttemptChatApiRequest. ``invocation_id`` is the\nbenchmark ``invocation_entry.id`` (the template); the materialized\n``test_invocation_entry`` inherits its bundle. Caller-supplied\nfields override template defaults."
       },
       "CreateInvocationApiResponse": {
         "properties": {
@@ -63260,6 +63501,18 @@
             "description": "Whether the test has runs or groups",
             "default": false
           },
+          "next_invocation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Invocation Id",
+            "description": "UUID of the next uncompleted invocation, or null if all are done"
+          },
           "entries": {
             "anyOf": [
               {
@@ -63427,134 +63680,6 @@
         ],
         "title": "GetTestGradeResponse"
       },
-      "GetTestInvocationGroupsResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
-          "test_invocation_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Invocation Id"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          },
-          "generated": {
-            "type": "boolean",
-            "title": "Generated"
-          },
-          "mcp": {
-            "type": "boolean",
-            "title": "Mcp"
-          },
-          "active": {
-            "type": "boolean",
-            "title": "Active"
-          },
-          "agent_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Agent Ids",
-            "default": []
-          },
-          "reasoning_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Reasoning Level Ids",
-            "default": []
-          },
-          "temperature_level_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Temperature Level Ids",
-            "default": []
-          },
-          "voice_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Voice Ids",
-            "default": []
-          },
-          "prompt_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Prompt Ids",
-            "default": []
-          },
-          "instruction_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Instruction Ids",
-            "default": []
-          },
-          "tool_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Tool Ids",
-            "default": []
-          },
-          "quality_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Quality Ids",
-            "default": []
-          },
-          "modality_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Modality Ids",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "test_invocation_id",
-          "created_at",
-          "updated_at",
-          "generated",
-          "mcp",
-          "active"
-        ],
-        "title": "GetTestInvocationGroupsResponse"
-      },
       "GetTestInvocationResponse": {
         "properties": {
           "invocation_id": {
@@ -63694,24 +63819,6 @@
             "title": "Department Ids",
             "default": []
           },
-          "run_agent_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Run Agent Ids",
-            "default": []
-          },
-          "group_agent_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Group Agent Ids",
-            "default": []
-          },
           "voice_id": {
             "anyOf": [
               {
@@ -63788,6 +63895,30 @@
             "format": "uuid",
             "title": "Test Invocation Id"
           },
+          "test_invocation_traces_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Invocation Traces Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -63809,15 +63940,65 @@
           "active": {
             "type": "boolean",
             "title": "Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "test_invocation_id",
+          "created_at",
+          "updated_at",
+          "generated",
+          "mcp",
+          "active"
+        ],
+        "title": "GetTestInvocationRunsResponse"
+      },
+      "GetTestInvocationTracesResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
           },
-          "agent_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Agent Ids",
-            "default": []
+          "test_invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Invocation Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "generated": {
+            "type": "boolean",
+            "title": "Generated"
+          },
+          "mcp": {
+            "type": "boolean",
+            "title": "Mcp"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
           },
           "reasoning_level_ids": {
             "items": {
@@ -63902,7 +64083,7 @@
           "mcp",
           "active"
         ],
-        "title": "GetTestInvocationRunsResponse"
+        "title": "GetTestInvocationTracesResponse"
       },
       "GetTestResponse": {
         "properties": {
@@ -79211,34 +79392,6 @@
         ],
         "title": "NameGroupApiResponse",
         "description": "Response model for group name endpoint."
-      },
-      "NextTestApiResponse": {
-        "properties": {
-          "invocation_id": {
-            "type": "string",
-            "title": "Invocation Id"
-          },
-          "run_id": {
-            "type": "string",
-            "title": "Run Id"
-          },
-          "current_run": {
-            "type": "integer",
-            "title": "Current Run"
-          },
-          "total_runs": {
-            "type": "integer",
-            "title": "Total Runs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "invocation_id",
-          "run_id",
-          "current_run",
-          "total_runs"
-        ],
-        "title": "NextTestApiResponse"
       },
       "ObjectiveEntry": {
         "properties": {
@@ -96630,29 +96783,6 @@
         "title": "RunPricingItem",
         "description": "Single pricing entry for a run. Cost computed at runtime."
       },
-      "RunTestApiResponse": {
-        "properties": {
-          "test_id": {
-            "type": "string",
-            "title": "Test Id"
-          },
-          "invocation_id": {
-            "type": "string",
-            "title": "Invocation Id"
-          },
-          "run_id": {
-            "type": "string",
-            "title": "Run Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_id",
-          "invocation_id",
-          "run_id"
-        ],
-        "title": "RunTestApiResponse"
-      },
       "RunViewItem": {
         "properties": {
           "run_id": {
@@ -105943,7 +106073,7 @@
             "type": "string",
             "title": "Test Id"
           },
-          "invocation_id": {
+          "benchmark_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -105952,7 +106082,7 @@
                 "type": "null"
               }
             ],
-            "title": "Invocation Id"
+            "title": "Benchmark Id"
           }
         },
         "type": "object",
@@ -106044,6 +106174,11 @@
             "type": "boolean",
             "title": "Success",
             "default": true
+          },
+          "completed_count": {
+            "type": "integer",
+            "title": "Completed Count",
+            "default": 0
           }
         },
         "type": "object",
@@ -106119,7 +106254,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GetTestInvocationGroupsResponse"
+                  "$ref": "#/components/schemas/GetTestInvocationTracesResponse"
                 },
                 "type": "array"
               },
@@ -106199,6 +106334,17 @@
             "type": "string",
             "title": "Invocation Id"
           },
+          "completion_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Id"
+          },
           "success": {
             "type": "boolean",
             "title": "Success",
@@ -106239,22 +106385,6 @@
         ],
         "title": "TestInvocationCompletePayload",
         "description": "Client-to-server: complete a single invocation within a test.\n\nMirrors ``ChatCompleteRequest`` (/attempt/chat/complete) \u2014 completion is\na state transition only, not a grading operation. Grading is a separate\nsurface (``/test/grade``); call it before completion if needed."
-      },
-      "TestNextPayload": {
-        "properties": {
-          "test_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Id",
-            "description": "UUID of the test"
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_id"
-        ],
-        "title": "TestNextPayload",
-        "description": "Client-to-server: find next pending run in an existing test."
       },
       "TestResources": {
         "properties": {
@@ -106471,6 +106601,77 @@
         "title": "TestResources",
         "description": "Resource maps keyed by ID string."
       },
+      "TestRunEndPayload": {
+        "properties": {
+          "test_invocation_run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Invocation Run Id",
+            "description": "UUID of the test_invocation_runs_entry to finalize"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "error": {
+            "type": "boolean",
+            "title": "Error",
+            "default": false
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_invocation_run_id"
+        ],
+        "title": "TestRunEndPayload"
+      },
+      "TestRunEndResponse": {
+        "properties": {
+          "test_invocation_run_id": {
+            "type": "string",
+            "title": "Test Invocation Run Id"
+          },
+          "completion_id": {
+            "type": "string",
+            "title": "Completion Id"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_invocation_run_id",
+          "completion_id"
+        ],
+        "title": "TestRunEndResponse"
+      },
+      "TestRunInternalResult": {
+        "properties": {
+          "test_invocation_run_id": {
+            "type": "string",
+            "title": "Test Invocation Run Id"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_invocation_run_id"
+        ],
+        "title": "TestRunInternalResult"
+      },
       "TestRunItem": {
         "properties": {
           "chat_id": {
@@ -106596,11 +106797,24 @@
             "title": "Test Invocation Id",
             "description": "UUID of the test invocation"
           },
+          "test_invocation_trace_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Invocation Trace Id",
+            "description": "UUID of the parent trace (test_invocation_traces_entry)"
+          },
           "run_id": {
             "type": "string",
             "format": "uuid",
             "title": "Run Id",
-            "description": "Original run to replay"
+            "description": "UUID of the runs_entry to bind"
           }
         },
         "type": "object",
@@ -106610,7 +106824,7 @@
           "run_id"
         ],
         "title": "TestRunPayload",
-        "description": "Client-to-server: run one replay against an original run."
+        "description": "Client-to-server: bind a runs_entry (produced by /test/generate)\nto a test_invocation. Pure binding row \u2014 no model invocation.\n\nMirrors /attempt/chat/message \u2014 primitive, sequential, no orchestration."
       },
       "TestStartPayload": {
         "properties": {
@@ -106679,6 +106893,207 @@
         ],
         "title": "TestStopPayload",
         "description": "Client-to-server: stop current test execution."
+      },
+      "TestTraceInternalResult": {
+        "properties": {
+          "test_invocation_trace_id": {
+            "type": "string",
+            "title": "Test Invocation Trace Id"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_invocation_trace_id"
+        ],
+        "title": "TestTraceInternalResult"
+      },
+      "TestTracePayload": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Id",
+            "description": "UUID of the test"
+          },
+          "test_invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Invocation Id",
+            "description": "UUID of the test invocation"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id",
+            "description": "Historical run_id we're replaying against (optional)"
+          },
+          "tool_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Ids"
+          },
+          "modality_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modality Ids"
+          },
+          "voice_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Ids"
+          },
+          "temperature_level_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level Ids"
+          },
+          "reasoning_level_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level Ids"
+          },
+          "quality_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Ids"
+          },
+          "prompt_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Ids"
+          },
+          "instruction_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instruction Ids"
+          },
+          "prompt_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Text",
+            "description": "User-typed system prompt; minted as a prompts_resource"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions",
+            "description": "User-typed instruction templates; each minted separately"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id",
+          "test_invocation_id"
+        ],
+        "title": "TestTracePayload",
+        "description": "Client-to-server: open a trace on a test invocation.\n\nBundle fields are stored verbatim on the trace's connection tables.\nNo auto-inheritance from the parent test_invocation \u2014 caller passes\nwhatever it wants the trace to record.\n\nFree-text fields are minted as new resource rows server-side and\ntheir ids are attached. Pre-minted ids can also be passed directly\nvia ``prompt_ids`` / ``instruction_ids`` (combined with any minted\nfrom text)."
       },
       "TextDownloadAttemptApiRequest": {
         "properties": {

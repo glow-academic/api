@@ -13,17 +13,10 @@ class CreateTestInvocationRunsResponse(BaseModel):
 class GetTestInvocationRunsResponse(BaseModel):
     id: UUID
     test_invocation_id: UUID
+    test_invocation_traces_id: UUID | None = None
+    run_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
     generated: bool
     mcp: bool
     active: bool
-    agent_ids: list[UUID] = []
-    reasoning_level_ids: list[UUID] = []
-    temperature_level_ids: list[UUID] = []
-    voice_ids: list[UUID] = []
-    prompt_ids: list[UUID] = []
-    instruction_ids: list[UUID] = []
-    tool_ids: list[UUID] = []
-    quality_ids: list[UUID] = []
-    modality_ids: list[UUID] = []

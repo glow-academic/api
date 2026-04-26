@@ -5,11 +5,11 @@ from . import (  # noqa: F401
     generate,
     generations,
     group,
-    next,
     problem,
     run,
     start,
     stop,
+    trace,
     # Absorbed sub-modules
     benchmark,
     invocation,

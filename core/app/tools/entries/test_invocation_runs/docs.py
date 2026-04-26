@@ -26,18 +26,17 @@ async def get_test_invocation_runs_docs(
     """Get full documentation for the test_invocation_runs entry."""
     mv_info = await get_mv_info(conn, "test_invocation_runs_mv")
     entry_table = await get_table_info(conn, "test_invocation_runs_entry")
-    agents_connection = await get_table_info(
-        conn, "test_invocation_runs_agents_connection"
-    )
 
-    tables = [t for t in [entry_table, agents_connection] if t is not None]
+    tables = [t for t in [entry_table] if t is not None]
 
     return DocsResponse(
         name="test_invocation_runs",
         type="entry",
         description=(
-            "Test invocation run assignments. Maps test invocations to agents and execution config. "
-            "Reads are served from the test_invocation_runs_mv materialized view."
+            "Test invocation run binding row — links a test invocation to "
+            "(a) the underlying runs_entry holding the model output, and "
+            "(b) the parent test_invocation_traces_entry that carries the "
+            "bundle config. Pure binding row; bundle config lives on the trace."
         ),
         materialized_view=mv_info,
         tables=tables,
@@ -45,17 +44,18 @@ async def get_test_invocation_runs_docs(
             get_operation_info(
                 create_test_invocation_runs,
                 description=(
-                    "Creates a test_invocation_runs entry with optional agent_ids "
-                    "and execution-config connections."
+                    "Creates a test_invocation_runs binding row with optional "
+                    "run_id (the runs_entry produced by /test/generate) and "
+                    "test_invocation_traces_id (the parent trace)."
                 ),
             ),
             get_operation_info(
                 refresh_test_invocation_runs,
-                description="Refreshes test_invocation_runs_mv concurrently to reflect latest writes.",
+                description="Refreshes test_invocation_runs_mv concurrently.",
             ),
             get_operation_info(
                 get_test_invocation_runs,
-                description="Batch retrieves test_invocation_runs entries by IDs from test_invocation_runs_mv.",
+                description="Batch retrieves test_invocation_runs entries by IDs.",
             ),
             get_operation_info(
                 search_test_invocation_runs,

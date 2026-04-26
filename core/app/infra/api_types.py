@@ -274,33 +274,6 @@ class HistoryResponse(BaseModel):
     profile_options: list[FilterOption] | None = Field(None, description="Filter options for profiles")
 
 
-class TestHistoryItem(BaseModel):
-    """Single test row in history list."""
-
-    attempt_id: str = Field(..., description="ID of the test attempt")
-    eval_id: str | None = Field(None, description="ID of the evaluation")
-    eval_name: str | None = Field(None, description="Display name of the evaluation")
-    eval_description: str | None = Field(None, description="Description of the evaluation")
-    rubric_id: str | None = Field(None, description="ID of the rubric")
-    rubric_name: str | None = Field(None, description="Display name of the rubric")
-    created_at: str | None = Field(None, description="Creation timestamp string")
-    archived: bool = Field(False, description="Whether the test is archived")
-    status: str = Field("pending", description="Current test status")
-    total_runs: int = Field(0, description="Total number of runs")
-    completed_runs: int = Field(0, description="Number of completed runs")
-    pending_runs: int = Field(0, description="Number of pending runs")
-
-
-class TestHistoryResponse(BaseModel):
-    """Paginated test history list."""
-
-    data: list[TestHistoryItem] = Field(default_factory=list, description="List of test history items")
-    total_count: int = Field(0, description="Total number of matching records")
-    page: int = Field(0, description="Current page number")
-    page_size: int = Field(10, description="Items per page")
-    eval_options: list[FilterOption] | None = Field(None, description="Filter options for evaluations")
-
-
 class AnalyticsFilterOptions(BaseModel):
     """Filter options returned by analytics endpoints for populating UI dropdowns."""
 

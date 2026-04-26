@@ -1,13 +1,13 @@
 ## Context
 
-{% if request.artifact_id %}
-**Existing persona** (ID: `{{ request.artifact_id }}`).
-Use `Persona_Get(id: "{{ request.artifact_id }}")` to see current state.
+{% if params.artifact_id %}
+**Existing persona** (ID: `{{ params.artifact_id }}`).
+Use `Persona_Get(id: "{{ params.artifact_id }}")` to see current state.
 {% else %}
 **New persona** — no artifact exists yet.
 {% endif %}
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
-{% if request.group_id %}Group ID: `{{ request.group_id }}`.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
 
 ## Parameters
 

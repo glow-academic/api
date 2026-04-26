@@ -13,13 +13,13 @@ from app.routes.test.generations import router as generations_router
 from app.routes.test.get import router as get_router
 from app.routes.test.group import router as group_router
 from app.routes.test.grade import router as grade_router
-from app.routes.test.next import router as next_router
 from app.routes.test.problem import router as problem_router
 from app.routes.test.refresh import router as refresh_router
 from app.routes.test.run import router as run_router
 from app.routes.test.search import router as search_router
 from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
+from app.routes.test.trace import router as trace_router
 from app.routes.test.text import router as text_router
 
 # Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
@@ -35,7 +35,7 @@ router.include_router(export_router)
 router.include_router(context_router)
 # Canonical state-machine operations
 router.include_router(start_router)
-router.include_router(next_router)
+router.include_router(trace_router)
 router.include_router(run_router)
 router.include_router(complete_router)  # POST /test/complete (whole test)
 router.include_router(stop_router)

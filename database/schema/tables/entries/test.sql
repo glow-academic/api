@@ -157,12 +157,12 @@ CREATE TABLE public.test_invocation_entry (
 
 --
 
--- Name: test_invocation_groups_completion_entry; Type: TABLE; Schema: public; Owner: -
+-- Name: test_invocation_runs_completion_entry; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.test_invocation_groups_completion_entry (
+CREATE TABLE public.test_invocation_runs_completion_entry (
     id uuid DEFAULT uuidv7() NOT NULL,
-    test_invocation_groups_id uuid CONSTRAINT test_invocation_groups_compl_test_invocation_groups_id_not_null NOT NULL,
+    test_invocation_runs_id uuid CONSTRAINT test_invocation_runs_completio_test_invocation_runs_id_not_null NOT NULL,
     stop boolean DEFAULT false NOT NULL,
     error boolean DEFAULT false NOT NULL,
     message text DEFAULT ''::text NOT NULL,
@@ -171,22 +171,6 @@ CREATE TABLE public.test_invocation_groups_completion_entry (
     mcp boolean DEFAULT false NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
--- Name: test_invocation_groups_entry; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.test_invocation_groups_entry (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    test_invocation_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL
 );
 
 
@@ -202,26 +186,45 @@ CREATE TABLE public.test_invocation_runs_entry (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
-    mcp boolean DEFAULT false NOT NULL
+    mcp boolean DEFAULT false NOT NULL,
+    run_id uuid,
+    test_invocation_traces_id uuid
 );
 
 
 --
 
--- Name: test_invocation_runs_completion_entry; Type: TABLE; Schema: public; Owner: -
+-- Name: test_invocation_traces_completion_entry; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.test_invocation_runs_completion_entry (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    test_invocation_runs_id uuid CONSTRAINT test_invocation_runs_completio_test_invocation_runs_id_not_null NOT NULL,
-    stop boolean DEFAULT false NOT NULL,
-    error boolean DEFAULT false NOT NULL,
-    message text DEFAULT ''::text NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    mcp boolean DEFAULT false NOT NULL,
-    generated boolean DEFAULT false NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+CREATE TABLE public.test_invocation_traces_completion_entry (
+    id uuid DEFAULT uuidv7() CONSTRAINT test_invocation_groups_completion_entry_id_not_null NOT NULL,
+    test_invocation_traces_id uuid CONSTRAINT test_invocation_groups_compl_test_invocation_groups_id_not_null NOT NULL,
+    stop boolean DEFAULT false CONSTRAINT test_invocation_groups_completion_entry_stop_not_null NOT NULL,
+    error boolean DEFAULT false CONSTRAINT test_invocation_groups_completion_entry_error_not_null NOT NULL,
+    message text DEFAULT ''::text CONSTRAINT test_invocation_groups_completion_entry_message_not_null NOT NULL,
+    call_id uuid CONSTRAINT test_invocation_groups_completion_entry_call_id_not_null NOT NULL,
+    active boolean DEFAULT true CONSTRAINT test_invocation_groups_completion_entry_active_not_null NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT test_invocation_groups_completion_entry_mcp_not_null NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT test_invocation_groups_completion_entry_generated_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT test_invocation_groups_completion_entry_created_at_not_null NOT NULL
+);
+
+
+--
+
+-- Name: test_invocation_traces_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.test_invocation_traces_entry (
+    id uuid DEFAULT uuidv7() CONSTRAINT test_invocation_groups_entry_id_not_null NOT NULL,
+    test_invocation_id uuid CONSTRAINT test_invocation_groups_entry_test_invocation_id_not_null NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT test_invocation_groups_entry_created_at_not_null NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() CONSTRAINT test_invocation_groups_entry_updated_at_not_null NOT NULL,
+    active boolean DEFAULT true CONSTRAINT test_invocation_groups_entry_active_not_null NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT test_invocation_groups_entry_generated_not_null NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT test_invocation_groups_entry_mcp_not_null NOT NULL,
+    run_id uuid
 );
 
 
@@ -299,19 +302,19 @@ ALTER TABLE ONLY public.test_invocation_bridge_entry
 
 --
 
--- Name: test_invocation_groups_completion_entry test_invocation_groups_completion_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_completion_entry test_invocation_groups_completion_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_completion_entry
+ALTER TABLE ONLY public.test_invocation_traces_completion_entry
     ADD CONSTRAINT test_invocation_groups_completion_entry_pkey PRIMARY KEY (id);
 
 
 --
 
--- Name: test_invocation_groups_entry test_invocation_groups_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: test_invocation_traces_entry test_invocation_groups_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.test_invocation_groups_entry
+ALTER TABLE ONLY public.test_invocation_traces_entry
     ADD CONSTRAINT test_invocation_groups_entry_pkey PRIMARY KEY (id);
 
 

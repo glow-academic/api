@@ -66,26 +66,41 @@ class BenchmarkDepartmentItem(BaseModel):
 
 
 class BenchmarkHistoryItem(BaseModel):
-    """History row for a test — analogous to TestHistoryItem."""
+    """Single test row in benchmark history list — mirrors HistoryItem shape."""
 
     test_id: str = Field(..., description="Test identifier")
+    date: str | None = Field(None, description="Formatted date string of the test")
+    profile_id: UUID | None = Field(None, description="UUID of the profile who owns the test")
+    profile_name: str | None = Field(None, description="Display name of the profile")
+
     eval_id: str | None = Field(None, description="Parent eval ID")
     eval_name: str | None = Field(None, description="Parent eval name")
-    eval_description: str | None = Field(None, description="Parent eval description")
-    created_at: str | None = Field(None, description="Test creation timestamp")
-    archived: bool = Field(False, description="Whether test is archived")
-    infinite_mode: bool = Field(False, description="Whether test uses infinite mode")
 
-    # Invocation stats
-    total_invocations: int = Field(0, description="Total number of invocations")
-    completed_invocations: int = Field(0, description="Number of completed invocations")
-    pending_invocations: int = Field(0, description="Number of pending invocations")
+    # Each test has exactly one rubric
+    rubric_id: str | None = Field(None, description="Rubric ID for this test")
+    rubric_name: str | None = Field(None, description="Rubric display name")
 
-    # Best score across invocations
-    best_score: float | None = Field(None, description="Best score across invocations")
-    has_passed: bool = Field(False, description="Whether test has been passed")
+    # Models analog of scenarios
+    num_models: int | None = Field(None, description="Total number of models in the test")
+    num_models_completed: int | None = Field(None, description="Number of models completed")
+    model_ids: list[str] | None = Field(None, description="UUIDs of associated models")
+    model_names: list[str] | None = Field(None, description="Display names of associated models")
 
-    status: str = Field("pending", description="Test status")
+    # Score (canonical 0-100 int)
+    score: int | None = Field(None, description="Overall test score (0-100)")
+    score_status: str | None = Field(None, description="Score status label (e.g. high, medium, low)")
+    pass_pct: int | None = Field(None, description="Pass percentage threshold from rubric")
+
+    # Actions
+    show_view: bool | None = Field(None, description="Whether the view action is available")
+    show_continue: bool | None = Field(None, description="Whether the continue action is available")
+    is_archived: bool | None = Field(None, description="Whether the test is archived")
+
+    # Modes (no time_limit on evals)
+    infinite_mode: bool | None = Field(None, description="Whether the test uses infinite mode")
+
+    # Metadata
+    department_ids: list[str] | None = Field(None, description="Associated department IDs")
 
 
 class BenchmarkHistoryResponse(BaseModel):
@@ -96,6 +111,9 @@ class BenchmarkHistoryResponse(BaseModel):
     page: int = Field(0, description="Current page number")
     page_size: int = Field(10, description="Items per page")
     eval_options: list[FilterOption] = Field(default_factory=list, description="Eval filter options")
+    model_options: list[FilterOption] = Field(default_factory=list, description="Model filter options")
+    profile_options: list[FilterOption] = Field(default_factory=list, description="Profile filter options")
+    rubric_options: list[FilterOption] = Field(default_factory=list, description="Rubric filter options")
 
 
 class BenchmarkResponse(BaseModel):

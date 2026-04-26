@@ -82,6 +82,19 @@ async def get_test_impl(
         def _res(key: str) -> list:
             return ctx.resources[key].selected if key in ctx.resources else []
 
+        def _res_all(key: str) -> list:
+            """Selected ∪ suggestions, deduped by id. Used for panel
+            pickers that need the full catalog of options (selected ones
+            visible as already-picked, the rest available to choose)."""
+            if key not in ctx.resources:
+                return []
+            pair = ctx.resources[key]
+            seen: dict = {}
+            for item in [*pair.selected, *pair.suggestions]:
+                if item.id not in seen:
+                    seen[item.id] = item
+            return list(seen.values())
+
         evals_list = _res("evals")
         rubrics_list = _res("rubrics")
         agents_list = _res("agents")
@@ -175,19 +188,21 @@ async def get_test_impl(
                 result[str(item.id)] = item.model_dump(mode="json")
             return result or None
 
+        # Panel pickers need the full catalog of pickable options
+        # (selected + suggestions); other maps stay scoped to selected.
         resources_payload = TestResources(
             evals=_to_dict_map(evals_list),
             rubrics=_to_dict_map(rubrics_list),
             agents=_to_dict_map(agents_list),
             models=_to_dict_map(models_list),
-            voices=_to_dict_map(_res("voices")),
-            temperature_levels=_to_dict_map(_res("temperature_levels")),
-            reasoning_levels=_to_dict_map(_res("reasoning_levels")),
-            modalities=_to_dict_map(_res("modalities")),
+            voices=_to_dict_map(_res_all("voices")),
+            temperature_levels=_to_dict_map(_res_all("temperature_levels")),
+            reasoning_levels=_to_dict_map(_res_all("reasoning_levels")),
+            modalities=_to_dict_map(_res_all("modalities")),
             prompts=_to_dict_map(_res("prompts")),
             instructions=_to_dict_map(_res("instructions")),
-            tools=_to_dict_map(_res("tools")),
-            qualities=_to_dict_map(_res("qualities")),
+            tools=_to_dict_map(_res_all("tools")),
+            qualities=_to_dict_map(_res_all("qualities")),
             standard_groups=_to_dict_map(_res("standard_groups")),
         )
 
@@ -211,6 +226,15 @@ async def get_test_impl(
         has_runs_or_groups = len(runs) > 0 or len(groups) > 0
         show_controls = bool(invocations)
 
+        # Client-orchestrated state machine — first invocation that hasn't
+        # been completed yet, by position. Mirrors next_chat_entry_id on
+        # /attempt/get. None means all done → client should call /test/complete.
+        sorted_invs = sorted(invocations, key=lambda i: (i.position or 0))
+        next_invocation_id = next(
+            (str(i.invocation_id) for i in sorted_invs if not i.invocation_completed),
+            None,
+        )
+
         # Get first rubric name from map for backward compat
         rubric_name: str | None = None
         if rubric_name_map:
@@ -229,6 +253,7 @@ async def get_test_impl(
             show_controls=show_controls,
             current_invocation_id=current_invocation_id,
             has_runs_or_groups=has_runs_or_groups,
+            next_invocation_id=next_invocation_id,
             entries=entries_payload,
             resources=resources_payload,
         )

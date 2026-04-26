@@ -46,17 +46,47 @@ class ResolvedTool:
     target: str  # e.g. "names", "contents", "persona"
 
 
+@dataclass(frozen=True)
+class ResolvedAgent:
+    """Every agent in the active settings, including tool-less ones.
+
+    Unlike ``ResolvedTool`` (which represents one tool-bearing edge), this
+    represents the agent itself — its model's modality capabilities and
+    the ``(target, operation)`` pairs it can perform via its tools.
+    Tool-less agents (e.g. Transcribe for STT, Audio for TTS) appear here
+    with an empty ``tool_targets``; selection paths that don't require
+    tools (pure modality conversion) can pick them.
+
+    See ``score_agents`` for the canonical selection rule that uses this.
+    """
+
+    agent_id: UUID
+    system_id: UUID
+    model_id: UUID | None
+    input_modalities: frozenset[str]   # from model where is_input=True
+    output_modalities: frozenset[str]  # from model where is_input=False
+    # (artifact, operation) pairs covered by this agent's tools.
+    tool_targets: frozenset[tuple[str, str]] = field(default_factory=frozenset)
+
+
 @dataclass
 class SettingsToolGraph:
-    """Flat list of resolved tools from a settings chain.
+    """Flat list of resolved tools + agents from a settings chain.
 
-    agent_output_modalities maps agent_id → set of output modality names
-    (e.g. {"text", "call", "audio"}), derived from the agent's model's
-    modalities_resource entries with is_input=False.
+    ``tools`` and ``agent_output_modalities`` are the legacy views,
+    preserved so existing callers keep working. ``agents`` is the new
+    canonical surface — every agent reachable from the active settings,
+    including tool-less ones, with both input and output modality sets.
+    Selection logic (``score_agents``) uses the new surface; older
+    ``score_tools`` keeps using ``tools``.
     """
 
     tools: list[ResolvedTool] = field(default_factory=list)
     agent_output_modalities: dict[UUID, set[str]] = field(default_factory=dict)
+    # New canonical fields — additive, no caller changes required for
+    # commit 1. Selection migrates to these in commit 2.
+    agents: list[ResolvedAgent] = field(default_factory=list)
+    agent_input_modalities: dict[UUID, set[str]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -183,25 +213,41 @@ async def _resolve_tool_graph_impl(
             )
             modality_by_id = {m.id: m for m in modalities_list}
 
+    # Build both input + output modality maps in one pass so the new
+    # canonical surface (ResolvedAgent.input_modalities) and the legacy
+    # surface (agent_output_modalities) stay in sync without a second
+    # walk over agents.
     agent_output_modalities: dict[UUID, set[str]] = {}
+    agent_input_modalities: dict[UUID, set[str]] = {}
     for agent in agents:
-        mods: set[str] = set()
+        out_mods: set[str] = set()
+        in_mods: set[str] = set()
         model = model_by_id.get(agent.model_id) if agent.model_id else None
         if model:
             for mid in model.modality_ids or []:
                 mod = modality_by_id.get(mid)
-                if mod and not mod.is_input:
-                    mods.add(mod.modality)
-        agent_output_modalities[agent.id] = mods
+                if mod is None:
+                    continue
+                if mod.is_input:
+                    in_mods.add(mod.modality)
+                else:
+                    out_mods.add(mod.modality)
+        agent_output_modalities[agent.id] = out_mods
+        agent_input_modalities[agent.id] = in_mods
 
     # Step 7: flatten into ResolvedTool list — one per permission per tool
     resolved: list[ResolvedTool] = []
+    # Per-agent tool target accumulation for ResolvedAgent. Walking the
+    # same nested loop populates both views in one pass.
+    agent_tool_targets: dict[tuple[UUID, UUID], set[tuple[str, str]]] = {}
 
     for system_id, agent_ids in system_agent_map.items():
         for agent_id in agent_ids:
             agent = agent_by_id.get(agent_id)
             if not agent:
                 continue
+            key = (system_id, agent_id)
+            agent_tool_targets.setdefault(key, set())
             for tool_id in agent.tool_ids or []:
                 tool = tool_by_id.get(tool_id)
                 if not tool:
@@ -220,10 +266,41 @@ async def _resolve_tool_graph_impl(
                             target=perm.artifact,
                         )
                     )
+                    if perm.operation:
+                        agent_tool_targets[key].add(
+                            (perm.artifact, perm.operation)
+                        )
+
+    # Build the canonical ResolvedAgent list — every (system, agent) pair
+    # reachable from the active settings, including tool-less agents
+    # (their tool_targets is just the empty frozenset).
+    resolved_agents: list[ResolvedAgent] = []
+    for system_id, agent_ids in system_agent_map.items():
+        for agent_id in agent_ids:
+            agent = agent_by_id.get(agent_id)
+            if not agent:
+                continue
+            key = (system_id, agent_id)
+            resolved_agents.append(
+                ResolvedAgent(
+                    agent_id=agent_id,
+                    system_id=system_id,
+                    model_id=agent.model_id,
+                    input_modalities=frozenset(
+                        agent_input_modalities.get(agent_id, set())
+                    ),
+                    output_modalities=frozenset(
+                        agent_output_modalities.get(agent_id, set())
+                    ),
+                    tool_targets=frozenset(agent_tool_targets.get(key, set())),
+                )
+            )
 
     return SettingsToolGraph(
         tools=resolved,
         agent_output_modalities=agent_output_modalities,
+        agents=resolved_agents,
+        agent_input_modalities=agent_input_modalities,
     )
 
 
@@ -328,3 +405,61 @@ def score_tools(
         has_any=has_any,
         available_modalities=available_modalities,
     )
+
+
+# ---------------------------------------------------------------------------
+# score_agents — canonical, modality-first, pure Python, no I/O
+# ---------------------------------------------------------------------------
+
+
+def score_agents(
+    *,
+    agents: list[ResolvedAgent],
+    request_input_modalities: set[str] | frozenset[str],
+    request_output_modalities: set[str] | frozenset[str],
+    artifact_type: str,
+    operations: list[str] | None = None,
+) -> list[ResolvedAgent]:
+    """Pick agents that can satisfy the request, ranked least-privilege.
+
+    Canonical selection rule (no special branches for STT / TTS / realtime):
+
+      1. Input-modality filter:  ``request_input_modalities ⊆ agent.input_modalities``
+      2. Output-modality filter: ``request_output_modalities ⊆ agent.output_modalities``
+      3. Tool filter (only when ``operations`` non-empty): every requested
+         ``(artifact_type, op)`` must be present in ``agent.tool_targets``.
+      4. Least-privilege tiebreak — ascending sort key:
+            (len(output_mods), len(input_mods), len(tool_targets), str(agent_id))
+
+    Why output_mods is the first tiebreak: between two agents that both
+    accept the requested input and produce the requested output, the one
+    with fewer side outputs is the more focused fit (Transcribe's
+    {text} beats Realtime's {text, audio, call} for STT).
+
+    Returns ranked candidates; first element is the best pick. Empty
+    list means no agent can satisfy the request — caller decides
+    whether to error or fall back.
+    """
+    requested_ops = {(artifact_type, op) for op in (operations or [])}
+    in_set = frozenset(request_input_modalities)
+    out_set = frozenset(request_output_modalities)
+
+    candidates: list[ResolvedAgent] = []
+    for agent in agents:
+        if not in_set <= agent.input_modalities:
+            continue
+        if not out_set <= agent.output_modalities:
+            continue
+        if requested_ops and not requested_ops <= agent.tool_targets:
+            continue
+        candidates.append(agent)
+
+    candidates.sort(
+        key=lambda a: (
+            len(a.output_modalities),
+            len(a.input_modalities),
+            len(a.tool_targets),
+            str(a.agent_id),
+        )
+    )
+    return candidates

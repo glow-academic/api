@@ -23712,6 +23712,43 @@
             "title": "Test Id",
             "description": "Test identifier"
           },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "Formatted date string of the test"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "UUID of the profile who owns the test"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name",
+            "description": "Display name of the profile"
+          },
           "eval_id": {
             "anyOf": [
               {
@@ -23736,7 +23773,7 @@
             "title": "Eval Name",
             "description": "Parent eval name"
           },
-          "eval_description": {
+          "rubric_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -23745,10 +23782,10 @@
                 "type": "null"
               }
             ],
-            "title": "Eval Description",
-            "description": "Parent eval description"
+            "title": "Rubric Id",
+            "description": "Rubric ID for this test"
           },
-          "created_at": {
+          "rubric_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -23757,62 +23794,161 @@
                 "type": "null"
               }
             ],
-            "title": "Created At",
-            "description": "Test creation timestamp"
+            "title": "Rubric Name",
+            "description": "Rubric display name"
           },
-          "archived": {
-            "type": "boolean",
-            "title": "Archived",
-            "description": "Whether test is archived",
-            "default": false
+          "num_models": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Models",
+            "description": "Total number of models in the test"
+          },
+          "num_models_completed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Models Completed",
+            "description": "Number of models completed"
+          },
+          "model_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Ids",
+            "description": "UUIDs of associated models"
+          },
+          "model_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Names",
+            "description": "Display names of associated models"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "Overall test score (0-100)"
+          },
+          "score_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Status",
+            "description": "Score status label (e.g. high, medium, low)"
+          },
+          "pass_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Pct",
+            "description": "Pass percentage threshold from rubric"
+          },
+          "show_view": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show View",
+            "description": "Whether the view action is available"
+          },
+          "show_continue": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Continue",
+            "description": "Whether the continue action is available"
+          },
+          "is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Archived",
+            "description": "Whether the test is archived"
           },
           "infinite_mode": {
-            "type": "boolean",
-            "title": "Infinite Mode",
-            "description": "Whether test uses infinite mode",
-            "default": false
-          },
-          "total_invocations": {
-            "type": "integer",
-            "title": "Total Invocations",
-            "description": "Total number of invocations",
-            "default": 0
-          },
-          "completed_invocations": {
-            "type": "integer",
-            "title": "Completed Invocations",
-            "description": "Number of completed invocations",
-            "default": 0
-          },
-          "pending_invocations": {
-            "type": "integer",
-            "title": "Pending Invocations",
-            "description": "Number of pending invocations",
-            "default": 0
-          },
-          "best_score": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "boolean"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Best Score",
-            "description": "Best score across invocations"
+            "title": "Infinite Mode",
+            "description": "Whether the test uses infinite mode"
           },
-          "has_passed": {
-            "type": "boolean",
-            "title": "Has Passed",
-            "description": "Whether test has been passed",
-            "default": false
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Test status",
-            "default": "pending"
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids",
+            "description": "Associated department IDs"
           }
         },
         "type": "object",
@@ -23820,7 +23956,7 @@
           "test_id"
         ],
         "title": "BenchmarkHistoryItem",
-        "description": "History row for a test \u2014 analogous to TestHistoryItem."
+        "description": "Single test row in benchmark history list \u2014 mirrors HistoryItem shape."
       },
       "BenchmarkHistoryResponse": {
         "properties": {
@@ -23857,6 +23993,30 @@
             "type": "array",
             "title": "Eval Options",
             "description": "Eval filter options"
+          },
+          "model_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Model Options",
+            "description": "Model filter options"
+          },
+          "profile_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Profile Options",
+            "description": "Profile filter options"
+          },
+          "rubric_options": {
+            "items": {
+              "$ref": "#/components/schemas/FilterOption"
+            },
+            "type": "array",
+            "title": "Rubric Options",
+            "description": "Rubric filter options"
           }
         },
         "type": "object",
@@ -105220,11 +105380,11 @@
       },
       "TestStartPayload": {
         "properties": {
-          "benchmark_id": {
+          "eval_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Benchmark Id",
-            "description": "UUID of the benchmark to test against"
+            "title": "Eval Id",
+            "description": "UUID of the eval to test"
           },
           "infinite_mode": {
             "type": "boolean",
@@ -105235,10 +105395,10 @@
         },
         "type": "object",
         "required": [
-          "benchmark_id"
+          "eval_id"
         ],
         "title": "TestStartPayload",
-        "description": "Client-to-server: create a new test."
+        "description": "Client-to-server: create a new test.\n\nSurface field is the eval the user picks; the server resolves the\nunderlying benchmark via ``search_benchmarks(eval_ids=[eval_id])``.\nMirrors how /attempt/start accepts ``home_id``/``practice_id``."
       },
       "TestStatusSummary": {
         "properties": {

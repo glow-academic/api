@@ -13,7 +13,7 @@ router = APIRouter()
 
 class StartTestApiResponse(BaseModel):
     test_id: str
-    invocation_id: str | None = None
+    benchmark_id: str | None = None
 
 
 @router.post("/start", response_model=StartTestApiResponse)
@@ -40,5 +40,5 @@ async def start_test(
 
     return StartTestApiResponse(
         test_id=result.test_id,
-        invocation_id=result.invocation_id,
+        benchmark_id=result.benchmark_id,
     )

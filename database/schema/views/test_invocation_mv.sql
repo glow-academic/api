@@ -6,21 +6,7 @@
 --
 
 CREATE MATERIALIZED VIEW public.test_invocation_mv AS
- WITH groups_agents_links AS (
-         SELECT ge.test_invocation_id,
-            array_agg(DISTINCT gac.agents_id ORDER BY gac.agents_id) FILTER (WHERE (gac.agents_id IS NOT NULL)) AS group_agent_ids
-           FROM (public.test_invocation_groups_entry ge
-             JOIN public.test_invocation_groups_agents_connection gac ON (((gac.test_invocation_groups_id = ge.id) AND (gac.active = true))))
-          WHERE (ge.active = true)
-          GROUP BY ge.test_invocation_id
-        ), runs_agents_links AS (
-         SELECT re.test_invocation_id,
-            array_agg(DISTINCT rac.agents_id ORDER BY rac.agents_id) FILTER (WHERE (rac.agents_id IS NOT NULL)) AS run_agent_ids
-           FROM (public.test_invocation_runs_entry re
-             JOIN public.test_invocation_runs_agents_connection rac ON (((rac.test_invocation_runs_id = re.id) AND (rac.active = true))))
-          WHERE (re.active = true)
-          GROUP BY re.test_invocation_id
-        ), department_links AS (
+ WITH department_links AS (
          SELECT dc.test_invocation_id,
             array_agg(DISTINCT dc.departments_id) FILTER (WHERE (dc.departments_id IS NOT NULL)) AS department_ids
            FROM public.test_invocation_departments_connection dc
@@ -77,17 +63,13 @@ CREATE MATERIALIZED VIEW public.test_invocation_mv AS
     COALESCE(bs.agent_ids, ARRAY[]::uuid[]) AS agent_ids,
     bs.quality_id,
     COALESCE(dl.department_ids, ARRAY[]::uuid[]) AS department_ids,
-    COALESCE(ral.run_agent_ids, ARRAY[]::uuid[]) AS run_agent_ids,
-    COALESCE(gal.group_agent_ids, ARRAY[]::uuid[]) AS group_agent_ids,
     bs.voice_id,
     bs.temperature_level_id,
     bs.reasoning_level_id,
     COALESCE(bs.modality_ids, ARRAY[]::uuid[]) AS modality_ids
-   FROM ((((((((public.test_invocation_entry i
+   FROM ((((((public.test_invocation_entry i
      LEFT JOIN public.calls_entry cl_grp ON ((cl_grp.id = i.call_id)))
      LEFT JOIN public.runs_entry r_grp ON ((r_grp.id = cl_grp.run_id)))
-     LEFT JOIN groups_agents_links gal ON ((gal.test_invocation_id = i.id)))
-     LEFT JOIN runs_agents_links ral ON ((ral.test_invocation_id = i.id)))
      LEFT JOIN department_links dl ON ((dl.test_invocation_id = i.id)))
      LEFT JOIN latest_grade lg ON ((lg.invocation_id = i.id)))
      LEFT JOIN latest_completion lc ON ((lc.invocation_id = i.id)))

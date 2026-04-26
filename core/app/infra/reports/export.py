@@ -3,7 +3,7 @@
 Composes existing black-box tools:
   1. resolve_profile_identity_context — profile (role, departments)
   2. search_test_invocation_entries_internal — full dump
-  3. search_test_invocation_groups — full dump
+  3. search_test_invocation_traces — full dump
   4. search_test_invocation_runs — full dump
   5. Resource get tools — parallel hydration (names, departments, voices)
   6. ZIP generation (invocations.csv + groups.csv + runs.csv + brightspace.csv) + upload entry
@@ -27,8 +27,8 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
 )
-from app.tools.entries.test_invocation_groups.search import (
-    search_test_invocation_groups,
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
 )
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
@@ -127,7 +127,7 @@ async def export_reports_impl(
 
     async def _fetch_groups() -> tuple[list, int]:
         async with pool.acquire() as conn:
-            return await search_test_invocation_groups(
+            return await search_test_invocation_traces(
                 conn, test_invocation_ids=invocation_ids, limit=100000, offset=0
             )
 

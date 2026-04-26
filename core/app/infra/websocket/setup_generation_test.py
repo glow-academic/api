@@ -1,9 +1,17 @@
-"""Set up a generation test — create test + invocations for agents with rubrics.
+"""Set up a generation test — create test + invocation + trace + run binding.
 
-Given a list of agents (from system_context) and a run_id, creates:
-  1. A test_entry (finite mode, one invocation per agent with a rubric)
-  2. A test_invocation_entry per agent (with agent + rubric + config connections)
-  3. A test_invocation_runs_entry per invocation (linking to the shared run)
+Given a list of agents (from system_context) and a run_id of a live
+generation, creates:
+  1. A test_entry (is_dynamic=False — grade existing output, no LLM re-run)
+  2. A test_invocation_entry per agent (with agent + rubric + bundle)
+  3. A test_invocation_traces_entry per invocation (the trace = bundle
+     config + historical run_id pointing at the live run)
+  4. A test_invocation_runs_entry per trace (binding the live run_id)
+
+Both manual replay (/test/start → /test/trace → /test/generate → /test/run)
+and online eval (this function) produce the same row shape. Only difference:
+this function pre-fills all four because the run already exists; the manual
+flow creates them across separate API calls.
 
 Returns test_id + per-agent test_invocation_ids for dispatch metadata.
 Gate: only agents with a rubric_id participate; others are auto-promoted.
@@ -23,6 +31,9 @@ from app.tools.entries.test_invocation.create import create_test_invocation
 from app.tools.entries.test_invocation_runs.create import (
     create_test_invocation_runs,
 )
+from app.tools.entries.test_invocation_traces.create import (
+    create_test_invocation_traces,
+)
 
 
 @dataclass(frozen=True)
@@ -40,7 +51,7 @@ class AgentTestConfig:
     temperature_level_ids: list[UUID] | None = None
     quality_ids: list[UUID] | None = None
     modality_ids: list[UUID] | None = None
-    # Runs-level config (model execution details)
+    # Trace-level config (model execution details — what the agent used)
     prompt_ids: list[UUID] | None = None
     instruction_ids: list[UUID] | None = None
     tool_ids: list[UUID] | None = None
@@ -61,7 +72,7 @@ async def setup_generation_test(
     run_id: UUID,
     profile_id: UUID | None = None,
 ) -> GenerationTestResult:
-    """Create a test with one invocation per agent for generation resolution.
+    """Create a test with one invocation+trace+run per agent for grading.
 
     Only agents with rubric_ids should be passed here (caller filters).
     """
@@ -74,8 +85,8 @@ async def setup_generation_test(
 
     test_call = await create_call(conn, run_id=run_id, session_id=run.session_id)
 
-    # 1. Create the test entry (finite mode — one invocation per agent)
-    # is_dynamic=False: skip LLM re-run, grade existing agent output directly
+    # 1. Create the test entry (is_dynamic=False — skip LLM re-run, grade
+    #    existing agent output directly via /test/generate's static branch).
     test_result = await create_test(
         conn,
         call_id=test_call.id,
@@ -87,7 +98,7 @@ async def setup_generation_test(
     )
     test_id = test_result.id
 
-    # 2. Create test_invocation + test_invocation_runs per agent
+    # 2. Create test_invocation + trace + run binding per agent
     invocations: dict[UUID, UUID] = {}
 
     for agent_config in agents:
@@ -97,7 +108,7 @@ async def setup_generation_test(
             session_id=run.session_id,
         )
 
-        # Invocation-level: agent identity + rubric + high-level config
+        # Invocation level: agent identity + rubric + invocation-bundle
         inv_result = await create_test_invocation(
             conn,
             test_id=test_id,
@@ -113,11 +124,13 @@ async def setup_generation_test(
         )
         test_invocation_id = inv_result.id
 
-        # Runs-level: link to the shared run + full agent execution config
-        await create_test_invocation_runs(
+        # Trace: the conversation/bundle context. run_id points at the
+        # live run (this is the run we're attaching for grading; no
+        # historical replay needed when is_dynamic=False).
+        trace_result = await create_test_invocation_traces(
             conn,
             test_invocation_id=test_invocation_id,
-            agent_ids=[agent_config.agent_id],
+            run_id=run_id,
             prompt_ids=agent_config.prompt_ids,
             instruction_ids=agent_config.instruction_ids,
             tool_ids=agent_config.tool_ids,
@@ -126,6 +139,15 @@ async def setup_generation_test(
             reasoning_level_ids=agent_config.reasoning_level_ids,
             temperature_level_ids=agent_config.temperature_level_ids,
             modality_ids=agent_config.modality_ids,
+        )
+
+        # Run binding: links the trace + invocation to the live run.
+        # Same run_id throughout (online eval = no replay).
+        await create_test_invocation_runs(
+            conn,
+            test_invocation_id=test_invocation_id,
+            test_invocation_traces_id=trace_result.id,
+            run_id=run_id,
         )
 
         invocations[agent_config.agent_id] = test_invocation_id

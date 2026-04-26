@@ -1,0 +1,16 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Test invocation created successfully.
+- **Invocation ID:** `{{ r.invocation_id }}`
+
+Agent, rubric, modalities, and bundle config were auto-resolved from the benchmark invocation template.
+{% elif results and results[0] and results[0].error %}
+Error creating test invocation: {{ results[0].error }}
+
+**Troubleshooting:**
+- `test_id` must reference an active test_entry on this profile/session
+- `invocation_id` must reference an active benchmark `invocation_entry` (the template)
+- Set `use_custom=true` only when overriding agent/rubric/etc. directly
+{% else %}
+No result returned.
+{% endif %}

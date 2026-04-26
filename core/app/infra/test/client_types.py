@@ -51,11 +51,18 @@ class TestNextPayload(BaseModel):
 
 
 class TestRunPayload(BaseModel):
-    """Client-to-server: run one replay against an original run."""
+    """Client-to-server: bind a runs_entry (produced by /test/generate)
+    to a test_invocation. Pure binding row — no model invocation.
+
+    Mirrors /attempt/chat/message — primitive, sequential, no orchestration.
+    """
 
     test_id: UUID = Field(..., description="UUID of the test")
     test_invocation_id: UUID = Field(..., description="UUID of the test invocation")
-    run_id: UUID = Field(..., description="Original run to replay")
+    test_invocation_trace_id: UUID | None = Field(
+        None, description="UUID of the parent trace (test_invocation_traces_entry)"
+    )
+    run_id: UUID = Field(..., description="UUID of the runs_entry to bind")
 
 
 class TestGroupPayload(BaseModel):

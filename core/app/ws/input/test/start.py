@@ -2,7 +2,7 @@
 
 Mirrors ws/input/attempt/start.py. Runs ``test_start_internal_impl`` directly
 through the audit framework so ``test.start.completed`` (with ``test_id`` and
-``invocation_id``) flows back to the client over Socket.IO.
+``benchmark_id``) flows back to the client over Socket.IO.
 """
 
 from typing import Any

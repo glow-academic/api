@@ -23,6 +23,7 @@ from app.tools.entries.test_invocation.search import (
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.evals.get import get_evals
 from app.tools.resources.models.get import get_models
+from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.rubrics.get import get_rubrics
 
 
@@ -226,9 +227,12 @@ async def resolve_benchmark_search_context(
     # ── Phase 2: Collect test_ids → fetch test_invocations ────────────
     test_ids = [t.test_id for t in tests]
     eval_ids_set: set[UUID] = set()
+    profile_ids_set: set[UUID] = set()
     for t in tests:
         if t.eval_id:
             eval_ids_set.add(t.eval_id)
+        if t.profile_id:
+            profile_ids_set.add(t.profile_id)
 
     async def _fetch_test_invocations() -> list:
         if not test_ids:
@@ -247,12 +251,53 @@ async def resolve_benchmark_search_context(
                 c, list(eval_ids_set), redis, bypass_cache=bypass_cache
             )
 
-    test_invocations, evals_res = await asyncio.gather(
+    async def _get_profiles() -> list:
+        if not profile_ids_set:
+            return []
+        async with pool.acquire() as c:
+            return await get_profiles(
+                c, list(profile_ids_set), redis, bypass_cache=bypass_cache
+            )
+
+    test_invocations, evals_res, profiles_res = await asyncio.gather(
         _fetch_test_invocations(),
         _get_evals(),
+        _get_profiles(),
     )
 
-    # ── Phase 3: Return ArtifactContext ───────────────────────────────
+    # ── Phase 3: Collect rubric & model IDs from secondary entries ────
+    rubric_ids_set: set[UUID] = set()
+    for ti in test_invocations:
+        if ti.rubric_id:
+            rubric_ids_set.add(ti.rubric_id)
+
+    model_ids_set: set[UUID] = set()
+    for ev in evals_res:
+        for mid in getattr(ev, "model_ids", None) or []:
+            model_ids_set.add(mid)
+
+    async def _get_rubrics() -> list:
+        if not rubric_ids_set:
+            return []
+        async with pool.acquire() as c:
+            return await get_rubrics(
+                c, list(rubric_ids_set), redis, bypass_cache=bypass_cache
+            )
+
+    async def _get_models() -> list:
+        if not model_ids_set:
+            return []
+        async with pool.acquire() as c:
+            return await get_models(
+                c, list(model_ids_set), redis, bypass_cache=bypass_cache
+            )
+
+    rubrics_res, models_res = await asyncio.gather(
+        _get_rubrics(),
+        _get_models(),
+    )
+
+    # ── Phase 4: Return ArtifactContext ───────────────────────────────
     return ArtifactContext(
         artifact_id=None,
         active=True,
@@ -263,5 +308,8 @@ async def resolve_benchmark_search_context(
         },
         resources={
             "evals": ResourcePair(selected=evals_res, suggestions=[]),
+            "profiles": ResourcePair(selected=profiles_res, suggestions=[]),
+            "rubrics": ResourcePair(selected=rubrics_res, suggestions=[]),
+            "models": ResourcePair(selected=models_res, suggestions=[]),
         },
     )

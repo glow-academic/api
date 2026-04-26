@@ -189,12 +189,20 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
             ws_base = "ws://" + ws_base[len("http://"):]
         elif ws_base.startswith("https://"):
             ws_base = "wss://" + ws_base[len("https://"):]
-        # If the base is a bare host (no realtime path), append the canonical
-        # OpenAI-compatible realtime path. LiteLLM proxy exposes realtime at
-        # /v1/realtime just like OpenAI.
+        # If the base doesn't already include the realtime path, append the
+        # canonical OpenAI-compatible ``/v1/realtime``. Idempotent against
+        # the two provider endpoint conventions in use:
+        #   - bare host    (e.g. ``http://localhost:4000``)            → append ``/v1/realtime``
+        #   - host + ``/v1`` (e.g. ``https://beta-api.learn-loop.org/ai/v1``)
+        #                                                              → append only ``/realtime``
+        # Without the second branch the prod path 403s on
+        # ``/ai/v1/v1/realtime`` (doubled /v1).
         ws_base = ws_base.rstrip("/")
         if "/realtime" not in ws_base:
-            ws_base = f"{ws_base}/v1/realtime"
+            if ws_base.endswith("/v1"):
+                ws_base = f"{ws_base}/realtime"
+            else:
+                ws_base = f"{ws_base}/v1/realtime"
         ws_url = f"{ws_base}?model={model}"
         logger.info(
             "Initializing Realtime session: group_id=%s model=%s base_url=%s voice=%s",
