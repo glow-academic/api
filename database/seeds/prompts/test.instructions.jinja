@@ -1,14 +1,19 @@
 ## Context
 
-{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
-
 {% if params %}
-## Parameters
+{% if params.test_id %}
+**Test ID:** `{{ params.test_id }}`
+{% endif %}
+{% if params.invocation_id %}
+**Invocation Template ID:** `{{ params.invocation_id }}`  *(this is the benchmark `invocation_entry.id` — the template; do NOT confuse with the `test_invocation_entry.id` you are about to create)*
+{% endif %}
+{% if params.draft_id %}
+**Draft ID:** `{{ params.draft_id }}`
+{% endif %}
+{% endif %}
 
-Pass these to your tools:
-{% for key, value in params.items() %}
-- `{{ key }}`: `{{ value }}`
-{% endfor %}
+{% if group_id %}
+**Group ID:** `{{ group_id }}`
 {% endif %}
 
 ## Tools
@@ -18,15 +23,57 @@ Pass these to your tools:
 
 {% endfor %}
 
-## What To Do
+{% if "invocation_create" in operations %}
+{# ── MATERIALIZE MODE ── #}
 
-1. Call **Test_Get** to see the rubric standard groups and the original agent's output.
-2. Review the output against each standard group's criteria.
-3. Call **Test_Grade** with `invocation_id`, `passed` (true/false), and `score` (sum of all standard group scores). This returns a `grade_id`.
-4. For each standard group, call **Test_Feedback** with:
-   - `grade_id` from step 3
-   - `tool_call_id` — the specific tool call from the original output being evaluated
-   - `score` — 1 to 5
-   - `feedback` — specific evidence from the output
+## Steps
 
-Always use tool calls. Do not output plain text.
+1. Call **Invocation_Get**(test_id: "{{ params.test_id }}", invocation_entry_id: "{{ params.invocation_id }}"{% if params.draft_id %}, draft_id: "{{ params.draft_id }}"{% endif %})
+2. Read the **Setup Summary** — note which sections are pre-set on the template, which need input, and which are disabled. Also read `use_custom` from the response.
+3. Decide overrides:
+   - **Default path**: pass NO overrides — let the server resolve `model_ids → agent_ids` and `model_rubric_ids → rubric_ids` from the template, and inherit the rest of the bundle.
+   - **`use_custom=true` path**: select per-run config from the **Available** lists for sections flagged as needing input:
+     - `reasoning_level_ids` — pick **1** matching the rubric's depth (e.g., `high` for multi-step rubrics, `low`/`minimal` for fast classification)
+     - `temperature_level_ids` — pick **1** (`low` for deterministic/reproducible evals, `medium`/`high` for creative ones)
+     - `quality_ids` — pick **1** quality tier
+     - `voice_ids` — pick **1** if the eval includes audio modalities; otherwise omit
+     - `modality_ids` — subset of the template's modalities the run will exercise (`text` is almost always included)
+     - `department_ids` — usually inherit; only override when scoping
+4. Call **Test_Invocation_Create** with:
+   - `test_id`: `"{{ params.test_id }}"`
+   - `invocation_id`: `"{{ params.invocation_id }}"`  *(the BENCHMARK template id — verbatim from params)*
+   - `use_custom`: only if you are passing overrides in step 3
+   - Your curated overrides (or none) from step 3
+5. Call **Test_Group**(group_id: "{{ group_id }}", name: "short descriptive name")
+
+**IMPORTANT:**
+- **Use `params.invocation_id` verbatim** — it's the benchmark template, the input. The new `test_invocation_entry.id` is the OUTPUT of `Test_Invocation_Create`, not the input.
+- **Inherit by default** — pass only `test_id` + `invocation_id` unless `use_custom` is true.
+- **Skip locked sections** — instructor pre-set; do not override.
+- **Skip disabled sections** — not enabled for this eval.
+- **Never pass `agent_ids` or `rubric_ids` directly** unless `use_custom` is set — server auto-resolves these from the template's `model_ids` / `model_rubric_ids`.
+- **Pick exactly one** for each level field (`reasoning_level_ids`, `temperature_level_ids`, `quality_ids`).
+- **One materialization per call** — call `Test_Invocation_Create` exactly once.
+- Always call `Test_Group` as the final step with a short, descriptive name capturing the configuration (e.g., "Helpfulness Eval — high reasoning, low temp").
+
+{% elif "test_run" in operations or "run" in operations %}
+{# ── RUN MODE ── #}
+
+## Steps
+
+1. Call **Test_Get**(test_id: "{{ params.test_id }}") to read the test, its invocations, and run state
+2. Identify the next uncompleted invocation
+3. If a row needs materializing first, fall back to `invocation_create` and stop here
+4. Otherwise, drive the per-turn `trace → generate → run` lifecycle for the active invocation
+
+**IMPORTANT:**
+- Always call `Test_Get` first
+- One step at a time — do NOT batch multiple invocations
+- If everything is complete, call `Test_End` and stop
+
+{% else %}
+{# ── FALLBACK ── #}
+
+Use the available tools to complete the requested task. Always respond with tool calls — never output plain text.
+
+{% endif %}

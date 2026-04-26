@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.31"
+    "version": "2.15.32"
   },
   "paths": {
     "/persona/get": {
@@ -18825,6 +18825,62 @@
             "BearerAuth": []
           }
         ],
+        "x-cache-tags": [
+          "test"
+        ]
+      }
+    },
+    "/test/stream": {
+      "get": {
+        "tags": [
+          "test"
+        ],
+        "summary": "Test Stream",
+        "operationId": "test_stream_test_stream_get",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "group_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
         "x-cache-tags": [
           "test"
         ]
@@ -106072,6 +106128,17 @@
           "test_id": {
             "type": "string",
             "title": "Test Id"
+          },
+          "invocation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invocation Id"
           },
           "benchmark_id": {
             "anyOf": [

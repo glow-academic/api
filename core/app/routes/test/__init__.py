@@ -19,6 +19,7 @@ from app.routes.test.run import router as run_router
 from app.routes.test.search import router as search_router
 from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
+from app.routes.test.stream import router as stream_router
 from app.routes.test.trace import router as trace_router
 from app.routes.test.text import router as text_router
 
@@ -45,6 +46,7 @@ router.include_router(feedback_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(group_router)
+router.include_router(stream_router)
 router.include_router(problem_router)
 # Media operations
 router.include_router(text_router)

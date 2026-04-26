@@ -14,10 +14,8 @@ from database.seeds.ids import sid
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 # Agent name → file slug mapping
-# Most are just lowercase-hyphenated, with a few exceptions
-_AGENT_SLUG_MAP = {
-    "Test Grade": "test",  # test.system.jinja, not test-grade.system.jinja
-}
+# Most are just lowercase-hyphenated; defaults to lower().replace(" ", "-").
+_AGENT_SLUG_MAP: dict[str, str] = {}
 
 
 def _slug(agent_name: str) -> str:
@@ -47,7 +45,7 @@ AGENT_NAMES = [
     "Persona", "Practice", "Pricing", "Profile",
     "Provider", "Record", "Reports", "Rubric",
     "Scenario", "Session", "Setting", "Simulation",
-    "Test Grade", "Tool",
+    "Test", "Test Grade", "Tool", "Transcribe",
 ]
 
 # Build prompt dicts

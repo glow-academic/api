@@ -73,8 +73,10 @@ SCENARIO_VIDEO_AGENT = sid("agent/scenario-video")
 SESSION_AGENT = sid("agent/session")
 SETTING_AGENT = sid("agent/setting")
 SIMULATION_AGENT = sid("agent/simulation")
+TEST_AGENT = sid("agent/test")
 TEST_GRADE_AGENT = sid("agent/test-grade")
 TOOL_AGENT = sid("agent/tool")
+TRANSCRIBE_AGENT = sid("agent/transcribe")
 COMPOSER_AGENT = sid("agent/composer")
 
 # ---------------------------------------------------------------------------
@@ -121,8 +123,10 @@ SCENARIO_VIDEO_AGENT_RESOURCE = sid("agent-resource/scenario-video")
 SESSION_AGENT_RESOURCE = sid("agent-resource/session")
 SETTING_AGENT_RESOURCE = sid("agent-resource/setting")
 SIMULATION_AGENT_RESOURCE = sid("agent-resource/simulation")
+TEST_AGENT_RESOURCE = sid("agent-resource/test")
 TEST_GRADE_AGENT_RESOURCE = sid("agent-resource/test-grade")
 TOOL_AGENT_RESOURCE = sid("agent-resource/tool")
+TRANSCRIBE_AGENT_RESOURCE = sid("agent-resource/transcribe")
 
 # ---------------------------------------------------------------------------
 # Agent definitions
@@ -235,6 +239,13 @@ agents = [
         tool_ids=[
             sid("tool-resource/attempt/get"),
             sid("tool-resource/attempt/chat_message"),
+            # The voice flow's /attempt/generate request asks for
+            # operations=['get', 'chat_message', 'chat_hints']. With
+            # the canonical score_agents selector, an agent must cover
+            # every requested op or it isn't a candidate. Without
+            # chat_hints here, the realtime request returned 0
+            # candidates and dispatches=0.
+            sid("tool-resource/attempt/chat_hints"),
         ],
         prompt_id=_prompt_id("Attempt Realtime"),
         instruction_ids=[_instruction_id("Attempt Realtime")],
@@ -858,6 +869,37 @@ agents = [
         prompt_id=_prompt_id("Simulation"),
         instruction_ids=[_instruction_id("Simulation")],
     ),
+    # Unified test orchestrator — mirrors the Attempt agent's role for tests.
+    # Materializes test_invocation_entry rows from benchmark templates,
+    # drives the per-card lifecycle (trace → generate → run), and hands
+    # grading off to the dedicated Test Grade agent.
+    dict(
+        id=TEST_AGENT,
+        resource_id=TEST_AGENT_RESOURCE,
+        name="Test",
+        description="AI agent for orchestrating benchmark test runs — materializes test_invocation rows from templates, drives traces, runs, and group naming",
+        flag_ids=[AGENT_ACTIVE_FLAG],
+        model_id=_role_model("text"),
+        tool_ids=[
+            # Test orchestration (state-machine ops)
+            sid("tool-resource/test/start"),
+            sid("tool-resource/test/get"),
+            sid("tool-resource/test/group"),
+            sid("tool-resource/test/end"),
+            sid("tool-resource/test/next"),
+            sid("tool-resource/test/refresh"),
+            sid("tool-resource/test/run"),
+            sid("tool-resource/test/search"),
+            sid("tool-resource/test/stop"),
+            sid("tool-resource/test/archive"),
+            sid("tool-resource/test/export"),
+            # Materialization (read template + create test_invocation_entry)
+            sid("tool-resource/invocation/get"),
+            sid("tool-resource/invocation/create"),
+        ],
+        prompt_id=_prompt_id("Test"),
+        instruction_ids=[_instruction_id("Test")],
+    ),
     dict(
         id=TEST_GRADE_AGENT,
         resource_id=TEST_GRADE_AGENT_RESOURCE,
@@ -866,22 +908,11 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("grader"),
         tool_ids=[
-            sid("tool-resource/test/archive"),
-            sid("tool-resource/test/end"),
-            sid("tool-resource/test/export"),
             sid("tool-resource/test/get"),
-            sid("tool-resource/test/next"),
-            sid("tool-resource/test/refresh"),
-            sid("tool-resource/test/run"),
-            sid("tool-resource/test/search"),
-            sid("tool-resource/test/start"),
-            sid("tool-resource/test/stop"),
             sid("tool-resource/test/grade"),
             sid("tool-resource/test/feedback"),
             sid("tool-resource/test/text-download"),
             sid("tool-resource/test/call-download"),
-            sid("tool-resource/invocation/get"),
-            sid("tool-resource/invocation/create"),
         ],
         prompt_id=_prompt_id("Test Grade"),
         instruction_ids=[_instruction_id("Test Grade")],
@@ -907,6 +938,19 @@ agents = [
         ],
         prompt_id=_prompt_id("Tool"),
         instruction_ids=[_instruction_id("Tool")],
+    ),
+    # Speech-to-text agent — audio-in, text-out. Tool-less; selected by
+    # score_agents purely on modality (input={audio}, output={text}).
+    dict(
+        id=TRANSCRIBE_AGENT,
+        resource_id=TRANSCRIBE_AGENT_RESOURCE,
+        name="Transcribe",
+        description="Speech-to-text transcription agent — audio in, text out",
+        flag_ids=[AGENT_ACTIVE_FLAG],
+        model_id=_role_model("transcribe"),
+        tool_ids=[],
+        prompt_id=_prompt_id("Transcribe"),
+        instruction_ids=[_instruction_id("Transcribe")],
     ),
     dict(
         id=COMPOSER_AGENT,

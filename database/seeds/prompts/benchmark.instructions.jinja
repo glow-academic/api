@@ -1,5 +1,15 @@
 ## Context
 
+{% if params.artifact_id %}
+**Existing benchmark** (ID: `{{ params.artifact_id }}`).
+{% else %}
+**New benchmark** — no artifact exists yet.
+{% endif %}
+{% if params.invocation_id %}**Invocation ID:** `{{ params.invocation_id }}`{% endif %}
+{% if params.draft_id %}**Draft ID:** `{{ params.draft_id }}`{% endif %}
+{% if group_id %}**Group ID:** `{{ group_id }}`{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+
 {% set draft = views.draft_invocation if views and views.draft_invocation else None %}
 
 {% if draft %}

@@ -575,11 +575,29 @@ async def test_start_impl(
             if redis:
                 await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 
-        # Client-orchestrated: /test/start returns the test_id; the
-        # client renders the benchmark's invocation templates and calls
-        # /test/invocation/create per card to materialize rows on demand.
+        # Client-orchestrated: mirrors attempt_start_impl, which returns
+        # {attempt_id, chat_id} where chat_id is the FIRST chat_entry
+        # template on the parent. We do the same: return {test_id,
+        # invocation_id} where invocation_id is the first benchmark
+        # invocation_entry (template). The client's useTestStart →
+        # useTestRoute then fetches /test/invocation/get on that template
+        # and either drops to lobby or fires /test/generate so the LLM
+        # materializes a test_invocation_entry from it.
+        first_invocation_id: str | None = None
+        if benchmark_id is not None:
+            async with pool.acquire() as conn:
+                from app.tools.entries.invocation.search import (
+                    search_invocations,
+                )
+                templates = await search_invocations(
+                    conn, benchmark_ids=[benchmark_id], limit=1,
+                )
+                if templates:
+                    first_invocation_id = str(templates[0].id)
+
         data["_result"] = {
             "test_id": str(test_id),
+            "invocation_id": first_invocation_id,
             "benchmark_id": str(benchmark_id) if benchmark_id else None,
         }
 

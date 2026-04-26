@@ -1,9 +1,13 @@
 """Internal handler: test_start — canonical client-orchestrated entry.
 
 Pure setup: creates a test_entry only. Mirrors attempt_start — does
-NOT pre-create invocation rows. The client renders the benchmark's
-invocation_entry templates and calls /test/invocation/create per card
-to materialize a test_invocation_entry on demand.
+NOT pre-create test_invocation_entry rows. Returns {test_id,
+invocation_id, benchmark_id} where invocation_id is the FIRST
+benchmark invocation_entry template (the row the client will route
+into), exactly as attempt_start returns {attempt_id, chat_id} where
+chat_id is the parent's first chat_entry template. The client's
+useTestStart hands off to useTestRoute → useTestGenerate, which fires
+/test/generate so the LLM materializes the test_invocation_entry.
 """
 
 from typing import Any
@@ -25,6 +29,7 @@ from app.infra.websocket.test_types import TestErrorData
 
 class TestStartInternalResult(BaseModel):
     test_id: str
+    invocation_id: str | None = None
     benchmark_id: str | None = None
     success: bool = True
 
@@ -87,10 +92,11 @@ async def test_start_internal_impl(
                 raise ValueError(error.message)
 
         # Workflow writes its handoff into runner_data["_result"]
-        # (test_id + benchmark_id). Read it out.
+        # (test_id + invocation_id + benchmark_id). Read it out.
         result = runner_data.get("_result") or {}
         return TestStartInternalResult(
             test_id=result.get("test_id", ""),
+            invocation_id=result.get("invocation_id"),
             benchmark_id=result.get("benchmark_id"),
         )
 

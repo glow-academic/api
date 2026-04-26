@@ -1,0 +1,41 @@
+## Context
+
+{% if params.test_id %}**Test ID:** `{{ params.test_id }}`{% endif %}
+{% if params.invocation_id %}**Invocation ID:** `{{ params.invocation_id }}`{% endif %}
+{% if params.draft_id %}**Draft ID:** `{{ params.draft_id }}`{% endif %}
+{% if group_id %}**Group ID:** `{{ group_id }}`{% endif %}
+
+Use these IDs when calling tools — pass `invocation_id` to `Test_Get` /
+`Test_Grade` / `Test_Feedback`, and `test_id` where required.
+
+{% if params %}
+{% set extra_keys = [] %}
+{% for key, value in params.items() %}{% if key not in ["test_id", "invocation_id", "draft_id", "artifact_id"] %}{% set _ = extra_keys.append(key) %}{% endif %}{% endfor %}
+{% if extra_keys %}
+## Additional Parameters
+
+{% for key in extra_keys %}
+- `{{ key }}`: `{{ params[key] }}`
+{% endfor %}
+{% endif %}
+{% endif %}
+
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
+{% endfor %}
+
+## What To Do
+
+1. Call **Test_Get** to see the rubric standard groups and the original agent's output.
+2. Review the output against each standard group's criteria.
+3. Call **Test_Grade** with `invocation_id`, `passed` (true/false), and `score` (sum of all standard group scores). This returns a `grade_id`.
+4. For each standard group, call **Test_Feedback** with:
+   - `grade_id` from step 3
+   - `tool_call_id` — the specific tool call from the original output being evaluated
+   - `score` — 1 to 5
+   - `feedback` — specific evidence from the output
+
+Always use tool calls. Do not output plain text.
