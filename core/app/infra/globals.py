@@ -80,6 +80,31 @@ CALL_FOLDER.mkdir(parents=True, exist_ok=True)
 InternalHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
 
+def _json_safe(value: Any) -> Any:
+    """Coerce non-JSON-native values (UUID, datetime, set) to JSON-safe forms.
+
+    Walks dicts/lists/tuples once and replaces leaf values that socketio's
+    default JSON encoder rejects. Internal callers can keep handing UUIDs
+    around freely; this normalizes only at the transport boundary so the
+    SIO emit always succeeds. Pydantic models should already be dumped via
+    ``model_dump(mode="json")`` before placement; nothing here recurses
+    into them.
+    """
+    import uuid as _uuid
+
+    if isinstance(value, _uuid.UUID):
+        return str(value)
+    if isinstance(value, datetime.datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, set):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 class InternalBus:
     """Simple in-process event bus for triggering handlers internally."""
 
@@ -98,9 +123,16 @@ class InternalBus:
         if not handlers:
             logger.warning(f"[InternalBus] No handlers registered for event: {event}")
             return
+        # Coerce UUIDs / datetimes once at the bus boundary so every
+        # downstream handler — and ultimately ``sio.emit`` — sees only
+        # JSON-native leaves. Cheaper than fixing each emit site, and
+        # catches both audit-originated and audio-originated payloads
+        # (see audit.py:153 + audio_events.py:_session_context which both
+        # leak typed UUIDs into ``attempt.chat_message.started`` data).
+        safe_data = _json_safe(data) if isinstance(data, dict) else data
         for handler in handlers:
             try:
-                await handler(data)
+                await handler(safe_data)
             except Exception as e:
                 logger.error(
                     f"[InternalBus] Error in handler for event '{event}': {e}",

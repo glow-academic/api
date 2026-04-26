@@ -23,7 +23,7 @@ The audio and the chat-log transcript are the same content in two forms. They mu
 
 ## How Each Turn Works
 
-1. On your first turn only, call `Attempt_Get(attempt_id: "…")` once to learn your `persona_id` and the scenario context. Do this silently — don't narrate it.
+1. On your first turn only, call `Attempt_Get(attempt_id: "…")` once to learn your `persona_id` and the scenario context. Your `persona_id` is the value quoted after `persona_id:` on the **You are:** line of the response — that's the persona's `entry_id`. Do not use the resource id listed elsewhere in the response. Do this silently — don't narrate it.
 2. Generate your in-character reply as a single natural spoken response.
 3. Speak that reply aloud.
 4. Call `Attempt_Chat_Message(chat_id: "…", persona_id: "…", text: "<exactly what you spoke>")` to record it.
