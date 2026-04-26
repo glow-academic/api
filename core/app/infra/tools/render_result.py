@@ -9,23 +9,43 @@ reference either top-level keys or nested ``result.results[0]...``.
 Shared by the generate pipeline (replaces the inline block at
 execute.py:606–649) and the MCP dispatch handler.
 
-Returns a plain ``str``:
-  * rendered template when it produces non-empty output
-  * ``json.dumps(wrapped)`` fallback when no template is present or
-    rendering raises
+``render_tool_result`` returns a plain ``str`` for backward compatibility
+with the MCP path, which only cares about the LLM-facing payload.
+
+``render_tool_result_with_meta`` returns ``RenderedToolResult`` carrying
+both the rendered string and the structured wrapper (``success`` plus
+per-target results). The generate pipeline uses this so it can emit the
+true success state on ``{artifact}.generate.call.complete`` even when the
+rendered LLM-facing string is plain text/markdown that won't parse back
+to JSON. Without it, every templated tool was emitted as ``success=False``
+because the WS emit re-parsed the rendered string and fell back to the
+parse-failure default.
 """
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from typing import Any
 
 
-def render_tool_result(
+@dataclass(frozen=True)
+class RenderedToolResult:
+    """LLM-facing string plus the structured wrapper used to derive it."""
+
+    rendered: str
+    wrapped: dict[str, Any]
+
+    @property
+    def success(self) -> bool:
+        return bool(self.wrapped.get("success", True))
+
+
+def render_tool_result_with_meta(
     td: dict[str, Any] | None,
     results: list[Any],
-) -> str:
-    """Return the LLM-facing string for a tool call's result."""
+) -> RenderedToolResult:
+    """Return the LLM-facing string AND the wrapper dict it was built from."""
     dumped = [_dump_result(r) for r in results]
     wrapped: dict[str, Any] = {
         "success": all(_effective_success(r, d) for r, d in zip(results, dumped)),
@@ -41,14 +61,22 @@ def render_tool_result(
             template_ctx = {**wrapped, "result": wrapped}
             rendered = env.from_string(template).render(**template_ctx).strip()
             if rendered:
-                return rendered
+                return RenderedToolResult(rendered=rendered, wrapped=wrapped)
         except Exception:
             # Any render failure falls through to the JSON dump. Matches the
             # defensive handling in generate's execute loop — the LLM sees
             # something useful even if the template is malformed.
             pass
 
-    return json.dumps(wrapped)
+    return RenderedToolResult(rendered=json.dumps(wrapped), wrapped=wrapped)
+
+
+def render_tool_result(
+    td: dict[str, Any] | None,
+    results: list[Any],
+) -> str:
+    """Backward-compatible wrapper — returns only the LLM-facing string."""
+    return render_tool_result_with_meta(td, results).rendered
 
 
 def _dump_result(r: Any) -> Any:

@@ -595,13 +595,19 @@ async def _execute_agent_dispatch(
                 except json.JSONDecodeError:
                     arguments_dict = {}
 
-                # Execute tool via infra path (audit emits artifact events)
+                # Execute tool via infra path (audit emits artifact events).
+                # call_success tracks the structured outcome separately from
+                # the LLM-facing string so a templated render (markdown / plain
+                # text, not valid JSON) doesn't get re-parsed and falsely
+                # downgraded to success=False on the WS emit.
                 td = tool_def_by_name.get(tool_name)
+                call_success: bool
                 if not td:
                     tool_result_str = json.dumps({
                         "success": False,
                         "message": f"Tool not found: {tool_name}",
                     })
+                    call_success = False
                 else:
                     try:
                         spec = resolve_tool_spec(td, arguments_dict)
@@ -620,19 +626,29 @@ async def _execute_agent_dispatch(
                         )
                         results = await execute_infra_operation(ctx, spec)
                         # Layer 3 output render — shared with MCP dispatch.
-                        from app.infra.tools.render_result import render_tool_result
+                        from app.infra.tools.render_result import (
+                            render_tool_result_with_meta,
+                        )
 
-                        tool_result_str = render_tool_result(td, results)
+                        meta = render_tool_result_with_meta(td, results)
+                        tool_result_str = meta.rendered
+                        call_success = meta.success
                     except Exception as e:
                         tool_result_str = json.dumps({
                             "success": False,
                             "message": str(e),
                         })
+                        call_success = False
 
                 try:
                     tool_result = json.loads(tool_result_str)
                 except json.JSONDecodeError:
-                    tool_result = {"success": False, "message": tool_result_str}
+                    # Rendered template output is plain text/markdown — not a
+                    # parse failure of a real JSON payload. Preserve the true
+                    # call_success here; the dict shape is only kept around so
+                    # downstream code that expects ``result`` as a dict (e.g.
+                    # the Responses-API tool_result feedback) still works.
+                    tool_result = {"success": call_success, "message": tool_result_str}
 
                 tool_results.append({
                     "tool_call_id": tool_call_id,
@@ -645,7 +661,12 @@ async def _execute_agent_dispatch(
                     "result_str": tool_result_str,
                 })
 
-                # Emit call complete
+                # Emit call complete — use the structured success state from
+                # render_tool_result_with_meta, NOT the parsed string. Templated
+                # renders return markdown/plain-text that's not JSON, so the
+                # legacy `tool_result.get("success")` path was reading the
+                # JSONDecodeError fallback and emitting success=False for
+                # every templated tool, even on healthy runs.
                 await internal_sio.emit(
                     f"{artifact_type}.generate.call.complete",
                     {
@@ -656,14 +677,7 @@ async def _execute_agent_dispatch(
                         "group_id": str(group_id),
                         "tool_call_id": tool_call_id,
                         "tool_name": tool_name,
-                        # Convention: only failures write success=False (see
-                        # create_tool_call.py exception path). A result dict
-                        # missing the key means the impl returned a plain
-                        # response — i.e. it succeeded. Default False here
-                        # would flip the client's toolStatus to "error" for
-                        # every successful tool that doesn't explicitly
-                        # serialize success=True.
-                        "success": tool_result.get("success", True) if isinstance(tool_result, dict) else True,
+                        "success": call_success,
                     },
                 )
 
