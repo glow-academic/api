@@ -80,7 +80,7 @@ def _model_draft_entity_ids(
 MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.model.viewed": None},
+        domain_events={"model.viewed": None},
         scope="entity",
         entity_key="model_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.model.created": CreateModelApiResponse},
+        domain_events={"model.created": CreateModelApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.model.updated": UpdateModelApiResponse},
+        domain_events={"model.updated": UpdateModelApiResponse},
         scope="entity",
         entity_key="model_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.model.deleted": DeleteModelApiResponse},
+        domain_events={"model.deleted": DeleteModelApiResponse},
         scope="entity",
         entity_key="model_id",
         can_subscribe=require_authenticated_profile,
@@ -134,7 +134,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "duplicate": OperationEventConfig(
         operation="duplicate",
-        domain_events={"artifacts.model.duplicated": DuplicateModelApiResponse},
+        domain_events={"model.duplicated": DuplicateModelApiResponse},
         scope="entity",
         entity_key="model_id",
         can_subscribe=require_authenticated_profile,
@@ -147,7 +147,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "draft": OperationEventConfig(
         operation="draft",
-        domain_events={"artifacts.model.draft.saved": PatchModelDraftApiResponse},
+        domain_events={"model.draft.saved": PatchModelDraftApiResponse},
         scope="entity",
         entity_key="draft_id",
         can_subscribe=require_authenticated_profile,
@@ -160,7 +160,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "drafts": OperationEventConfig(
         operation="drafts",
-        domain_events={"artifacts.model.drafts.viewed": GetModelDraftsApiResponse},
+        domain_events={"model.drafts.viewed": GetModelDraftsApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -168,7 +168,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.model.search.performed": None},
+        domain_events={"model.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -176,7 +176,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.model.exported": ExportModelApiResponse},
+        domain_events={"model.exported": ExportModelApiResponse},
         scope="collection",
         entity_key="model_id",
         can_subscribe=require_authenticated_profile,
@@ -191,7 +191,7 @@ MODEL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.model.refreshed": None},
+        domain_events={"model.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

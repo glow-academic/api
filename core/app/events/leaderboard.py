@@ -24,11 +24,11 @@ LEADERBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": LeaderboardResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.attempt.leaderboard_viewed": None},
+        domain_events={"attempt.leaderboard_viewed": None},
     ),
     "leaderboard_refresh": OperationEventConfig(
         operation="leaderboard_refresh",
-        domain_events={"artifacts.attempt.leaderboard_refreshed": None},
+        domain_events={"attempt.leaderboard_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

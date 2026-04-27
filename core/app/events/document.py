@@ -80,7 +80,7 @@ def _document_draft_entity_ids(
 DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.document.viewed": None},
+        domain_events={"document.viewed": None},
         scope="entity",
         entity_key="document_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.document.created": CreateDocumentApiResponse},
+        domain_events={"document.created": CreateDocumentApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.document.updated": UpdateDocumentApiResponse},
+        domain_events={"document.updated": UpdateDocumentApiResponse},
         scope="entity",
         entity_key="document_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.document.deleted": DeleteDocumentApiResponse},
+        domain_events={"document.deleted": DeleteDocumentApiResponse},
         scope="entity",
         entity_key="document_id",
         can_subscribe=require_authenticated_profile,
@@ -135,7 +135,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "duplicate": OperationEventConfig(
         operation="duplicate",
         domain_events={
-            "artifacts.document.duplicated": DuplicateDocumentApiResponse,
+            "document.duplicated": DuplicateDocumentApiResponse,
         },
         scope="entity",
         entity_key="document_id",
@@ -150,7 +150,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "draft": OperationEventConfig(
         operation="draft",
         domain_events={
-            "artifacts.document.draft.saved": PatchDocumentDraftApiResponse,
+            "document.draft.saved": PatchDocumentDraftApiResponse,
         },
         scope="entity",
         entity_key="draft_id",
@@ -165,7 +165,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "drafts": OperationEventConfig(
         operation="drafts",
         domain_events={
-            "artifacts.document.drafts.viewed": GetDocumentDraftsApiResponse,
+            "document.drafts.viewed": GetDocumentDraftsApiResponse,
         },
         scope="collection",
         entity_key=None,
@@ -174,7 +174,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.document.search.performed": None},
+        domain_events={"document.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -182,7 +182,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.document.exported": ExportDocumentApiResponse},
+        domain_events={"document.exported": ExportDocumentApiResponse},
         scope="collection",
         entity_key="document_id",
         can_subscribe=require_authenticated_profile,
@@ -197,7 +197,7 @@ DOCUMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.document.refreshed": None},
+        domain_events={"document.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

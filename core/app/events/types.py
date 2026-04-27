@@ -43,8 +43,13 @@ def build_lifecycle_event_type(
     operation: str,
     phase: LifecyclePhase,
 ) -> str:
-    """Build the canonical public lifecycle event name."""
-    return f"artifacts.{artifact}.{operation}.{phase}"
+    """Build the canonical public lifecycle event name.
+
+    Bare `{artifact}.{operation}.{phase}` form — matches the WS path's
+    naming convention so a single client-side ``transport.on(...)``
+    subscription works across both event channels.
+    """
+    return f"{artifact}.{operation}.{phase}"
 
 
 def build_default_lifecycle_event_types(

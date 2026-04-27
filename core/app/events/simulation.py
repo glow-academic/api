@@ -88,7 +88,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetSimulationApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.simulation.viewed": None},
+        domain_events={"simulation.viewed": None},
         resolve_entity_ids=lambda arguments, output: _simulation_request_entity_ids(
             arguments, output, "simulation_id"
         ),
@@ -104,7 +104,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.created": CreateSimulationApiResponse,
+            "simulation.created": CreateSimulationApiResponse,
         },
         resolve_entity_ids=_simulation_result_entity_ids,
     ),
@@ -119,7 +119,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.updated": UpdateSimulationApiResponse,
+            "simulation.updated": UpdateSimulationApiResponse,
         },
         resolve_entity_ids=_simulation_result_entity_ids,
     ),
@@ -134,7 +134,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.deleted": DeleteSimulationApiResponse,
+            "simulation.deleted": DeleteSimulationApiResponse,
         },
         resolve_entity_ids=_simulation_result_entity_ids,
     ),
@@ -149,7 +149,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.duplicated": DuplicateSimulationApiResponse,
+            "simulation.duplicated": DuplicateSimulationApiResponse,
         },
         resolve_entity_ids=_simulation_duplicate_entity_ids,
     ),
@@ -164,7 +164,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.draft.saved": PatchSimulationDraftApiResponse,
+            "simulation.draft.saved": PatchSimulationDraftApiResponse,
         },
         resolve_entity_ids=_simulation_draft_entity_ids,
     ),
@@ -174,7 +174,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.simulation.drafts.viewed": GetSimulationDraftsApiResponse,
+            "simulation.drafts.viewed": GetSimulationDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -183,7 +183,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.simulation.search.performed": None},
+        domain_events={"simulation.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -197,7 +197,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.simulation.exported": ExportSimulationApiResponse,
+            "simulation.exported": ExportSimulationApiResponse,
         },
         resolve_entity_ids=lambda arguments, output: _simulation_request_entity_ids(
             arguments, output, "simulation_id"
@@ -208,7 +208,7 @@ SIMULATION_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.simulation.refreshed": None},
+        domain_events={"simulation.refreshed": None},
     ),
 }
 

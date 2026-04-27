@@ -54,9 +54,6 @@ async def generate_cohort(
             )
             group_id = group_result.group_id
 
-        if not request.group_id and group_id:
-            request = request.model_copy(update={"group_id": str(group_id)})
-
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_cohort_impl(
                 pool,

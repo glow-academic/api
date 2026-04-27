@@ -24,13 +24,13 @@ SESSION_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetSessionDetailResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.system.session_viewed": None},
+        domain_events={"system.session_viewed": None},
     ),
     "session_refresh": OperationEventConfig(
         operation="session_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.system.session_refreshed": None},
+        domain_events={"system.session_refreshed": None},
     ),
 }

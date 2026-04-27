@@ -324,7 +324,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.viewed": None,
+            "persona.viewed": None,
         },
         filter_events=_passthrough_filter,
     ),
@@ -339,7 +339,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.created": CreatePersonaApiResponse,
+            "persona.created": CreatePersonaApiResponse,
         },
         resolve_entity_ids=_persona_result_entity_ids,
     ),
@@ -354,7 +354,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.updated": UpdatePersonaApiResponse,
+            "persona.updated": UpdatePersonaApiResponse,
         },
         resolve_entity_ids=_persona_result_entity_ids,
     ),
@@ -369,7 +369,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.deleted": DeletePersonaApiResponse,
+            "persona.deleted": DeletePersonaApiResponse,
         },
         resolve_entity_ids=_persona_result_entity_ids,
     ),
@@ -384,7 +384,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.duplicated": DuplicatePersonaApiResponse,
+            "persona.duplicated": DuplicatePersonaApiResponse,
         },
         resolve_entity_ids=_persona_duplicate_entity_ids,
     ),
@@ -399,10 +399,10 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.draft.saved": PatchPersonaDraftApiResponse,
-            "artifacts.persona.draft.progress": PersonaGenerationProgressEvent,
-            "artifacts.persona.draft.complete": None,
-            "artifacts.persona.draft.error": OperationErrorEvent,
+            "persona.draft.saved": PatchPersonaDraftApiResponse,
+            "persona.draft.progress": PersonaGenerationProgressEvent,
+            "persona.draft.complete": None,
+            "persona.draft.error": OperationErrorEvent,
         },
         resolve_entity_ids=_persona_draft_entity_ids,
     ),
@@ -412,7 +412,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=_can_subscribe_persona_draft,
         domain_events={
-            "artifacts.persona.drafts.viewed": GetPersonaDraftsApiResponse,
+            "persona.drafts.viewed": GetPersonaDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -422,7 +422,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=_can_subscribe_persona_read,
         domain_events={
-            "artifacts.persona.search.performed": None,
+            "persona.search.performed": None,
         },
         include_call_lifecycle=False,
     ),
@@ -437,7 +437,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.persona.exported": ExportPersonaApiResponse,
+            "persona.exported": ExportPersonaApiResponse,
         },
         resolve_entity_ids=_persona_export_entity_ids,
     ),
@@ -447,7 +447,7 @@ PERSONA_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.persona.refreshed": None,
+            "persona.refreshed": None,
         },
     ),
 }

@@ -13,7 +13,7 @@ def test_get_eval_event_config_maps_domain_event_and_entity_scope() -> None:
     config = get_eval_event_config("get")
 
     assert config is not None
-    assert config.domain_event_names == ("artifacts.eval.viewed",)
+    assert config.domain_event_names == ("eval.viewed",)
     assert config.scope == "entity"
     assert config.entity_key == "eval_id"
     assert config.include_call_lifecycle is True
@@ -22,7 +22,7 @@ def test_get_eval_event_config_maps_domain_event_and_entity_scope() -> None:
 def test_drafts_eval_event_config_is_collection_scoped() -> None:
     config = EVAL_EVENT_CONFIGS["drafts"]
 
-    assert config.domain_event_names == ("artifacts.eval.drafts.viewed",)
+    assert config.domain_event_names == ("eval.drafts.viewed",)
     assert config.scope == "collection"
     assert config.entity_key is None
     assert config.include_call_lifecycle is False
@@ -44,9 +44,9 @@ def test_eval_event_types_include_domain_and_lifecycle_events() -> None:
         )
     )
 
-    assert "artifacts.eval.created" in event_types
-    assert "artifacts.eval.updated" in event_types
-    assert "artifacts.eval.drafts.viewed" in event_types
+    assert "eval.created" in event_types
+    assert "eval.updated" in event_types
+    assert "eval.drafts.viewed" in event_types
     for event_type in build_default_lifecycle_event_types("eval", "get"):
         assert event_type in event_types
 

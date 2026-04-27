@@ -21,11 +21,11 @@ BENCHMARK_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": BenchmarkResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.test.benchmark_viewed": None},
+        domain_events={"test.benchmark_viewed": None},
     ),
     "benchmark_refresh": OperationEventConfig(
         operation="benchmark_refresh",
-        domain_events={"artifacts.test.benchmark_refreshed": None},
+        domain_events={"test.benchmark_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

@@ -88,7 +88,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.viewed": None},
+        domain_events={"agent.viewed": None},
         resolve_entity_ids=lambda arguments, output: _agent_request_entity_ids(
             arguments, output, "agent_id"
         ),
@@ -103,7 +103,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.created": CreateAgentApiResponse},
+        domain_events={"agent.created": CreateAgentApiResponse},
         resolve_entity_ids=_agent_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -116,7 +116,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.updated": UpdateAgentApiResponse},
+        domain_events={"agent.updated": UpdateAgentApiResponse},
         resolve_entity_ids=_agent_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -129,7 +129,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.deleted": DeleteAgentApiResponse},
+        domain_events={"agent.deleted": DeleteAgentApiResponse},
         resolve_entity_ids=_agent_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -142,7 +142,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.duplicated": DuplicateAgentApiResponse},
+        domain_events={"agent.duplicated": DuplicateAgentApiResponse},
         resolve_entity_ids=_agent_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -155,7 +155,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": PatchAgentDraftApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.draft.saved": PatchAgentDraftApiResponse},
+        domain_events={"agent.draft.saved": PatchAgentDraftApiResponse},
         resolve_entity_ids=_agent_draft_entity_ids,
     ),
     "drafts": OperationEventConfig(
@@ -163,7 +163,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.agent.drafts.viewed": GetAgentDraftsApiResponse},
+        domain_events={"agent.drafts.viewed": GetAgentDraftsApiResponse},
         include_call_lifecycle=False,
     ),
     "search": OperationEventConfig(
@@ -171,7 +171,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.agent.search.performed": None},
+        domain_events={"agent.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -184,7 +184,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportAgentApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.agent.exported": ExportAgentApiResponse},
+        domain_events={"agent.exported": ExportAgentApiResponse},
         resolve_entity_ids=lambda arguments, output: _agent_request_entity_ids(
             arguments, output, "agent_id"
         ),
@@ -194,7 +194,7 @@ AGENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.agent.refreshed": None},
+        domain_events={"agent.refreshed": None},
     ),
 }
 

@@ -80,7 +80,7 @@ def _tool_draft_entity_ids(
 TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.tool.viewed": None},
+        domain_events={"tool.viewed": None},
         scope="entity",
         entity_key="tool_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.tool.created": CreateToolApiResponse},
+        domain_events={"tool.created": CreateToolApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.tool.updated": UpdateToolApiResponse},
+        domain_events={"tool.updated": UpdateToolApiResponse},
         scope="entity",
         entity_key="tool_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.tool.deleted": DeleteToolApiResponse},
+        domain_events={"tool.deleted": DeleteToolApiResponse},
         scope="entity",
         entity_key="tool_id",
         can_subscribe=require_authenticated_profile,
@@ -134,7 +134,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "duplicate": OperationEventConfig(
         operation="duplicate",
-        domain_events={"artifacts.tool.duplicated": DuplicateToolApiResponse},
+        domain_events={"tool.duplicated": DuplicateToolApiResponse},
         scope="entity",
         entity_key="tool_id",
         can_subscribe=require_authenticated_profile,
@@ -147,7 +147,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "draft": OperationEventConfig(
         operation="draft",
-        domain_events={"artifacts.tool.draft.saved": PatchToolDraftApiResponse},
+        domain_events={"tool.draft.saved": PatchToolDraftApiResponse},
         scope="entity",
         entity_key="draft_id",
         can_subscribe=require_authenticated_profile,
@@ -160,7 +160,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "drafts": OperationEventConfig(
         operation="drafts",
-        domain_events={"artifacts.tool.drafts.viewed": GetToolDraftsApiResponse},
+        domain_events={"tool.drafts.viewed": GetToolDraftsApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -168,7 +168,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.tool.search.performed": None},
+        domain_events={"tool.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -176,7 +176,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.tool.exported": ExportToolApiResponse},
+        domain_events={"tool.exported": ExportToolApiResponse},
         scope="collection",
         entity_key="tool_id",
         can_subscribe=require_authenticated_profile,
@@ -191,7 +191,7 @@ TOOL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.tool.refreshed": None},
+        domain_events={"tool.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

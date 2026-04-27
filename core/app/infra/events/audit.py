@@ -69,7 +69,7 @@ async def run_artifact_operation_with_audit(
     entity_id: UUID | None = None,
     bypass_cache: bool = False,
     response_model: type[T] | None = None,
-    role: str = "assistant",
+    role: str = "user",
     mcp: bool = False,
     upload_folder: Path | None = None,
     instruction_template: str | None = None,
@@ -86,7 +86,20 @@ async def run_artifact_operation_with_audit(
 
     Output handlers in ws/output/ pick these up and forward to clients.
     When the tool graph has a matching tool, a tool-call audit record is persisted.
+
+    sid resolution: HTTP routes (server-action callers) typically don't
+    carry a socket id, so `sid` arrives empty. We fall back to the
+    `get_socket_owner(profile_id)` Redis index — populated by the
+    socket connect handler — which lets us route to the user's
+    currently-connected socket without requiring every route to do
+    the lookup itself. Mirrors the canonical pattern in
+    /attempt/chat/message.
     """
+    if not sid and not rooms:
+        from app.infra.websocket.get_socket_owner import get_socket_owner
+        resolved = await get_socket_owner(str(profile_id))
+        if resolved:
+            sid = resolved
     effective_rooms = rooms or ([sid] if sid else [])
     event_prefix = f"{artifact}.{operation}"
 
@@ -155,6 +168,7 @@ async def run_artifact_operation_with_audit(
                 "rooms": effective_rooms,
                 "call_id": str(cid) if cid else None,
                 "group_id": str(effective_group_id) if effective_group_id else None,
+                "role": role,
                 **arguments,
             })
             await emit_artifact_operation_started(
@@ -165,6 +179,7 @@ async def run_artifact_operation_with_audit(
                 entity_id=entity_id,
                 call_id=cid,
                 tool_id=tool_id,
+                role=role,
             )
 
         async with pool.acquire() as conn:
@@ -202,6 +217,7 @@ async def run_artifact_operation_with_audit(
                 "call_id": str(call_id) if call_id else None,
                 "message": str(exc),
                 "error_type": type(exc).__name__,
+                "role": role,
             })
             raise
 
@@ -214,6 +230,7 @@ async def run_artifact_operation_with_audit(
             "group_id": str(effective_group_id) if effective_group_id else None,
             "message": str(tool_error),
             "error_type": type(tool_error).__name__,
+            "role": role,
         })
         await emit_artifact_operation_failure(
             artifact=artifact,
@@ -224,6 +241,8 @@ async def run_artifact_operation_with_audit(
             group_id=effective_group_id,
             entity_id=entity_id,
             tool_id=tool_id,
+            call_id=call_upload_id,
+            role=role,
         )
         raise tool_error
 
@@ -241,6 +260,7 @@ async def run_artifact_operation_with_audit(
         "rooms": effective_rooms,
         "call_id": str(call_upload_id) if call_upload_id else None,
         "group_id": str(effective_group_id) if effective_group_id else None,
+        "role": role,
         **output,
     })
     await emit_artifact_operation_finished(
@@ -252,6 +272,7 @@ async def run_artifact_operation_with_audit(
         entity_id=entity_id,
         call_id=call_upload_id,
         tool_id=tool_id,
+        role=role,
     )
 
     if response_model is not None:

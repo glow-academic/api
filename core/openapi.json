@@ -63436,6 +63436,50 @@
             "format": "uuid",
             "title": "Test Id",
             "description": "UUID of the test to fetch"
+          },
+          "configs_groups_page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Configs Groups Page",
+            "description": "1-indexed page of group section headers",
+            "default": 1
+          },
+          "configs_groups_page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Configs Groups Page Size",
+            "description": "Group headers per page",
+            "default": 10
+          },
+          "configs_expanded": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Configs Expanded",
+            "description": "Group IDs the user has expanded; rows fetched only for these"
+          },
+          "configs_expanded_page_size": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Configs Expanded Page Size",
+            "description": "Rows per expanded group",
+            "default": 20
+          },
+          "configs_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configs Search",
+            "description": "Free-text filter on group name"
           }
         },
         "type": "object",
@@ -63521,6 +63565,42 @@
             "type": "array",
             "title": "Runs",
             "description": "Run items derived from invocations"
+          },
+          "configs": {
+            "items": {
+              "$ref": "#/components/schemas/TestConfigItem"
+            },
+            "type": "array",
+            "title": "Configs",
+            "description": "Run configs only for groups in configs_expanded"
+          },
+          "configs_groups": {
+            "items": {
+              "$ref": "#/components/schemas/TestConfigGroup"
+            },
+            "type": "array",
+            "title": "Configs Groups",
+            "description": "Group section headers (current outer page)"
+          },
+          "configs_total": {
+            "type": "integer",
+            "title": "Configs Total",
+            "description": "Total run configs across all groups (universe size)",
+            "default": 0
+          },
+          "configs_groups_total": {
+            "type": "integer",
+            "title": "Configs Groups Total",
+            "description": "Total groups matching filters (outer pagination universe)",
+            "default": 0
+          },
+          "configs_per_group_total": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Configs Per Group Total",
+            "description": "group_id \u2192 total row count (used by inner pagination 'Show more' math)"
           },
           "status_summary": {
             "anyOf": [
@@ -106269,6 +106349,144 @@
         ],
         "title": "TestCompletePayload",
         "description": "Client-to-server: complete the entire test.\n\nMirrors AttemptCompletePayload."
+      },
+      "TestConfigGroup": {
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "title": "Group Id",
+            "description": "UUID of the group"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Human-readable group name (or null if unnamed)"
+          },
+          "run_count": {
+            "type": "integer",
+            "title": "Run Count",
+            "description": "Total run configs in this group",
+            "default": 0
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At",
+            "description": "ISO timestamp of the most recent run in this group"
+          }
+        },
+        "type": "object",
+        "required": [
+          "group_id"
+        ],
+        "title": "TestConfigGroup",
+        "description": "A group bucket for the picker \u2014 used as the section header.\n\nRenders one accordion section per row. `run_count` is the total\nrows in the group (across the whole inner pagination universe,\nnot just the current expanded window). `last_run_at` drives the\nouter ordering (most-recent-group first)."
+      },
+      "TestConfigItem": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "UUID of the runs_entry config"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "UUID of the parent group (for grouping in the picker)"
+          },
+          "agent_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Name",
+            "description": "Display name of the agent"
+          },
+          "model_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Name",
+            "description": "Display name of the underlying model"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Human-readable picker label"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "When this config was first created"
+          },
+          "prompt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Prompt Ids",
+            "description": "Prompt resource ids from the historical agent"
+          },
+          "tool_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tool Ids",
+            "description": "Tool resource ids from the historical agent"
+          },
+          "instruction_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Instruction Ids",
+            "description": "Instruction resource ids from the historical agent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "label"
+        ],
+        "title": "TestConfigItem",
+        "description": "A reusable run configuration the picker can queue.\n\nSources from runs_entry rows. Each row is a distinct config\n(agent + model + bundle) that can be re-fired any number of times\ninto fresh trace executions. The bundle ids carried here come from\nthe historical run's agent_resource \u2014 the picker passes them as\n`RunPanelState` to /test/trace so the new trace records the same\nprompt + tool + instruction set the original run executed against."
       },
       "TestEntries": {
         "properties": {

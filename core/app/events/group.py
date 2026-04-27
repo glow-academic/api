@@ -33,7 +33,7 @@ GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.system.group_viewed": None,
+            "system.group_viewed": None,
         },
     ),
     "group_generate": OperationEventConfig(
@@ -47,9 +47,9 @@ GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.system.group_generate.started": GenerationCompleteEvent,
-            "artifacts.system.group_generate.progress": GenerationProgressEvent,
-            "artifacts.system.group_generate.completed": GenerationCompleteEvent,
+            "system.group_generate.started": GenerationCompleteEvent,
+            "system.group_generate.progress": GenerationProgressEvent,
+            "system.group_generate.completed": GenerationCompleteEvent,
         },
         filter_events=default_filter_events,
     ),
@@ -59,7 +59,7 @@ GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.system.group_refreshed": None,
+            "system.group_refreshed": None,
         },
     ),
 }

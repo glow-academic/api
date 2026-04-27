@@ -32,9 +32,9 @@ async def test_emit_artifact_operation_events_publishes_matching_live_event() ->
             seen.append((await queue.get()).event_type)
 
         assert seen == [
-            "artifacts.persona.create.started",
-            "artifacts.persona.create.completed",
-            "artifacts.persona.created",
+            "persona.create.started",
+            "persona.create.completed",
+            "persona.created",
         ]
     finally:
         unsubscribe(queue)

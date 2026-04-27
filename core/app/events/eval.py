@@ -87,7 +87,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.viewed": None},
+        domain_events={"eval.viewed": None},
         resolve_entity_ids=lambda arguments, output: _eval_request_entity_ids(
             arguments, output, "eval_id"
         ),
@@ -102,7 +102,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.created": CreateEvalApiResponse},
+        domain_events={"eval.created": CreateEvalApiResponse},
         resolve_entity_ids=_eval_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -115,7 +115,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.updated": UpdateEvalApiResponse},
+        domain_events={"eval.updated": UpdateEvalApiResponse},
         resolve_entity_ids=_eval_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -128,7 +128,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.deleted": DeleteEvalApiResponse},
+        domain_events={"eval.deleted": DeleteEvalApiResponse},
         resolve_entity_ids=_eval_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -141,7 +141,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.duplicated": DuplicateEvalApiResponse},
+        domain_events={"eval.duplicated": DuplicateEvalApiResponse},
         resolve_entity_ids=_eval_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -155,7 +155,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.eval.draft.saved": PatchEvalDraftApiResponse,
+            "eval.draft.saved": PatchEvalDraftApiResponse,
         },
         resolve_entity_ids=_eval_draft_entity_ids,
     ),
@@ -165,7 +165,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.eval.drafts.viewed": GetEvalDraftsApiResponse,
+            "eval.drafts.viewed": GetEvalDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -174,7 +174,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.eval.search.performed": None},
+        domain_events={"eval.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -186,7 +186,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportEvalApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.eval.exported": ExportEvalApiResponse},
+        domain_events={"eval.exported": ExportEvalApiResponse},
         resolve_entity_ids=lambda arguments, output: _eval_request_entity_ids(
             arguments, output, "eval_id"
         ),
@@ -196,7 +196,7 @@ EVAL_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.eval.refreshed": None},
+        domain_events={"eval.refreshed": None},
     ),
 }
 

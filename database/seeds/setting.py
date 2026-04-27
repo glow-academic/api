@@ -50,6 +50,7 @@ from database.seeds.systems import (
     SESSION_SYSTEM,
     SETTING_SYSTEM,
     SIMULATION_SYSTEM,
+    TEST_SYSTEM,
     TEST_GRADE_SYSTEM,
     TOOL_SYSTEM,
 )
@@ -89,6 +90,7 @@ ALL_SYSTEMS = [
     # Attempt + test state machines
     ATTEMPT_CHAT_SYSTEM,
     ATTEMPT_GRADE_SYSTEM,
+    TEST_SYSTEM,
     TEST_GRADE_SYSTEM,
     # Orchestration
     COMPOSER_SYSTEM,

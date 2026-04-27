@@ -46,6 +46,12 @@ async def require_auth(
     Requires:
       - Authorization: Bearer <jwt> (user identity, always required)
 
+    SSE callers that can't set headers (browser ``EventSource``) must
+    proxy through the client's BFF route at ``/api/stream/{artifact}``,
+    which attaches the Bearer header server-side. We deliberately do
+    NOT accept a ``?token=`` query fallback — that would leak the JWT
+    through server logs, browser history, and Referer headers.
+
     Sets on request.state:
       - profile_id: UUID
       - session_id: UUID

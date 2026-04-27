@@ -80,7 +80,7 @@ def _provider_draft_entity_ids(
 PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.provider.viewed": None},
+        domain_events={"provider.viewed": None},
         scope="entity",
         entity_key="provider_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.provider.created": CreateProviderApiResponse},
+        domain_events={"provider.created": CreateProviderApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.provider.updated": UpdateProviderApiResponse},
+        domain_events={"provider.updated": UpdateProviderApiResponse},
         scope="entity",
         entity_key="provider_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.provider.deleted": DeleteProviderApiResponse},
+        domain_events={"provider.deleted": DeleteProviderApiResponse},
         scope="entity",
         entity_key="provider_id",
         can_subscribe=require_authenticated_profile,
@@ -135,7 +135,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "duplicate": OperationEventConfig(
         operation="duplicate",
         domain_events={
-            "artifacts.provider.duplicated": DuplicateProviderApiResponse,
+            "provider.duplicated": DuplicateProviderApiResponse,
         },
         scope="entity",
         entity_key="provider_id",
@@ -150,7 +150,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "draft": OperationEventConfig(
         operation="draft",
         domain_events={
-            "artifacts.provider.draft.saved": PatchProviderDraftApiResponse,
+            "provider.draft.saved": PatchProviderDraftApiResponse,
         },
         scope="entity",
         entity_key="draft_id",
@@ -165,7 +165,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "drafts": OperationEventConfig(
         operation="drafts",
         domain_events={
-            "artifacts.provider.drafts.viewed": GetProviderDraftsApiResponse,
+            "provider.drafts.viewed": GetProviderDraftsApiResponse,
         },
         scope="collection",
         entity_key=None,
@@ -174,7 +174,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.provider.search.performed": None},
+        domain_events={"provider.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -182,7 +182,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.provider.exported": ExportProviderApiResponse},
+        domain_events={"provider.exported": ExportProviderApiResponse},
         scope="collection",
         entity_key="provider_id",
         can_subscribe=require_authenticated_profile,
@@ -197,7 +197,7 @@ PROVIDER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.provider.refreshed": None},
+        domain_events={"provider.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

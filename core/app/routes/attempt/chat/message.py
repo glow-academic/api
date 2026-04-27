@@ -10,10 +10,13 @@ same event shape as the AI-driven tool-call path.
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from app.infra.attempt.message import (
     AttemptMessageInternalResult,
@@ -53,6 +56,11 @@ async def chat_message(
     """Create a message in an attempt chat."""
     profile_id = getattr(http_request.state, "profile_id", None)
     session_id = getattr(http_request.state, "session_id", None)
+    logger.info(
+        f"VOICE_TRACE[4] /attempt/chat/message: chat_id={request.chat_id} "
+        f"text={request.text[:60]!r} persona_id={request.persona_id} "
+        f"profile_id={profile_id}"
+    )
     if not profile_id or not session_id:
         raise HTTPException(status_code=401, detail="Missing profile or session")
 

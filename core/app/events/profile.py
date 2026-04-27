@@ -91,7 +91,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ProfileContextApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.context.viewed": None},
+        domain_events={"profile.context.viewed": None},
         resolve_entity_ids=lambda arguments, output: _profile_request_entity_ids(
             arguments, output, "profile_id"
         ),
@@ -106,7 +106,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.viewed": None},
+        domain_events={"profile.viewed": None},
         resolve_entity_ids=lambda arguments, output: _profile_request_entity_ids(
             arguments, output, "target_profile_id"
         ),
@@ -121,7 +121,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.created": CreateProfileApiResponse},
+        domain_events={"profile.created": CreateProfileApiResponse},
         resolve_entity_ids=_profile_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -134,7 +134,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.updated": UpdateProfileApiResponse},
+        domain_events={"profile.updated": UpdateProfileApiResponse},
         resolve_entity_ids=_profile_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -147,7 +147,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.deleted": DeleteProfileApiResponse},
+        domain_events={"profile.deleted": DeleteProfileApiResponse},
         resolve_entity_ids=_profile_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -160,7 +160,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.duplicated": DuplicateProfileApiResponse},
+        domain_events={"profile.duplicated": DuplicateProfileApiResponse},
         resolve_entity_ids=_profile_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -174,7 +174,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.profile.draft.saved": PatchProfileDraftApiResponse,
+            "profile.draft.saved": PatchProfileDraftApiResponse,
         },
         resolve_entity_ids=_profile_draft_entity_ids,
     ),
@@ -184,7 +184,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.profile.drafts.viewed": GetProfileDraftsApiResponse,
+            "profile.drafts.viewed": GetProfileDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -193,7 +193,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.profile.search.performed": None},
+        domain_events={"profile.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -206,7 +206,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.exported": ExportProfileApiResponse},
+        domain_events={"profile.exported": ExportProfileApiResponse},
         resolve_entity_ids=lambda arguments, output: _profile_request_entity_ids(
             arguments, output, "profile_export_id"
         ),
@@ -216,7 +216,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.profile.refreshed": None},
+        domain_events={"profile.refreshed": None},
     ),
     "emulate": OperationEventConfig(
         operation="emulate",
@@ -228,7 +228,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": EmulateProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.emulated": EmulateProfileApiResponse},
+        domain_events={"profile.emulated": EmulateProfileApiResponse},
         resolve_entity_ids=lambda arguments, output: _profile_request_entity_ids(
             arguments, output, "target_profile_id"
         ),
@@ -242,7 +242,7 @@ PROFILE_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UnemulateProfileApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.profile.unemulated": UnemulateProfileApiResponse},
+        domain_events={"profile.unemulated": UnemulateProfileApiResponse},
         resolve_entity_ids=lambda arguments, output: _profile_request_entity_ids(
             arguments, output, "profile_id"
         ),

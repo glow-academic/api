@@ -27,13 +27,13 @@ CHAT_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetChatResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.attempt.chat_viewed": None},
+        domain_events={"attempt.chat_viewed": None},
     ),
     "chat_refresh": OperationEventConfig(
         operation="chat_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.attempt.chat_refreshed": None},
+        domain_events={"attempt.chat_refreshed": None},
     ),
 }

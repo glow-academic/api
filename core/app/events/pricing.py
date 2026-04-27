@@ -19,11 +19,11 @@ PRICING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": PricingResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.pricing.viewed": None},
+        domain_events={"pricing.viewed": None},
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.pricing.refreshed": None},
+        domain_events={"pricing.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

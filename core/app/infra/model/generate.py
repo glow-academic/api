@@ -43,7 +43,11 @@ async def generate_model_impl(
 ) -> ArtifactGenerateResponse:
     """Model generation using deterministic infra functions."""
     internal_sio = get_internal_sio()
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    if sid:
+        resolved_sid = sid
+    else:
+        from app.infra.websocket.get_socket_owner import get_socket_owner
+        resolved_sid = await get_socket_owner(str(profile_id)) or ""
     cfg = request.config or GenerateConfig()
 
     tool_soft = not cfg.dangerous

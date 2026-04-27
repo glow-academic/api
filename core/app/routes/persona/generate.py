@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.persona.audit import run_persona_operation_with_audit
+from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.persona.generate import generate_persona_impl
 from app.infra.persona.group import group_persona_impl
 from app.infra.websocket.generation_types import (
@@ -52,10 +52,6 @@ async def generate_persona(
             )
             group_id = group_result.group_id
 
-        # Use route-resolved group if client didn't provide one
-        if not request.group_id and group_id:
-            request = request.model_copy(update={"group_id": str(group_id)})
-
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_persona_impl(
                 pool,
@@ -65,9 +61,10 @@ async def generate_persona(
                 request=request,
             )
 
-        return await run_persona_operation_with_audit(
+        return await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="persona",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,

@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 
-from app.infra.persona.audit import resolve_persona_operation_tool
+from app.infra.events.audit import resolve_artifact_operation_tool
 from app.infra.tool_graph import ResolvedTool, SettingsToolGraph
 
 
@@ -29,7 +29,10 @@ def test_resolve_persona_operation_tool_matches_artifact_and_operation() -> None
         ]
     )
 
-    assert resolve_persona_operation_tool(graph, operation="get") == expected_tool_id
+    assert (
+        resolve_artifact_operation_tool(graph, artifact="persona", operation="get")
+        == expected_tool_id
+    )
 
 
 def test_resolve_persona_operation_tool_returns_none_without_match() -> None:
@@ -46,4 +49,7 @@ def test_resolve_persona_operation_tool_returns_none_without_match() -> None:
         ]
     )
 
-    assert resolve_persona_operation_tool(graph, operation="get") is None
+    assert (
+        resolve_artifact_operation_tool(graph, artifact="persona", operation="get")
+        is None
+    )

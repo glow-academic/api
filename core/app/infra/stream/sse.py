@@ -53,7 +53,10 @@ async def build_artifact_stream_impl(
                 if event.artifact != artifact:
                     continue
 
-                yield f"event: {event.event_type}\n"
+                # All events flow on the default ``message`` channel.
+                # ``event_type`` lives inside the envelope payload so the
+                # client multiplexer can dispatch (and wildcard-match) in
+                # JS — the EventSource named-channel mechanism cannot.
                 yield f"data: {event.model_dump_json()}\n\n"
         finally:
             unsubscribe(queue)

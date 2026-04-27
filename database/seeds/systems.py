@@ -47,6 +47,7 @@ from database.seeds.agents import (
     SESSION_AGENT_RESOURCE,
     SETTING_AGENT_RESOURCE,
     SIMULATION_AGENT_RESOURCE,
+    TEST_AGENT_RESOURCE,
     TEST_GRADE_AGENT_RESOURCE,
     TOOL_AGENT_RESOURCE,
     TRANSCRIBE_AGENT_RESOURCE,
@@ -89,6 +90,7 @@ SCENARIO_SYSTEM = sid("system/scenario")
 SESSION_SYSTEM = sid("system/session")
 SETTING_SYSTEM = sid("system/setting")
 SIMULATION_SYSTEM = sid("system/simulation")
+TEST_SYSTEM = sid("system/test")
 TEST_GRADE_SYSTEM = sid("system/test-grade")
 TOOL_SYSTEM = sid("system/tool")
 
@@ -322,10 +324,22 @@ systems = [
         resolution_strategy="max",
     ),
     dict(
+        id=TEST_SYSTEM,
+        name="Test System",
+        description="System for the test orchestrator agent — materialization + lifecycle",
+        agent_ids=[TEST_AGENT_RESOURCE],
+        resolution_strategy="max",
+    ),
+    dict(
         id=TEST_GRADE_SYSTEM,
         name="Test Grade System",
         description="System for test-grade agents",
-        agent_ids=[TEST_GRADE_AGENT_RESOURCE],
+        # Test agent included alongside Test Grade so it's reachable when
+        # this system wins the "test" scoring resource. Mirrors how
+        # ATTEMPT_AGENT_RESOURCE is in both ATTEMPT_CHAT_SYSTEM and
+        # ATTEMPT_GRADE_SYSTEM — keeps the orchestrator agent reachable
+        # from either winning side without depending on per-system score.
+        agent_ids=[TEST_AGENT_RESOURCE, TEST_GRADE_AGENT_RESOURCE],
         resolution_strategy="max",
     ),
     dict(

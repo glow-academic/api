@@ -38,7 +38,7 @@ async def test_wrap_emit_with_stream_bridge_publishes_attempt_message_event() ->
 
         assert [event.event for event in recorded] == ["attempt_assistant_complete"]
         published = await queue.get()
-        assert published.event_type == "artifacts.attempt.chat.assistant.complete"
+        assert published.event_type == "attempt.chat.assistant.complete"
         assert published.entity_id == UUID("11111111-1111-1111-1111-111111111111")
         assert published.payload["content"] == "done"
     finally:
@@ -74,7 +74,7 @@ async def test_wrap_emit_with_stream_bridge_publishes_test_run_progress_event() 
 
         assert [event.event for event in recorded] == ["test_grade_progress"]
         published = await queue.get()
-        assert published.event_type == "artifacts.test.run.progress"
+        assert published.event_type == "test.run.progress"
         assert published.entity_id == UUID("22222222-2222-2222-2222-222222222222")
         assert published.payload["score"] == 0.9
     finally:
@@ -121,8 +121,8 @@ async def test_wrap_emit_with_stream_bridge_uses_distinct_test_run_domain_names(
         ]
         first = await queue.get()
         second = await queue.get()
-        assert first.event_type == "artifacts.test.run.replay_started"
-        assert second.event_type == "artifacts.test.run.replay_completed"
+        assert first.event_type == "test.run.replay_started"
+        assert second.event_type == "test.run.replay_completed"
     finally:
         unsubscribe(queue)
 

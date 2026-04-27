@@ -87,7 +87,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.viewed": None},
+        domain_events={"rubric.viewed": None},
         resolve_entity_ids=lambda arguments, output: _rubric_request_entity_ids(
             arguments, output, "rubric_id"
         ),
@@ -102,7 +102,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.created": CreateRubricApiResponse},
+        domain_events={"rubric.created": CreateRubricApiResponse},
         resolve_entity_ids=_rubric_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -115,7 +115,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.updated": UpdateRubricApiResponse},
+        domain_events={"rubric.updated": UpdateRubricApiResponse},
         resolve_entity_ids=_rubric_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -128,7 +128,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.deleted": DeleteRubricApiResponse},
+        domain_events={"rubric.deleted": DeleteRubricApiResponse},
         resolve_entity_ids=_rubric_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -141,7 +141,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.duplicated": DuplicateRubricApiResponse},
+        domain_events={"rubric.duplicated": DuplicateRubricApiResponse},
         resolve_entity_ids=_rubric_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -155,7 +155,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.rubric.draft.saved": PatchRubricDraftApiResponse,
+            "rubric.draft.saved": PatchRubricDraftApiResponse,
         },
         resolve_entity_ids=_rubric_draft_entity_ids,
     ),
@@ -165,7 +165,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.rubric.drafts.viewed": GetRubricDraftsApiResponse,
+            "rubric.drafts.viewed": GetRubricDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -174,7 +174,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.rubric.search.performed": None},
+        domain_events={"rubric.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -186,7 +186,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportRubricApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.rubric.exported": ExportRubricApiResponse},
+        domain_events={"rubric.exported": ExportRubricApiResponse},
         resolve_entity_ids=lambda arguments, output: _rubric_request_entity_ids(
             arguments, output, "rubric_id"
         ),
@@ -196,7 +196,7 @@ RUBRIC_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.rubric.refreshed": None},
+        domain_events={"rubric.refreshed": None},
     ),
 }
 

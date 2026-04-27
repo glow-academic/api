@@ -36,6 +36,22 @@ class GetTestArtifactRequest(BaseModel):
 
     test_id: UUID = Field(..., description="UUID of the test to fetch")
 
+    # Picker pagination — drives the bottom composer's run-config list.
+    # Two-axis (groups-first):
+    #   • outer paginates `configs_groups[]` (group section headers)
+    #   • inner expands selected groups into `configs[]` rows
+    # `configs_expanded` is the set of group_ids the user has opened;
+    # only those groups' rows are returned (capped per group). The
+    # client owns expansion state via URL params (nuqs).
+    configs_groups_page: int = Field(1, ge=1, description="1-indexed page of group section headers")
+    configs_groups_page_size: int = Field(10, ge=1, le=100, description="Group headers per page")
+    configs_expanded: list[UUID] = Field(
+        default_factory=list,
+        description="Group IDs the user has expanded; rows fetched only for these",
+    )
+    configs_expanded_page_size: int = Field(20, ge=1, le=200, description="Rows per expanded group")
+    configs_search: str | None = Field(None, description="Free-text filter on group name")
+
 
 class TestRunItem(BaseModel):
     """A single run row for the UI table, derived from a benchmark invocation."""
@@ -50,6 +66,48 @@ class TestRunItem(BaseModel):
     status: str = Field("not_started", description="Run status")
     grade_score: float | None = Field(None, description="Grade score for the run")
     grade_passed: bool | None = Field(None, description="Whether the run passed grading")
+
+
+class TestConfigItem(BaseModel):
+    """A reusable run configuration the picker can queue.
+
+    Sources from runs_entry rows. Each row is a distinct config
+    (agent + model + bundle) that can be re-fired any number of times
+    into fresh trace executions. The bundle ids carried here come from
+    the historical run's agent_resource — the picker passes them as
+    `RunPanelState` to /test/trace so the new trace records the same
+    prompt + tool + instruction set the original run executed against.
+    """
+
+    run_id: str = Field(..., description="UUID of the runs_entry config")
+    group_id: str | None = Field(None, description="UUID of the parent group (for grouping in the picker)")
+    agent_name: str | None = Field(None, description="Display name of the agent")
+    model_name: str | None = Field(None, description="Display name of the underlying model")
+    label: str = Field(..., description="Human-readable picker label")
+    created_at: str | None = Field(None, description="When this config was first created")
+
+    # Bundle ids from the historical run's agent_resource. The server
+    # resolves them once here so the picker can pass them as panel
+    # state to /test/trace for faithful replay — no agent lookup on
+    # the client, no per-trace agent override on the server.
+    prompt_ids: list[str] = Field(default_factory=list, description="Prompt resource ids from the historical agent")
+    tool_ids: list[str] = Field(default_factory=list, description="Tool resource ids from the historical agent")
+    instruction_ids: list[str] = Field(default_factory=list, description="Instruction resource ids from the historical agent")
+
+
+class TestConfigGroup(BaseModel):
+    """A group bucket for the picker — used as the section header.
+
+    Renders one accordion section per row. `run_count` is the total
+    rows in the group (across the whole inner pagination universe,
+    not just the current expanded window). `last_run_at` drives the
+    outer ordering (most-recent-group first).
+    """
+
+    group_id: str = Field(..., description="UUID of the group")
+    name: str | None = Field(None, description="Human-readable group name (or null if unnamed)")
+    run_count: int = Field(0, description="Total run configs in this group")
+    last_run_at: str | None = Field(None, description="ISO timestamp of the most recent run in this group")
 
 
 class TestStatusSummary(BaseModel):
@@ -103,8 +161,22 @@ class GetTestArtifactResponse(BaseModel):
     rubric_name: str | None = Field(None, description="Name of the rubric")
     infinite_mode: bool = Field(False, description="Whether infinite mode is enabled")
 
-    # Runs derived from invocations
+    # Runs derived from invocations (history zone — actual past executions)
     runs: list[TestRunItem] = Field(default_factory=list, description="Run items derived from invocations")
+
+    # Reusable run configurations (picker zone — sourced from runs_entry
+    # rows). Each can be queued to fire a fresh trace+run any number of
+    # times. Two-axis pagination: `configs_groups[]` headers are the
+    # outer page, `configs[]` rows are loaded only for the groups in
+    # `configs_expanded` on the request.
+    configs: list[TestConfigItem] = Field(default_factory=list, description="Run configs only for groups in configs_expanded")
+    configs_groups: list[TestConfigGroup] = Field(default_factory=list, description="Group section headers (current outer page)")
+    configs_total: int = Field(0, description="Total run configs across all groups (universe size)")
+    configs_groups_total: int = Field(0, description="Total groups matching filters (outer pagination universe)")
+    configs_per_group_total: dict[str, int] = Field(
+        default_factory=dict,
+        description="group_id → total row count (used by inner pagination 'Show more' math)",
+    )
 
     # Status summary
     status_summary: TestStatusSummary | None = Field(None, description="Summary of invocation statuses")

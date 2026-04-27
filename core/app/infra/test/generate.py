@@ -151,7 +151,11 @@ async def generate_test_impl(
             status_code=403, detail="You don't have permission to generate tests.",
         )
 
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    if sid:
+        resolved_sid = sid
+    else:
+        from app.infra.websocket.get_socket_owner import get_socket_owner
+        resolved_sid = await get_socket_owner(str(profile_id)) or ""
     cfg = request.config or GenerateConfig()
 
     # ── trace-driven path (per-card replay/generation) ──────────────────

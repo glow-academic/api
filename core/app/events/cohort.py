@@ -88,7 +88,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.viewed": None},
+        domain_events={"cohort.viewed": None},
         resolve_entity_ids=lambda arguments, output: _cohort_request_entity_ids(
             arguments, output, "cohort_id"
         ),
@@ -103,7 +103,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.created": CreateCohortApiResponse},
+        domain_events={"cohort.created": CreateCohortApiResponse},
         resolve_entity_ids=_cohort_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -116,7 +116,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.updated": UpdateCohortApiResponse},
+        domain_events={"cohort.updated": UpdateCohortApiResponse},
         resolve_entity_ids=_cohort_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -129,7 +129,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.deleted": DeleteCohortApiResponse},
+        domain_events={"cohort.deleted": DeleteCohortApiResponse},
         resolve_entity_ids=_cohort_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -142,7 +142,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.duplicated": DuplicateCohortApiResponse},
+        domain_events={"cohort.duplicated": DuplicateCohortApiResponse},
         resolve_entity_ids=_cohort_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -156,7 +156,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.cohort.draft.saved": PatchCohortDraftApiResponse,
+            "cohort.draft.saved": PatchCohortDraftApiResponse,
         },
         resolve_entity_ids=_cohort_draft_entity_ids,
     ),
@@ -166,7 +166,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.cohort.drafts.viewed": GetCohortDraftsApiResponse,
+            "cohort.drafts.viewed": GetCohortDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -175,7 +175,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.cohort.search.performed": None},
+        domain_events={"cohort.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -188,7 +188,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportCohortApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.cohort.exported": ExportCohortApiResponse},
+        domain_events={"cohort.exported": ExportCohortApiResponse},
         resolve_entity_ids=lambda arguments, output: _cohort_request_entity_ids(
             arguments, output, "cohort_id"
         ),
@@ -198,7 +198,7 @@ COHORT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.cohort.refreshed": None},
+        domain_events={"cohort.refreshed": None},
     ),
 }
 

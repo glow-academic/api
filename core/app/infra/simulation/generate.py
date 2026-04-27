@@ -69,7 +69,11 @@ async def generate_simulation_impl(
     use soft=True (dormant, pending acceptance) or soft=False (immediate).
     """
     internal_sio = get_internal_sio()
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    if sid:
+        resolved_sid = sid
+    else:
+        from app.infra.websocket.get_socket_owner import get_socket_owner
+        resolved_sid = await get_socket_owner(str(profile_id)) or ""
     cfg = request.config or GenerateConfig()
 
     # dangerous=False → tool calls are soft (pending). dangerous=True → immediate.
@@ -107,7 +111,15 @@ async def generate_simulation_impl(
 
     group_id = cfg.group_id
     if not group_id:
-        raise HTTPException(status_code=400, detail="group_id is required")
+        from app.infra.group.resolve import resolve_group_impl
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type=ARTIFACT_TYPE,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        group_id = group_result.group_id
 
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:

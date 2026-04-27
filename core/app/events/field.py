@@ -80,7 +80,7 @@ def _field_draft_entity_ids(
 FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.field.viewed": None},
+        domain_events={"field.viewed": None},
         scope="entity",
         entity_key="field_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.field.created": CreateFieldApiResponse},
+        domain_events={"field.created": CreateFieldApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.field.updated": UpdateFieldApiResponse},
+        domain_events={"field.updated": UpdateFieldApiResponse},
         scope="entity",
         entity_key="field_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.field.deleted": DeleteFieldApiResponse},
+        domain_events={"field.deleted": DeleteFieldApiResponse},
         scope="entity",
         entity_key="field_id",
         can_subscribe=require_authenticated_profile,
@@ -134,7 +134,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "duplicate": OperationEventConfig(
         operation="duplicate",
-        domain_events={"artifacts.field.duplicated": DuplicateFieldApiResponse},
+        domain_events={"field.duplicated": DuplicateFieldApiResponse},
         scope="entity",
         entity_key="field_id",
         can_subscribe=require_authenticated_profile,
@@ -147,7 +147,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "draft": OperationEventConfig(
         operation="draft",
-        domain_events={"artifacts.field.draft.saved": PatchFieldDraftApiResponse},
+        domain_events={"field.draft.saved": PatchFieldDraftApiResponse},
         scope="entity",
         entity_key="draft_id",
         can_subscribe=require_authenticated_profile,
@@ -160,7 +160,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "drafts": OperationEventConfig(
         operation="drafts",
-        domain_events={"artifacts.field.drafts.viewed": GetFieldDraftsApiResponse},
+        domain_events={"field.drafts.viewed": GetFieldDraftsApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -168,7 +168,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.field.search.performed": None},
+        domain_events={"field.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -176,7 +176,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.field.exported": ExportFieldApiResponse},
+        domain_events={"field.exported": ExportFieldApiResponse},
         scope="collection",
         entity_key="field_id",
         can_subscribe=require_authenticated_profile,
@@ -191,7 +191,7 @@ FIELD_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.field.refreshed": None},
+        domain_events={"field.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

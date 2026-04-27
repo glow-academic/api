@@ -1,3 +1,14 @@
+## Context
+
+{% if params.artifact_id %}
+**Existing simulation** (ID: `{{ params.artifact_id }}`).
+Use `Simulation_Get(id: "{{ params.artifact_id }}")` to see current state.
+{% else %}
+**New simulation** — no artifact exists yet.
+{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+
 ## Current Form State
 
 The user is currently editing a simulation with the following selections:

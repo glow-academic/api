@@ -11,38 +11,38 @@ from app.infra.websocket.socket_event import EmitFn, SocketEvent
 
 _SOCKET_EVENT_TO_PUBLIC: dict[tuple[str, str], dict[str, str]] = {
     ("attempt", "start"): {
-        "attempt.start.completed": "artifacts.attempt.started",
+        "attempt.start.completed": "attempt.started",
     },
     ("attempt", "message"): {
-        "attempt.message.assistant.progress": "artifacts.attempt.chat.assistant.progress",
+        "attempt.message.assistant.progress": "attempt.chat.assistant.progress",
     },
     ("attempt", "grade"): {
-        "attempt.chat_grade.progress": "artifacts.attempt.chat.grade.progress",
+        "attempt.chat_grade.progress": "attempt.chat.grade.progress",
     },
     ("attempt", "end"): {
-        "attempt.complete.completed": "artifacts.attempt.ended",
+        "attempt.complete.completed": "attempt.ended",
     },
     ("attempt", "stop"): {
-        "attempt.stop.completed": "artifacts.attempt.chat.stopped",
+        "attempt.stop.completed": "attempt.chat.stopped",
     },
     ("test", "start"): {
-        "test.start.completed": "artifacts.test.started",
-        "test.run.invocation_started": "artifacts.test.invocation.started",
+        "test.start.completed": "test.started",
+        "test.run.invocation_started": "test.invocation.started",
     },
     ("test", "run"): {
-        "test.run.started": "artifacts.test.run.replay_started",
-        "test.grade.started": "artifacts.test.run.progress",
-        "test.grade.progress": "artifacts.test.run.progress",
-        "test.run.completed": "artifacts.test.run.replay_completed",
+        "test.run.started": "test.run.replay_started",
+        "test.grade.started": "test.run.progress",
+        "test.grade.progress": "test.run.progress",
+        "test.run.completed": "test.run.replay_completed",
     },
     ("test", "invocation_complete"): {
-        "test.end.completed": "artifacts.test.invocation.completed",
+        "test.end.completed": "test.invocation.completed",
     },
     ("test", "complete"): {
-        "test_all_complete": "artifacts.test.completed",
+        "test_all_complete": "test.completed",
     },
     ("test", "stop"): {
-        "test.stop.completed": "artifacts.test.invocation.stopped",
+        "test.stop.completed": "test.invocation.stopped",
     },
 }
 

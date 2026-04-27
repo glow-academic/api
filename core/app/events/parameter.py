@@ -80,7 +80,7 @@ def _parameter_draft_entity_ids(
 PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.parameter.viewed": None},
+        domain_events={"parameter.viewed": None},
         scope="entity",
         entity_key="parameter_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.parameter.created": CreateParameterApiResponse},
+        domain_events={"parameter.created": CreateParameterApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.parameter.updated": UpdateParameterApiResponse},
+        domain_events={"parameter.updated": UpdateParameterApiResponse},
         scope="entity",
         entity_key="parameter_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.parameter.deleted": DeleteParameterApiResponse},
+        domain_events={"parameter.deleted": DeleteParameterApiResponse},
         scope="entity",
         entity_key="parameter_id",
         can_subscribe=require_authenticated_profile,
@@ -135,7 +135,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "duplicate": OperationEventConfig(
         operation="duplicate",
         domain_events={
-            "artifacts.parameter.duplicated": DuplicateParameterApiResponse,
+            "parameter.duplicated": DuplicateParameterApiResponse,
         },
         scope="entity",
         entity_key="parameter_id",
@@ -150,7 +150,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "draft": OperationEventConfig(
         operation="draft",
         domain_events={
-            "artifacts.parameter.draft.saved": PatchParameterDraftApiResponse,
+            "parameter.draft.saved": PatchParameterDraftApiResponse,
         },
         scope="entity",
         entity_key="draft_id",
@@ -165,7 +165,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "drafts": OperationEventConfig(
         operation="drafts",
         domain_events={
-            "artifacts.parameter.drafts.viewed": GetParameterDraftsApiResponse,
+            "parameter.drafts.viewed": GetParameterDraftsApiResponse,
         },
         scope="collection",
         entity_key=None,
@@ -174,7 +174,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.parameter.search.performed": None},
+        domain_events={"parameter.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -182,7 +182,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.parameter.exported": ExportParameterApiResponse},
+        domain_events={"parameter.exported": ExportParameterApiResponse},
         scope="collection",
         entity_key="parameter_id",
         can_subscribe=require_authenticated_profile,
@@ -197,7 +197,7 @@ PARAMETER_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.parameter.refreshed": None},
+        domain_events={"parameter.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

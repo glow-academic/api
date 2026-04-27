@@ -22,6 +22,8 @@ from app.infra.test.types import (
     TestEntries,
     TestInternalData,
     TestResources,
+    TestConfigGroup,
+    TestConfigItem,
     TestRunItem,
     TestStatusSummary,
 )
@@ -43,6 +45,11 @@ async def get_test_impl(
     group_id: UUID | None = None,
     id: UUID | None = None,
     bypass_cache: bool = False,
+    configs_groups_page: int = 1,
+    configs_groups_page_size: int = 10,
+    configs_expanded: list[UUID] | None = None,
+    configs_expanded_page_size: int = 20,
+    configs_search: str | None = None,
     **_kwargs: Any,
 ) -> GetTestArtifactResponse:
     """Core test artifact detail fetcher.
@@ -127,6 +134,7 @@ async def get_test_impl(
         # === BUILD RUNS LIST FROM INVOCATIONS ===
         run_items: list[TestRunItem] = []
         completed_count = 0
+        in_progress_count = 0
         not_started_count = 0
 
         # Index runs by invocation_id for run_id lookup
@@ -134,11 +142,38 @@ async def get_test_impl(
         for r in runs:
             runs_by_invocation.setdefault(r.test_invocation_id, []).append(r)
 
+        # Per-binding lifecycle signals — derive status from the actual
+        # state of each (trace, run) pair, not the parent invocation.
+        # Two signals:
+        #   1. completion entry on the binding row → "completed"
+        #   2. message count on the binding's run_id → "in_progress" (has
+        #      partial output) vs "not_started" (no output yet)
+        binding_ids = [r.id for r in runs]
+        completed_binding_ids: set[UUID] = set()
+        if binding_ids:
+            from app.tools.entries.test_invocation_runs_completion.search import (
+                search_test_invocation_runs_completion,
+            )
+            async with pool.acquire() as conn:
+                completions, _ = await search_test_invocation_runs_completion(
+                    conn, test_invocation_runs_ids=binding_ids, limit=100000,
+                )
+            completed_binding_ids = {c.test_invocation_runs_id for c in completions}
+
+        msg_count_by_run_id: dict[UUID, int] = {}
+        for m in messages:
+            if m.run_id:
+                msg_count_by_run_id[m.run_id] = msg_count_by_run_id.get(m.run_id, 0) + 1
+
+        def _binding_status(binding) -> str:
+            if binding.id in completed_binding_ids:
+                return "completed"
+            if binding.run_id and msg_count_by_run_id.get(binding.run_id, 0) > 0:
+                return "in_progress"
+            return "not_started"
+
         for inv in invocations:
-            first_run = None
             inv_runs = runs_by_invocation.get(inv.invocation_id, [])
-            if inv_runs:
-                first_run = inv_runs[0]
 
             # Resolve agent_name and model_name from resources
             agent_name: str | None = None
@@ -150,35 +185,199 @@ async def get_test_impl(
                 if agent.model_id and agent.model_id in model_map:
                     model_name = model_map[agent.model_id].name
 
-            invocation_status = (
-                "completed" if inv.invocation_completed else "not_started"
-            )
-            if invocation_status == "completed":
-                completed_count += 1
-            else:
-                not_started_count += 1
-
-            run_items.append(
-                TestRunItem(
-                    chat_id=str(inv.invocation_id),
-                    invocation_id=str(inv.invocation_id),
-                    run_id=str(first_run.id) if first_run else None,
-                    group_id=str(inv.group_id) if inv.group_id else None,
-                    suite_entry_id=None,
-                    model_name=model_name,
-                    agent_name=agent_name,
-                    status=invocation_status,
-                    grade_score=inv.grade_score,
-                    grade_passed=inv.grade_passed,
+            # Emit one run_item per binding row. Each binding represents
+            # a real past trace+run execution. Invocations with no
+            # bindings produce no history rows — the picker (configs)
+            # is the source of truth for what's runnable; history is
+            # for what has actually run.
+            #
+            # binding.run_id is the FK into runs_entry, which is what
+            # messages_entry.run_id references — using binding.id would
+            # break the run↔messages join on the client.
+            for binding in inv_runs:
+                bstatus = _binding_status(binding)
+                if bstatus == "completed":
+                    completed_count += 1
+                elif bstatus == "in_progress":
+                    in_progress_count += 1
+                else:
+                    not_started_count += 1
+                run_items.append(
+                    TestRunItem(
+                        chat_id=str(inv.invocation_id),
+                        invocation_id=str(inv.invocation_id),
+                        run_id=str(binding.run_id) if binding.run_id else None,
+                        group_id=str(inv.group_id) if inv.group_id else None,
+                        suite_entry_id=None,
+                        model_name=model_name,
+                        agent_name=agent_name,
+                        status=bstatus,
+                        grade_score=inv.grade_score,
+                        grade_passed=inv.grade_passed,
+                    )
                 )
-            )
 
         status_summary = TestStatusSummary(
             total=len(run_items),
             completed=completed_count,
-            in_progress=0,
+            in_progress=in_progress_count,
             not_started=not_started_count,
         )
+
+        # === BUILD CONFIG POOL FOR PICKER (groups-first) ===
+        # Two-axis pagination using only canonical black-boxes:
+        #   1. Outer: search_groups(limit, offset) — paginated groups.
+        #      For each header, search_runs(group_ids=[gid], limit=1)
+        #      gives run_count (via total_count) + last_run_at (via the
+        #      first row's run_created_at, ordered DESC).
+        #   2. Inner: search_runs(group_ids=[gid], limit=N) for each
+        #      group in `configs_expanded`.
+        # Outer total is unknown without an extra count, so the client
+        # uses len(items) == page_size to enable Next.
+        import asyncio
+
+        from app.tools.entries.runs.search import search_runs
+        from app.tools.entries.groups.search import search_groups
+
+        groups_offset = max(0, (configs_groups_page - 1) * configs_groups_page_size)
+        expanded_set: set[UUID] = set(configs_expanded or [])
+
+        async with pool.acquire() as conn:
+            group_summaries = await search_groups(
+                conn,
+                name=configs_search,
+                has_runs=True,
+                limit=configs_groups_page_size,
+                offset=groups_offset,
+            )
+
+        # Per-header stats: parallel search_runs(limit=1) per group.
+        # has_models=True drops runs that have no model — those aren't
+        # usable as benchmark configs, so they shouldn't inflate the
+        # picker's run count or appear in the inner row list.
+        async def _group_stats(gid: UUID):
+            async with pool.acquire() as conn:
+                rows, total = await search_runs(
+                    conn,
+                    group_ids=[gid],
+                    sort_order="desc",
+                    has_models=True,
+                    limit=1,
+                    offset=0,
+                )
+            last_at = rows[0].run_created_at if rows else None
+            return (gid, total, last_at)
+
+        stats_results = (
+            await asyncio.gather(*[_group_stats(g.id) for g in group_summaries])
+            if group_summaries
+            else []
+        )
+        run_count_by_gid: dict[UUID, int] = {gid: total for gid, total, _ in stats_results}
+        last_at_by_gid: dict[UUID, Any] = {gid: last_at for gid, _, last_at in stats_results}
+
+        # Endpoint-layer secondary filter: drop headers whose
+        # has_models=True run count is 0. search_groups(has_runs=True)
+        # is cheap and admits any group with at least one runs_mv row;
+        # this filter is the model-aware refinement that runs_mv can't
+        # express without bloating its definition. Pagination under-
+        # fills pages by the drop count — acceptable trade-off vs.
+        # showing zero-badge headers that expand to nothing.
+        config_group_items: list[TestConfigGroup] = []
+        configs_per_group_total: dict[str, int] = {}
+        configs_total_universe = 0
+        for g in group_summaries:
+            count = run_count_by_gid.get(g.id, 0)
+            if count == 0:
+                continue
+            last_at = last_at_by_gid.get(g.id)
+            configs_per_group_total[str(g.id)] = count
+            configs_total_universe += count
+            config_group_items.append(
+                TestConfigGroup(
+                    group_id=str(g.id),
+                    name=g.name,
+                    run_count=count,
+                    last_run_at=last_at.isoformat() if last_at else None,
+                )
+            )
+
+        # Outer total unknown — caller uses page-size heuristic. Set to
+        # current cumulative offset+page when full page returned, else
+        # the exact bound (offset + len) once we know we hit the end.
+        is_full_page = len(group_summaries) == configs_groups_page_size
+        configs_groups_total = (
+            groups_offset + len(group_summaries) + (1 if is_full_page else 0)
+        )
+
+        # Inner: fetch rows ONLY for expanded groups that appear on
+        # this outer page. Skipping off-page expanded groups keeps the
+        # response lean — they'd render as collapsed headers next page
+        # anyway. For each expanded group fetch up to
+        # configs_expanded_page_size, ordered by recency.
+        config_items: list[TestConfigItem] = []
+        on_page_expanded = [g for g in group_summaries if g.id in expanded_set]
+        if on_page_expanded:
+            async with pool.acquire() as conn:
+                for g in on_page_expanded:
+                    rows, _total = await search_runs(
+                        conn,
+                        group_ids=[g.id],
+                        sort_order="desc",
+                        has_models=True,
+                        limit=configs_expanded_page_size,
+                        offset=0,
+                    )
+                    for cfg in rows:
+                        cfg_agent_name: str | None = None
+                        cfg_model_name: str | None = None
+                        cfg_agent_id = cfg.agent_ids[0] if cfg.agent_ids else None
+                        # Bundle defaults — populated from the historical
+                        # run's agent_resource so the picker can pass them
+                        # to /test/trace for faithful replay.
+                        cfg_prompt_ids: list[str] = []
+                        cfg_tool_ids: list[str] = []
+                        cfg_instruction_ids: list[str] = []
+                        if cfg_agent_id and cfg_agent_id in agent_map:
+                            a = agent_map[cfg_agent_id]
+                            cfg_agent_name = a.name
+                            if a.model_id and a.model_id in model_map:
+                                cfg_model_name = model_map[a.model_id].name
+                            if a.prompt_id:
+                                cfg_prompt_ids = [str(a.prompt_id)]
+                            cfg_tool_ids = [str(t) for t in (a.tool_ids or [])]
+                            cfg_instruction_ids = [
+                                str(i) for i in (a.instruction_ids or [])
+                            ]
+                        if cfg_model_name is None and cfg.model_ids:
+                            mid = cfg.model_ids[0]
+                            if mid in model_map:
+                                cfg_model_name = model_map[mid].name
+                        # UUIDv7 timestamp prefix collisions — disambiguate
+                        # via created_at + last 6 chars of the UUID.
+                        ts_str: str | None = None
+                        if cfg.run_created_at:
+                            ts_str = cfg.run_created_at.strftime("%b %d %H:%M:%S")
+                        label_parts = [
+                            cfg_agent_name or "Agent",
+                            cfg_model_name,
+                            ts_str,
+                            str(cfg.run_id)[-6:],
+                        ]
+                        label = " · ".join(p for p in label_parts if p)
+                        config_items.append(
+                            TestConfigItem(
+                                run_id=str(cfg.run_id),
+                                group_id=str(cfg.group_id) if cfg.group_id else None,
+                                agent_name=cfg_agent_name,
+                                model_name=cfg_model_name,
+                                label=label,
+                                created_at=cfg.run_created_at.isoformat() if cfg.run_created_at else None,
+                                prompt_ids=cfg_prompt_ids,
+                                tool_ids=cfg_tool_ids,
+                                instruction_ids=cfg_instruction_ids,
+                            )
+                        )
 
         # === BUILD RESOURCES PAYLOAD ===
         def _to_dict_map(items: list) -> dict[str, dict] | None:
@@ -249,6 +448,11 @@ async def get_test_impl(
             rubric_name=rubric_name,
             infinite_mode=test.infinite_mode,
             runs=run_items,
+            configs=config_items,
+            configs_groups=config_group_items,
+            configs_total=configs_total_universe,
+            configs_groups_total=configs_groups_total,
+            configs_per_group_total=configs_per_group_total,
             status_summary=status_summary,
             show_controls=show_controls,
             current_invocation_id=current_invocation_id,
@@ -276,14 +480,27 @@ async def get_test_impl_cached(
     test_id: UUID,
     bypass_cache: bool = False,
     cache_key_path: str = "/test/get",
+    configs_groups_page: int = 1,
+    configs_groups_page_size: int = 10,
+    configs_expanded: list[UUID] | None = None,
+    configs_expanded_page_size: int = 20,
+    configs_search: str | None = None,
 ) -> tuple[GetTestArtifactResponse, bool]:
     """HTTP response layer with caching.
 
     Calls get_test_impl() and assembles GetTestArtifactResponse.
-    Returns (response, cache_hit).
+    Returns (response, cache_hit). Cache key includes pagination kwargs
+    so different pages don't collide.
     """
     tags = ["artifacts", "test"]
-    body_dict = GetTestArtifactRequest(test_id=test_id).model_dump(mode="json")
+    body_dict = GetTestArtifactRequest(
+        test_id=test_id,
+        configs_groups_page=configs_groups_page,
+        configs_groups_page_size=configs_groups_page_size,
+        configs_expanded=configs_expanded or [],
+        configs_expanded_page_size=configs_expanded_page_size,
+        configs_search=configs_search,
+    ).model_dump(mode="json")
     cache_key_val = cache_key(cache_key_path, body_dict)
 
     if not bypass_cache:
@@ -295,6 +512,11 @@ async def get_test_impl_cached(
         pool,
         id=test_id,
         bypass_cache=bypass_cache,
+        configs_groups_page=configs_groups_page,
+        configs_groups_page_size=configs_groups_page_size,
+        configs_expanded=configs_expanded,
+        configs_expanded_page_size=configs_expanded_page_size,
+        configs_search=configs_search,
     )
 
     if not api_response.test:

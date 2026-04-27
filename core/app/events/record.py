@@ -22,11 +22,11 @@ RECORD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DashboardBundleResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.attempt.record_viewed": None},
+        domain_events={"attempt.record_viewed": None},
     ),
     "record_refresh": OperationEventConfig(
         operation="record_refresh",
-        domain_events={"artifacts.attempt.record_refreshed": None},
+        domain_events={"attempt.record_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

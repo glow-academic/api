@@ -88,7 +88,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.viewed": None},
+        domain_events={"scenario.viewed": None},
         resolve_entity_ids=lambda arguments, output: _scenario_request_entity_ids(
             arguments, output, "scenario_id"
         ),
@@ -103,7 +103,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.created": CreateScenarioApiResponse},
+        domain_events={"scenario.created": CreateScenarioApiResponse},
         resolve_entity_ids=_scenario_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -116,7 +116,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.updated": UpdateScenarioApiResponse},
+        domain_events={"scenario.updated": UpdateScenarioApiResponse},
         resolve_entity_ids=_scenario_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -129,7 +129,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.deleted": DeleteScenarioApiResponse},
+        domain_events={"scenario.deleted": DeleteScenarioApiResponse},
         resolve_entity_ids=_scenario_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -142,7 +142,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.duplicated": DuplicateScenarioApiResponse},
+        domain_events={"scenario.duplicated": DuplicateScenarioApiResponse},
         resolve_entity_ids=_scenario_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -156,7 +156,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.scenario.draft.saved": PatchScenarioDraftApiResponse,
+            "scenario.draft.saved": PatchScenarioDraftApiResponse,
         },
         resolve_entity_ids=_scenario_draft_entity_ids,
     ),
@@ -166,7 +166,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.scenario.drafts.viewed": GetScenarioDraftsApiResponse,
+            "scenario.drafts.viewed": GetScenarioDraftsApiResponse,
         },
         include_call_lifecycle=False,
     ),
@@ -175,7 +175,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.scenario.search.performed": None},
+        domain_events={"scenario.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -188,7 +188,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportScenarioApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.scenario.exported": ExportScenarioApiResponse},
+        domain_events={"scenario.exported": ExportScenarioApiResponse},
         resolve_entity_ids=lambda arguments, output: _scenario_request_entity_ids(
             arguments, output, "scenario_id"
         ),
@@ -198,7 +198,7 @@ SCENARIO_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.scenario.refreshed": None},
+        domain_events={"scenario.refreshed": None},
     ),
 }
 

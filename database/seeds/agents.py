@@ -893,8 +893,9 @@ agents = [
             sid("tool-resource/test/stop"),
             sid("tool-resource/test/archive"),
             sid("tool-resource/test/export"),
+            sid("tool-resource/test/draft"),
             # Materialization (read template + create test_invocation_entry)
-            sid("tool-resource/invocation/get"),
+            sid("tool-resource/test/invocation_get"),
             sid("tool-resource/invocation/create"),
         ],
         prompt_id=_prompt_id("Test"),

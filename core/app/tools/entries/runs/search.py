@@ -90,13 +90,16 @@ async def search_runs(
     sort_order: str = "desc",
     soft: bool = False,
     mcp: bool | None = None,
+    has_models: bool = False,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
 ) -> tuple[list[RunViewItem], int]:
     """Search runs from runs_mv with declarative filters.
 
-    Returns (items, total_count).
+    Returns (items, total_count). When has_models=True, only runs with
+    at least one model_id are returned — used by the test picker to
+    drop runs that aren't usable as benchmark configs.
     """
     source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
 
@@ -117,6 +120,7 @@ async def search_runs(
           AND ($2::uuid[] IS NULL OR profiles_id = ANY($2))
           AND ($3::timestamptz IS NULL OR run_created_at >= $3)
           AND ($4::timestamptz IS NULL OR run_created_at <= $4)
+          AND (NOT $7::boolean OR (model_ids IS NOT NULL AND array_length(model_ids, 1) > 0))
         ORDER BY run_created_at {order}
         LIMIT $5 OFFSET $6
         """,
@@ -126,6 +130,7 @@ async def search_runs(
         date_to,
         limit,
         offset,
+        has_models,
     )
 
     total_count = rows[0]["total_count"] if rows else 0

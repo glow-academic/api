@@ -104,6 +104,11 @@ INFRA_OPS.update({
     ("test", "invocation_create"): (
         "app.infra.invocation.create", "create_invocation_impl",
     ),
+    # Mirrors attempt.chat_get — model inspects benchmark template
+    # before deciding what to override on invocation_create.
+    ("test", "invocation_get"): (
+        "app.infra.invocation.get", "get_invocation_impl",
+    ),
 })
 
 # --- Dashboard aliases ---

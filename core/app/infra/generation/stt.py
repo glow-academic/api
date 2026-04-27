@@ -18,9 +18,12 @@ relays untouched. The chat-completion path stays on litellm because
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from openai import AsyncOpenAI
+
+logger = logging.getLogger(__name__)
 
 from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
@@ -154,6 +157,10 @@ async def execute_stt_dispatch(
         return
 
     text = getattr(transcription, "text", None) or str(transcription)
+    logger.info(
+        f"VOICE_TRACE[2] stt complete: sid={sid!r} group_id={group_id} "
+        f"artifact={artifact_type} text={text!r}"
+    )
 
     # Dual-emits legacy generate_text_complete + canonical
     # attempt.generate.text.complete so the client can await the canonical
@@ -171,7 +178,6 @@ async def execute_stt_dispatch(
             "type": "complete",
             "event_type": "text_complete",
             "text": text,
-            "role": "assistant",
             "metadata": dispatch.metadata or None,
         },
         artifact_type=artifact_type,

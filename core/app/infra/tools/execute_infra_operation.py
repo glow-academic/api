@@ -517,6 +517,10 @@ async def execute_infra_operation(
                 instruction_template=ctx.instruction_template,
                 operation_key=ctx.operation_key,
                 call_id=ctx.call_id,
+                # The model is the actor here — this path runs only when
+                # an LLM generate loop picked the tool. Every other caller
+                # (HTTP routes, socket impls) inherits the "user" default.
+                role="assistant",
                 # If the caller pre-minted a call_id, they also emitted
                 # ``.started`` upstream (streaming path). Don't double-fire.
                 suppress_started=ctx.call_id is not None,

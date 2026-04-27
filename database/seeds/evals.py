@@ -29,9 +29,15 @@ from database.seeds.models import models as _model_seeds
 # Referenced IDs from module 01 resources
 # ---------------------------------------------------------------------------
 
-# Flags (from database/seeds/resources/flags.py)
-GROUPS_FLAG = sid("flag/groups")
-DYNAMIC_FLAG = sid("flag/dynamic")
+# Flags (from database/seeds/resources/flags.py).
+# Use the eval-specific flag pair (name="eval_dynamic"/"eval_groups"),
+# NOT the generic pair (name="dynamic"/"groups"). benchmark/sync.py
+# matches on these exact names to derive `is_dynamic` / `use_groups`
+# on the benchmark row, so wiring the generic flags here would silently
+# produce is_dynamic=False on every test → /test/generate short-circuits
+# without calling the LLM.
+GROUPS_FLAG = sid("flag/eval-groups")
+DYNAMIC_FLAG = sid("flag/eval-dynamic")
 EVAL_ACTIVE_FLAG = sid("flag/eval-active")
 
 # `use_custom=true` flag (variant emitted by `_flag_pair("use-custom", ...)`).

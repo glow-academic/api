@@ -26,9 +26,9 @@ def test_project_call_receipt_emits_domain_and_lifecycle_events() -> None:
     )
 
     assert [event.event_type for event in events] == [
-        "artifacts.persona.get.started",
-        "artifacts.persona.get.completed",
-        "artifacts.persona.viewed",
+        "persona.get.started",
+        "persona.get.completed",
+        "persona.viewed",
     ]
     assert events[-1].entity_id == entity_id
     assert build_event_cursor(events[-1]).startswith(created_at.isoformat())
@@ -49,8 +49,8 @@ def test_project_call_receipt_skips_domain_events_on_failure() -> None:
     )
 
     assert [event.event_type for event in events] == [
-        "artifacts.persona.update.started",
-        "artifacts.persona.update.failed",
+        "persona.update.started",
+        "persona.update.failed",
     ]
 
 
@@ -77,7 +77,7 @@ def test_project_call_receipt_emits_bulk_persona_events_per_result_id() -> None:
     )
 
     domain_events = [
-        event for event in events if event.event_type == "artifacts.persona.created"
+        event for event in events if event.event_type == "persona.created"
     ]
     assert [event.entity_id for event in domain_events] == [first_id, second_id]
 
@@ -102,8 +102,8 @@ def test_project_call_receipt_skips_multi_domain_workflow_projection() -> None:
     )
 
     assert [event.event_type for event in events] == [
-        "artifacts.attempt.grade.started",
-        "artifacts.attempt.grade.completed",
+        "attempt.grade.started",
+        "attempt.grade.completed",
     ]
 
 
@@ -127,8 +127,8 @@ def test_project_call_receipt_attaches_attempt_start_entity_to_lifecycle() -> No
     )
 
     assert [event.event_type for event in events] == [
-        "artifacts.attempt.start.started",
-        "artifacts.attempt.start.completed",
+        "attempt.start.started",
+        "attempt.start.completed",
     ]
     assert events[0].entity_id == attempt_id
     assert events[1].entity_id == attempt_id
@@ -154,6 +154,6 @@ def test_project_call_receipt_skips_domain_projection_for_bridged_stop_workflow(
     )
 
     assert [event.event_type for event in events] == [
-        "artifacts.test.stop.started",
-        "artifacts.test.stop.completed",
+        "test.stop.started",
+        "test.stop.completed",
     ]

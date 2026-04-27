@@ -1,0 +1,10 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Test group resolved.
+{% if r.group_id %}- **Group ID:** `{{ r.group_id }}`{% endif %}
+{% if r.name %}- **Name:** {{ r.name }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error resolving test group: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

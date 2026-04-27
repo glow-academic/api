@@ -24,11 +24,11 @@ ACTIVITY_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ActivityResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.system.activity_viewed": None},
+        domain_events={"system.activity_viewed": None},
     ),
     "activity_refresh": OperationEventConfig(
         operation="activity_refresh",
-        domain_events={"artifacts.system.activity_refreshed": None},
+        domain_events={"system.activity_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

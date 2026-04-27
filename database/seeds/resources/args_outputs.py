@@ -707,6 +707,12 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="invocation_create",
     ),
+    "operation_invocation_get": dict(
+        id=sid("args_output/operation_invocation_get"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="invocation_get",
+    ),
     "operation_chat_get": dict(
         id=sid("args_output/operation_chat_get"),
         args_id=_OPERATION_ARG_ID,

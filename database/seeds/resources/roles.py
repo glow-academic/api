@@ -35,7 +35,7 @@ _SYSTEM_VIEWS = ["activity", "session", "pricing", "group", "health"]
 
 # Broad superset of VIEW operations — _pids filter keeps only valid combos
 _VIEW_ALL_OPS = [
-    "context", "export", "generate", "generations", "get", "group", "problem", "refresh", "search",
+    "context", "create", "export", "generate", "generations", "get", "group", "problem", "refresh", "search",
     "draft", "drafts", "decrypt", "resolve", "name",
     "audio_download", "call_download", "file_download", "file_preview",
     "image_download", "text_download", "video_download",

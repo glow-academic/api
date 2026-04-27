@@ -133,7 +133,11 @@ async def resolve_test_context(
 
     # ── Phase 3: Collect grade_ids + run_ids → parallel feedback + messages
     grade_ids = [g.id for g in grades]
-    run_ids = [r.id for r in runs]
+    # `runs` rows are test_invocation_runs_entry binding rows; their `.id` is
+    # the binding id, not a runs_entry.id. messages_entry.run_id references
+    # runs_entry.id, so we must collect `.run_id` (the FK on the binding) to
+    # query messages.
+    run_ids = [r.run_id for r in runs if r.run_id is not None]
 
     # Also include the original run's messages (the agent output being graded).
     # Derivation: test_entry.call_id → calls_entry.run_id
@@ -215,26 +219,11 @@ async def resolve_test_context(
         for mid in inv.modality_ids or []:
             modality_ids_set.add(mid)
 
-    # From runs (carry agent_ids; traces do not)
-    for item in runs:
-        for aid in item.agent_ids or []:
-            agent_ids_set.add(aid)
-        for rid in item.reasoning_level_ids or []:
-            reasoning_ids_set.add(rid)
-        for tid in item.temperature_level_ids or []:
-            temp_level_ids_set.add(tid)
-        for vid in item.voice_ids or []:
-            voice_ids_set.add(vid)
-        for pid in item.prompt_ids or []:
-            prompt_ids_set.add(pid)
-        for iid in item.instruction_ids or []:
-            instruction_ids_set.add(iid)
-        for tid in item.tool_ids or []:
-            tool_ids_set.add(tid)
-        for qid in item.quality_ids or []:
-            quality_ids_set.add(qid)
-        for mid in item.modality_ids or []:
-            modality_ids_set.add(mid)
+    # Runs are pure binding rows after the test_invocation_groups → traces
+    # rename — they carry no bundle data. agent_ids come from the parent
+    # invocation (loop above); the bundle (reasoning, temperature, voices,
+    # prompts, instructions, tools, qualities, modalities) comes from the
+    # traces loop below.
 
     # From traces (no agent_ids — agent lives on parent invocation)
     for item in groups:

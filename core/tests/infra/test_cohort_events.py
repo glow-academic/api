@@ -13,7 +13,7 @@ def test_get_cohort_event_config_maps_domain_event_and_entity_scope() -> None:
     config = get_cohort_event_config("get")
 
     assert config is not None
-    assert config.domain_event_names == ("artifacts.cohort.viewed",)
+    assert config.domain_event_names == ("cohort.viewed",)
     assert config.scope == "entity"
     assert config.entity_key == "cohort_id"
     assert config.include_call_lifecycle is True
@@ -22,7 +22,7 @@ def test_get_cohort_event_config_maps_domain_event_and_entity_scope() -> None:
 def test_drafts_cohort_event_config_is_collection_scoped() -> None:
     config = COHORT_EVENT_CONFIGS["drafts"]
 
-    assert config.domain_event_names == ("artifacts.cohort.drafts.viewed",)
+    assert config.domain_event_names == ("cohort.drafts.viewed",)
     assert config.scope == "collection"
     assert config.entity_key is None
     assert config.include_call_lifecycle is False
@@ -44,9 +44,9 @@ def test_cohort_event_types_include_domain_and_lifecycle_events() -> None:
         )
     )
 
-    assert "artifacts.cohort.created" in event_types
-    assert "artifacts.cohort.updated" in event_types
-    assert "artifacts.cohort.drafts.viewed" in event_types
+    assert "cohort.created" in event_types
+    assert "cohort.updated" in event_types
+    assert "cohort.drafts.viewed" in event_types
     for event_type in build_default_lifecycle_event_types("cohort", "get"):
         assert event_type in event_types
 

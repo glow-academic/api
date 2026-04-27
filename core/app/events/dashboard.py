@@ -24,11 +24,11 @@ DASHBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DashboardBundleResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.attempt.dashboard_viewed": None},
+        domain_events={"attempt.dashboard_viewed": None},
     ),
     "dashboard_refresh": OperationEventConfig(
         operation="dashboard_refresh",
-        domain_events={"artifacts.attempt.dashboard_refreshed": None},
+        domain_events={"attempt.dashboard_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

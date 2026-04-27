@@ -75,6 +75,7 @@ async def create_invocation_impl(
     profile_id: UUID,
     session_id: UUID,
     request: CreateInvocationApiRequest,
+    **_kwargs,
 ) -> CreateInvocationApiResponse:
     """Create a new test_invocation_entry bound to a test."""
     identity = await resolve_profile_identity_context(
@@ -83,7 +84,7 @@ async def create_invocation_impl(
     if not identity or not identity.profiles_id:
         raise HTTPException(status_code=401, detail="Profile context not found")
 
-    if not has_permission(identity.role_permissions, "test", "create"):
+    if not has_permission(identity.role_permissions, "test", "invocation_create"):
         raise HTTPException(status_code=403, detail="Not allowed to create invocations")
 
     # Canonical group resolve — same shape /attempt/chat/create uses.
@@ -161,6 +162,45 @@ async def create_invocation_impl(
             tmpl_reason = list(tmpl.reasoning_level_ids or [])
             tmpl_modality = list(tmpl.modality_ids or [])
             tmpl_quality = list(tmpl.quality_ids or [])
+
+        # ── Pre-satisfied locking — mirrors attempt/chat_create.py:448-464.
+        # When use_custom is False (the canonical default path) and the
+        # template already has a value for a section, the caller MUST NOT
+        # also pass an override for that section. The eval author already
+        # decided; the materialized row inherits the template's choice.
+        # This is the hard rail behind the prompt's "skip locked" rule.
+        opt_in = bool(request.use_custom) or tmpl_use_custom
+        if not opt_in:
+            locked_violations: list[str] = []
+            if tmpl_agent_ids and request.agent_ids:
+                locked_violations.append(
+                    "agent_ids (server auto-resolves from template's model_ids)"
+                )
+            if tmpl_rubric_ids and request.rubric_ids:
+                locked_violations.append(
+                    "rubric_ids (server auto-resolves from template's model_rubric_ids)"
+                )
+            if tmpl_quality and request.quality_ids:
+                locked_violations.append("quality_ids")
+            if tmpl_dept and request.department_ids:
+                locked_violations.append("department_ids")
+            if tmpl_voice and request.voice_ids:
+                locked_violations.append("voice_ids")
+            if tmpl_temp and request.temperature_level_ids:
+                locked_violations.append("temperature_level_ids")
+            if tmpl_reason and request.reasoning_level_ids:
+                locked_violations.append("reasoning_level_ids")
+            if tmpl_modality and request.modality_ids:
+                locked_violations.append("modality_ids")
+            if locked_violations:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Sections already configured on the template — "
+                        "set use_custom=true to override, or omit these fields "
+                        f"to inherit: {', '.join(locked_violations)}"
+                    ),
+                )
 
         # Caller overrides win.
         agent_ids = request.agent_ids if request.agent_ids is not None else (tmpl_agent_ids or None)

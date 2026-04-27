@@ -60,7 +60,11 @@ async def generate_field_impl(
       5. Canonical refresh
     """
     internal_sio = get_internal_sio()
-    resolved_sid = sid or f"http-{uuid.uuid4()}"
+    if sid:
+        resolved_sid = sid
+    else:
+        from app.infra.websocket.get_socket_owner import get_socket_owner
+        resolved_sid = await get_socket_owner(str(profile_id)) or ""
     cfg = request.config or GenerateConfig()
 
     # dangerous=False -> tool calls are soft (pending). dangerous=True -> immediate.

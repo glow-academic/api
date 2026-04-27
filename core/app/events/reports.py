@@ -11,7 +11,7 @@ from app.events.types import (
 REPORTS_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
     "reports_refresh": OperationEventConfig(
         operation="reports_refresh",
-        domain_events={"artifacts.attempt.reports_refreshed": None},
+        domain_events={"attempt.reports_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

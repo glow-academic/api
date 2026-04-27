@@ -88,7 +88,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.viewed": None},
+        domain_events={"auth.viewed": None},
         resolve_entity_ids=lambda arguments, output: _auth_request_entity_ids(
             arguments, output, "auth_id"
         ),
@@ -103,7 +103,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": CreateAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.created": CreateAuthApiResponse},
+        domain_events={"auth.created": CreateAuthApiResponse},
         resolve_entity_ids=_auth_result_entity_ids,
     ),
     "update": OperationEventConfig(
@@ -116,7 +116,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": UpdateAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.updated": UpdateAuthApiResponse},
+        domain_events={"auth.updated": UpdateAuthApiResponse},
         resolve_entity_ids=_auth_result_entity_ids,
     ),
     "delete": OperationEventConfig(
@@ -129,7 +129,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DeleteAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.deleted": DeleteAuthApiResponse},
+        domain_events={"auth.deleted": DeleteAuthApiResponse},
         resolve_entity_ids=_auth_result_entity_ids,
     ),
     "duplicate": OperationEventConfig(
@@ -142,7 +142,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": DuplicateAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.duplicated": DuplicateAuthApiResponse},
+        domain_events={"auth.duplicated": DuplicateAuthApiResponse},
         resolve_entity_ids=_auth_duplicate_entity_ids,
     ),
     "draft": OperationEventConfig(
@@ -155,7 +155,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": PatchAuthDraftApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.draft.saved": PatchAuthDraftApiResponse},
+        domain_events={"auth.draft.saved": PatchAuthDraftApiResponse},
         resolve_entity_ids=_auth_draft_entity_ids,
     ),
     "drafts": OperationEventConfig(
@@ -163,7 +163,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.auth.drafts.viewed": GetAuthDraftsApiResponse},
+        domain_events={"auth.drafts.viewed": GetAuthDraftsApiResponse},
         include_call_lifecycle=False,
     ),
     "search": OperationEventConfig(
@@ -171,7 +171,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.auth.search.performed": None},
+        domain_events={"auth.search.performed": None},
         include_call_lifecycle=False,
     ),
     "export": OperationEventConfig(
@@ -184,7 +184,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": ExportAuthApiResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.auth.exported": ExportAuthApiResponse},
+        domain_events={"auth.exported": ExportAuthApiResponse},
         resolve_entity_ids=lambda arguments, output: _auth_request_entity_ids(
             arguments, output, "auth_id"
         ),
@@ -194,7 +194,7 @@ AUTH_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.auth.refreshed": None},
+        domain_events={"auth.refreshed": None},
     ),
 }
 

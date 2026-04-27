@@ -21,11 +21,11 @@ HEALTH_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": HealthResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.system.health_viewed": None},
+        domain_events={"system.health_viewed": None},
     ),
     "health_refresh": OperationEventConfig(
         operation="health_refresh",
-        domain_events={"artifacts.system.health_refreshed": None},
+        domain_events={"system.health_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

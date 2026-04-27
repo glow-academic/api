@@ -13,7 +13,7 @@ def test_get_field_event_config_maps_domain_event_and_entity_scope() -> None:
     config = get_field_event_config("get")
 
     assert config is not None
-    assert config.domain_event_names == ("artifacts.field.viewed",)
+    assert config.domain_event_names == ("field.viewed",)
     assert config.scope == "entity"
     assert config.entity_key == "field_id"
     assert config.include_call_lifecycle is True
@@ -22,7 +22,7 @@ def test_get_field_event_config_maps_domain_event_and_entity_scope() -> None:
 def test_drafts_field_event_config_is_collection_scoped() -> None:
     config = FIELD_EVENT_CONFIGS["drafts"]
 
-    assert config.domain_event_names == ("artifacts.field.drafts.viewed",)
+    assert config.domain_event_names == ("field.drafts.viewed",)
     assert config.scope == "collection"
     assert config.entity_key is None
     assert config.include_call_lifecycle is False
@@ -44,9 +44,9 @@ def test_field_event_types_include_domain_and_lifecycle_events() -> None:
         )
     )
 
-    assert "artifacts.field.created" in event_types
-    assert "artifacts.field.updated" in event_types
-    assert "artifacts.field.drafts.viewed" in event_types
+    assert "field.created" in event_types
+    assert "field.updated" in event_types
+    assert "field.drafts.viewed" in event_types
     for event_type in build_default_lifecycle_event_types("field", "get"):
         assert event_type in event_types
 

@@ -21,11 +21,11 @@ HOME_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetHomeResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.attempt.home_viewed": None},
+        domain_events={"attempt.home_viewed": None},
     ),
     "home_refresh": OperationEventConfig(
         operation="home_refresh",
-        domain_events={"artifacts.attempt.home_refreshed": None},
+        domain_events={"attempt.home_refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

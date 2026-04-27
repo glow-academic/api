@@ -24,13 +24,13 @@ INVOCATION_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GetSuiteResponse,
             "failed": OperationErrorEvent,
         },
-        domain_events={"artifacts.test.invocation_viewed": None},
+        domain_events={"test.invocation_viewed": None},
     ),
     "invocation_refresh": OperationEventConfig(
         operation="invocation_refresh",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
-        domain_events={"artifacts.test.invocation_refreshed": None},
+        domain_events={"test.invocation_refreshed": None},
     ),
 }

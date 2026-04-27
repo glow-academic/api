@@ -1,5 +1,14 @@
 ## Context
 
+{% if params.artifact_id %}
+**Existing practice** (ID: `{{ params.artifact_id }}`).
+Use `Practice_Get(id: "{{ params.artifact_id }}")` to see current state.
+{% else %}
+**New practice** — no artifact exists yet.
+{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+
 {% set draft = views.draft_practice if views and views.draft_practice else None %}
 
 {% if draft %}

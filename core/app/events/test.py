@@ -49,7 +49,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.viewed": None,
+            "test.viewed": None,
         },
     ),
     "start": OperationEventConfig(
@@ -64,8 +64,8 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.started": TestStartedEvent,
-            "artifacts.test.invocation.started": TestInvocationStartedEvent,
+            "test.started": TestStartedEvent,
+            "test.invocation.started": TestInvocationStartedEvent,
         },
     ),
     "invocation_create": OperationEventConfig(
@@ -75,7 +75,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         can_subscribe=require_authenticated_profile,
         project_domain_from_audit=False,
         domain_events={
-            "artifacts.test.invocation.created": TestInvocationStartedEvent,
+            "test.invocation.created": TestInvocationStartedEvent,
         },
     ),
     "run": OperationEventConfig(
@@ -90,10 +90,10 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.run.replay_started": TestRunStartEvent,
-            "artifacts.test.run.progress": TestProgressEvent,
-            "artifacts.test.run.replay_completed": TestRunCompleteEvent,
-            "artifacts.test.invocation.response.saved": TestInvocationResponseSavedEvent,
+            "test.run.replay_started": TestRunStartEvent,
+            "test.run.progress": TestProgressEvent,
+            "test.run.replay_completed": TestRunCompleteEvent,
+            "test.invocation.response.saved": TestInvocationResponseSavedEvent,
         },
         filter_events=default_filter_events,
     ),
@@ -109,7 +109,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.completed": TestAllCompleteEvent,
+            "test.completed": TestAllCompleteEvent,
         },
     ),
     "invocation_complete": OperationEventConfig(
@@ -124,7 +124,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.invocation.completed": TestInvocationEndedEvent,
+            "test.invocation.completed": TestInvocationEndedEvent,
         },
     ),
     "stop": OperationEventConfig(
@@ -139,7 +139,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
             "failed": OperationErrorEvent,
         },
         domain_events={
-            "artifacts.test.invocation.stopped": TestInvocationStoppedEvent,
+            "test.invocation.stopped": TestInvocationStoppedEvent,
         },
     ),
     "refresh": OperationEventConfig(
@@ -148,7 +148,7 @@ TEST_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
         entity_key=None,
         can_subscribe=require_authenticated_profile,
         domain_events={
-            "artifacts.test.refreshed": None,
+            "test.refreshed": None,
         },
     ),
 }

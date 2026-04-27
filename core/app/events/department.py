@@ -80,7 +80,7 @@ def _department_draft_entity_ids(
 DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.department.viewed": None},
+        domain_events={"department.viewed": None},
         scope="entity",
         entity_key="department_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.department.created": CreateDepartmentApiResponse},
+        domain_events={"department.created": CreateDepartmentApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.department.updated": UpdateDepartmentApiResponse},
+        domain_events={"department.updated": UpdateDepartmentApiResponse},
         scope="entity",
         entity_key="department_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.department.deleted": DeleteDepartmentApiResponse},
+        domain_events={"department.deleted": DeleteDepartmentApiResponse},
         scope="entity",
         entity_key="department_id",
         can_subscribe=require_authenticated_profile,
@@ -135,7 +135,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "duplicate": OperationEventConfig(
         operation="duplicate",
         domain_events={
-            "artifacts.department.duplicated": DuplicateDepartmentApiResponse,
+            "department.duplicated": DuplicateDepartmentApiResponse,
         },
         scope="entity",
         entity_key="department_id",
@@ -150,7 +150,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "draft": OperationEventConfig(
         operation="draft",
         domain_events={
-            "artifacts.department.draft.saved": PatchDepartmentDraftApiResponse,
+            "department.draft.saved": PatchDepartmentDraftApiResponse,
         },
         scope="entity",
         entity_key="draft_id",
@@ -165,7 +165,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "drafts": OperationEventConfig(
         operation="drafts",
         domain_events={
-            "artifacts.department.drafts.viewed": GetDepartmentDraftsApiResponse,
+            "department.drafts.viewed": GetDepartmentDraftsApiResponse,
         },
         scope="collection",
         entity_key=None,
@@ -174,7 +174,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.department.search.performed": None},
+        domain_events={"department.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -182,7 +182,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.department.exported": ExportDepartmentApiResponse},
+        domain_events={"department.exported": ExportDepartmentApiResponse},
         scope="collection",
         entity_key="department_id",
         can_subscribe=require_authenticated_profile,
@@ -197,7 +197,7 @@ DEPARTMENT_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.department.refreshed": None},
+        domain_events={"department.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

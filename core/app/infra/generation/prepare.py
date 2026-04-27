@@ -338,8 +338,59 @@ async def prepare_generation(
     # --- Step 9: Build dispatches + persist messages ---
     dispatches: list[AgentDispatch] = []
 
+    # Trace-driven faithful replay: when a trace_id is in params, the
+    # trace's connection tables hold the bundle the picker copied from
+    # the historical run's agent. Override the dispatching agent's
+    # default prompt_id / tool_ids / instruction_ids with the trace's
+    # values so the LLM sees the same surface the original run used.
+    # When the trace bundle is empty (legacy callers / non-replay
+    # generates), the original agent defaults stand.
+    trace_id_in_params = payload_params.get("trace_id")
+    trace_prompt_ids_meta = payload_metadata.get("trace_prompt_ids") or []
+    trace_tool_ids_meta = payload_metadata.get("trace_tool_ids") or []
+    trace_instruction_ids_meta = (
+        payload_metadata.get("trace_instruction_ids") or []
+    )
+    apply_trace_override = bool(trace_id_in_params) and bool(
+        trace_prompt_ids_meta or trace_tool_ids_meta or trace_instruction_ids_meta
+    )
+    trace_prompt_ids_uuids: list[uuid.UUID] = (
+        [uuid.UUID(str(p)) for p in trace_prompt_ids_meta]
+        if apply_trace_override
+        else []
+    )
+    trace_tool_ids_uuids: list[uuid.UUID] = (
+        [uuid.UUID(str(t)) for t in trace_tool_ids_meta]
+        if apply_trace_override
+        else []
+    )
+    trace_instruction_ids_uuids: list[uuid.UUID] = (
+        [uuid.UUID(str(i)) for i in trace_instruction_ids_meta]
+        if apply_trace_override
+        else []
+    )
+
     for agent_group_id, agent_resource_types in agent_groups.items():
         agent_resource = agents_by_id.get(agent_group_id) or config_agents[0]
+
+        # Apply trace bundle override — shadow copy of the agent so the
+        # original ws_ctx.agents map stays intact for any other
+        # consumer in this prepare pass.
+        if apply_trace_override:
+            override_fields: dict[str, Any] = {}
+            if trace_prompt_ids_uuids:
+                override_fields["prompt_id"] = trace_prompt_ids_uuids[0]
+            if trace_tool_ids_uuids:
+                override_fields["tool_ids"] = trace_tool_ids_uuids
+            if trace_instruction_ids_uuids:
+                override_fields["instruction_ids"] = trace_instruction_ids_uuids
+            if override_fields:
+                try:
+                    agent_resource = agent_resource.model_copy(update=override_fields)
+                except AttributeError:
+                    # Non-pydantic agent shape — set fields directly.
+                    for k, v in override_fields.items():
+                        setattr(agent_resource, k, v)
 
         llm_config = resolve_agent_config(agent_resource, models_by_id, providers_by_id)
         if not llm_config:

@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.persona.audit import run_persona_operation_with_audit
+from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.persona.group import (
     GroupPersonaApiRequest,
     GroupPersonaApiResponse,
@@ -52,9 +52,10 @@ async def group_persona(
                 request=request,
             )
 
-        result = await run_persona_operation_with_audit(
+        result = await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="persona",
             profile_id=profile_id,
             session_id=session_id,
             operation="group",

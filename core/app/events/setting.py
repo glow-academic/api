@@ -80,7 +80,7 @@ def _setting_draft_entity_ids(
 SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "get": OperationEventConfig(
         operation="get",
-        domain_events={"artifacts.setting.viewed": None},
+        domain_events={"setting.viewed": None},
         scope="entity",
         entity_key="setting_id",
         can_subscribe=require_authenticated_profile,
@@ -95,7 +95,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "create": OperationEventConfig(
         operation="create",
-        domain_events={"artifacts.setting.created": CreateSettingApiResponse},
+        domain_events={"setting.created": CreateSettingApiResponse},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -108,7 +108,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "update": OperationEventConfig(
         operation="update",
-        domain_events={"artifacts.setting.updated": UpdateSettingApiResponse},
+        domain_events={"setting.updated": UpdateSettingApiResponse},
         scope="entity",
         entity_key="setting_id",
         can_subscribe=require_authenticated_profile,
@@ -121,7 +121,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "delete": OperationEventConfig(
         operation="delete",
-        domain_events={"artifacts.setting.deleted": DeleteSettingApiResponse},
+        domain_events={"setting.deleted": DeleteSettingApiResponse},
         scope="entity",
         entity_key="setting_id",
         can_subscribe=require_authenticated_profile,
@@ -134,7 +134,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "duplicate": OperationEventConfig(
         operation="duplicate",
-        domain_events={"artifacts.setting.duplicated": DuplicateSettingApiResponse},
+        domain_events={"setting.duplicated": DuplicateSettingApiResponse},
         scope="entity",
         entity_key="setting_id",
         can_subscribe=require_authenticated_profile,
@@ -148,7 +148,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "draft": OperationEventConfig(
         operation="draft",
         domain_events={
-            "artifacts.setting.draft.saved": PatchSettingDraftApiResponse,
+            "setting.draft.saved": PatchSettingDraftApiResponse,
         },
         scope="entity",
         entity_key="draft_id",
@@ -163,7 +163,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     "drafts": OperationEventConfig(
         operation="drafts",
         domain_events={
-            "artifacts.setting.drafts.viewed": GetSettingDraftsApiResponse,
+            "setting.drafts.viewed": GetSettingDraftsApiResponse,
         },
         scope="collection",
         entity_key=None,
@@ -172,7 +172,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "search": OperationEventConfig(
         operation="search",
-        domain_events={"artifacts.setting.search.performed": None},
+        domain_events={"setting.search.performed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
@@ -180,7 +180,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "export": OperationEventConfig(
         operation="export",
-        domain_events={"artifacts.setting.exported": ExportSettingApiResponse},
+        domain_events={"setting.exported": ExportSettingApiResponse},
         scope="collection",
         entity_key="setting_id",
         can_subscribe=require_authenticated_profile,
@@ -195,7 +195,7 @@ SETTING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
     ),
     "refresh": OperationEventConfig(
         operation="refresh",
-        domain_events={"artifacts.setting.refreshed": None},
+        domain_events={"setting.refreshed": None},
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

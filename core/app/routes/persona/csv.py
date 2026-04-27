@@ -8,7 +8,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.persona.audit import run_persona_operation_with_audit
+from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.persona.csv import ParsePersonaCsvApiResponse, parse_persona_csv_impl
 from app.infra.persona.group import group_persona_impl
 from app.utils.error.handle_route_error import handle_route_error
@@ -50,9 +50,10 @@ async def parse_persona_csv(
                 content_type=content_type,
             )
 
-        return await run_persona_operation_with_audit(
+        return await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="persona",
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
