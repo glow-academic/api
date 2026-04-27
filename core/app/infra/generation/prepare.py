@@ -192,6 +192,44 @@ async def prepare_generation(
     # After this block, score_agents is skipped: agent_groups is
     # already set, ws_ctx-derived lookups are augmented with the
     # synth agent + its resources.
+    #
+    # ── Side-effect safety on replay ───────────────────────────────
+    # Replays must NOT mutate live state. The system already
+    # guarantees this via the canonical soft-write pattern:
+    #
+    #   1. GeneratePayload.dangerous defaults to False.
+    #   2. run_from_payload sets tool_soft = not payload.dangerous = True.
+    #   3. execute.py constructs InfraContext(soft=True, accept=None).
+    #   4. execute_infra_operation honors soft+accept on every write
+    #      impl; reads pass through normally.
+    #   5. accept=None leaves dormant records dormant forever — the
+    #      canonical "draft pending acceptance" state, not garbage.
+    #
+    # No dry_run flag, no test.* event remapping, no atomic cleanup
+    # logic needed. The dispatch loop produces the right behavior
+    # for free as long as nobody flips dangerous=True on a trace
+    # generate (a defensive guard here is a future refinement).
+    #
+    # ── TODO: idempotency-key replay (next iteration) ──────────────
+    # Every historical tool call has an `operation_key` stored on
+    # `calls_entry.operation_key` (NOT NULL — confirmed in
+    # database/schema/tables/entries/calls.sql). For maximum replay
+    # fidelity:
+    #
+    #   • Query calls_entry WHERE run_id = trace_ctx.historical_run_id
+    #     to fetch the original tool calls + their operation_keys.
+    #   • Build a {(tool_id, args_fingerprint): operation_key} lookup.
+    #   • Stash on PrepareGenerationResult.replay_operation_keys.
+    #   • In execute.py, when the LLM emits a tool call that matches
+    #     the historical fingerprint, reuse that operation_key
+    #     instead of minting a fresh uuid.
+    #   • The system's existing dedup (create_call → operation_key
+    #     uniqueness) short-circuits: same tool + same args + same
+    #     key → return original call_id + result. LLM continues with
+    #     the EXACT result the original run saw.
+    #
+    # See memory/project_test_replay_design.md for the full plan and
+    # rationale, including paths considered and rejected.
     trace_dispatch_agent: Any = None
     trace_id_param = payload_params.get("trace_id")
     if trace_id_param:
