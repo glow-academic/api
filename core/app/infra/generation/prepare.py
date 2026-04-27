@@ -176,6 +176,135 @@ async def prepare_generation(
     providers_by_id = {p.id: p for p in ws_ctx.providers}
     config_agents = ws_ctx.agents
 
+    # --- Trace-driven canonical agent (faithful replay) ---
+    # When `params.trace_id` is set we're replaying a historical run.
+    # The dispatch agent must be the test_invocation's agent (the one
+    # under test) — NOT whatever score_tools picks for the test
+    # artifact (which would win the test orchestrator agent and run
+    # against its tools/prompt instead of the historical setup).
+    #
+    # The trace's bundle (prompt_ids/tool_ids/instruction_ids) layers
+    # on top as per-turn overrides. They came from the picker, which
+    # copied them off the historical run's agent — so by default the
+    # synth equals the historical agent. Future per-turn customization
+    # (e.g. user-typed prompt) flows through the same override slot.
+    #
+    # After this block, score_agents is skipped: agent_groups is
+    # already set, ws_ctx-derived lookups are augmented with the
+    # synth agent + its resources.
+    trace_dispatch_agent: Any = None
+    trace_id_param = payload_params.get("trace_id")
+    if trace_id_param:
+        from app.infra.test.trace_context import resolve_trace_context
+        from app.tools.entries.test_invocation.get import get_test_invocations
+        from app.tools.resources.agents.get import get_agents
+        from app.tools.resources.instructions.get import get_instructions
+        from app.tools.resources.prompts.get import get_prompts
+        from app.tools.resources.tools.get import get_tools
+
+        trace_uuid = (
+            trace_id_param
+            if isinstance(trace_id_param, uuid.UUID)
+            else uuid.UUID(str(trace_id_param))
+        )
+        async with pool.acquire() as conn:
+            trace_ctx = await resolve_trace_context(conn, trace_uuid)
+            invs = await get_test_invocations(
+                conn, [trace_ctx.test_invocation_id], bypass_mv=True
+            )
+        if not invs:
+            raise ValueError(
+                f"trace replay: parent invocation {trace_ctx.test_invocation_id} not found"
+            )
+        inv_for_trace = invs[0]
+
+        if inv_for_trace.agent_ids:
+            # Load the canonical agent the test_invocation was set up
+            # with (model + provider + key + voice + temperature etc.
+            # all live on the agent_resource).
+            base_agents = await get_agents(
+                pool, list(inv_for_trace.agent_ids[:1]), redis, bypass_cache=True
+            )
+            if base_agents:
+                base_agent = base_agents[0]
+                # Layer trace bundle overrides on top of the canonical
+                # agent. Empty trace fields fall through to the agent's
+                # own values — so this is also correct when the picker
+                # copied the agent's bundle verbatim (trace == agent).
+                override_fields: dict[str, Any] = {}
+                if trace_ctx.prompt_ids:
+                    override_fields["prompt_id"] = trace_ctx.prompt_ids[0]
+                if trace_ctx.tool_ids:
+                    override_fields["tool_ids"] = list(trace_ctx.tool_ids)
+                if trace_ctx.instruction_ids:
+                    override_fields["instruction_ids"] = list(
+                        trace_ctx.instruction_ids
+                    )
+                synth_agent = (
+                    base_agent.model_copy(update=override_fields)
+                    if override_fields
+                    else base_agent
+                )
+
+                # Load resources the synth references so downstream
+                # lookups (prompts_by_id / instructions_by_id /
+                # all_tool_dicts) can resolve them, even if ws_ctx
+                # didn't include them (it was scored for the test
+                # orchestrator system, which probably has a different
+                # tool/prompt set).
+                synth_prompt_ids = (
+                    [synth_agent.prompt_id] if synth_agent.prompt_id else []
+                )
+                synth_tool_ids = list(synth_agent.tool_ids or [])
+                synth_instruction_ids = list(synth_agent.instruction_ids or [])
+
+                async with pool.acquire() as conn:
+                    extra_prompts = (
+                        await get_prompts(
+                            conn, synth_prompt_ids, redis, bypass_cache=True
+                        )
+                        if synth_prompt_ids
+                        else []
+                    )
+                    extra_instructions = (
+                        await get_instructions(
+                            conn, synth_instruction_ids, redis, bypass_cache=True
+                        )
+                        if synth_instruction_ids
+                        else []
+                    )
+                    extra_tools = (
+                        await get_tools(
+                            conn, synth_tool_ids, redis, bypass_cache=True
+                        )
+                        if synth_tool_ids
+                        else []
+                    )
+
+                # Override the dispatch-time view: only the synth
+                # agent is dispatchable, and the resource maps are
+                # rebuilt from the synth's own bundle so build_agent_dispatch
+                # / prompts_by_id / instructions_by_id all resolve.
+                # We deliberately do NOT mutate ws_ctx (frozen) — only
+                # the locals the dispatch loop reads from.
+                trace_dispatch_agent = synth_agent
+                agents_by_id = {synth_agent.id: synth_agent}
+                config_agents = [synth_agent]
+                # Replace ws_ctx slot-for-slot via local rebinds. The
+                # dispatch loop reads ws_ctx.tools / .prompts /
+                # .instructions later — rebind them too.
+                from dataclasses import replace as _dc_replace
+                ws_ctx = _dc_replace(
+                    ws_ctx,
+                    agents=[synth_agent],
+                    tools=extra_tools,
+                    prompts=extra_prompts,
+                    instructions=extra_instructions,
+                )
+                # Existing models_by_id / providers_by_id keep working
+                # since the synth's model_id is unchanged from the
+                # canonical agent (already in ws_ctx.models).
+
     # --- Step 4: Agent groups via canonical modality-first selection ---
     #
     # Selection rules (see tool_graph.score_agents):
@@ -220,42 +349,52 @@ async def prepare_generation(
     tool_graph = getattr(ws_ctx, "tool_graph", None)
     available_agents = list(getattr(tool_graph, "agents", []) or [])
 
-    ranked = score_agents(
-        agents=available_agents,
-        request_input_modalities=selection_in_mods,
-        request_output_modalities=selection_out_mods,
-        artifact_type=artifact_type,
-        operations=payload.operations,
-    )
-
-    logger.info(
-        f"GENERATE_ATTEMPT: score_agents in={sorted(selection_in_mods)} "
-        f"out={sorted(selection_out_mods)} ops={payload.operations or []} "
-        f"candidates={[ (a.agent_id, sorted(a.output_modalities)) for a in ranked ]}"
-    )
-
     agent_groups: dict[uuid.UUID, list[str]] = {}
-    if payload.operations:
-        # Operations: greedy cover by best-ranked agents. Walk the ranked
-        # list, pick agents that contribute uncovered (artifact, op) pairs
-        # until every requested op is covered. Least-privilege ranking
-        # ensures a narrower agent (e.g. Attempt) is preferred over a
-        # broader one (e.g. Attempt Realtime) when both cover the ops.
-        requested = {(artifact_type, op) for op in payload.operations}
-        uncovered = set(requested)
-        for agent in ranked:
-            gained = agent.tool_targets & uncovered
-            if not gained:
-                continue
-            agent_groups[agent.agent_id] = sorted({a for (a, _) in gained})
-            uncovered -= gained
-            if not uncovered:
-                break
-    elif ranked:
-        # No operations — pure modality conversion (STT, TTS) or a
-        # tool-less variant. Pick the single best agent, empty target
-        # list (executor doesn't iterate resource_types for these).
-        agent_groups[ranked[0].agent_id] = []
+
+    if trace_dispatch_agent is not None:
+        # Trace replay path — bypass scoring entirely. The synth agent
+        # is the only dispatch target; resource_types stay empty since
+        # replay isn't materializing artifact resources, just running
+        # the LLM with the historical bundle.
+        agent_groups[trace_dispatch_agent.id] = []
+    else:
+        ranked = score_agents(
+            agents=available_agents,
+            request_input_modalities=selection_in_mods,
+            request_output_modalities=selection_out_mods,
+            artifact_type=artifact_type,
+            operations=payload.operations,
+        )
+
+        logger.info(
+            f"GENERATE_ATTEMPT: score_agents in={sorted(selection_in_mods)} "
+            f"out={sorted(selection_out_mods)} ops={payload.operations or []} "
+            f"candidates={[ (a.agent_id, sorted(a.output_modalities)) for a in ranked ]}"
+        )
+
+        if payload.operations:
+            # Operations: greedy cover by best-ranked agents. Walk the
+            # ranked list, pick agents that contribute uncovered
+            # (artifact, op) pairs until every requested op is covered.
+            # Least-privilege ranking ensures a narrower agent (e.g.
+            # Attempt) is preferred over a broader one (e.g. Attempt
+            # Realtime) when both cover the ops.
+            requested = {(artifact_type, op) for op in payload.operations}
+            uncovered = set(requested)
+            for agent in ranked:
+                gained = agent.tool_targets & uncovered
+                if not gained:
+                    continue
+                agent_groups[agent.agent_id] = sorted({a for (a, _) in gained})
+                uncovered -= gained
+                if not uncovered:
+                    break
+        elif ranked:
+            # No operations — pure modality conversion (STT, TTS) or a
+            # tool-less variant. Pick the single best agent, empty
+            # target list (executor doesn't iterate resource_types for
+            # these).
+            agent_groups[ranked[0].agent_id] = []
 
     # --- Step 5: Enrich tools ---
     config_tools = ws_ctx.tools
@@ -338,59 +477,8 @@ async def prepare_generation(
     # --- Step 9: Build dispatches + persist messages ---
     dispatches: list[AgentDispatch] = []
 
-    # Trace-driven faithful replay: when a trace_id is in params, the
-    # trace's connection tables hold the bundle the picker copied from
-    # the historical run's agent. Override the dispatching agent's
-    # default prompt_id / tool_ids / instruction_ids with the trace's
-    # values so the LLM sees the same surface the original run used.
-    # When the trace bundle is empty (legacy callers / non-replay
-    # generates), the original agent defaults stand.
-    trace_id_in_params = payload_params.get("trace_id")
-    trace_prompt_ids_meta = payload_metadata.get("trace_prompt_ids") or []
-    trace_tool_ids_meta = payload_metadata.get("trace_tool_ids") or []
-    trace_instruction_ids_meta = (
-        payload_metadata.get("trace_instruction_ids") or []
-    )
-    apply_trace_override = bool(trace_id_in_params) and bool(
-        trace_prompt_ids_meta or trace_tool_ids_meta or trace_instruction_ids_meta
-    )
-    trace_prompt_ids_uuids: list[uuid.UUID] = (
-        [uuid.UUID(str(p)) for p in trace_prompt_ids_meta]
-        if apply_trace_override
-        else []
-    )
-    trace_tool_ids_uuids: list[uuid.UUID] = (
-        [uuid.UUID(str(t)) for t in trace_tool_ids_meta]
-        if apply_trace_override
-        else []
-    )
-    trace_instruction_ids_uuids: list[uuid.UUID] = (
-        [uuid.UUID(str(i)) for i in trace_instruction_ids_meta]
-        if apply_trace_override
-        else []
-    )
-
     for agent_group_id, agent_resource_types in agent_groups.items():
         agent_resource = agents_by_id.get(agent_group_id) or config_agents[0]
-
-        # Apply trace bundle override — shadow copy of the agent so the
-        # original ws_ctx.agents map stays intact for any other
-        # consumer in this prepare pass.
-        if apply_trace_override:
-            override_fields: dict[str, Any] = {}
-            if trace_prompt_ids_uuids:
-                override_fields["prompt_id"] = trace_prompt_ids_uuids[0]
-            if trace_tool_ids_uuids:
-                override_fields["tool_ids"] = trace_tool_ids_uuids
-            if trace_instruction_ids_uuids:
-                override_fields["instruction_ids"] = trace_instruction_ids_uuids
-            if override_fields:
-                try:
-                    agent_resource = agent_resource.model_copy(update=override_fields)
-                except AttributeError:
-                    # Non-pydantic agent shape — set fields directly.
-                    for k, v in override_fields.items():
-                        setattr(agent_resource, k, v)
 
         llm_config = resolve_agent_config(agent_resource, models_by_id, providers_by_id)
         if not llm_config:
