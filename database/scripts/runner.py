@@ -2262,6 +2262,22 @@ async def main_setup(setup: str = "university") -> None:
                     pool, redis_client, mod.standalone_images, mod.document_images, assets_dir
                 )
 
+        # ── Phase 3: Analytical seeds ─────────────────────────────────
+        # Synthetic attempt + test history so the dashboards (Activity,
+        # Reports, Pricing, Leaderboard, Eval detail, Test list) have
+        # data on first load. Each seed discovers its own FK targets
+        # at runtime (personas / scenarios / profiles / agents /
+        # pricings / benchmarks) via the canonical entries — no inline
+        # SQL — and skips gracefully if a setup lacks the needed
+        # resources.
+        print("\nSeeding attempt analytics...")
+        from database.seeds.attempts_analytics import seed as _seed_attempts_analytics
+        await _seed_attempts_analytics(pool, redis_client)
+
+        print("\nSeeding test analytics...")
+        from database.seeds.tests_analytics import seed as _seed_tests_analytics
+        await _seed_tests_analytics(pool, redis_client)
+
         # Restore original SEED_PROFILE_ID
         SEED_PROFILE_ID = original_seed_profile_id
 

@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.32"
+    "version": "2.15.33"
   },
   "paths": {
     "/persona/get": {
