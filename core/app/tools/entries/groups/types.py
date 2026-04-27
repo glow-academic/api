@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class CreateGroupResponse(BaseModel):
     id: UUID
+    inserted: bool = True
 
 
 class GetGroupResponse(BaseModel):

@@ -185,9 +185,28 @@ async def resolve_group_impl(
     created_new = False
 
     if group_id is not None:
-        resolved_group_id = group_id
+        # Client-minted id pattern: the caller treats ``group_id`` as
+        # canonical and the server idempotently materializes the row.
+        # ``create_group`` is an UPSERT (``ON CONFLICT (id) DO UPDATE``)
+        # so this is a no-op when the row already exists. Lets the
+        # client pre-latch the URL synchronously and the server fill
+        # in the rest — same pattern ``draftId`` already uses.
+        async with pool.acquire() as conn:
+            result = await create_group(
+                conn,
+                session_id=session_id,
+                artifact_type=artifact_type,
+                id=group_id,
+                soft=soft,
+            )
+        resolved_group_id = result.id
+        # Distinguish a fresh INSERT from a no-op upsert. Only the
+        # former is "created_new" for the purposes of the MV refresh
+        # decision and the history-load skip — existing groups have
+        # content worth loading.
+        created_new = result.inserted
         await redis.setex(
-            _redis_key(artifact_type, profile_id), window_seconds, str(group_id),
+            _redis_key(artifact_type, profile_id), window_seconds, str(resolved_group_id),
         )
     else:
         key = _redis_key(artifact_type, profile_id)

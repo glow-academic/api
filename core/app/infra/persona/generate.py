@@ -107,17 +107,21 @@ async def generate_persona_impl(
 
     # ── Step 3: Validate resources ─────────────────────────────────────
 
-    group_id = cfg.group_id
-    if not group_id:
-        from app.infra.group.resolve import resolve_group_impl
-        group_result = await resolve_group_impl(
-            pool, redis,
-            artifact_type=ARTIFACT_TYPE,
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = group_result.group_id
+    # Always resolve through ``resolve_group_impl`` — it idempotently
+    # upserts when ``group_id`` is provided (client-minted id) and
+    # falls back to its window/auto-create logic when omitted. Either
+    # way the row is guaranteed to exist before runs/messages reference
+    # it.
+    from app.infra.group.resolve import resolve_group_impl
+    group_result = await resolve_group_impl(
+        pool, redis,
+        artifact_type=ARTIFACT_TYPE,
+        profile_id=profile_id,
+        session_id=session_id,
+        group_id=cfg.group_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
 
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:

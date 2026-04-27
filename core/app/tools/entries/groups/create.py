@@ -20,12 +20,12 @@ async def create_group(
 
     Group naming is handled separately via group_names_entry.
     """
-    group_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO groups_entry (id, session_id, active, mcp, generated, artifact_type)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, (xmax = 0) AS inserted
     """,
         session_id,
         not soft,
@@ -34,7 +34,12 @@ async def create_group(
         artifact_type,
     )
 
-    if group_id is None:
+    if row is None or row["id"] is None:
         raise ValueError("Failed to create groups entry")
 
-    return CreateGroupResponse(id=group_id)
+    # ``xmax = 0`` distinguishes a fresh INSERT from an ON CONFLICT
+    # update — Postgres internal column. True ⇒ row was just inserted;
+    # False ⇒ row existed and we hit the upsert path. Callers use this
+    # to decide whether to load history (existing rows have content
+    # worth fetching; freshly-inserted ones are empty).
+    return CreateGroupResponse(id=row["id"], inserted=row["inserted"])
