@@ -61,6 +61,8 @@ from app.tools.entries.tokens.create import create_token
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.pricing.search import search_pricing
 from app.tools.resources.profile_personas.search import search_profile_personas
+from app.tools.resources.rubrics.search import search_rubrics
+from app.tools.resources.videos.search import search_videos
 
 from database.seeds.ids import sid
 
@@ -69,6 +71,10 @@ ATTEMPT_COUNT = 12
 TURNS_PER_ATTEMPT = 6
 COMPLETED_RATIO = 0.7
 RUNS_PER_ATTEMPT = 3
+# Half the seeded attempts are practice (freeform, no video) and half
+# are home (video-based). Mirroring the two real attempt entry points
+# so the dashboard's per-type aggregations have data for both buckets.
+PRACTICE_RATIO = 0.5
 
 
 _USER_LINES = [
@@ -126,6 +132,9 @@ async def _seed_one_attempt(
     agent_id: UUID | None,
     input_pricing_id: UUID | None,
     output_pricing_id: UUID | None,
+    rubric_id: UUID | None,
+    video_id: UUID | None,
+    is_practice: bool,
 ) -> None:
     """Walk the canonical chain for one attempt. All rows are stamped
     at now() — the canonical creates don't currently accept created_at
@@ -156,19 +165,35 @@ async def _seed_one_attempt(
     )
 
     # 2. attempt_entry (writes attempt_profiles_connection inside).
+    # `practice=True` flips this attempt into the "Practice" bucket
+    # (freeform, no video). `practice=False` is the "Home" bucket
+    # (video-based, more structured). Mirroring the two real entry
+    # points so per-type aggregations have data for both.
+    type_label = "Practice" if is_practice else "Home"
     await create_attempt(
         conn,
         session_id=session_id,
         user_persona_id=user_persona_entry_id,
         profiles_id=profile_id,
         id=attempt_id,
-        name=f"Practice attempt #{idx + 1}",
-        description="Seeded attempt for analytics dashboards",
-        practice=False,
+        name=f"{type_label} attempt #{idx + 1}",
+        description=f"Seeded {type_label.lower()} attempt for analytics dashboards",
+        practice=is_practice,
         num_chats=1,
     )
 
-    # 3. attempt_chat_entry pointing at the simulation's pre-seeded chat.
+    # 3. attempt_chat_entry pointing at the simulation's pre-seeded
+    # chat. We populate `rubrics_ids` so attempt_chat_mv can compute
+    # rubric_total_points / rubric_pass_points → mv_attempt_facts can
+    # derive grade_percent + score_percent → header metrics
+    # (Average Score, Highest Score) actually have values to aggregate
+    # over instead of NULLs collapsing to 0%.
+    #
+    # Home attempts also wire `videos_ids` and flip `video_enabled`
+    # so the chat presents the video-based experience; practice
+    # attempts leave both off for the freeform flow.
+    rubrics_ids = [rubric_id] if rubric_id else None
+    videos_ids = [video_id] if (not is_practice) and video_id else None
     await create_attempt_chat(
         conn,
         session_id=session_id,
@@ -180,6 +205,9 @@ async def _seed_one_attempt(
         audio_enabled=False,
         hints_enabled=True,
         show_objectives=True,
+        video_enabled=(not is_practice),
+        rubrics_ids=rubrics_ids,
+        videos_ids=videos_ids,
     )
 
     # 4. attempt ↔ attempt_chat bridge.
@@ -283,6 +311,11 @@ async def _seed_one_attempt(
             passed=score >= 60,
             score=score,
             id=sid(f"{slug}/grade"),
+            # Link the grade to the same rubric the chat references —
+            # otherwise attempt_grade_rubrics_connection is empty and
+            # downstream rubric_score / standard_group rollups can't
+            # tie back to the chat's rubric.
+            rubric_ids=[rubric_id] if rubric_id else None,
         )
 
 
@@ -316,6 +349,20 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         output_pricings = await search_pricing(
             conn, redis, pricing_type="output", limit_count=4, bypass_cache=True
         )
+        # Rubric: drives attempt_chat_mv.rubric_total_points →
+        # mv_attempt_facts.score_percent → Average/Highest Score on
+        # the dashboard. Without one, those metrics aggregate to 0.
+        rubrics = await search_rubrics(
+            conn, redis, limit_count=1, bypass_cache=True
+        )
+        # Video: only used on home (non-practice) attempts. Skip
+        # gracefully if the setup has no videos.
+        try:
+            videos = await search_videos(
+                conn, redis, limit_count=1, bypass_cache=True
+            )
+        except Exception:
+            videos = []
         print(
             f"  (discovery: profile_personas={len(profile_personas)}, "
             f"chats={len(chats)}, agents={len(agents)}, "
@@ -344,6 +391,8 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         primary_agent_id = agents[0].id if agents else None
         input_pricing_id = input_pricings[0].id if input_pricings else None
         output_pricing_id = output_pricings[0].id if output_pricings else None
+        rubric_id = rubrics[0].id if rubrics else None
+        video_id = videos[0].id if videos else None
 
         async with conn.transaction():
             for idx in range(ATTEMPT_COUNT):
@@ -370,6 +419,10 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                 # search_chat_personas to the canonical surface.
                 voice_persona_entry = user_persona_entry
 
+                # First half practice (freeform), second half home
+                # (video-based) — gives the dashboard's per-type
+                # aggregations data on both buckets.
+                is_practice = idx < int(ATTEMPT_COUNT * PRACTICE_RATIO)
                 try:
                     await _seed_one_attempt(
                         conn,
@@ -381,6 +434,9 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                         agent_id=primary_agent_id,
                         input_pricing_id=input_pricing_id,
                         output_pricing_id=output_pricing_id,
+                        rubric_id=rubric_id,
+                        video_id=video_id,
+                        is_practice=is_practice,
                     )
                     inserted += 1
                 except Exception as e:
