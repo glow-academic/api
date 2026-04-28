@@ -164,7 +164,7 @@ def _transform_history_item(
 
     return HistoryItem(
         attempt_id=attempt.attempt_id,
-        date=attempt.created_at.isoformat() if attempt.created_at else None,
+        date=attempt.attempt_created_at.isoformat() if attempt.attempt_created_at else None,
         profile_id=attempt.profile_id,
         profile_name=profile_name,
         simulation_id=attempt.simulation_id,
