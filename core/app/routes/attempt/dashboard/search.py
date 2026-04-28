@@ -243,8 +243,11 @@ def _build_history_response(
                 "time_limit": None,
             }
     for p in h_profs:
-        if p.profile_id:
-            resource_meta["profiles"][p.profile_id] = {"name": p.name}
+        # GetProfileResponse uses `id`, not `profile_id` — the
+        # convention is inconsistent with sibling resource types
+        # here (s.simulation_id / p.persona_id / s.scenario_id).
+        if p.id:
+            resource_meta["profiles"][p.id] = {"name": p.name}
     for p in h_pers:
         if p.persona_id:
             resource_meta["personas"][p.persona_id] = {
