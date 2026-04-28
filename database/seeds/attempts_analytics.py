@@ -1,38 +1,43 @@
 """Analytical seed — attempt history (Track A).
 
-Inserts ~12 simulation attempts across the available
-(persona × simulation × profile) cross-product so the dashboards have
-real data on first load:
+Inserts ~12 simulation attempts so the dashboards (Activity, Reports,
+Pricing, Leaderboard, Dashboard, per-Persona/Simulation pages) have
+data on first load.
 
-  • Activity / Reports / Leaderboard / Dashboard show non-empty rows.
-  • Pricing rolls up real $/run by joining runs_entry → run_pricing.
-  • Per-persona / per-simulation detail pages show attempt history.
-  • Grade distribution looks plausible (35–95% range, ~10% failing).
+**Canonical-only**: this seed uses ONLY the black-box functions in
+``app/tools/resources/<x>/search.py`` and
+``app/tools/entries/<x>/create.py``. No inline SELECT or UPDATE — and
+in particular no ``UPDATE ... SET created_at = ...`` hacks. As a
+trade-off, every row lands at ``now()`` because the canonical create
+functions don't currently accept a ``created_at`` override; if/when
+they do, this seed should pass per-attempt offsets to spread the
+timeline. For now the demo time distribution is "all today".
 
-Uses ONLY canonical entry create black-boxes from
-``app/tools/entries/<x>/create.py`` — no inline SQL. Discovers
-available personas / scenarios / profiles / agents at runtime and
-threads them through the canonical chain:
+Runner ordering: this runs AFTER cohorts + benchmark sync as part
+of "Phase 3 — analytical seeds". By that point everything we need
+is in place: ``profile_personas_resource`` rows wire profiles to
+their assigned personas (the canonical ``user_persona_id`` source),
+``chat_entry`` rows exist (one per scenario), ``agents_resource`` /
+``pricing_resource`` are populated by the platform module, and
+``personas_resource`` has the persona templates we wrap into
+``personas_entry`` via the canonical ``create_personas`` black-box.
 
-  attempt → attempt_chat (pointing at the simulation's pre-seeded
-  chat_entry) → attempt_chat_bridge → groups + group_names →
+Chain per attempt:
+  groups + group_names → attempt → attempt_chat (pointing at the
+  simulation's pre-seeded chat_entry) → attempt_chat_bridge →
   N × (attempt_message + attempt_content with text inline) →
-  attempt_chat_completion + attempt_completion + attempt_grade
-  (when completed) → runs + tokens + run_pricing (drives Pricing).
+  (when completed) attempt_chat_completion + attempt_completion +
+  attempt_grade → (when has agent activity) runs + tokens +
+  run_pricing (drives Pricing dashboard).
 
-Determinism:
-  • All ids via sid("attempts-analytics/<slug>"), so reseeding gives
-    stable ids — no UUID drift across builds.
-  • created_at is anchored to now() with deterministic offsets per
-    attempt index, so the time-spread is reproducible per build.
-  • Message bodies + scores derive from (sim_idx, persona_idx) — no
-    random() calls.
+Determinism: all ids via ``sid("attempts-analytics/...")``. Re-running
+the seed is idempotent on canonical creates (entries with the same
+UUID short-circuit at the DB layer).
 """
 
 from __future__ import annotations
 
 import asyncpg
-from datetime import datetime, timedelta, timezone
 from redis.asyncio import Redis
 from uuid import UUID
 
@@ -46,24 +51,26 @@ from app.tools.entries.attempt_completion.create import create_attempt_completio
 from app.tools.entries.attempt_content.create import create_attempt_content
 from app.tools.entries.attempt_grade.create import create_attempt_grade
 from app.tools.entries.attempt_message.create import create_attempt_message
+from app.tools.entries.chat.search import search_chat_entries_internal
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.personas.create import create_personas
 from app.tools.entries.run_pricing.create import create_run_pricing_entry_internal
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.tokens.create import create_token
+from app.tools.resources.agents.search import search_agents
+from app.tools.resources.pricing.search import search_pricing
+from app.tools.resources.profile_personas.search import search_profile_personas
 
 from database.seeds.ids import sid
 
 
 ATTEMPT_COUNT = 12
-TURNS_PER_ATTEMPT = 6  # alternating user / persona
-COMPLETED_RATIO = 0.7  # 70% of attempts have a grade
-RUNS_PER_ATTEMPT = 3   # agent dispatches per attempt (drives Pricing/Leaderboard)
+TURNS_PER_ATTEMPT = 6
+COMPLETED_RATIO = 0.7
+RUNS_PER_ATTEMPT = 3
 
 
-# Per-(persona_idx, turn_idx) deterministic lines. The attempt seed
-# loops over these rather than calling random() so re-seed produces
-# identical content. Pulled to module top so the corpus is auditable.
 _USER_LINES = [
     "Hi, can you help me with the assignment from last week?",
     "I'm not sure how to approach this — what would you recommend?",
@@ -83,110 +90,46 @@ _PERSONA_LINES = [
 ]
 
 
-# Per-attempt grade scores — deterministic distribution covering
-# the desired 35–95% range with one failing (32) for variety.
 _SCORES = [88, 76, 92, 65, 81, 73, 95, 58, 84, 32, 71, 89]
 _TIME_TAKEN_SECONDS = [780, 1240, 540, 980, 1430, 720, 460, 1820, 690, 920, 1350, 600]
+_TOKEN_ENVELOPES = [(1850, 720), (1200, 1100), (640, 380)]
 
 
-# Synthetic token envelopes per agent (model-agnostic — just plausible
-# input/output ranges that produce reasonable cost when joined to
-# pricing). Indexed by (run_idx mod 3) for variety.
-_TOKEN_ENVELOPES = [
-    (1850, 720),   # heavy input, modest output
-    (1200, 1100),  # balanced
-    (640, 380),    # short turn
-]
+async def _wrap_personas_resource(
+    conn: asyncpg.Connection, resource_ids: list[UUID]
+) -> dict[UUID, UUID]:
+    """For each persona resource id, create a personas_entry that wraps
+    it. Returns {resource_id → entry_id}.
 
-
-async def _fetch_seed_inputs(
-    pool: asyncpg.Pool,
-) -> tuple[list[UUID], list[UUID], list[UUID], list[UUID], list[UUID], dict[UUID, UUID]]:
-    """Discover available personas / scenario chats / profiles / agents
-    / pricings in the DB. Returns deterministic-ordered id lists so
-    the seed picks the same items on every run.
-
-    Returns:
-        (
-            persona_ids,
-            chat_ids_with_simulation,
-            profile_ids,
-            agent_ids,
-            pricing_ids,
-            scenario_chat_to_persona,  # chat_id → primary scenario persona_id
-        )
+    ``attempt_entry.user_persona_id`` and ``attempt_content.persona_id``
+    both FK to ``personas_entry``. The seed-time persona templates
+    live in ``personas_resource`` — the canonical bridge is
+    ``create_personas(persona_ids=[resource_id])`` which inserts the
+    entry plus the ``personas_personas_connection`` link in one shot.
     """
-    async with pool.acquire() as conn:
-        personas = await conn.fetch(
-            "SELECT id FROM personas_entry WHERE active=true ORDER BY created_at"
-        )
-        # Pre-seeded chat_entry rows — one per scenario.
-        chats = await conn.fetch(
-            "SELECT id FROM chat_entry WHERE active=true ORDER BY created_at"
-        )
-        profiles = await conn.fetch(
-            "SELECT id FROM profiles_resource WHERE active=true ORDER BY created_at"
-        )
-        agents = await conn.fetch(
-            "SELECT id FROM agents_resource WHERE active=true ORDER BY created_at LIMIT 6"
-        )
-        pricings = await conn.fetch(
-            "SELECT id FROM pricing_resource WHERE active=true "
-            "AND pricing_type IN ('input', 'output') ORDER BY pricing_type, created_at "
-            "LIMIT 6"
-        )
-        # Best-effort scenario→persona mapping for assistant-voice
-        # content. attempt_content.persona_id stores which voice the
-        # turn came from; user turns use the user_persona_id, persona
-        # turns use the scenario's persona.
-        scenario_chat_to_persona: dict[UUID, UUID] = {}
-        try:
-            chat_persona_rows = await conn.fetch(
-                """
-                SELECT cspc.chat_id, cspc.personas_id
-                FROM chat_simulations_personas_connection cspc
-                WHERE cspc.active = true
-                """
-            )
-            for r in chat_persona_rows:
-                scenario_chat_to_persona.setdefault(r["chat_id"], r["personas_id"])
-        except Exception:
-            # Connection table name may differ across schemas; fall
-            # back to using user_persona_id for both voices.
-            scenario_chat_to_persona = {}
-
-    return (
-        [r["id"] for r in personas],
-        [r["id"] for r in chats],
-        [r["id"] for r in profiles],
-        [r["id"] for r in agents],
-        [r["id"] for r in pricings],
-        scenario_chat_to_persona,
-    )
+    mapping: dict[UUID, UUID] = {}
+    for idx, rid in enumerate(resource_ids):
+        entry_id = sid(f"attempts-analytics/persona-entry/{idx}")
+        await create_personas(conn, id=entry_id, persona_ids=[rid])
+        mapping[rid] = entry_id
+    return mapping
 
 
 async def _seed_one_attempt(
     conn: asyncpg.Connection,
     *,
     idx: int,
-    now: datetime,
-    user_persona_id: UUID,
+    user_persona_entry_id: UUID,
     chat_id: UUID,
     profile_id: UUID,
+    voice_persona_entry_id: UUID,
     agent_id: UUID | None,
     input_pricing_id: UUID | None,
     output_pricing_id: UUID | None,
-    sim_persona_id: UUID | None,
 ) -> None:
-    """Walk the canonical chain for one attempt.
-
-    Time anchoring: each attempt sits ``idx + 1`` days back from now,
-    spread across the last ATTEMPT_COUNT days. Newest attempt is at
-    idx=0 (yesterday); oldest at idx=11 (12 days ago).
-    """
-    base_offset = timedelta(days=idx + 1, hours=(idx * 3) % 24)
-    attempt_created_at = now - base_offset
-
+    """Walk the canonical chain for one attempt. All rows are stamped
+    at now() — the canonical creates don't currently accept created_at
+    overrides, and this seed deliberately avoids inline UPDATEs."""
     completed = idx < int(ATTEMPT_COUNT * COMPLETED_RATIO)
 
     slug = f"attempts-analytics/{idx}"
@@ -194,23 +137,12 @@ async def _seed_one_attempt(
     attempt_chat_id = sid(f"{slug}/attempt-chat")
     group_id = sid(f"{slug}/group")
     group_name_id = sid(f"{slug}/group-name")
+    session_id = profile_id
 
-    # Pull profiles_id (resource) — for analytics we treat profile_id
-    # and profiles_id as the same since profiles_resource is the
-    # snapshot of profiles_entry. attempt.create needs profiles_id.
-    profiles_id_for_attempt = profile_id
-
-    # Use the simulation's persona for the assistant voice when
-    # available; fall back to user persona so attempt_content always
-    # FKs to a valid personas_entry row.
-    voice_persona_id = sim_persona_id or user_persona_id
-
-    session_id_for_attempt = profile_id  # session ties to profile in seed mode
-
-    # 1. groups + group_names (the agent dispatch context for this attempt)
+    # 1. Group + group_name (the agent-dispatch context).
     await create_group(
         conn,
-        session_id=session_id_for_attempt,
+        session_id=session_id,
         artifact_type="attempt",
         id=group_id,
     )
@@ -218,17 +150,17 @@ async def _seed_one_attempt(
         conn,
         group_id=group_id,
         name=f"Attempt seed #{idx + 1}",
-        session_id=session_id_for_attempt,
+        session_id=session_id,
         id=group_name_id,
         generated=True,
     )
 
-    # 2. attempt_entry (also writes attempt_profiles_connection inside)
+    # 2. attempt_entry (writes attempt_profiles_connection inside).
     await create_attempt(
         conn,
-        session_id=session_id_for_attempt,
-        user_persona_id=user_persona_id,
-        profiles_id=profiles_id_for_attempt,
+        session_id=session_id,
+        user_persona_id=user_persona_entry_id,
+        profiles_id=profile_id,
         id=attempt_id,
         name=f"Practice attempt #{idx + 1}",
         description="Seeded attempt for analytics dashboards",
@@ -236,19 +168,10 @@ async def _seed_one_attempt(
         num_chats=1,
     )
 
-    # Patch the attempt's created_at so the time spread is real (the
-    # canonical create uses now() default; we want our deterministic
-    # offset to drive analytics date filters).
-    await conn.execute(
-        "UPDATE attempt_entry SET created_at = $1, updated_at = $1 WHERE id = $2",
-        attempt_created_at,
-        attempt_id,
-    )
-
-    # 3. attempt_chat_entry — bound to the simulation's pre-seeded chat.
+    # 3. attempt_chat_entry pointing at the simulation's pre-seeded chat.
     await create_attempt_chat(
         conn,
-        session_id=session_id_for_attempt,
+        session_id=session_id,
         chat_id=chat_id,
         id=attempt_chat_id,
         title=f"Session {idx + 1}",
@@ -258,260 +181,209 @@ async def _seed_one_attempt(
         hints_enabled=True,
         show_objectives=True,
     )
-    await conn.execute(
-        "UPDATE attempt_chat_entry SET created_at = $1, updated_at = $1 WHERE id = $2",
-        attempt_created_at,
-        attempt_chat_id,
-    )
 
-    # 4. bridge: attempt ↔ attempt_chat
+    # 4. attempt ↔ attempt_chat bridge.
     await create_attempt_chat_bridge(
         conn,
         attempt_id=attempt_id,
         attempt_chat_id=attempt_chat_id,
-        session_id=session_id_for_attempt,
+        session_id=session_id,
     )
 
-    # 5. attempt_message + attempt_content — the visible conversation.
-    # Alternating user (idx even) / persona (idx odd) turns. Each
-    # message gets a content row with the inline body and the right
-    # persona_id (whose voice).
+    # 5. The visible conversation — alternating user / persona turns.
     for t in range(TURNS_PER_ATTEMPT):
         is_user_turn = t % 2 == 0
-        turn_persona = user_persona_id if is_user_turn else voice_persona_id
+        turn_persona_entry = (
+            user_persona_entry_id if is_user_turn else voice_persona_entry_id
+        )
         line = (_USER_LINES if is_user_turn else _PERSONA_LINES)[t % len(_USER_LINES)]
         msg_id = sid(f"{slug}/msg/{t}")
         content_id = sid(f"{slug}/content/{t}")
-        msg_at = attempt_created_at + timedelta(minutes=2 + t * 2)
 
         await create_attempt_message(
             conn,
             chat_id=attempt_chat_id,
-            session_id=session_id_for_attempt,
+            session_id=session_id,
             id=msg_id,
-        )
-        await conn.execute(
-            "UPDATE attempt_message_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            msg_at,
-            msg_id,
         )
         await create_attempt_content(
             conn,
             message_id=msg_id,
-            session_id=session_id_for_attempt,
+            session_id=session_id,
             content=line,
-            persona_id=turn_persona,
+            persona_id=turn_persona_entry,
             id=content_id,
         )
-        await conn.execute(
-            "UPDATE attempt_content_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            msg_at,
-            content_id,
-        )
 
-    # 6. Agent activity rows — runs + tokens + run_pricing. These
-    # power Pricing dashboard cost rollups, Leaderboard token usage,
-    # Activity timestamps. Skipped for in-progress attempts to give
-    # the analytics views some "no agent activity yet" rows.
+    # 6. Agent activity — runs + tokens + run_pricing. Drives Pricing
+    # dashboard cost rollups when joined to pricing_resource. Skipped
+    # for in-progress attempts so dashboards see "no agent activity"
+    # rows alongside the active ones.
     if completed and agent_id is not None:
         for r in range(RUNS_PER_ATTEMPT):
             run_id = sid(f"{slug}/run/{r}")
-            run_at = attempt_created_at + timedelta(minutes=4 + r * 2)
             await create_run(
                 conn,
                 group_id=group_id,
-                session_id=session_id_for_attempt,
+                session_id=session_id,
                 id=run_id,
                 agent_ids=[agent_id],
             )
-            await conn.execute(
-                "UPDATE runs_entry SET created_at = $1 WHERE id = $2",
-                run_at,
-                run_id,
-            )
-
             inp_tokens, out_tokens = _TOKEN_ENVELOPES[r % len(_TOKEN_ENVELOPES)]
-            token_id = sid(f"{slug}/token/{r}")
             await create_token(
                 conn,
                 run_id=run_id,
-                session_id=session_id_for_attempt,
-                id=token_id,
+                session_id=session_id,
+                id=sid(f"{slug}/token/{r}"),
                 input_tokens=inp_tokens,
                 output_tokens=out_tokens,
             )
-            await conn.execute(
-                "UPDATE tokens_entry SET created_at = $1 WHERE id = $2",
-                run_at,
-                token_id,
-            )
-
-            # Pricing rows — one input + one output, joined to the
-            # actual pricing_resource ids we discovered. Drives the
-            # cost rollup on the Pricing dashboard.
             if input_pricing_id is not None:
-                pi_id = sid(f"{slug}/pricing/{r}/input")
                 await create_run_pricing_entry_internal(
                     conn,
-                    session_id=session_id_for_attempt,
+                    session_id=session_id,
                     pricing_type="input",
                     run_id=run_id,
                     pricing_id=input_pricing_id,
                     count=inp_tokens,
                 )
-                await conn.execute(
-                    "UPDATE run_pricing_entry SET created_at = $1 WHERE id = $2",
-                    run_at,
-                    pi_id,
-                )
             if output_pricing_id is not None:
-                po_id = sid(f"{slug}/pricing/{r}/output")
                 await create_run_pricing_entry_internal(
                     conn,
-                    session_id=session_id_for_attempt,
+                    session_id=session_id,
                     pricing_type="output",
                     run_id=run_id,
                     pricing_id=output_pricing_id,
                     count=out_tokens,
                 )
-                await conn.execute(
-                    "UPDATE run_pricing_entry SET created_at = $1 WHERE id = $2",
-                    run_at,
-                    po_id,
-                )
 
-    # 7. Completions + grade — only for the completed slice. The
-    # in-progress attempts are intentionally left without a grade so
-    # the dashboards show "in_progress" rows alongside completed.
+    # 7. Completions + grade — only for the completed slice.
     if completed:
-        chat_completion_id = sid(f"{slug}/chat-completion")
         await create_attempt_chat_completion(
             conn,
             chat_id=attempt_chat_id,
-            session_id=session_id_for_attempt,
-            id=chat_completion_id,
+            session_id=session_id,
+            id=sid(f"{slug}/chat-completion"),
             stop=True,
         )
-
-        completion_id = sid(f"{slug}/completion")
         await create_attempt_completion(
             conn,
             attempt_id=attempt_id,
-            session_id=session_id_for_attempt,
-            id=completion_id,
+            session_id=session_id,
+            id=sid(f"{slug}/completion"),
             stop=True,
         )
-
-        grade_id = sid(f"{slug}/grade")
         score = _SCORES[idx % len(_SCORES)]
         time_taken = _TIME_TAKEN_SECONDS[idx % len(_TIME_TAKEN_SECONDS)]
         await create_attempt_grade(
             conn,
             chat_id=attempt_chat_id,
-            session_id=session_id_for_attempt,
+            session_id=session_id,
             time_taken=time_taken,
             passed=score >= 60,
             score=score,
-            id=grade_id,
-        )
-
-        # Stamp completion timestamps so analytics dashboards (which
-        # filter by completion date) see realistic dates.
-        completion_at = attempt_created_at + timedelta(minutes=15 + idx)
-        await conn.execute(
-            "UPDATE attempt_chat_completion_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            completion_at,
-            chat_completion_id,
-        )
-        await conn.execute(
-            "UPDATE attempt_completion_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            completion_at,
-            completion_id,
-        )
-        await conn.execute(
-            "UPDATE attempt_grade_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            completion_at,
-            grade_id,
+            id=sid(f"{slug}/grade"),
         )
 
 
 async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
-    """Entry point — discover available FK targets, fan out N attempts.
-
-    Idempotent: deterministic sids mean re-running this seed reuses
-    existing rows. The UPDATE statements for created_at always run,
-    so re-seeding shifts timestamps forward to "now" — which is what
-    we want for demo dashboards.
+    """Entry point — discover available FK targets via canonical search,
+    fan out N attempts. No inline SQL anywhere — only black-boxes.
     """
-    _ = redis  # not currently used; kept on the signature for future caching needs
-
-    (
-        persona_ids,
-        chat_ids,
-        profile_ids,
-        agent_ids,
-        pricing_ids,
-        scenario_chat_to_persona,
-    ) = await _fetch_seed_inputs(pool)
-
-    if not persona_ids or not chat_ids or not profile_ids:
-        print(
-            "  (skipped: need at least one persona, chat, and profile to seed attempts)"
-        )
-        return
-
-    now = datetime.now(timezone.utc)
-    primary_agent = agent_ids[0] if agent_ids else None
-    # pricing_resource has separate input/output rows; pick first of each.
-    input_pricing = next(
-        (
-            pid
-            for pid in pricing_ids
-            # We can't tell pricing_type from the id list cheaply here;
-            # the SQL above ordered by pricing_type so input comes first.
-        ),
-        None,
-    )
-    # Cheap split: first half input, second half output (matches the
-    # ORDER BY pricing_type in the fetch).
-    half = max(1, len(pricing_ids) // 2)
-    input_pricing = pricing_ids[0] if pricing_ids else None
-    output_pricing = pricing_ids[half] if len(pricing_ids) > half else (
-        pricing_ids[-1] if pricing_ids else None
-    )
-
     inserted = 0
     async with pool.acquire() as conn:
+        # ── Discovery via canonical search black-boxes ─────────────
+        # MVs are refreshed by the runner before this seed runs (see
+        # runner.py "Phase 3 — Analytical seeds" block); we don't
+        # need to call refresh_* helpers here.
+        # profile_personas_resource is the canonical "this profile
+        # plays as this persona" assignment table — exactly what the
+        # cohort seed phase populates and what `attempt.user_persona_id`
+        # mirrors at runtime. We pull the (profile, persona_resource)
+        # pairs from there. bypass_cache=True because the seed-gen
+        # container's Redis is fresh and stale cache entries shouldn't
+        # exist anyway.
+        profile_personas = await search_profile_personas(
+            conn, redis, limit_count=50, bypass_cache=True
+        )
+        # Available scenario chats — pre-seeded by the simulation seeds.
+        chats = await search_chat_entries_internal(conn, limit_count=50)
+        # Agents + pricing for the agent-activity chain.
+        agents = await search_agents(conn, redis, limit_count=6, bypass_cache=True)
+        input_pricings = await search_pricing(
+            conn, redis, pricing_type="input", limit_count=4, bypass_cache=True
+        )
+        output_pricings = await search_pricing(
+            conn, redis, pricing_type="output", limit_count=4, bypass_cache=True
+        )
+        print(
+            f"  (discovery: profile_personas={len(profile_personas)}, "
+            f"chats={len(chats)}, agents={len(agents)}, "
+            f"input_pricings={len(input_pricings)}, "
+            f"output_pricings={len(output_pricings)})"
+        )
+
+        if not profile_personas or not chats:
+            print(
+                "  (skipped: need at least one profile_personas and "
+                "one chat_entry to seed attempts)"
+            )
+            return
+
+        # Wrap every persona_resource we'll touch in a personas_entry
+        # via the canonical create_personas. attempt_entry.user_persona_id
+        # and attempt_content.persona_id both FK to personas_entry, so
+        # this conversion is required.
+        unique_persona_resource_ids = list(
+            {pp.persona_id for pp in profile_personas}
+        )
+        persona_resource_to_entry = await _wrap_personas_resource(
+            conn, unique_persona_resource_ids
+        )
+
+        primary_agent_id = agents[0].id if agents else None
+        input_pricing_id = input_pricings[0].id if input_pricings else None
+        output_pricing_id = output_pricings[0].id if output_pricings else None
+
         async with conn.transaction():
             for idx in range(ATTEMPT_COUNT):
-                user_persona_id = persona_ids[idx % len(persona_ids)]
-                chat_id = chat_ids[idx % len(chat_ids)]
-                profile_id = profile_ids[idx % len(profile_ids)]
-                sim_persona_id = scenario_chat_to_persona.get(chat_id)
+                pp = profile_personas[idx % len(profile_personas)]
+                chat = chats[idx % len(chats)]
+                # search_chat_entries_internal returns list[dict] from
+                # chat_mv (the MV column is `chat_entry_id`).
+                chat_id = chat["chat_entry_id"]
+
+                user_persona_entry = persona_resource_to_entry.get(pp.persona_id)
+                if user_persona_entry is None:
+                    print(f"  (attempt #{idx} skipped: persona entry not wrapped)")
+                    continue
+
+                # The "voice" persona for assistant turns is the same
+                # persona_entry as the user persona for now — the
+                # canonical chat_personas_connection lookup would give
+                # the scenario-specific persona, but doing that here
+                # would re-introduce a SELECT we'd have to query
+                # outside a black-box. Acceptable simplification: both
+                # voices share a personas_entry; persona_id field on
+                # attempt_content still resolves correctly, just to a
+                # less-distinct voice. Future enhancement: add
+                # search_chat_personas to the canonical surface.
+                voice_persona_entry = user_persona_entry
 
                 try:
                     await _seed_one_attempt(
                         conn,
                         idx=idx,
-                        now=now,
-                        user_persona_id=user_persona_id,
+                        user_persona_entry_id=user_persona_entry,
                         chat_id=chat_id,
-                        profile_id=profile_id,
-                        agent_id=primary_agent,
-                        input_pricing_id=input_pricing,
-                        output_pricing_id=output_pricing,
-                        sim_persona_id=sim_persona_id,
+                        profile_id=pp.profile_id,
+                        voice_persona_entry_id=voice_persona_entry,
+                        agent_id=primary_agent_id,
+                        input_pricing_id=input_pricing_id,
+                        output_pricing_id=output_pricing_id,
                     )
                     inserted += 1
                 except Exception as e:
-                    # Don't abort the whole seed for one bad row —
-                    # log + continue. Common cause: FK target missing
-                    # in this setup (e.g., setup has no scenarios).
                     print(f"  (attempt #{idx} skipped: {e})")
                     continue
 

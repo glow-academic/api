@@ -1,43 +1,42 @@
 """Analytical seed — benchmark test history (Track B).
 
-Inserts ~3 tests across the existing evals so Eval-detail / Test-list /
-Benchmark-dashboard pages have data on first load. Each test fans out
-across the existing benchmark template invocations (model_ids → agents)
-and produces a mix of completed (with grades) and pending invocations.
+Inserts ~3 tests across the existing benchmarks so Eval-detail /
+Test-list / Benchmark-dashboard pages have data on first load.
 
-Uses canonical entry create black-boxes only — no inline SQL. Discovers
-benchmarks/agents/models/pricings at runtime so the seed adapts to
-whatever resource set the host setup happens to have.
+**Canonical-only**: uses ONLY the search/create black-boxes from
+``app/tools/resources/<x>/search.py`` and
+``app/tools/entries/<x>/create.py``. No inline SELECT or UPDATE.
+Trade-off: every row stamps at ``now()`` because the canonical
+creates don't accept ``created_at`` overrides; future enhancement
+should add that param so this seed can spread the timeline.
+
+Runner ordering: Phase 3 — runs after the eval module's benchmark
+sync, so ``benchmark_entry`` + ``invocation_entry`` rows exist as
+templates for the tests we materialize here.
 
 Chain per test:
-  test → benchmark_test → groups + group_names → invocation_entry
-  (template, already exists from sync_benchmark_entries) →
-  test_invocation_entry × N →
-    runs_entry + tokens_entry + run_pricing_entry (drives Pricing)
-    + messages_entry + uploads + texts + text_completion +
-    text_uploads + message_uploads (drives transcript view)
-    + test_invocation_traces_entry + test_invocation_runs_entry
-    + test_invocation_completion_entry + test_grade_entry (when
-    completed — 50% of invocations)
-
-LLM-transcript .txt files are written into UPLOAD_FOLDER so the
-transcript view actually renders content. Files are tiny (~3 lines
-each) and deterministic — re-seeding overwrites them in place.
+  group + group_name + parent run + parent call →
+  test → benchmark_test → N × test_invocation (each with own run +
+  call) → tokens + run_pricing → message + upload + text +
+  text_completion + text_upload + message_upload (with real .txt
+  files in UPLOAD_FOLDER so the transcript view renders) →
+  trace + binding → (50%) completion + grade.
 """
 
 from __future__ import annotations
 
 import asyncpg
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from redis.asyncio import Redis
 from uuid import UUID
 
 from app.infra.globals import UPLOAD_FOLDER
+from app.tools.entries.benchmark.search import search_benchmarks
 from app.tools.entries.benchmark_test.create import create_benchmark_test
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.invocation.search import search_invocations
 from app.tools.entries.message_uploads.create import create_message_upload
 from app.tools.entries.messages.create import create_message
 from app.tools.entries.run_pricing.create import create_run_pricing_entry_internal
@@ -59,88 +58,36 @@ from app.tools.entries.text_uploads.create import create_text_upload
 from app.tools.entries.texts.create import create_text
 from app.tools.entries.tokens.create import create_token
 from app.tools.entries.uploads.create import create_upload
+from app.tools.resources.agents.search import search_agents
+from app.tools.resources.pricing.search import search_pricing
+from app.tools.resources.profiles.search import search_profiles
 
 from database.seeds.ids import sid
 
 
 TESTS_PER_RUN = 3
 INVOCATIONS_PER_TEST = 4
-COMPLETED_RATIO = 0.5  # 50% of invocations are graded
+COMPLETED_RATIO = 0.5
 
 
-# Per-(test_idx, invocation_idx) deterministic transcript content.
 _USER_TURNS = [
     "Walk me through the rubric criterion you'd evaluate first.",
     "Now apply it to the candidate response.",
     "What's the score and the reasoning?",
 ]
-
 _ASSISTANT_TURNS = [
     "I'll start with the criterion most likely to differentiate strong vs. weak responses.",
     "On this candidate response, the strongest evidence aligns with criterion two; criterion three is partially met.",
     "I'd score this 7/10. Strong on the analytical dimension, lighter on the application example.",
 ]
-
-
 _SCORES = [82, 71, 88, 64, 79, 93, 56, 75, 86, 90, 68, 84]
 _TIME_TAKEN = [620, 940, 480, 1100, 760, 540, 1320, 850, 700, 580, 990, 720]
-
-
-_TOKEN_ENVELOPES = [
-    (1500, 850),
-    (2200, 1100),
-    (900, 520),
-    (1800, 1300),
-]
-
-
-async def _fetch_seed_inputs(
-    pool: asyncpg.Pool,
-) -> tuple[
-    list[tuple[UUID, UUID]],  # (benchmark_id, invocation_template_id) pairs
-    list[UUID],               # agent_ids (for runs)
-    list[UUID],               # pricing_ids
-    UUID | None,              # primary profile id (for test creation)
-]:
-    async with pool.acquire() as conn:
-        # Benchmark templates: every active benchmark with at least
-        # one active invocation_entry. Pull invocation pairs (one per
-        # benchmark, multiple if the benchmark has multiple invocations).
-        rows = await conn.fetch(
-            """
-            SELECT b.id AS benchmark_id, i.id AS invocation_id
-            FROM benchmark_entry b
-            JOIN invocation_entry i ON i.benchmark_id = b.id AND i.active = true
-            WHERE b.active = true
-            ORDER BY b.created_at, i.created_at
-            LIMIT 12
-            """
-        )
-        benchmark_invocations = [(r["benchmark_id"], r["invocation_id"]) for r in rows]
-
-        agent_rows = await conn.fetch(
-            "SELECT id FROM agents_resource WHERE active=true ORDER BY created_at LIMIT 4"
-        )
-        agent_ids = [r["id"] for r in agent_rows]
-
-        pricing_rows = await conn.fetch(
-            "SELECT id FROM pricing_resource WHERE active=true "
-            "AND pricing_type IN ('input', 'output') "
-            "ORDER BY pricing_type, created_at LIMIT 6"
-        )
-        pricing_ids = [r["id"] for r in pricing_rows]
-
-        profile_row = await conn.fetchrow(
-            "SELECT id FROM profiles_resource WHERE active=true ORDER BY created_at LIMIT 1"
-        )
-        profile_id = profile_row["id"] if profile_row else None
-
-    return benchmark_invocations, agent_ids, pricing_ids, profile_id
+_TOKEN_ENVELOPES = [(1500, 850), (2200, 1100), (900, 520), (1800, 1300)]
 
 
 def _write_transcript_file(upload_id: UUID, role: str, body: str) -> Path:
     """Write a tiny .txt to UPLOAD_FOLDER so the transcript view has
-    real content. Path returned matches what create_upload stores."""
+    real content. Filesystem write only — no SQL."""
     UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
     path = UPLOAD_FOLDER / f"{upload_id}.txt"
     path.write_text(f"[{role.upper()}] {body}\n", encoding="utf-8")
@@ -152,16 +99,10 @@ async def _seed_run_messages(
     *,
     run_id: UUID,
     session_id: UUID,
-    base_at: datetime,
     slug: str,
 ) -> None:
     """Write the message → upload → text chain for the LLM transcript.
-
-    For each (user, assistant) pair: messages_entry, uploads_entry
-    with a real .txt on disk, text_uploads_entry, texts_entry,
-    text_completion_entry, message_uploads_entry. This is what powers
-    the per-run transcript view in the test detail page.
-    """
+    Real .txt files written to UPLOAD_FOLDER (filesystem only)."""
     for turn_idx, (role, body) in enumerate(
         [
             ("user", _USER_TURNS[0]),
@@ -178,23 +119,11 @@ async def _seed_run_messages(
         text_upload_id = sid(f"{slug}/text-upload/{turn_idx}")
         text_completion_id = sid(f"{slug}/text-completion/{turn_idx}")
         message_upload_id = sid(f"{slug}/msg-upload/{turn_idx}")
-        msg_at = base_at + timedelta(seconds=10 + turn_idx * 7)
 
-        # Real file on disk
         file_path = _write_transcript_file(upload_id, role, body)
         size = file_path.stat().st_size
 
-        await create_message(
-            conn,
-            run_id=run_id,
-            role=role,
-            id=msg_id,
-        )
-        await conn.execute(
-            "UPDATE messages_entry SET created_at = $1 WHERE id = $2",
-            msg_at,
-            msg_id,
-        )
+        await create_message(conn, run_id=run_id, role=role, id=msg_id)
         await create_upload(
             conn,
             session_id=session_id,
@@ -203,11 +132,7 @@ async def _seed_run_messages(
             size=size,
             id=upload_id,
         )
-        await create_text(
-            conn,
-            session_id=session_id,
-            id=text_id,
-        )
+        await create_text(conn, session_id=session_id, id=text_id)
         await create_text_upload(
             conn,
             text_id=text_id,
@@ -236,28 +161,22 @@ async def _seed_one_test(
     conn: asyncpg.Connection,
     *,
     test_idx: int,
-    now: datetime,
-    benchmark_invocations: list[tuple[UUID, UUID]],
+    benchmarks: list,
+    invocations_by_benchmark: dict[UUID, list[UUID]],
     agent_ids: list[UUID],
-    pricing_ids: list[UUID],
+    input_pricing_id: UUID | None,
+    output_pricing_id: UUID | None,
     profile_id: UUID,
 ) -> None:
     """Walk the canonical chain for one test."""
-    if not benchmark_invocations:
-        return
-    if not agent_ids:
+    if not benchmarks or not agent_ids:
         return
 
-    benchmark_id, _first_invocation = benchmark_invocations[
-        test_idx % len(benchmark_invocations)
+    benchmark = benchmarks[test_idx % len(benchmarks)]
+    benchmark_id = benchmark.benchmark_id
+    template_invocations = invocations_by_benchmark.get(benchmark_id, [])[
+        :INVOCATIONS_PER_TEST
     ]
-    # Use up to INVOCATIONS_PER_TEST template invocations under this benchmark.
-    template_invocations = [
-        inv for (b, inv) in benchmark_invocations if b == benchmark_id
-    ][:INVOCATIONS_PER_TEST]
-
-    base_offset = timedelta(days=test_idx * 3 + 1, hours=4)
-    test_created_at = now - base_offset
 
     slug = f"tests-analytics/{test_idx}"
     test_id = sid(f"{slug}/test")
@@ -265,14 +184,11 @@ async def _seed_one_test(
     test_run_id = sid(f"{slug}/test-run")
     group_id = sid(f"{slug}/group")
     group_name_id = sid(f"{slug}/group-name")
-    session_id = profile_id  # session ties to profile in seed mode
+    session_id = profile_id
 
-    # 1. Group + name (test-level group for the dispatch context).
+    # Group + name + parent run/call (test_entry FKs to calls_entry).
     await create_group(
-        conn,
-        session_id=session_id,
-        artifact_type="test",
-        id=group_id,
+        conn, session_id=session_id, artifact_type="test", id=group_id
     )
     await create_group_name(
         conn,
@@ -282,9 +198,6 @@ async def _seed_one_test(
         id=group_name_id,
         generated=True,
     )
-
-    # 2. test_entry — needs a call_id (test_entry FKs to calls_entry).
-    # Create a parent run + call for the test row.
     await create_run(
         conn,
         group_id=group_id,
@@ -293,10 +206,7 @@ async def _seed_one_test(
         agent_ids=[agent_ids[0]],
     )
     await create_call(
-        conn,
-        run_id=test_run_id,
-        session_id=session_id,
-        id=test_call_id,
+        conn, run_id=test_run_id, session_id=session_id, id=test_call_id
     )
     await create_test(
         conn,
@@ -308,27 +218,8 @@ async def _seed_one_test(
         num_invocations=len(template_invocations),
         is_dynamic=True,
     )
-    await conn.execute(
-        "UPDATE test_entry SET created_at = $1, updated_at = $1 WHERE id = $2",
-        test_created_at,
-        test_id,
-    )
-
-    # 3. benchmark_test_entry — links test to benchmark.
     await create_benchmark_test(
-        conn,
-        benchmark_id=benchmark_id,
-        test_id=test_id,
-        session_id=session_id,
-    )
-
-    # 4. test_invocation_entry × N — one per template invocation.
-    half_pricing = max(1, len(pricing_ids) // 2)
-    input_pricing = pricing_ids[0] if pricing_ids else None
-    output_pricing = (
-        pricing_ids[half_pricing]
-        if len(pricing_ids) > half_pricing
-        else (pricing_ids[-1] if pricing_ids else None)
+        conn, benchmark_id=benchmark_id, test_id=test_id, session_id=session_id
     )
 
     for inv_idx, _template_inv_id in enumerate(template_invocations):
@@ -346,10 +237,6 @@ async def _seed_one_test(
         grade_id = sid(f"{inv_slug}/grade")
         grade_call_id = sid(f"{inv_slug}/grade-call")
 
-        inv_at = test_created_at + timedelta(minutes=5 + inv_idx * 8)
-
-        # test_invocation needs its own run + call (test_invocation_entry
-        # FKs to calls_entry via call_id).
         await create_run(
             conn,
             group_id=group_id,
@@ -358,10 +245,7 @@ async def _seed_one_test(
             agent_ids=[agent_for_inv],
         )
         await create_call(
-            conn,
-            run_id=ti_run_id,
-            session_id=session_id,
-            id=ti_call_id,
+            conn, run_id=ti_run_id, session_id=session_id, id=ti_call_id
         )
         await create_test_invocation(
             conn,
@@ -372,15 +256,7 @@ async def _seed_one_test(
             position=inv_idx,
             agent_ids=[agent_for_inv],
         )
-        await conn.execute(
-            "UPDATE test_invocation_entry SET created_at = $1, updated_at = $1 "
-            "WHERE id = $2",
-            inv_at,
-            ti_id,
-        )
 
-        # Run + tokens + pricing for the invocation's actual LLM work.
-        # This is what drives Pricing dashboard rollups for tests.
         inp, out = _TOKEN_ENVELOPES[inv_idx % len(_TOKEN_ENVELOPES)]
         await create_token(
             conn,
@@ -390,41 +266,31 @@ async def _seed_one_test(
             input_tokens=inp,
             output_tokens=out,
         )
-        if input_pricing is not None:
+        if input_pricing_id is not None:
             await create_run_pricing_entry_internal(
                 conn,
                 session_id=session_id,
                 pricing_type="input",
                 run_id=ti_run_id,
-                pricing_id=input_pricing,
+                pricing_id=input_pricing_id,
                 count=inp,
             )
-        if output_pricing is not None:
+        if output_pricing_id is not None:
             await create_run_pricing_entry_internal(
                 conn,
                 session_id=session_id,
                 pricing_type="output",
                 run_id=ti_run_id,
-                pricing_id=output_pricing,
+                pricing_id=output_pricing_id,
                 count=out,
             )
 
-        # LLM transcript chain (uploads → texts → message_uploads).
-        # Real .txt files go on disk so the transcript view renders.
         await _seed_run_messages(
-            conn,
-            run_id=ti_run_id,
-            session_id=session_id,
-            base_at=inv_at,
-            slug=inv_slug,
+            conn, run_id=ti_run_id, session_id=session_id, slug=inv_slug
         )
 
-        # trace + binding rows so the test-detail "history" tab has data.
         await create_test_invocation_traces(
-            conn,
-            test_invocation_id=ti_id,
-            id=trace_id,
-            run_id=ti_run_id,
+            conn, test_invocation_id=ti_id, id=trace_id, run_id=ti_run_id
         )
         await create_test_invocation_runs(
             conn,
@@ -435,16 +301,10 @@ async def _seed_one_test(
         )
 
         if completed:
-            # completion + grade need their own call_ids (FKs to
-            # calls_entry — same canonical pattern as the test row).
             for cid in (completion_call_id, grade_call_id):
                 await create_call(
-                    conn,
-                    run_id=ti_run_id,
-                    session_id=session_id,
-                    id=cid,
+                    conn, run_id=ti_run_id, session_id=session_id, id=cid
                 )
-
             await create_test_invocation_completion(
                 conn,
                 invocation_id=ti_id,
@@ -452,7 +312,6 @@ async def _seed_one_test(
                 id=completion_id,
                 stop=True,
             )
-
             score = _SCORES[(test_idx * INVOCATIONS_PER_TEST + inv_idx) % len(_SCORES)]
             time_taken = _TIME_TAKEN[
                 (test_idx * INVOCATIONS_PER_TEST + inv_idx) % len(_TIME_TAKEN)
@@ -467,50 +326,62 @@ async def _seed_one_test(
                 id=grade_id,
             )
 
-            grade_at = inv_at + timedelta(minutes=8)
-            await conn.execute(
-                "UPDATE test_invocation_completion_entry SET created_at = $1, "
-                "updated_at = $1 WHERE id = $2",
-                grade_at,
-                completion_id,
-            )
-            await conn.execute(
-                "UPDATE test_grade_entry SET created_at = $1, updated_at = $1 "
-                "WHERE id = $2",
-                grade_at,
-                grade_id,
-            )
-
 
 async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
-    """Entry point — fan out N tests across the available benchmarks."""
-    _ = redis
-
-    benchmark_invocations, agent_ids, pricing_ids, profile_id = (
-        await _fetch_seed_inputs(pool)
-    )
-
-    if not benchmark_invocations or not agent_ids or profile_id is None:
-        print(
-            "  (skipped: need at least one benchmark + invocation, one agent, "
-            "and one profile to seed tests)"
-        )
-        return
-
-    now = datetime.now(timezone.utc)
-
+    """Entry point — discover via canonical search, fan out N tests."""
     inserted = 0
     async with pool.acquire() as conn:
+        # ── Discovery via canonical search black-boxes ─────────────
+        # MVs are refreshed by the runner before this seed runs (see
+        # runner.py "Phase 3 — Analytical seeds" block).
+        benchmarks = await search_benchmarks(conn, limit=12)
+        agents = await search_agents(conn, redis, limit_count=4, bypass_cache=True)
+        profiles = await search_profiles(conn, redis, limit_count=1, bypass_cache=True)
+        input_pricings = await search_pricing(
+            conn, redis, pricing_type="input", limit_count=4, bypass_cache=True
+        )
+        output_pricings = await search_pricing(
+            conn, redis, pricing_type="output", limit_count=4, bypass_cache=True
+        )
+        print(
+            f"  (discovery: benchmarks={len(benchmarks)}, "
+            f"agents={len(agents)}, profiles={len(profiles)}, "
+            f"input_pricings={len(input_pricings)}, "
+            f"output_pricings={len(output_pricings)})"
+        )
+
+        if not benchmarks or not agents or not profiles:
+            print(
+                "  (skipped: need at least one benchmark, agent, and "
+                "profile to seed tests)"
+            )
+            return
+
+        # Per-benchmark invocation lookup — search_invocations supports
+        # benchmark_ids filter so we get exactly what each test needs.
+        invocations_by_benchmark: dict[UUID, list[UUID]] = {}
+        for b in benchmarks[:TESTS_PER_RUN]:
+            inv_rows = await search_invocations(
+                conn, benchmark_ids=[b.benchmark_id], limit=INVOCATIONS_PER_TEST
+            )
+            invocations_by_benchmark[b.benchmark_id] = [r.id for r in inv_rows]
+
+        agent_ids = [a.id for a in agents]
+        input_pricing_id = input_pricings[0].id if input_pricings else None
+        output_pricing_id = output_pricings[0].id if output_pricings else None
+        profile_id = profiles[0].id
+
         async with conn.transaction():
             for test_idx in range(TESTS_PER_RUN):
                 try:
                     await _seed_one_test(
                         conn,
                         test_idx=test_idx,
-                        now=now,
-                        benchmark_invocations=benchmark_invocations,
+                        benchmarks=benchmarks,
+                        invocations_by_benchmark=invocations_by_benchmark,
                         agent_ids=agent_ids,
-                        pricing_ids=pricing_ids,
+                        input_pricing_id=input_pricing_id,
+                        output_pricing_id=output_pricing_id,
                         profile_id=profile_id,
                     )
                     inserted += 1

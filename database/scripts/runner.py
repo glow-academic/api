@@ -2266,10 +2266,32 @@ async def main_setup(setup: str = "university") -> None:
         # Synthetic attempt + test history so the dashboards (Activity,
         # Reports, Pricing, Leaderboard, Eval detail, Test list) have
         # data on first load. Each seed discovers its own FK targets
-        # at runtime (personas / scenarios / profiles / agents /
-        # pricings / benchmarks) via the canonical entries — no inline
-        # SQL — and skips gracefully if a setup lacks the needed
-        # resources.
+        # via canonical search black-boxes — no inline SQL — and skips
+        # gracefully if a setup lacks the needed resources.
+        #
+        # MVs need a refresh before discovery: the per-MV canonical
+        # `refresh_*` helpers in app/tools/entries/<x>/refresh.py all
+        # use REFRESH ... CONCURRENTLY which fails for MVs without a
+        # unique index (e.g. chat_mv). The runner's `_refresh_mvs`
+        # uses plain non-concurrent refresh and handles all MVs in
+        # one shot — exactly what we want post-seed.
+        print("\nRefreshing materialized views before analytics seeds...")
+        async with pool.acquire() as _refresh_conn:
+            await _refresh_conn.execute(
+                'SELECT matviewname FROM pg_matviews'
+            )
+            mvs_rows = await _refresh_conn.fetch(
+                'SELECT matviewname FROM pg_matviews'
+            )
+            for row in mvs_rows:
+                try:
+                    await _refresh_conn.execute(
+                        f'REFRESH MATERIALIZED VIEW "{row["matviewname"]}"'
+                    )
+                except Exception as e:
+                    print(f"  (skipped {row['matviewname']}: {e})")
+        print(f"  {len(mvs_rows)} MVs refreshed.")
+
         print("\nSeeding attempt analytics...")
         from database.seeds.attempts_analytics import seed as _seed_attempts_analytics
         await _seed_attempts_analytics(pool, redis_client)
