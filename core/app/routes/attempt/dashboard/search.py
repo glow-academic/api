@@ -236,27 +236,29 @@ def _build_history_response(
         "personas": {},
         "scenarios": {},
     }
+    # All four resource Get*Response types expose the canonical id
+    # as `id` (Get{Simulation,Profile,Persona,Scenario}Response).
+    # Pre-fix this loop accessed namespaced fields (.simulation_id,
+    # .profile_id, .persona_id, .scenario_id) that don't exist —
+    # latent until the analytical seed populated h_*'s.
     for s in h_sims:
-        if s.simulation_id:
-            resource_meta["simulations"][s.simulation_id] = {
+        if s.id:
+            resource_meta["simulations"][s.id] = {
                 "name": s.name,
                 "time_limit": None,
             }
     for p in h_profs:
-        # GetProfileResponse uses `id`, not `profile_id` — the
-        # convention is inconsistent with sibling resource types
-        # here (s.simulation_id / p.persona_id / s.scenario_id).
         if p.id:
             resource_meta["profiles"][p.id] = {"name": p.name}
     for p in h_pers:
-        if p.persona_id:
-            resource_meta["personas"][p.persona_id] = {
+        if p.id:
+            resource_meta["personas"][p.id] = {
                 "name": p.name,
                 "color": p.color,
             }
     for s in h_scens:
-        if s.scenario_id:
-            resource_meta["scenarios"][s.scenario_id] = {"name": s.name}
+        if s.id:
+            resource_meta["scenarios"][s.id] = {"name": s.name}
 
     # Transform attempts
     history_items = [
