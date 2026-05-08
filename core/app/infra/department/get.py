@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
 from app.infra.department.context import resolve_department_context
 from app.infra.department.permissions import (
     DEPARTMENT_BASIC_RESOURCES,
@@ -27,7 +26,9 @@ from app.infra.department.permissions import (
     compute_show_settings,
     has_access,
 )
-from app.infra.department.permissions_context import resolve_department_permissions_context
+from app.infra.department.permissions_context import (
+    resolve_department_permissions_context,
+)
 from app.infra.department.types import (
     DepartmentDescriptionResource,
     DepartmentFlagResource,
@@ -36,6 +37,7 @@ from app.infra.department.types import (
     GetDepartmentApiResponse,
     SectionFilter,
 )
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.tool_graph import score_tools
 

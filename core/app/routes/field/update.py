@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.field.group import group_field_impl
-from app.infra.field.update import update_field_impl
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.field.types import (
     UpdateFieldApiRequest,
     UpdateFieldApiResponse,
 )
+from app.infra.field.update import update_field_impl
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -64,7 +64,13 @@ async def update_field(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments=request.model_dump(mode="json"),
+            # Audit ``arguments`` carry the full request body verbatim
+            # (delete/all-matching shape, ack shape, or explicit-fields
+            # shape — all serialize cleanly). ``request.fields`` is
+            # None under ``all=true`` and ack paths, so we can't grab
+            # just that field. Mode="json" so UUIDs/datetimes serialize
+            # via Pydantic's JSON encoder.
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=UpdateFieldApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

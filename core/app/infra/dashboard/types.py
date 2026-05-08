@@ -1,15 +1,16 @@
 """Types for dashboard artifact get bundle."""
 
-from datetime import date as date_type, datetime
+from datetime import date as date_type
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.auth.types import AnalyticsFacets
 from app.infra.api_types import (
     FilterOption,
     HistoryResponse,
 )
+from app.infra.auth.types import AnalyticsFacets
 
 # ============================================================================
 # Request

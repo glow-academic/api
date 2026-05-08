@@ -20,10 +20,10 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.document.types import FileUploadDocumentApiResponse
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.document.types import FileUploadDocumentApiResponse
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.files.create import create_file

@@ -14,12 +14,12 @@ error — logged and swallowed, nothing emitted.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from app.infra.websocket.socket_event import EmitFn, internal_event
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _SUPPORTED_MODALITIES = {"text", "audio", "image", "video", "call"}
 

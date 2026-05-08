@@ -20,10 +20,10 @@ from redis.asyncio import Redis
 
 from app.infra.agent.permissions import compute_can_duplicate
 from app.infra.agent.refresh import refresh_agent_impl
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.agent.types import (
     DuplicateAgentApiResponse,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
 )

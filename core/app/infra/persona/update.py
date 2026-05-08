@@ -21,12 +21,12 @@ from app.infra.persona.permissions_context import (
     resolve_persona_permissions_context,
     resolve_persona_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import (
     UpdatePersonaApiRequest,
     UpdatePersonaApiResponse,
 )
-from app.infra.persona.refresh import refresh_persona_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.update import (
     _UNSET,
@@ -42,7 +42,7 @@ async def update_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    request: UpdatePersonaApiRequest,
+    request: UpdatePersonaApiRequest | None = None,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
@@ -52,7 +52,12 @@ async def update_persona_impl(
 ) -> UpdatePersonaApiResponse:
     """Persona bulk update using composable infra functions.
 
-    Flow:
+    Two call shapes:
+      - First call: ``request`` (with ``personas`` items) required.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        update is located by the operation key.
+
+    Flow (first call):
       1. resolve_profile_identity_context → role, department_ids
       2. Per-item: resolve_persona_permissions_context → exists + compute_can_edit
       3. Per-item value resolution (raw → ID, no required field enforcement)
@@ -65,9 +70,10 @@ async def update_persona_impl(
     )
 
     # ── Merge ack fields from request (HTTP) or params (generation pipeline)
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key and accept is None:
-        accept = request.accept
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
@@ -114,6 +120,63 @@ async def update_persona_impl(
             )
         ])
 
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # persona matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[PersonaResultItem] = []
+
+    if request is not None and request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.persona.resolve_matching_ids import resolve_matching_persona_ids
+        from app.infra.persona.types import UpdatePersonaItem
+
+        matching = await resolve_matching_persona_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            scenario_ids=request.scenario_ids,
+            field_ids=request.field_ids,
+            filter_department_ids=request.filter_department_ids,
+            scenario_search=request.scenario_search,
+            field_search=request.field_search,
+            department_search=request.department_search,
+            color_search=request.color_search,
+            icon_search=request.icon_search,
+            voice_search=request.voice_search,
+            instruction_search=request.instruction_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [pid for pid in matching if pid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdatePersonaApiResponse(results=[], idempotency_key=idempotency_key)
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdatePersonaItem(id=pid, **patch_fields) for pid in resolved_ids]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"personas": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if request is None or not request.personas:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.personas` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
+
     items = request.personas
 
     # ── Step 1: Profile context ────────────────────────────────────────
@@ -132,10 +195,21 @@ async def update_persona_impl(
         )
 
     # ── Step 2: Per-item permission check ──────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = request is not None and request.all
+    permitted_items: list = []
 
     for idx, item in enumerate(items):
         perms = await resolve_persona_permissions_context(pool, item.id)
         if not perms.exists:
+            if is_all_matching:
+                skipped_results.append(PersonaResultItem(
+                    success=False, id=item.id,
+                    message=f"Persona {item.id} not found (skipped)",
+                ))
+                continue
             raise HTTPException(
                 status_code=404,
                 detail=f"Item {idx}: Persona {item.id} not found.",
@@ -146,9 +220,28 @@ async def update_persona_impl(
             active_scenario_count=perms.active_scenario_count,
             user_department_ids=profile.department_ids,
         ):
+            if is_all_matching:
+                skipped_results.append(PersonaResultItem(
+                    success=False, id=item.id,
+                    message=f"No permission to update persona {item.id} (skipped)",
+                ))
+                continue
             raise HTTPException(
                 status_code=403,
                 detail=f"Item {idx}: You don't have permission to update this persona.",
+            )
+
+        permitted_items.append(item)
+
+    # All-matching path: filter ``items`` to permitted rows only. The
+    # explicit path leaves it untouched (it already raised on any
+    # failure).
+    if is_all_matching:
+        items = permitted_items
+        if not items:
+            return UpdatePersonaApiResponse(
+                results=skipped_results,
+                idempotency_key=idempotency_key,
             )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
@@ -234,4 +327,7 @@ async def update_persona_impl(
         operation_key=idempotency_key or first_id,
     )
 
-    return UpdatePersonaApiResponse(results=results)
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
+    return UpdatePersonaApiResponse(results=results + skipped_results)

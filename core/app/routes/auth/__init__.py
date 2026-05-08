@@ -18,6 +18,8 @@ from app.routes.auth.refresh import router as refresh_router
 from app.routes.auth.search import router as search_router
 from app.routes.auth.stream import router as stream_router
 from app.routes.auth.update import router as update_router
+from app.routes.auth.text import router as text_router
+from app.routes.auth.call import router as call_router
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -38,3 +40,7 @@ router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

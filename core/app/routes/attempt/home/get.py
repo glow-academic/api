@@ -23,10 +23,21 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
+from app.infra.attempt.chat.types import (
+    ChatSimulationOperational,
+    RubricMapping,
+    StandardGroupMapping,
+    StandardMapping,
+)
+from app.infra.attempt.group import group_attempt_impl
+from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.common_context import resolve_common_context
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.attempt.group import group_attempt_impl
+from app.infra.home.types import (
+    GetHomeRequest,
+    GetHomeResponse,
+)
 from app.infra.home_context import resolve_home_context
 from app.infra.home_permissions import (
     compute_completion_pct,
@@ -35,17 +46,6 @@ from app.infra.home_permissions import (
     compute_status,
     compute_status_instructional,
     format_cohort_names,
-)
-from app.infra.auth.types import AnalyticsFilterFields
-from app.infra.attempt.chat.types import (
-    ChatSimulationOperational,
-    RubricMapping,
-    StandardGroupMapping,
-    StandardMapping,
-)
-from app.infra.home.types import (
-    GetHomeRequest,
-    GetHomeResponse,
 )
 from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
 from app.utils.cache.cache_key import cache_key

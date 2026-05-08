@@ -145,27 +145,37 @@ async def _initialize_redis_client(
     globals_module: Any,
     logger_obj: logging.Logger,
 ) -> Any:
-    """Initialize Redis client and store it on the globals module."""
-    logger_obj.info(
-        f"Initializing HTTP cache Redis client: redis={redis_module is not None}, redis_url={redis_url}"
-    )
-    if not redis_module or not redis_url:
-        logger_obj.warning(
-            "Redis disabled (no lib or no REDIS_URL); using in-memory fallbacks"
-        )
-        globals_module.redis_client = None
-        return None
+    """Initialize the Redis client and store it on the globals module.
 
+    Redis is REQUIRED. There is no in-memory fallback — distributed
+    state (socket ownership, presence, MV scheduler locks, cache) must
+    be authoritative across replicas. If Redis is unavailable at boot,
+    we refuse to start so the failure is loud and observable instead
+    of silently degrading into split-brain dicts.
+    """
+    logger_obj.info(
+        f"Initializing Redis client: redis={redis_module is not None}, redis_url={redis_url}"
+    )
+    if not redis_module:
+        raise RuntimeError(
+            "Redis library is not available. Install `redis` and ensure imports succeed."
+        )
+    if not redis_url:
+        raise RuntimeError(
+            "REDIS_URL is not set. Redis is required — no in-memory fallback is supported."
+        )
+
+    client = redis_module.from_url(redis_url)  # type: ignore[attr-defined]
     try:
-        client = redis_module.from_url(redis_url)  # type: ignore[attr-defined]
         await client.ping()
-        globals_module.redis_client = client
-        logger_obj.info(f"Redis client initialized for HTTP caching: {redis_url}")
-        return client
     except Exception as e:
-        logger_obj.error(f"Failed to initialize Redis client: {e}", exc_info=True)
-        globals_module.redis_client = None
-        return None
+        raise RuntimeError(
+            f"Failed to reach Redis at {redis_url}: {e!r}. "
+            "Redis is required — fix the connection or the app cannot start."
+        ) from e
+    globals_module.redis_client = client
+    logger_obj.info(f"Redis client initialized: {redis_url}")
+    return client
 
 
 def _write_openapi_schema(
@@ -514,6 +524,7 @@ class DBLoggingMiddleware(BaseHTTPMiddleware):
         self._set_profile_id_fn = set_profile_id_fn
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
+        from app.infra.cache_telemetry import begin_request as _begin_cache_telemetry
         from app.infra.metrics.collector import record_error, record_request
         from app.utils.logging.db_logger import get_logger, set_profile_id
 
@@ -522,6 +533,12 @@ class DBLoggingMiddleware(BaseHTTPMiddleware):
         record_request_fn = self._record_request_fn or record_request
         set_profile_id_fn = self._set_profile_id_fn or set_profile_id
         start_time = time.perf_counter()
+
+        # Initialize per-request cache telemetry. Cache helpers
+        # (get_cached / set_cached / invalidate_tags) push counts
+        # onto this accumulator instead of logging per-event; we emit
+        # a single summary line in the finally block below.
+        cache_telemetry = _begin_cache_telemetry()
 
         profile_id: str | None = None
 
@@ -561,9 +578,15 @@ class DBLoggingMiddleware(BaseHTTPMiddleware):
 
         status_code = 500
         error_msg: str | None = None
+        response: Response | None = None
         try:
-            response: Response = await call_next(request)
+            response = await call_next(request)
             status_code = response.status_code
+            # Attach a compact cache stats header for client-side
+            # debugging. Header is short; full summary still goes to
+            # the log below.
+            if cache_telemetry.total_events > 0:
+                response.headers["X-Cache-Stats"] = cache_telemetry.as_header()
             return response
         except Exception as exc:
             status_code = 500
@@ -571,6 +594,14 @@ class DBLoggingMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             duration_ms = (time.perf_counter() - start_time) * 1000
+            # Single summary line per request — replaces the per-event
+            # Cache hit/miss/write/invalidate logs that previously
+            # flooded the server log on every request.
+            if cache_telemetry.total_events > 0:
+                logger.info(
+                    f"cache req={request.method} {request.url.path} "
+                    f"{cache_telemetry.format_summary()}"
+                )
             try:
                 if status_code >= 500:
                     asyncio.create_task(record_error_fn())
@@ -596,12 +627,12 @@ from app.routes import router as root_router  # noqa: E402
 fastapi_app.include_router(root_router)
 
 import app.ws  # noqa: E402, F401 — registers ws input/output handlers
+from app.routes.docs_proxy import router as docs_proxy_router  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # MCP mount
 # ---------------------------------------------------------------------------
 from app.routes.mcp import mcp_app  # noqa: E402
-from app.routes.docs_proxy import router as docs_proxy_router  # noqa: E402
 
 fastapi_app.include_router(docs_proxy_router)
 fastapi_app.mount("/mcp", mcp_app, name="Artifacts-Resources-MCP")

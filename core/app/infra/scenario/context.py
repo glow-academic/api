@@ -33,6 +33,7 @@ from app.tools.entries.scenario_drafts.get import get_scenario_drafts
 from app.tools.entries.videos.search import (
     search_videos as search_video_entries,
 )
+from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 
 # Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
@@ -43,7 +44,6 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.documents.get import get_documents
 from app.tools.resources.documents.search import search_documents
-from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 from app.tools.resources.fields.search import search_fields
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags

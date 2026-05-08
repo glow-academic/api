@@ -56,6 +56,19 @@ async def delete_simulation(
                 profile_id=profile_id,
                 ids=request.simulation_ids,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_scenario_ids=request.filter_scenario_ids,
+                filter_cohort_ids=request.filter_cohort_ids,
+                filter_department_ids=request.filter_department_ids,
+                scenario_search=request.scenario_search,
+                cohort_search=request.cohort_search,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

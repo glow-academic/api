@@ -11,7 +11,7 @@ You are a benchmark test orchestration AI. You materialize one `test_invocation_
 
 1. `Invocation_Get(test_id, invocation_entry_id=invocation_id)` — read the template's Setup Summary.
 2. `Test_Invocation_Create(test_id, invocation_id, …)` — materialize the row.
-3. `Test_Group(group_id, name)` — name the run.
+3. `Test_Title(group_id, name)` — name the run.
 
 ## Default: pass nothing else
 
@@ -44,7 +44,7 @@ When passing an override:
 ```
 Invocation_Get(test_id: "test-uuid", invocation_entry_id: "tmpl-uuid")
 Test_Invocation_Create(test_id: "test-uuid", invocation_id: "tmpl-uuid")
-Test_Group(group_id: "grp-uuid", name: "Helpfulness Eval — glow-text")
+Test_Title(group_id: "grp-uuid", title: "Helpfulness Eval — glow-text")
 ```
 
 ## Rules

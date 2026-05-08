@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.cohort.delete import delete_cohort_impl
 from app.infra.cohort.group import group_cohort_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.cohort.types import (
     DeleteCohortApiRequest,
     DeleteCohortApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -56,6 +56,19 @@ async def delete_cohort(
                 profile_id=profile_id,
                 ids=request.cohort_ids,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_profile_ids=request.filter_profile_ids,
+                filter_simulation_ids=request.filter_simulation_ids,
+                filter_department_ids=request.filter_department_ids,
+                profile_search=request.profile_search,
+                simulation_search=request.simulation_search,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

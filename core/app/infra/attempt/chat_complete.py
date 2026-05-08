@@ -11,9 +11,13 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.tools.entries.attempt_chat_completion.create import create_attempt_chat_completion
-from app.tools.entries.attempt_chat_completion.refresh import refresh_attempt_chat_completion
 from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
+from app.tools.entries.attempt_chat_completion.create import (
+    create_attempt_chat_completion,
+)
+from app.tools.entries.attempt_chat_completion.refresh import (
+    refresh_attempt_chat_completion,
+)
 
 
 async def chat_complete_attempt_impl(

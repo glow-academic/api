@@ -20,15 +20,7 @@ from app.infra.persona.permissions_context import (
     create_denormalized_snapshot,
     resolve_persona_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.persona.refresh import refresh_persona_impl
-from app.tools.artifacts.persona.create import (
-    create_persona as create_persona_artifact,
-)
-from app.tools.artifacts.persona.get import get_personas
-from app.utils.cache.invalidate_tags import invalidate_tags
-
-
 from app.infra.persona.types import (
     CreatePersonaApiRequest,
     CreatePersonaApiResponse,
@@ -36,6 +28,12 @@ from app.infra.persona.types import (
     PersonaFieldError,
     PersonaResultItem,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.artifacts.persona.create import (
+    create_persona as create_persona_artifact,
+)
+from app.tools.artifacts.persona.get import get_personas
+from app.utils.cache.invalidate_tags import invalidate_tags
 
 
 def _batch_department_scope(items: list[CreatePersonaItem]) -> list[str] | None:
@@ -55,7 +53,7 @@ async def create_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    request: CreatePersonaApiRequest,
+    request: CreatePersonaApiRequest | None = None,
     resources: list[str] | None = None,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
@@ -66,7 +64,12 @@ async def create_persona_impl(
 ) -> CreatePersonaApiResponse:
     """Persona bulk create using composable infra functions.
 
-    Flow:
+    Two call shapes:
+      - First call: ``request`` (with ``personas`` items) required.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        artifact is located by the operation key.
+
+    Flow (first call):
       1. resolve_profile_identity_context → role, department_ids
       2. compute_can_create — single check (applies to all items)
       3. Per-item value resolution (raw → ID, required field enforcement)
@@ -77,9 +80,10 @@ async def create_persona_impl(
     from app.infra.persona.permissions import compute_can_create
 
     # ── Merge ack fields from request (HTTP) or params (generation pipeline)
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key and accept is None:
-        accept = request.accept
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
@@ -123,6 +127,14 @@ async def create_persona_impl(
                 message="Persona accepted" if accept else "Persona rejected",
             )
         ])
+
+    # ── First-call requirements ───────────────────────────────────────
+    if request is None or not request.personas:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.personas` is required for first-call creation "
+            "(or pass `idempotency_key` + `accept` for the ack call).",
+        )
 
     items = request.personas
 

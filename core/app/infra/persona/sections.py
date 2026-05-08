@@ -17,8 +17,6 @@ from app.infra.persona.permissions import (
     compute_disabled_reason,
 )
 from app.infra.persona.permissions_context import PersonaPermissionsContext
-from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.persona.types import (
     GetPersonaApiResponse,
     PersonaColorResource,
@@ -32,6 +30,8 @@ from app.infra.persona.types import (
     PersonaParameterFieldResource,
     PersonaVoiceResource,
 )
+from app.infra.tool_graph import ArtifactToolScores
+from app.infra.types import ArtifactContext, ResourcePair
 
 
 def build_persona_get_result(

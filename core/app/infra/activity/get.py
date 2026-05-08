@@ -9,21 +9,21 @@ from uuid import UUID
 from fastapi import HTTPException
 
 from app.infra.activity.context import resolve_activity_context
-from app.infra.analytics_facets import (
-    HIDDEN,
-    VISIBLE,
-    AnalyticsFacetsConfig,
-    resolve_analytics_facets,
-)
-from app.infra.common_context import resolve_common_context
-from app.infra.globals import get_redis_client
-from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.activity.types import (
     ActivityRequest,
     ActivityResources,
     ActivityResponse,
     ProfileSummaryItem,
 )
+from app.infra.analytics_facets import (
+    HIDDEN,
+    VISIBLE,
+    AnalyticsFacetsConfig,
+    resolve_analytics_facets,
+)
+from app.infra.auth.types import AnalyticsFilterFields
+from app.infra.common_context import resolve_common_context
+from app.infra.globals import get_redis_client
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached

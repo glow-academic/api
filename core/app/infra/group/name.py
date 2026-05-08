@@ -26,7 +26,6 @@ from app.tools.entries.group_names.refresh import refresh_group_names
 from app.tools.entries.groups.refresh import refresh_groups
 from app.utils.cache.invalidate_tags import invalidate_tags
 
-
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------

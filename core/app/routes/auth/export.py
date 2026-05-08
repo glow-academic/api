@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Request
 
 from app.infra.auth.export import export_auth_impl
-from app.infra.globals import get_pool, get_redis_client
 from app.infra.auth.types import ExportAuthApiRequest, ExportAuthApiResponse
+from app.infra.globals import get_pool, get_redis_client
 
 router = APIRouter()
 

@@ -9,7 +9,6 @@ from app.routes.agent import router as agents_router
 from app.routes.attempt import router as attempt_artifact_router
 from app.routes.auth import router as auth_router
 from app.routes.authorize import router as authorize_router
-from app.routes.oidc_callback import router as oidc_callback_router
 from app.routes.cohort import router as cohorts_router
 from app.routes.department import router as departments_router
 from app.routes.discovery import router as discovery_router
@@ -19,6 +18,7 @@ from app.routes.field import router as fields_router
 from app.routes.jwks import router as jwks_router
 from app.routes.login import router as login_router
 from app.routes.model import router as models_router
+from app.routes.oidc_callback import router as oidc_callback_router
 from app.routes.parameter import router as parameters_router
 from app.routes.persona import router as personas_router
 from app.routes.profile import router as profile_router

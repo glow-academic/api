@@ -6,7 +6,6 @@ can verify it against the Glow API's /jwks endpoint.
 Protected by McpOAuthMiddleware (same as /mcp).
 """
 
-import logging
 import os
 import time
 
@@ -15,9 +14,10 @@ import jwt
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
-from app.infra.identity.jwks import get_private_key, get_key_id
+from app.infra.identity.jwks import get_key_id, get_private_key
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEPLOYMENT_ID = os.getenv("DEPLOYMENT_ID") or os.getenv("COMPOSE_PROJECT_NAME") or ""
 ORIGIN = os.getenv("ORIGIN", "http://localhost:8000")

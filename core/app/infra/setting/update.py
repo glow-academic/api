@@ -40,12 +40,123 @@ async def update_setting_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateSettingApiResponse:
-    """Setting bulk update using composable infra functions."""
+    """Setting bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.settings`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        and filter fields. The impl resolves matching ids, clones the
+        ``patch`` per id (stamping the resolved id), and runs the
+        existing per-row update flow. Per-row permission failures
+        soft-skip (returned in results).
+      - Ack call: ``idempotency_key`` + ``accept`` only — locates the
+        dormant update by the operation key.
+    """
     from app.infra.setting.permissions import compute_can_edit
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # MUST run before per-row checks: under ack, ``request.settings`` is
+    # None and the dormant artifact is located by ``idempotency_key``
+    # alone. Mirrors the persona/scenario pattern (batch-1 lesson #1).
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateSettingApiResponse(
+                results=[
+                    SettingResultItem(
+                        success=True,
+                        setting_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        # accept=True falls through into the regular update path with
+        # soft=False. The settings list (when provided) is re-applied
+        # to clear any pending state. When ``request.settings`` is None
+        # this is a no-op promotion — the dormant artifact already
+        # carries the patch.
+        if not request.settings:
+            await refresh_setting_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+            return UpdateSettingApiResponse(
+                results=[
+                    SettingResultItem(
+                        success=True,
+                        setting_id=idempotency_key,
+                        message="Update accepted",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # setting matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[SettingResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.setting.resolve_matching_ids import resolve_matching_setting_ids
+        from app.infra.setting.types import UpdateSettingItem
+
+        matching = await resolve_matching_setting_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            flag_ids=request.flag_ids,
+            provider_ids=request.provider_ids,
+            auth_ids=request.auth_ids,
+            system_ids=request.system_ids,
+            filter_department_ids=request.filter_department_ids,
+            flag_search=request.flag_search,
+            provider_search=request.provider_search,
+            auth_search=request.auth_search,
+            system_search=request.system_search,
+            department_search=request.department_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [sid for sid in matching if sid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdateSettingApiResponse(
+                results=[], idempotency_key=idempotency_key,
+            )
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateSettingItem(id=sid, **patch_fields) for sid in resolved_ids]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"settings": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.settings:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.settings` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.settings
 
@@ -61,10 +172,23 @@ async def update_setting_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ──────────────────────────────────────
+    # Explicit path fails fast (existing behavior). All-matching path
+    # soft-skips so the response carries per-row outcomes without
+    # aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_setting_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(SettingResultItem(
+                        success=False, setting_id=item.id,
+                        message=f"Setting {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Setting {item.id} not found.",
@@ -75,25 +199,25 @@ async def update_setting_impl(
                 setting_department_ids=perms.department_ids,
                 user_department_ids=profile.department_ids,
             ):
+                if is_all_matching:
+                    skipped_results.append(SettingResultItem(
+                        success=False, setting_id=item.id,
+                        message=f"No permission to update setting {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this setting.",
                 )
+            permitted_items.append(item)
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateSettingApiResponse(
-                results=[
-                    SettingResultItem(
-                        success=True,
-                        setting_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[SettingResultItem] = []
@@ -241,7 +365,10 @@ async def update_setting_impl(
             operation_key=idempotency_key or (results[0].setting_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateSettingApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

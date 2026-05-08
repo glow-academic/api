@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.eval.delete import delete_eval_impl
 from app.infra.eval.group import group_eval_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.eval.types import (
     DeleteEvalApiRequest,
     DeleteEvalApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -56,8 +56,15 @@ async def delete_eval(
                 profile_id=profile_id,
                 ids=request.eval_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_department_ids=request.filter_department_ids,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -68,7 +75,7 @@ async def delete_eval(
             session_id=session_id,
             group_id=group_id,
             operation="delete",
-            arguments=request.model_dump(mode="json"),
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=DeleteEvalApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

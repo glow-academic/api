@@ -19,10 +19,10 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.document.types import TextDownloadDocumentApiResult
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.document.types import TextDownloadDocumentApiResult
 from app.tools.entries.text_uploads.search import search_text_uploads
 from app.tools.entries.uploads.get import get_upload
 

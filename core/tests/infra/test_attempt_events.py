@@ -15,34 +15,30 @@ from tests.helpers import nonexistent_id
 
 import app.infra.globals as globals_mod
 import app.infra.websocket.audio_lifecycle as audio_lifecycle
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     attempt_message_impl as _attempt_message_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     attempt_next_impl,
     audio_delta_impl,
-    audio_error_impl,
-    audio_response_cancelled_impl,
-    audio_session_start_impl,
     audio_speech_delta_impl,
     audio_speech_start_impl,
-    audio_stop_impl,
     user_progress_impl,
     user_start_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     attempt_proceed_impl as _attempt_proceed_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     attempt_start_impl as _attempt_start_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     emit_chat_generate_impl as _emit_chat_generate_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     speech_complete_impl as _speech_complete_impl,
 )
-from app.infra.websocket.attempt_events_impl import (
+from app.infra.attempt.workflows import (
     user_complete_impl as _user_complete_impl,
 )
 from app.infra.websocket.session_store import (
@@ -53,37 +49,37 @@ from app.infra.websocket.session_store import (
 from app.infra.websocket.session_store import create_session as create_audio_session
 from app.infra.websocket.set_socket_owner import set_socket_owner
 from app.infra.websocket.socket_event import recording_emit
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     _extract_grade_feedback,
     _extract_grade_passed,
     _extract_grade_score,
     _find_next_run_id,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_error_impl as _test_error_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_grade_complete_impl as _test_grade_complete_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_group_impl as _test_group_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_next_impl as _test_next_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_proceed_impl as _test_proceed_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_progress_impl as _test_progress_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_run_done_impl as _test_run_done_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_run_impl as _test_run_impl,
 )
-from app.infra.websocket.test_events_impl import (
+from app.infra.test.workflows import (
     test_start_impl as _test_start_impl,
 )
 from app.tools.entries.attempt.create import create_attempt
@@ -163,7 +159,7 @@ from app.tools.resources.simulations.create import create_simulation
 from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
 
-_P = "app.infra.websocket.attempt_events_impl"
+_P = "app.infra.attempt.workflows"
 
 
 @pytest_asyncio.fixture
@@ -172,7 +168,6 @@ async def audio_session_factory(redis_client):
     previous_redis = globals_mod.redis_client
     globals_mod.redis_client = redis_client
     _session_store.clear()
-    globals_mod.get_socket_owner_dict().clear()
     tracked_group_ids: list[str] = []
     tracked_profile_ids: list[str] = []
     tracked_sids: list[str] = []
@@ -210,15 +205,12 @@ async def audio_session_factory(redis_client):
         for group_id in tracked_group_ids:
             remove_session(group_id)
         for profile_id in tracked_profile_ids:
-            await redis_client.delete(
-                f"socket_owner:{profile_id}",
-            )
+            await redis_client.delete(f"socket_owners:{profile_id}")
         for sid in tracked_sids:
             await redis_client.delete(
                 f"socket_session:{sid}", f"socket_to_profile:{sid}"
             )
         _session_store.clear()
-        globals_mod.get_socket_owner_dict().clear()
         globals_mod.redis_client = previous_redis
 
 
@@ -292,37 +284,6 @@ class TestUserProgressImpl:
         assert events[0].event == "attempt_user_progress"
         assert events[0].data["transcript"] == "hello"
         assert events[0].data["chat_id"] == "c1"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# audio_session_start_impl
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-class TestAudioSessionStartImpl:
-    async def test_no_sid_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_session_start_impl({"group_id": "g1"}, emit=emit)
-        assert events == []
-
-    async def test_no_group_id_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_session_start_impl({"sid": "s1"}, emit=emit)
-        assert events == []
-
-    async def test_emits_audio_ready_with_session(self, audio_session_factory):
-        emit, events = recording_emit()
-        await audio_session_factory(chat_id="chat-1")
-        await audio_session_start_impl({"sid": "s1", "group_id": "g1"}, emit=emit)
-        assert len(events) == 1
-        assert events[0].event == "attempt_audio_ready"
-        assert events[0].data["chat_id"] == "chat-1"
-
-    async def test_no_session_uses_group_id_as_chat_id(self):
-        emit, events = recording_emit()
-        await audio_session_start_impl({"sid": "s1", "group_id": "g1"}, emit=emit)
-        assert events[0].data["chat_id"] == "g1"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -427,41 +388,6 @@ class TestAudioSpeechDeltaImpl:
         assert len(events) == 1
         assert events[0].event == "attempt_user_received_progress"
         assert events[0].data["transcript"] == "hi"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# audio_error_impl
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-class TestAudioErrorImpl:
-    async def test_no_group_id_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_error_impl({}, emit=emit)
-        assert events == []
-
-    async def test_no_session_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_error_impl({"group_id": "g1"}, emit=emit)
-        assert events == []
-
-    async def test_emits_attempt_error(self, audio_session_factory):
-        emit, events = recording_emit()
-        await audio_session_factory()
-        await audio_error_impl(
-            {"group_id": "g1", "error_message": "mic broke"}, emit=emit
-        )
-        assert len(events) == 1
-        assert events[0].event == "attempt_error"
-        assert events[0].data["error_type"] == "audio"
-        assert events[0].data["message"] == "mic broke"
-
-    async def test_default_error_message(self, audio_session_factory):
-        emit, events = recording_emit()
-        await audio_session_factory()
-        await audio_error_impl({"group_id": "g1"}, emit=emit)
-        assert events[0].data["message"] == "Unknown audio error"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -609,85 +535,6 @@ class TestUserStartImpl:
         assert attempt_messages[0].message_id == message_id
         assert attempt_messages[0].chat_id == graph.attempt_chat.id
         assert attempt_messages[0].completed is False
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# audio_stop_impl
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-class TestAudioStopImpl:
-    async def test_no_sid_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_stop_impl({"group_id": "g1"}, emit=emit)
-        assert events == []
-
-    async def test_no_session_emits_audio_ended(self):
-        """Even without a session, emits audio_ended."""
-        emit, events = recording_emit()
-        await audio_stop_impl({"sid": "s1", "group_id": "g1"}, emit=emit)
-        assert len(events) == 1
-        assert events[0].event == "attempt_audio_ended"
-        assert events[0].data["chat_id"] == "g1"
-
-    async def test_with_session_cleans_up_and_emits(self, audio_session_factory):
-        emit, events = recording_emit()
-        await audio_session_factory()
-
-        class FakeAudioAdapter:
-            def __init__(self):
-                self.stopped_sessions: list[str] = []
-
-            async def stop_session(self, session) -> None:
-                self.stopped_sessions.append(session.group_id)
-
-        adapter = FakeAudioAdapter()
-
-        await audio_stop_impl(
-            {"sid": "s1", "group_id": "g1"},
-            emit=emit,
-            cleanup_audio_session_fn=lambda session: (
-                audio_lifecycle.cleanup_audio_session(
-                    session,
-                    adapter=adapter,
-                )
-            ),
-        )
-
-        assert adapter.stopped_sessions == ["g1"]
-        assert get_session_by_group_id("g1") is None
-        assert events[0].data["chat_id"] == "c1"
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# audio_response_cancelled_impl
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.asyncio
-class TestAudioResponseCancelledImpl:
-    async def test_no_group_id_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_response_cancelled_impl({}, emit=emit)
-        assert events == []
-
-    async def test_no_session_emits_nothing(self):
-        emit, events = recording_emit()
-        await audio_response_cancelled_impl({"group_id": "g1"}, emit=emit)
-        assert events == []
-
-    async def test_emits_stopped_and_generate(self, audio_session_factory):
-        emit, events = recording_emit()
-        await audio_session_factory()
-        await audio_response_cancelled_impl(
-            {"group_id": "g1", "artifact_type": "agent"}, emit=emit
-        )
-        assert len(events) == 2
-        assert events[0].event == "attempt_stopped"
-        assert events[0].data["chat_id"] == "c1"
-        assert events[1].event == "generate"
-        assert events[1].data["group_id"] == "g1"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

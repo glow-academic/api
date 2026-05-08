@@ -19,13 +19,13 @@ from app.infra.common_context import resolve_common_context
 from app.infra.globals import get_redis_client
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.session.context import resolve_session_context
-from app.infra.tool_graph import score_tools
 from app.infra.session.types import (
     ArtifactSessionGroup,
     GetSessionDetailResponse,
     SessionInternalData,
     SessionTimelineItem,
 )
+from app.infra.tool_graph import score_tools
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.get import get_providers

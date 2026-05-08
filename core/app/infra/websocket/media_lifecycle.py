@@ -3,11 +3,10 @@
 Mirrors audio_lifecycle.py pattern for image/video generation.
 """
 
-import logging
-
 from app.infra.websocket.adapters.media.litellm import LitellmMediaAdapter
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _media_adapter: LitellmMediaAdapter | None = None
 

@@ -56,8 +56,18 @@ async def delete_provider(
                 profile_id=profile_id,
                 ids=request.provider_ids,
                 session_id=session_id,
-                accept=request.accept,
                 idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_department_ids=request.filter_department_ids,
+                filter_model_ids=request.filter_model_ids,
+                filter_status=request.filter_status,
+                department_search=request.department_search,
+                model_search=request.model_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -68,7 +78,7 @@ async def delete_provider(
             session_id=session_id,
             group_id=group_id,
             operation="delete",
-            arguments=request.model_dump(mode="json"),
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=DeleteProviderApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

@@ -21,15 +21,15 @@ from app.infra.agent.permissions_context import (
     resolve_agent_permissions_context,
     resolve_agent_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.agent.refresh import refresh_agent_impl
+from app.infra.agent.types import UpdateAgentApiRequest, UpdateAgentApiResponse
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.update import (
     _UNSET,
 )
 from app.tools.artifacts.agent.update import (
     update_agent as update_agent_artifact,
 )
-from app.infra.agent.types import UpdateAgentApiRequest, UpdateAgentApiResponse
 
 
 async def update_agent_impl(
@@ -47,12 +47,21 @@ async def update_agent_impl(
 ) -> UpdateAgentApiResponse:
     """Agent bulk update using composable infra functions.
 
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. Per-item: resolve_agent_permissions_context → exists + compute_can_edit
-      3. Per-item value resolution (raw → ID, no required field enforcement)
-      4. Single transaction: update_agent_artifact + denormalized snapshot per item
-      5. invalidate_tags
+    Three call shapes:
+      - First call (explicit): ``request.agents`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+
+    Flow (first call):
+      1. (all-matching only) resolve_matching_agent_ids → synth items
+      2. resolve_profile_identity_context → role, department_ids
+      3. Per-item: resolve_agent_permissions_context → exists + compute_can_edit
+      4. Per-item value resolution (raw → ID, no required field enforcement)
+      5. Single transaction: update_agent_artifact + denormalized snapshot per item
+      6. invalidate_tags
     """
     from app.infra.agent.permissions import (
         compute_can_edit,
@@ -65,6 +74,80 @@ async def update_agent_impl(
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above permission checks: ack calls don't carry per-row
+    # items (and previously the impl ran per-item perm checks against
+    # a presumed ``items`` list, which fails when the ack path passes
+    # an empty/None agents list — same hoist scenario does for persona).
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateAgentApiResponse(
+                results=[
+                    AgentResultItem(
+                        success=True,
+                        agent_id=item.id,
+                        message="Update rejected",
+                    )
+                    for item in (request.agents or [])
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # agent matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[AgentResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.agent.resolve_matching_ids import resolve_matching_agent_ids
+        from app.infra.agent.types import UpdateAgentItem
+
+        matching = await resolve_matching_agent_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_department_ids=request.filter_department_ids,
+            filter_model_ids=request.filter_model_ids,
+            filter_tool_ids=request.filter_tool_ids,
+            department_search=request.department_search,
+            model_search=request.model_search,
+            tool_search=request.tool_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [aid for aid in matching if aid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdateAgentApiResponse(results=[], idempotency_key=idempotency_key)
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateAgentItem(id=aid, **patch_fields) for aid in resolved_ids]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"agents": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.agents:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.agents` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.agents
 
@@ -84,11 +167,22 @@ async def update_agent_impl(
         )
 
     # ── Step 2: Per-item permission check ──────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_agent_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(AgentResultItem(
+                        success=False, agent_id=item.id,
+                        message=f"Agent {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Agent {item.id} not found.",
@@ -102,25 +196,26 @@ async def update_agent_impl(
                 missing_tools=[],
                 agent_id=item.id,
             ):
+                if is_all_matching:
+                    skipped_results.append(AgentResultItem(
+                        success=False, agent_id=item.id,
+                        message=f"No permission to update agent {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this agent.",
                 )
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+            permitted_items.append(item)
+
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateAgentApiResponse(
-                results=[
-                    AgentResultItem(
-                        success=True,
-                        agent_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -213,7 +308,10 @@ async def update_agent_impl(
             operation_key=idempotency_key or (results[0].agent_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateAgentApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

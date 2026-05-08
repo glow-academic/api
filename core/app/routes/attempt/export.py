@@ -6,8 +6,8 @@ from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel
 
 from app.infra.attempt.export import export_attempt_impl
-from app.infra.globals import get_pool, get_redis_client
 from app.infra.attempt.types import ExportAttemptApiResponse
+from app.infra.globals import get_pool, get_redis_client
 
 router = APIRouter()
 

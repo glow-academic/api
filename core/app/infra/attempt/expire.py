@@ -9,7 +9,6 @@ Uses only black boxes — no raw SQL.
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -19,8 +18,9 @@ from redis.asyncio import Redis
 from app.infra.attempt.complete import complete_attempt_impl
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 GRACE_SECONDS = 60  # 1 minute grace period
 CHECK_INTERVAL = 60  # check every 60 seconds

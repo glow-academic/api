@@ -31,6 +31,7 @@ from app.tools.resources.colors.get import get_colors
 
 # Resource search fetchers (bounded, paginated)
 from app.tools.resources.colors.search import search_colors
+from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
@@ -52,7 +53,6 @@ from app.tools.resources.parameter_fields.search import (
 )
 from app.tools.resources.parameters.get import get_parameters
 from app.tools.resources.parameters.search import search_parameters
-from app.tools.resources.conditional_parameters.get import get_conditional_parameters
 from app.tools.resources.voices.get import get_voices
 from app.tools.resources.voices.search import search_voices
 

@@ -26,11 +26,11 @@ from app.tools.resources.model_positions.get import get_model_positions
 from app.tools.resources.model_positions.search import search_model_positions
 from app.tools.resources.model_rubrics.get import get_model_rubrics
 from app.tools.resources.model_rubrics.search import search_model_rubrics
-from app.tools.resources.rubrics.search import search_rubrics
 from app.tools.resources.models.get import get_models
 from app.tools.resources.models.search import search_models
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
+from app.tools.resources.rubrics.search import search_rubrics
 
 # Eval-level flags exposed in the Flags step card. Three toggles only:
 #   - eval_active : on/off gate (matches setting_active, model_active, …)

@@ -21,7 +21,9 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.field_drafts.create import create_field_draft
 from app.tools.entries.field_drafts.get import get_field_drafts
-from app.tools.resources.conditional_parameters.create import create_conditional_parameter
+from app.tools.resources.conditional_parameters.create import (
+    create_conditional_parameter,
+)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
@@ -320,6 +322,7 @@ async def patch_field_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -373,6 +376,7 @@ async def patch_field_draft_impl(
             session_id=session_id,
             targets=["field_drafts_mv"],
             soft=soft,
+            name=request.name or "",
             operation_key=result.id,
         )
 

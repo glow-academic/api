@@ -18,6 +18,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.parameter.permissions import (
     compute_can_delete,
     compute_can_duplicate,
@@ -27,12 +28,11 @@ from app.infra.parameter.permissions_context import (
     ParameterPermissionsContext,
     resolve_parameter_permissions_context,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.parameter.types import (
     ListParameterApiParameter,
     ListParameterApiResponse,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.artifacts.parameter.search import search_parameters
 from app.tools.resources.departments.search import search_departments
@@ -47,7 +47,6 @@ from app.tools.resources.parameter_fields.get import get_parameter_fields
 from app.tools.resources.scenarios.search import (
     search_scenarios as search_scenarios_resource,
 )
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

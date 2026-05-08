@@ -14,7 +14,10 @@ from app.infra.department.permissions_context import (
     resolve_department_values,
 )
 from app.infra.department.refresh import refresh_department_impl
-from app.infra.department.types import UpdateDepartmentApiRequest, UpdateDepartmentApiResponse
+from app.infra.department.types import (
+    UpdateDepartmentApiRequest,
+    UpdateDepartmentApiResponse,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.department.get import (
     get_departments as get_department_artifacts,
@@ -40,7 +43,16 @@ async def update_department_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateDepartmentApiResponse:
-    """Department bulk update using composable infra functions."""
+    """Department bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.departments`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+    """
     from app.infra.department.permissions import compute_can_edit
     from app.infra.department.types import DepartmentResultItem
     from app.infra.identity.keycloak_sync import perform_keycloak_sync
@@ -48,6 +60,93 @@ async def update_department_impl(
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── ACK short-circuit FIRST (mirrors persona/scenario/document) ────
+    # Permission checks below assume real items; under ack we just
+    # promote/reject the dormant artifact, no items list to iterate.
+    if accept is not None and idempotency_key is not None:
+        items = request.departments or []
+        if not accept:
+            return UpdateDepartmentApiResponse(
+                results=[
+                    DepartmentResultItem(
+                        success=True,
+                        department_id=item.id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ] or [
+                    DepartmentResultItem(
+                        success=True,
+                        department_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        # accept=True: fall through to apply with soft=False
+        soft = False
+        # If no items provided (pure ack), return ok — caller already
+        # promoted via the prior soft update; no junction work needed.
+        if not items:
+            return UpdateDepartmentApiResponse(
+                results=[
+                    DepartmentResultItem(
+                        success=True,
+                        department_id=idempotency_key,
+                        message="Update accepted",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # department matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[DepartmentResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.department.resolve_matching_ids import (
+            resolve_matching_department_ids,
+        )
+        from app.infra.department.types import UpdateDepartmentItem
+
+        matching = await resolve_matching_department_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [did for did in matching if did not in excluded]
+
+        if not resolved_ids:
+            return UpdateDepartmentApiResponse(results=[], idempotency_key=idempotency_key)
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateDepartmentItem(id=did, **patch_fields) for did in resolved_ids]
+        request = request.model_copy(update={"departments": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.departments:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.departments` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.departments
 
@@ -63,10 +162,23 @@ async def update_department_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ──────────────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_department_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(DepartmentResultItem(
+                        success=False, department_id=item.id,
+                        message=f"Department {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Department {item.id} not found.",
@@ -76,25 +188,26 @@ async def update_department_impl(
                 role_permissions=profile.role_permissions,
                 usage_count=perms.usage_count,
             ):
+                if is_all_matching:
+                    skipped_results.append(DepartmentResultItem(
+                        success=False, department_id=item.id,
+                        message=f"No permission to update department {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this department.",
                 )
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+            permitted_items.append(item)
+
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateDepartmentApiResponse(
-                results=[
-                    DepartmentResultItem(
-                        success=True,
-                        department_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[DepartmentResultItem] = []
@@ -197,7 +310,10 @@ async def update_department_impl(
             except Exception:
                 pass
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateDepartmentApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

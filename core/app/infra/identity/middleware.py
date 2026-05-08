@@ -15,8 +15,6 @@ securitySchemes (http/bearer) on every protected endpoint.
 
 from __future__ import annotations
 
-import logging
-
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -25,8 +23,9 @@ from app.infra.identity.resolve_identity import (
     Identity,
     resolve_identity,
 )
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # OpenAPI security scheme — generates securitySchemes in the spec
 _bearer_scheme = HTTPBearer(

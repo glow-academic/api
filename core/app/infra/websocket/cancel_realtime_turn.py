@@ -12,11 +12,11 @@ uses for the current run). Noop if no live realtime session exists.
 from __future__ import annotations
 
 import json
-import logging
 
 from app.infra.websocket.session_store import get_session_by_group_id
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def cancel_realtime_turn(group_id: str) -> bool:

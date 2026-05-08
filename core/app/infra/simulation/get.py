@@ -16,7 +16,6 @@ from app.infra.simulation.context import (
     SCENARIO_FLAG_TYPES_ORDERED,
     resolve_simulation_context,
 )
-from app.tools.resources.flags.search import search_flags
 from app.infra.simulation.permissions import (
     SIMULATION_RESOURCES,
     compute_can_draft,
@@ -28,7 +27,6 @@ from app.infra.simulation.permissions import (
 from app.infra.simulation.permissions_context import (
     resolve_simulation_permissions_context,
 )
-from app.infra.tool_graph import score_tools
 from app.infra.simulation.types import (
     GetSimulationApiResponse,
     SectionFilter,
@@ -44,6 +42,8 @@ from app.infra.simulation.types import (
     SimulationScenarioRubric,
     SimulationScenarioTimeLimit,
 )
+from app.infra.tool_graph import score_tools
+from app.tools.resources.flags.search import search_flags
 
 SECTIONS = (
     "names",

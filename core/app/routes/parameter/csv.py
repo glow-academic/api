@@ -12,9 +12,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from app.infra.parameter.types import CreateParameterItem
-from app.infra.parameter.search import PARAMETER_IMPORT_FIELDS
 from app.infra.globals import UPLOAD_FOLDER, get_pool
+from app.infra.parameter.search import PARAMETER_IMPORT_FIELDS
+from app.infra.parameter.types import CreateParameterItem
 from app.tools.entries.uploads.create import create_upload
 from app.utils.error.handle_route_error import handle_route_error
 

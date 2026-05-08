@@ -14,6 +14,7 @@ async def create_chat_draft(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    name: str = "",
     department_ids: list[UUID] | None = None,
     description_ids: list[UUID] | None = None,
     document_ids: list[UUID] | None = None,
@@ -36,14 +37,15 @@ async def create_chat_draft(
     """Create or update a chat_drafts entry with optional connection table links."""
     draft_id = await conn.fetchval(
         """
-        INSERT INTO chat_drafts_entry (id, session_id, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        INSERT INTO chat_drafts_entry (id, session_id, active, mcp, generated, name)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
         not soft,
         mcp,
+        name,
         id,
     )
 

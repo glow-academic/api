@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.department.draft import patch_department_draft_impl
 from app.infra.department.group import group_department_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.department.types import (
     PatchDepartmentDraftApiRequest,
     PatchDepartmentDraftApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

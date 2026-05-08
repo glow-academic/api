@@ -8,10 +8,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
 
 from app.infra.document.group import group_document_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.document.text_upload import text_upload_document_impl
 from app.infra.document.types import TextUploadDocumentApiResponse
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 from app.utils.mime.get_content_type import get_content_type
 

@@ -8,8 +8,6 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.permissions_helpers import has_permission
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.attempt.chat.refresh import refresh_chat_impl
 from app.infra.attempt.chat.types import (
     ChatDraftFormState,
@@ -17,6 +15,8 @@ from app.infra.attempt.chat.types import (
     PatchChatDraftApiResponse,
     SaveChatFieldError,
 )
+from app.infra.permissions_helpers import has_permission
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.chat_drafts.create import create_chat_draft
 from app.tools.entries.chat_drafts.get import get_chat_drafts
 from app.tools.resources.descriptions.create import create_description
@@ -230,6 +230,7 @@ async def patch_chat_draft_impl(
                 session_id=session_id,
                 id=target_draft_id,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
                 document_ids=request.document_ids,
@@ -280,6 +281,7 @@ async def patch_chat_draft_impl(
         session_id=session_id,
         targets=["chat_drafts_mv"],
         soft=soft,
+        name=request.name or "",
         operation_key=result.id,
     )
 

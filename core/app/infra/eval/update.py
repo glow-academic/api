@@ -37,13 +37,101 @@ async def update_eval_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateEvalApiResponse:
-    """Eval bulk update using composable infra functions."""
+    """Eval bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.evals`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        and the same filter fields ``/eval/search`` accepts. The impl
+        resolves matching ids, clones ``patch`` per id, and runs the
+        existing per-row update flow. Per-row failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        update is located by the operation key.
+    """
     from app.infra.eval.permissions import compute_can_edit
     from app.infra.eval.types import EvalResultItem
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above per-row checks so the ack body (no ``evals``) doesn't
+    # need to satisfy the existence/permission loop. The ack doesn't
+    # know which rows were touched without a registry hop, so we just
+    # echo the operation key back as a single result.
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateEvalApiResponse(
+                results=[
+                    EvalResultItem(
+                        success=True,
+                        eval_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+        # On accept the dormant write was already committed during
+        # the original soft-update; nothing further to do here. Drop
+        # through with empty items so we just echo a success result.
+        if not request.evals and not request.all:
+            return UpdateEvalApiResponse(
+                results=[
+                    EvalResultItem(
+                        success=True,
+                        eval_id=idempotency_key,
+                        message="Update accepted",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # eval matching the filter, then clone ``request.patch`` per id
+    # (stamping the resolved id). Downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip.
+    skipped_results: list[EvalResultItem] = []
+    is_all_matching = bool(request.all)
+
+    if is_all_matching:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.eval.resolve_matching_ids import resolve_matching_eval_ids
+        from app.infra.eval.types import UpdateEvalItem
+
+        matching = await resolve_matching_eval_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_department_ids=request.filter_department_ids,
+            department_search=request.department_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [eid for eid in matching if eid not in excluded]
+
+        if not resolved_ids:
+            return UpdateEvalApiResponse(results=[], idempotency_key=idempotency_key)
+
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateEvalItem(id=eid, **patch_fields) for eid in resolved_ids]
+        request = request.model_copy(update={"evals": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.evals:
+        raise HTTPException(
+            status_code=400,
+            detail="`evals` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.evals
 
@@ -59,10 +147,17 @@ async def update_eval_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    permitted_items: list = []
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_eval_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(EvalResultItem(
+                        success=False, eval_id=item.id,
+                        message=f"Eval {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Eval {item.id} not found.",
@@ -71,25 +166,25 @@ async def update_eval_impl(
                 role_level=profile.role_level,
                 role_permissions=profile.role_permissions,
             ):
+                if is_all_matching:
+                    skipped_results.append(EvalResultItem(
+                        success=False, eval_id=item.id,
+                        message=f"No permission to update eval {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this eval.",
                 )
+            permitted_items.append(item)
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateEvalApiResponse(
-                results=[
-                    EvalResultItem(
-                        success=True,
-                        eval_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[EvalResultItem] = []
@@ -223,7 +318,10 @@ async def update_eval_impl(
             except Exception as sync_err:
                 logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateEvalApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

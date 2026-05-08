@@ -8,11 +8,11 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.chat.draft import patch_chat_draft_impl
-from app.infra.globals import get_pool, get_redis_client
 from app.infra.attempt.chat.types import (
     PatchChatDraftApiRequest,
     PatchChatDraftApiResponse,
 )
+from app.infra.globals import get_pool, get_redis_client
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

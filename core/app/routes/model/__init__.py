@@ -4,11 +4,11 @@ from fastapi import APIRouter
 
 from app.routes.model.context import router as context_router
 from app.routes.model.create import router as create_router
+from app.routes.model.csv import router as csv_router
 from app.routes.model.delete import router as delete_router
 from app.routes.model.draft import router as draft_router
 from app.routes.model.drafts import router as drafts_router
 from app.routes.model.duplicate import router as duplicate_router
-from app.routes.model.csv import router as csv_router
 from app.routes.model.export import router as export_router
 from app.routes.model.generate import router as generate_router
 from app.routes.model.generations import router as generations_router
@@ -19,6 +19,8 @@ from app.routes.model.refresh import router as refresh_router
 from app.routes.model.search import router as search_router
 from app.routes.model.stream import router as stream_router
 from app.routes.model.update import router as update_router
+from app.routes.model.text import router as text_router
+from app.routes.model.call import router as call_router
 
 router = APIRouter(prefix="/model", tags=["model"])
 
@@ -40,3 +42,7 @@ router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

@@ -19,16 +19,18 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import compute_can_draft
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
     PatchScenarioDraftApiRequest,
     PatchScenarioDraftApiResponse,
     SaveScenarioFieldError,
     ScenarioDraftFormState,
 )
+from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.scenario_drafts.create import create_scenario_draft
 from app.tools.entries.scenario_drafts.get import get_scenario_drafts
-from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.resources.descriptions.create import create_description
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.images.create import create_image
 from app.tools.resources.names.create import create_name
 from app.tools.resources.objectives.create import create_objective
@@ -38,9 +40,6 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
-from app.tools.resources.flags.search import search_flags
-from app.infra.tools.sanitize import sanitize_model_kwargs
-
 
 # Denormalized bool field name → flag type in flags_resource.
 SCENARIO_DENORM_FLAG_FIELDS = {
@@ -345,6 +344,7 @@ async def patch_scenario_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -420,6 +420,7 @@ async def patch_scenario_draft_impl(
         session_id=session_id,
         targets=["scenario_drafts_mv"],
         soft=soft,
+        name=request.name or "",
         operation_key=idempotency_key or result.id,
     )
 

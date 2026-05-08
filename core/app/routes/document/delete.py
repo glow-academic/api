@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.document.delete import delete_document_impl
 from app.infra.document.group import group_document_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.document.types import (
     DeleteDocumentApiRequest,
     DeleteDocumentApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -56,6 +56,19 @@ async def delete_document(
                 profile_id=profile_id,
                 ids=request.document_ids,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                scenario_ids=request.scenario_ids,
+                field_ids=request.field_ids,
+                filter_department_ids=request.filter_department_ids,
+                scenario_search=request.scenario_search,
+                field_search=request.field_search,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

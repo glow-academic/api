@@ -10,9 +10,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.resource_type_filter import ScopedItem
-
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
 from app.tools.resources.personas.types import GetPersonaResponse
 
@@ -498,10 +497,55 @@ class UpdateCohortItem(ScopedItem):
     profiles: list[str] | None = Field(None, description="Profile names for resolution")
 
 
-class UpdateCohortApiRequest(BaseModel):
-    """Request model for bulk update cohort endpoint."""
+class UpdateCohortPatch(UpdateCohortItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    cohorts: list[UpdateCohortItem] = Field(..., description="List of cohorts to update")
+    Inherits every field from ``UpdateCohortItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved cohort id per matched row",
+    )
+
+
+class UpdateCohortApiRequest(BaseModel):
+    """Request model for bulk update cohort endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``cohorts`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/cohort/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    cohorts: list[UpdateCohortItem] | None = Field(
+        None, description="List of cohorts to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteCohortApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every cohort matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateCohortPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    filter_profile_ids: list[UUID] | None = Field(None, description="Filter by profile UUIDs")
+    filter_simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    profile_search: str | None = Field(None, description="Search text for profile facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -526,9 +570,40 @@ class SaveCohortFieldError(BaseModel):
 
 
 class DeleteCohortApiRequest(BaseModel):
-    """Request model for bulk delete cohort endpoint."""
+    """Request model for bulk delete cohort endpoint.
 
-    cohort_ids: list[UUID] = Field(..., description="Cohort UUIDs to delete")
+    Three body shapes:
+      - First call (explicit): ``cohort_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/cohort/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    cohort_ids: list[UUID] | None = Field(
+        None, description="Cohort UUIDs to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchCohortApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every cohort matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /cohort/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``cohort_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    filter_profile_ids: list[UUID] | None = Field(None, description="Filter by profile UUIDs")
+    filter_simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    profile_search: str | None = Field(None, description="Search text for profile facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
     accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
@@ -794,3 +869,47 @@ class ProblemCohortApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadCohortApiRequest(BaseModel):
+    """Request model for cohort text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadCohortApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadCohortApiRequest(BaseModel):
+    """Request model for cohort call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadCohortApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

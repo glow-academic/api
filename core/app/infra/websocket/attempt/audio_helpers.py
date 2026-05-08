@@ -6,13 +6,13 @@ This module re-exports for backward compatibility and provides domain-specific
 helpers used by translators (delta.py, speech_*.py, error.py).
 """
 
-import logging
 from typing import Any
 
 from app.infra.websocket.audio_lifecycle import cleanup_audio_session
 from app.infra.websocket.session_store import get_session_by_group_id
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Re-export for backward compatibility
 cleanup_voice_session = cleanup_audio_session

@@ -20,7 +20,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+# Department resolution
+from app.infra.attempt.department import resolve_attempt_department
 from app.infra.flag_icons import hydrate_flag_icons
+
+# Profile type
+from app.infra.profile_identity_context import ProfileIdentityContext
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Template fetcher
@@ -28,12 +33,6 @@ from app.tools.entries.chat.get import get_chats
 
 # Draft fetcher
 from app.tools.entries.chat_drafts.get import get_chat_drafts
-
-# Department resolution
-from app.infra.attempt.department import resolve_attempt_department
-
-# Profile type
-from app.infra.profile_identity_context import ProfileIdentityContext
 
 # Resource get fetchers (by known IDs)
 from app.tools.resources.departments.get import get_departments
@@ -433,7 +432,9 @@ async def resolve_chat_context(
         async with pool.acquire() as c:
             if pf_filter_ids:
                 # Only show parameter fields matching the mode
-                from app.tools.resources.parameter_fields.get import get_parameter_fields as get_pfs
+                from app.tools.resources.parameter_fields.get import (
+                    get_parameter_fields as get_pfs,
+                )
                 # Filter mode_pf_ids to exclude already-selected
                 available_ids = [pid for pid in pf_filter_ids if pid not in set(parameter_field_ids)]
                 limited_ids = available_ids[: parameter_fields_limit or 20]

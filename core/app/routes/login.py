@@ -1,6 +1,5 @@
 """GET /login, /callback, /logout, /me — Keycloak OAuth login flow."""
 
-import logging
 import os
 
 import httpx
@@ -9,8 +8,9 @@ from fastapi.responses import RedirectResponse
 
 from app.infra.identity.middleware import require_auth
 from app.infra.identity.resolve_identity import Identity
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 

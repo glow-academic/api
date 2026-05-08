@@ -15,11 +15,12 @@ explicit INFRA_OPS_OVERRIDES dict that takes precedence over auto-discovery.
 
 from __future__ import annotations
 
-import logging
 import re
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 # Directories to skip — internal utilities, not artifact operations
 _SKIP_DIRS = {

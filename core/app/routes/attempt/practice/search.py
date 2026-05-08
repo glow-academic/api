@@ -13,6 +13,10 @@ from uuid import UUID
 import asyncpg
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.api_types import (
+    FilterOption,
+    HistoryItem,
+)
 from app.infra.attempt.chat.permissions import (
     compute_pass_pct,
     compute_score_status,
@@ -21,15 +25,11 @@ from app.infra.attempt.chat.permissions import (
 )
 from app.infra.common_context import resolve_common_context
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.practice_context import resolve_practice_search_context
 from app.infra.practice.types import (
     ListPracticeRequest,
     ListPracticeResponse,
 )
-from app.infra.api_types import (
-    FilterOption,
-    HistoryItem,
-)
+from app.infra.practice_context import resolve_practice_search_context
 from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached

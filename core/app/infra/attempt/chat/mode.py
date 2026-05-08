@@ -38,8 +38,8 @@ async def resolve_mode_parameter_field_ids(
     Returns parameter_field_ids for filtering personas, documents, and
     the parameter_fields section.
     """
-    from app.tools.resources.parameters.search import search_parameters
     from app.tools.resources.parameter_fields.search import search_parameter_fields
+    from app.tools.resources.parameters.search import search_parameters
 
     if video_mode:
         # Video mode: video_parameter=True (Concepts, Role, Location, Time)

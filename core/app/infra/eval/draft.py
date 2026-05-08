@@ -358,6 +358,7 @@ async def patch_eval_draft_impl(
                 session_id=session_id,
                 id=resolved_draft_id or idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids,
@@ -451,6 +452,7 @@ async def patch_eval_draft_impl(
             profile_id=profile_id,
             session_id=session_id,
             soft=soft,
+            name=request.name or "",
             operation_key=result.id,
         )
 

@@ -61,6 +61,43 @@ def validate_payload(
 # ---------------------------------------------------------------------------
 
 
+_PRIMITIVE_JSON_TYPES = {"string", "integer", "number", "boolean"}
+_STRING_LIKE_FIELD_TYPES = {"uuid", "text"}
+
+
+def _field_type_to_json_spec(field_type: str) -> dict[str, Any]:
+    """Translate a Postgres-style arg field_type into a JSON-schema-ish spec.
+
+    Examples:
+        "uuid[]"   → {"type": "array", "items": {"type": "string"}}
+        "string[]" → {"type": "array", "items": {"type": "string"}}
+        "object[]" → {"type": "array", "items": {"type": "object"}}
+        "uuid"     → {"type": "string"}
+        "text"     → {"type": "string"}
+        "integer"  → {"type": "integer"}
+
+    The downstream OpenAI converter only understands JSON-schema primitives
+    plus "array"/"object"; anything else falls through to "string", which
+    silently mistypes uuid[] as a single string and causes the LLM to pass
+    bare UUIDs instead of arrays.
+    """
+    if field_type.endswith("[]"):
+        item_raw = field_type[:-2]
+        if item_raw == "object":
+            item_type = "object"
+        elif item_raw in _PRIMITIVE_JSON_TYPES:
+            item_type = item_raw
+        else:
+            # uuid, text, anything else string-shaped
+            item_type = "string"
+        return {"type": "array", "items": {"type": item_type}}
+    if field_type in _STRING_LIKE_FIELD_TYPES:
+        return {"type": "string"}
+    if field_type in _PRIMITIVE_JSON_TYPES or field_type == "object":
+        return {"type": field_type}
+    return {"type": "string"}
+
+
 def enrich_tools_with_args(
     tool_dicts: list[dict[str, Any]],
     resource_tools: list[Any],
@@ -108,7 +145,7 @@ def enrich_tools_with_args(
 
             field_type = getattr(arg, "field_type", "string") or "string"
             required = bool(getattr(arg, "required", False))
-            arguments[arg_name] = {"type": field_type, "required": required}
+            arguments[arg_name] = {**_field_type_to_json_spec(field_type), "required": required}
 
             desc = getattr(arg, "description", None)
             if desc:

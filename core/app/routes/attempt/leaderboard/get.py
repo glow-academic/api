@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.leaderboard.get import get_leaderboard_impl_cached
-from app.infra.attempt.group import group_attempt_impl
 from app.infra.leaderboard.types import (
     LeaderboardRequest,
     LeaderboardResponse,

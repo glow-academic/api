@@ -28,12 +28,12 @@ from redis.asyncio import Redis
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.calls.create import create_call
+from app.tools.entries.groups.get import get_groups
 from app.tools.entries.invocation.get import get_invocations
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.test.get import get_tests
 from app.tools.entries.test_invocation.create import create_test_invocation
 from app.tools.entries.test_invocation.refresh import refresh_test_invocation
-from app.tools.entries.groups.get import get_groups
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.model_rubrics.get import get_model_rubrics
 

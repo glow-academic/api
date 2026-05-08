@@ -19,11 +19,11 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.field.permissions import compute_can_duplicate
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.field.refresh import refresh_field_impl
 from app.infra.field.types import (
     DuplicateFieldApiResponse,
 )
-from app.infra.field.refresh import refresh_field_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.field.create import (
     create_field as create_field_artifact,
 )

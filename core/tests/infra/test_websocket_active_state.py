@@ -72,18 +72,6 @@ class TestActiveRunHelpers:
     async def test_cancel_active_run_returns_false_without_run(self, websocket_runtime):
         assert await cancel_active_run("missing-chat") is False
 
-    @pytest.mark.asyncio
-    async def test_active_run_helpers_noop_without_redis(self):
-        original_redis = globals_mod.redis_client
-        globals_mod.redis_client = None
-        try:
-            assert await get_active_run("chat-3") is None
-            assert await cancel_active_run("chat-3") is False
-            await set_active_run("chat-3", "run-3")
-            await remove_active_run("chat-3")
-        finally:
-            globals_mod.redis_client = original_redis
-
 
 class TestActiveResultHelpers:
     @pytest.mark.asyncio
@@ -142,16 +130,3 @@ class TestActiveConnectionHelpers:
 
         await remove_active_connection("chat-6", "sid-b")
         assert await websocket_runtime.exists("active_connection:chat-6") == 0
-
-    @pytest.mark.asyncio
-    async def test_active_connection_helpers_noop_without_redis(self):
-        original_redis = globals_mod.redis_client
-        globals_mod.redis_client = None
-        try:
-            assert await get_active_connection("chat-8") is None
-            assert await find_chat_by_socket("sid-x") is None
-            assert await find_chats_by_socket("sid-x") == []
-            await set_active_connection("chat-8", "sid-x")
-            await remove_active_connection("chat-8", "sid-x")
-        finally:
-            globals_mod.redis_client = original_redis

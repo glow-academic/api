@@ -3,8 +3,8 @@
 import time
 
 import asyncpg
-
 from redis.asyncio import Redis
+
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 MV_NAME = "uploads_mv"

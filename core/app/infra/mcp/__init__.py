@@ -1,6 +1,5 @@
 """MCP server for artifacts, resources, and entries."""
 
-import logging
 import os
 from urllib.parse import urlparse
 
@@ -9,11 +8,12 @@ from mcp.server.fastmcp.prompts.base import Message
 from mcp.server.transport_security import TransportSecuritySettings
 
 from app.infra.globals import get_client_origins
+from app.utils.logging.db_logger import get_logger
 
 from .prompt import get_agent_system_prompt
 from .server import SYSTEM_PROMPT_NAME, ScopedFastMCP, _current_mcp_context
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 load_dotenv()
 

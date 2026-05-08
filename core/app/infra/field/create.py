@@ -20,16 +20,15 @@ from app.infra.field.permissions_context import (
     create_denormalized_snapshot,
     resolve_field_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.field.refresh import refresh_field_impl
-from app.tools.artifacts.field.create import (
-    create_field as create_field_artifact,
-)
-
 from app.infra.field.types import (
     CreateFieldApiRequest,
-    FieldResultItem,
     CreateFieldApiResponse,
+    FieldResultItem,
+)
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.artifacts.field.create import (
+    create_field as create_field_artifact,
 )
 
 

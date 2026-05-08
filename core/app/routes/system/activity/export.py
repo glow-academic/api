@@ -3,8 +3,8 @@
 from fastapi import APIRouter, Request, Response
 
 from app.infra.activity.export import export_activity_impl
-from app.infra.globals import get_pool, get_redis_client
 from app.infra.activity.types import ExportActivityApiResponse
+from app.infra.globals import get_pool, get_redis_client
 
 router = APIRouter()
 

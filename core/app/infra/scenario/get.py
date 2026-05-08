@@ -15,8 +15,8 @@ from app.infra.scenario.context import resolve_scenario_context
 from app.infra.scenario.permissions import SCENARIO_RESOURCES, has_access
 from app.infra.scenario.permissions_context import resolve_scenario_permissions_context
 from app.infra.scenario.sections import build_scenario_get_result
-from app.infra.tool_graph import score_tools
 from app.infra.scenario.types import GetScenarioApiResponse
+from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names", "descriptions", "problem_statements", "flags", "departments",

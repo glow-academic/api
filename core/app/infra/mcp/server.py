@@ -11,20 +11,22 @@ truth; this class only shapes what the MCP client sees.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 from uuid import UUID
 
 from mcp.server.fastmcp import FastMCP
-from mcp.types import GetPromptResult, Prompt as MCPPrompt, Tool as MCPTool
+from mcp.types import GetPromptResult
+from mcp.types import Prompt as MCPPrompt
+from mcp.types import Tool as MCPTool
 
 from app.infra.mcp.resolve import (
     McpContext,
     allowed_tool_names,
     resolve_mcp_context,
 )
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SYSTEM_PROMPT_NAME = "agent_system_prompt"
 

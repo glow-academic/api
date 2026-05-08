@@ -39,12 +39,114 @@ async def update_model_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateModelApiResponse:
-    """Model bulk update using composable infra functions."""
+    """Model bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.models`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+    """
     from app.infra.model.permissions import compute_can_edit
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Ack-hoisted ABOVE perm checks because ``request.models`` is None
+    # under the ack path; the dormant row is located solely by
+    # ``idempotency_key``. The original impl ran perm checks first,
+    # which broke under ack/all paths. Mirror persona/scenario shape.
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateModelApiResponse(
+                results=[
+                    ModelResultItem(
+                        success=True,
+                        model_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        # accept=True: promote — re-call update with soft=False to
+        # activate any dormant artifact + junctions.
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                await update_model_artifact(
+                    conn,
+                    idempotency_key,
+                    soft=False,
+                )
+        await refresh_model_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return UpdateModelApiResponse(
+            results=[
+                ModelResultItem(
+                    success=True,
+                    model_id=idempotency_key,
+                    message="Update accepted",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # model matching the filter, then clone ``request.patch`` per id
+    # (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[ModelResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.model.resolve_matching_ids import resolve_matching_model_ids
+        from app.infra.model.types import UpdateModelItem
+
+        matching = await resolve_matching_model_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_provider_ids=request.filter_provider_ids,
+            filter_department_ids=request.filter_department_ids,
+            filter_agent_ids=request.filter_agent_ids,
+            provider_search=request.provider_search,
+            department_search=request.department_search,
+            agent_search=request.agent_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [mid for mid in matching if mid not in excluded]
+
+        if not resolved_ids:
+            return UpdateModelApiResponse(results=[], idempotency_key=idempotency_key)
+
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateModelItem(id=mid, **patch_fields) for mid in resolved_ids]
+        request = request.model_copy(update={"models": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.models:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.models` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.models
 
@@ -60,10 +162,23 @@ async def update_model_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ────────────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_model_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(ModelResultItem(
+                        success=False, model_id=item.id,
+                        message=f"Model {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Model {item.id} not found.",
@@ -75,25 +190,25 @@ async def update_model_impl(
                 active_agent_count=perms.active_agent_count,
                 user_department_ids=profile.department_ids,
             ):
+                if is_all_matching:
+                    skipped_results.append(ModelResultItem(
+                        success=False, model_id=item.id,
+                        message=f"No permission to update model {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this model.",
                 )
+            permitted_items.append(item)
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateModelApiResponse(
-                results=[
-                    ModelResultItem(
-                        success=True,
-                        model_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[ModelResultItem] = []
@@ -167,9 +282,7 @@ async def update_model_impl(
                 success=True,
                 model_id=item.id,
                 message=(
-                    "Model update accepted"
-                    if accept is not None and idempotency_key is not None
-                    else "Model updated (pending acceptance)"
+                    "Model updated (pending acceptance)"
                     if soft
                     else "Model updated successfully"
                 ),
@@ -186,7 +299,10 @@ async def update_model_impl(
             operation_key=idempotency_key or (results[0].model_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateModelApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

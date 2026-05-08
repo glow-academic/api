@@ -28,6 +28,17 @@ _MEDIA_OPS = [
     "audio_start", "audio_frame", "audio_stop", "audio_mute",
 ]
 
+# Artifacts that have at least one media operation (text_download /
+# call_download) so the canonical download surface is per-artifact.
+# _pids() silently drops missing combos, so listing an artifact here
+# only grants what's actually defined for it in PERMISSION_IDS.
+_DOWNLOAD_ARTIFACTS = [
+    "agent", "attempt", "auth", "cohort", "department", "document",
+    "eval", "field", "model", "parameter", "persona", "profile",
+    "provider", "rubric", "scenario", "setting", "simulation", "system",
+    "test", "tool",
+]
+
 # VIEW children consolidated under parent artifacts
 _ATTEMPT_VIEWS = ["home", "practice", "chat", "dashboard", "leaderboard", "reports", "record"]
 _TEST_VIEWS = ["invocation", "benchmark"]
@@ -94,7 +105,7 @@ roles = [
             + _pids(["test"], _child_ops(_TEST_VIEWS))
             + _pids(["system"], _child_ops(_SYSTEM_VIEWS))
             # Media ops
-            + _pids(["scenario", "document", "attempt", "test", "system"], _MEDIA_OPS)
+            + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
     ),
     # ── Admin (level 1): CRUD on most, read on system artifacts ──
@@ -119,8 +130,7 @@ roles = [
             + _pids(["test"], _child_ops(_TEST_VIEWS, _READ_OPS))
             + _pids(["system"], _child_ops(_SYSTEM_VIEWS, _READ_OPS))
             # Media ops (group media now under system via compound ops)
-            + _pids(["scenario", "document", "attempt", "test"], _MEDIA_OPS)
-            + _pids(["system"], _MEDIA_OPS)
+            + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
     ),
     # ── Instructional (level 2): CRUD on training, read on analytics ──
@@ -144,8 +154,7 @@ roles = [
             + _pids(["test"], _child_ops(_TEST_VIEWS, _READ_OPS))
             + _pids(["system"], _child_ops(["activity", "session", "pricing", "group"], _READ_OPS))
             # Media ops
-            + _pids(["scenario", "document", "attempt", "test"], _MEDIA_OPS)
-            + _pids(["system"], _MEDIA_OPS)
+            + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
     ),
     # ── GTA (level 3): read + practice ──

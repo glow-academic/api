@@ -23,9 +23,9 @@ from redis.asyncio import Redis
 from app.infra.field.refresh import refresh_field_impl
 from app.infra.generation.execute import execute_generation
 from app.infra.generation.prepare import prepare_generation
+from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.globals import get_internal_sio
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
@@ -135,6 +135,10 @@ async def generate_field_impl(
 
     for dispatch in prepared.dispatches:
         for msg in dispatch.messages:
+            # Skip history items threaded by prepare.py — already
+            # shown via group_get; re-emitting yields duplicates.
+            if not msg.get("_emit", True):
+                continue
             role = msg.get("role", "")
             content = msg.get("content", "")
             if role and content:
@@ -142,7 +146,7 @@ async def generate_field_impl(
                     f"{ARTIFACT_TYPE}.generate.text.complete",
                     {
                         "sid": resolved_sid,
-                        "rooms": [resolved_sid] if resolved_sid else [],
+                        "rooms": [str(profile_id)],
                         "artifact_type": ARTIFACT_TYPE,
                         "run_id": str(prepared.run_id),
                         "group_id": str(group_id),

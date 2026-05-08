@@ -19,6 +19,8 @@ from app.routes.cohort.refresh import router as refresh_router
 from app.routes.cohort.search import router as search_router
 from app.routes.cohort.stream import router as stream_router
 from app.routes.cohort.update import router as update_router
+from app.routes.cohort.text import router as text_router
+from app.routes.cohort.call import router as call_router
 
 router = APIRouter(prefix="/cohort", tags=["cohort"])
 
@@ -40,3 +42,7 @@ router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

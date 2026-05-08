@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.delete import delete_persona_impl
 from app.infra.persona.group import group_persona_impl
 from app.infra.persona.types import (
@@ -58,6 +58,20 @@ async def delete_persona(
                 session_id=session_id,
                 idempotency_key=request.idempotency_key,
                 accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=request.all,
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                scenario_ids=request.scenario_ids,
+                field_ids=request.field_ids,
+                filter_department_ids=request.filter_department_ids,
+                scenario_search=request.scenario_search,
+                field_search=request.field_search,
+                department_search=request.department_search,
+                color_search=request.color_search,
+                icon_search=request.icon_search,
+                voice_search=request.voice_search,
+                instruction_search=request.instruction_search,
             )
 
         result = await run_artifact_operation_with_audit(

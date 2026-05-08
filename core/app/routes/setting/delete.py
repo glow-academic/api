@@ -56,8 +56,22 @@ async def delete_setting(
                 profile_id=profile_id,
                 ids=request.setting_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                flag_ids=request.flag_ids,
+                provider_ids=request.provider_ids,
+                auth_ids=request.auth_ids,
+                system_ids=request.system_ids,
+                filter_department_ids=request.filter_department_ids,
+                flag_search=request.flag_search,
+                provider_search=request.provider_search,
+                auth_search=request.auth_search,
+                system_search=request.system_search,
+                department_search=request.department_search,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -68,7 +82,7 @@ async def delete_setting(
             session_id=session_id,
             group_id=group_id,
             operation="delete",
-            arguments=request.model_dump(mode="json"),
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=DeleteSettingApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

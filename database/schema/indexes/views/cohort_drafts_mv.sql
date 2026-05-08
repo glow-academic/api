@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX cohort_drafts_mv_id_idx ON public.cohort_drafts_mv USING btr
 
 
 --
+
+-- Name: cohort_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX cohort_drafts_mv_name_idx ON public.cohort_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

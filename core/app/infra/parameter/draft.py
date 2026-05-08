@@ -187,6 +187,7 @@ async def _refresh_parameter_drafts(
             session_id=session_id,
             targets=["parameter_drafts_mv"],
             soft=soft,
+            name=request.name or "",
             operation_key=operation_key,
         )
     except TypeError as exc:
@@ -325,6 +326,7 @@ async def patch_parameter_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id

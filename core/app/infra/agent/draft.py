@@ -28,8 +28,8 @@ from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
-from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.names.search import search_names
+from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.qualities.search import search_qualities
 from app.tools.resources.reasoning_levels.search import search_reasoning_levels
 from app.tools.resources.temperature_levels.search import search_temperature_levels
@@ -397,6 +397,7 @@ async def patch_agent_draft_impl(
                 session_id=session_id,
                 id=idempotency_key or request.draft_id,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids,

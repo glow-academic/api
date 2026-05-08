@@ -12,7 +12,6 @@ import importlib
 from collections.abc import Callable
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Operation classification: READ vs WRITE
 #
@@ -27,7 +26,11 @@ WRITE_OPERATIONS: frozenset[str] = frozenset({
     "image_upload", "video_upload", "text_upload", "file_upload", "audio_upload",
     # Artifact-specific
     "run", "generate", "problem", "resolve", "emulate", "unemulate",
-    "context", "name", "group", "feedback",
+    "name", "title", "feedback",
+    # NOTE: ``group`` is intentionally NOT here. ``*_Group`` is now a
+    # pure read — resolves the group + returns history. Renaming has
+    # been split out into ``title`` (write) which appends a fresh
+    # group_names_entry row.
     # State machine
     "start", "next", "end", "end_all", "message", "grade", "stop", "complete",
     "response", "previous", "archive",
@@ -81,6 +84,16 @@ INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = _discover()
 # because every artifact also has a separate context.py with different logic).
 for _art in list({k[0] for k in INFRA_OPS if k[1] == "page_context"}):
     INFRA_OPS[(_art, "context")] = INFRA_OPS[(_art, "page_context")]
+
+# --- Chat drafts alias ---
+# Chat infra lives under ``app/infra/attempt/chat/`` (namespaced under
+# attempt) but the ``chat_drafts_entry`` table is a top-level artifact.
+# Auto-discovery doesn't walk into the nested directory, so wire the
+# (chat, drafts) op explicitly.
+INFRA_OPS[("chat", "drafts")] = (
+    "app.infra.attempt.chat.drafts", "list_chat_drafts_impl",
+)
+
 
 # --- Attempt chat_* aliases (cross-operation routing) ---
 INFRA_OPS.update({

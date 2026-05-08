@@ -20,8 +20,8 @@ from app.infra.document.permissions_context import (
     create_denormalized_snapshot,
     resolve_document_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.document.refresh import refresh_document_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )
@@ -44,8 +44,8 @@ async def _item_is_template(
     )
 from app.infra.document.types import (
     CreateDocumentApiRequest,
-    DocumentResultItem,
     CreateDocumentApiResponse,
+    DocumentResultItem,
 )
 
 

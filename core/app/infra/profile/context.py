@@ -21,11 +21,10 @@ from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-from app.tools.resources.roles.get import get_roles
 from app.tools.resources.permissions.search import search_permissions
 from app.tools.resources.request_limits.search import search_request_limits
+from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

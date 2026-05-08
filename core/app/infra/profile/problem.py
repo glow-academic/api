@@ -10,8 +10,8 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile.refresh import refresh_profile_impl
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.profile.types import ProblemProfileApiResponse
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 
 ARTIFACT_TYPE = "profile"

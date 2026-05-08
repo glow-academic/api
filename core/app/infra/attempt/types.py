@@ -965,3 +965,25 @@ class ProblemAttemptApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadAttemptApiRequest(BaseModel):
+    """Request model for attempt call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadAttemptApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

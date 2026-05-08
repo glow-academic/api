@@ -56,6 +56,19 @@ async def delete_scenario(
                 profile_id=profile_id,
                 ids=request.scenario_ids,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                persona_ids=request.persona_ids,
+                simulation_ids=request.simulation_ids,
+                filter_department_ids=request.filter_department_ids,
+                persona_search=request.persona_search,
+                simulation_search=request.simulation_search,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

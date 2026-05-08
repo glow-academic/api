@@ -16,7 +16,6 @@ Executors:
 
 from __future__ import annotations
 
-
 HEAVY_OUT = {"audio", "image", "video"}
 
 

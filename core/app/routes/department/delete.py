@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.department.delete import delete_department_impl
 from app.infra.department.group import group_department_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.department.types import (
     DeleteDepartmentApiRequest,
     DeleteDepartmentApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -56,8 +56,13 @@ async def delete_department(
                 profile_id=profile_id,
                 ids=request.department_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

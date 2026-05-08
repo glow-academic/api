@@ -21,9 +21,6 @@ from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
 
-# Cohort search (resource-level — returns resource IDs, not artifact IDs)
-from app.tools.resources.cohorts.search import search_cohorts
-
 # Entry fetchers (raw MV reads)
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
@@ -34,6 +31,9 @@ from app.tools.entries.practice.search import search_practices
 from app.tools.resources.cohorts.get import (
     get_cohorts as get_cohort_resources,
 )
+
+# Cohort search (resource-level — returns resource IDs, not artifact IDs)
+from app.tools.resources.cohorts.search import search_cohorts
 from app.tools.resources.personas.get import get_personas
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.rubrics.get import get_rubrics

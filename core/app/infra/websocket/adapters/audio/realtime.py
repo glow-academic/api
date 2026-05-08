@@ -18,7 +18,6 @@ to maintain control over the connection and enable server-side processing.
 import asyncio
 import base64
 import json
-import logging
 import uuid as uuid_mod
 from typing import Any, Literal
 from uuid import UUID
@@ -35,8 +34,9 @@ from app.infra.websocket.adapters.audio.base import (
     BaseAudioAdapter,
 )
 from app.infra.websocket.session_store import AudioSession
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _pcm_to_wav_bytes(pcm_bytes: bytes) -> bytes:
@@ -833,7 +833,9 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
         the provider rejects as schema errors, so we strip to the 4
         whitelisted keys here.
         """
-        from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
+        from app.infra.artifacts.convert_tools_to_openai_format import (
+            sanitize_tool_name,
+        )
 
         formatted: list[dict[str, Any]] = []
         for tool in tools or []:

@@ -1,13 +1,20 @@
-{% if personas and personas|length > 0 %}
-## Personas ({{ personas|length }} results{% if has_more %}, more available{% endif %})
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.personas and r.personas|length > 0 %}
+## Personas ({{ r.personas|length }} results{% if r.has_more %}, more available{% endif %})
 
-{% for p in personas %}
-- **{{ p.name or '(unnamed)' }}**{% if p.description %} — {{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}{% endif %}{% if p.color %} | {{ p.color.name }}{% endif %} (ID: `{{ p.id }}`)
+{% for p in r.personas %}
+- **{{ p.name or '(unnamed)' }}**{% if p.description %} — {{ p.description[:80] }}{% if p.description|length > 80 %}...{% endif %}{% endif %}{% if p.color %} | `{{ p.color }}`{% endif %} (ID: `{{ p.persona_id }}`)
 {% endfor %}
 
-{% if has_more %}
+{% if r.has_more %}
 Use `page_offset` to see more results.
 {% endif %}
 {% else %}
 No personas found matching the search criteria.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching personas: {{ results[0].error }}
+{% else %}
+No persona search result returned.
 {% endif %}

@@ -7,31 +7,32 @@ from app.routes.attempt.audio import router as audio_router
 from app.routes.attempt.chat import router as chat_router
 from app.routes.attempt.complete import router as complete_router
 from app.routes.attempt.context import router as context_router
+from app.routes.attempt.dashboard import router as dashboard_router
+
+# Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
+from app.routes.attempt.draft import router as draft_router
+from app.routes.attempt.drafts import router as drafts_router
 from app.routes.attempt.export import router as export_router
 from app.routes.attempt.file import router as file_router
 from app.routes.attempt.generate import router as generate_router
 from app.routes.attempt.generations import router as generations_router
 from app.routes.attempt.get import router as get_router
 from app.routes.attempt.group import router as group_router
-from app.routes.attempt.image import router as image_router
-from app.routes.attempt.problem import router as problem_router
-from app.routes.attempt.refresh import router as refresh_router
-from app.routes.attempt.search import router as search_router
-from app.routes.attempt.start import router as start_router
-from app.routes.attempt.stream import router as stream_router
-from app.routes.attempt.stop import router as stop_router
-from app.routes.attempt.text import router as text_router
-from app.routes.attempt.video import router as video_router
-
-# Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
-from app.routes.attempt.draft import router as draft_router
-from app.routes.attempt.drafts import router as drafts_router
-from app.routes.attempt.dashboard import router as dashboard_router
 from app.routes.attempt.home import router as home_router
+from app.routes.attempt.image import router as image_router
 from app.routes.attempt.leaderboard import router as leaderboard_router
 from app.routes.attempt.practice import router as practice_router
+from app.routes.attempt.problem import router as problem_router
 from app.routes.attempt.record import router as record_router
+from app.routes.attempt.refresh import router as refresh_router
 from app.routes.attempt.report import router as report_router
+from app.routes.attempt.search import router as search_router
+from app.routes.attempt.start import router as start_router
+from app.routes.attempt.stop import router as stop_router
+from app.routes.attempt.stream import router as stream_router
+from app.routes.attempt.text import router as text_router
+from app.routes.attempt.video import router as video_router
+from app.routes.attempt.call import router as call_router
 
 router = APIRouter(prefix="/attempt", tags=["attempt"])
 
@@ -75,3 +76,6 @@ router.include_router(image_router)
 router.include_router(video_router)
 router.include_router(text_router)
 router.include_router(file_router)
+
+# Typed media operations
+router.include_router(call_router)

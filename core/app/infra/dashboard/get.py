@@ -13,6 +13,8 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
+from app.infra.api_types import FilterOption
+from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.common_context import resolve_common_context
 from app.infra.dashboard.builders import (
     build_field_meta,
@@ -31,14 +33,12 @@ from app.infra.dashboard.permissions import (
     compute_primary_metrics_v2,
     compute_secondary_metrics_v2,
 )
-from app.infra.globals import get_redis_client
-from app.infra.auth.types import AnalyticsFilterFields
-from app.routes.attempt.dashboard.search import _build_history_response
 from app.infra.dashboard.types import (
     DashboardBundleResponse,
     DashboardRequest,
 )
-from app.infra.api_types import FilterOption
+from app.infra.globals import get_redis_client
+from app.routes.attempt.dashboard.search import _build_history_response
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached

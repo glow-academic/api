@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
 
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.test.media_types import CallDownloadTestApiRequest
 from app.infra.test.call_download import call_download_test_impl
+from app.infra.test.media_types import CallDownloadTestApiRequest
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

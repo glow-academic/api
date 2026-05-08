@@ -18,6 +18,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.auth.types import (
+    AnalyticsFacets,
+    AnalyticsFilterField,
+    AnalyticsFilterFields,
+    AnalyticsFilterOption,
+)
 from app.infra.identity.analytics import (
     AnalyticsFiltersResult,
     resolve_benchmark_filters,
@@ -27,12 +33,6 @@ from app.infra.identity.analytics import (
 )
 from app.infra.identity.simulatable import SIMULATABLE_ROLES
 from app.infra.profile_identity_context import ProfileIdentityContext
-from app.infra.auth.types import (
-    AnalyticsFacets,
-    AnalyticsFilterField,
-    AnalyticsFilterFields,
-    AnalyticsFilterOption,
-)
 from app.tools.artifacts.cohort.get import get_cohorts as get_cohort_artifacts
 from app.tools.artifacts.cohort.search import search_cohorts
 

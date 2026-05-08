@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
 from app.infra.document.context import resolve_document_context
 from app.infra.document.permissions import (
     DOCUMENT_RESOURCES,
@@ -19,8 +18,6 @@ from app.infra.document.permissions import (
     has_access,
 )
 from app.infra.document.permissions_context import resolve_document_permissions_context
-from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
 from app.infra.document.types import (
     DocumentDepartmentResource,
     DocumentDescriptionResource,
@@ -34,6 +31,9 @@ from app.infra.document.types import (
     GetDocumentApiResponse,
     SectionFilter,
 )
+from app.infra.group.resolve import resolve_group_impl
+from app.infra.helpers import dedupe_by_id
+from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",

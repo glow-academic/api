@@ -37,21 +37,3 @@ async def test_generation_tracker_round_trip_with_real_redis(redis_client):
         assert await redis_client.exists("resource_progress:run-1") == 0
     finally:
         globals_mod.redis_client = original_redis
-
-
-async def test_generation_tracker_falls_back_without_redis():
-    original_redis = globals_mod.redis_client
-    try:
-        globals_mod.redis_client = None
-
-        await init_generation("run-fallback", expected_agent_count=1)
-        done, results = await record_agent_complete("run-fallback", [{"tool": "x"}])
-        assert done is True
-        assert results == [{"tool": "x"}]
-
-        await init_resource_progress("run-fallback", total_resources=2)
-        assert await record_resource_complete("run-fallback", "documents") == (1, 2)
-
-        await cleanup_generation("run-fallback")
-    finally:
-        globals_mod.redis_client = original_redis

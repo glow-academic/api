@@ -20,18 +20,18 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.parameter.permissions import compute_can_duplicate
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.parameter.types import (
     DuplicateParameterApiResponse,
 )
-from app.infra.parameter.refresh import refresh_parameter_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
 from app.tools.artifacts.parameter.get import get_parameters
-from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 
 
 async def duplicate_parameter_impl(
@@ -110,7 +110,9 @@ async def duplicate_parameter_impl(
             if artifacts:
                 artifact = artifacts[0]
                 parameter_resource = parameter_resources[0] if parameter_resources else None
-                from app.infra.parameter.permissions_context import create_denormalized_snapshot
+                from app.infra.parameter.permissions_context import (
+                    create_denormalized_snapshot,
+                )
 
                 await create_denormalized_snapshot(
                     pool,

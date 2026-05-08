@@ -56,8 +56,19 @@ async def delete_profile(
                 profile_id=profile_id,
                 profile_ids=request.profile_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                cohort_ids=request.cohort_ids,
+                filter_department_ids=request.filter_department_ids,
+                role_filter=request.role_filter,
+                cohort_search=request.cohort_search,
+                department_search=request.department_search,
+                role_search=request.role_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

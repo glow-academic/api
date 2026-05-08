@@ -56,8 +56,17 @@ async def delete_rubric(
                 profile_id=profile_id,
                 ids=request.rubric_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_department_ids=request.filter_department_ids,
+                filter_simulation_ids=request.filter_simulation_ids,
+                department_search=request.department_search,
+                simulation_search=request.simulation_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

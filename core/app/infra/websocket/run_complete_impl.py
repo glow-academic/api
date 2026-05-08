@@ -233,60 +233,15 @@ async def run_complete_impl(
             metadata=metadata,
         )
 
-    # Step 7: Emit the artifact-namespaced completion event — the per-artifact
-    # forwarder under ws/output/<artifact>/generate/completed.py fans it to the client.
-    completion_payload = build_run_complete_payload(
-        sid=sid,
-        artifact_type=artifact_type,
-        group_id=group_id_str,
-        run_id=run_id,
-        tool_results=tool_results,
-        metadata=metadata,
-    )
-    await emit(
-        [
-            internal_event(
-                f"{artifact_type}.generate.completed",
-                completion_payload,
-            )
-        ]
-    )
-
-    # Mirror the lifecycle to the SSE hub so http-sse clients (the
-    # GenerationPanel) clear isGenerating. The socket.io path above only
-    # reaches WS subscribers; SSE listeners receive their stream through
-    # ``publish()``.
-    try:
-        from uuid import UUID as _UUID
-
-        from app.infra.stream.emitter import emit_artifact_operation_finished
-
-        run_uuid: _UUID | None = None
-        try:
-            run_uuid = _UUID(run_id) if run_id else None
-        except (TypeError, ValueError):
-            run_uuid = None
-        group_uuid: _UUID | None = None
-        try:
-            group_uuid = _UUID(group_id_str) if group_id_str else None
-        except (TypeError, ValueError):
-            group_uuid = None
-
-        await emit_artifact_operation_finished(
-            artifact=artifact_type,
-            operation="generate",
-            arguments={},
-            output=completion_payload,
-            group_id=group_uuid,
-            entity_id=run_uuid,
-            call_id=run_uuid,
-            tool_id=None,
-            role="assistant",
-        )
-    except Exception:
-        # SSE bridge is best-effort — never break the WS path on a
-        # transport mirror failure.
-        logger.exception("SSE mirror of generate.completed failed")
+    # Step 7: ``<artifact>.generate.completed`` is emitted by the audit
+    # framework wrapping the ``/X/generate`` route — see
+    # ``run_artifact_operation_with_audit`` in ``app/infra/events/audit.py``.
+    # This impl previously fired its own copy here (back when the
+    # generate path didn't go through audit), but the audit emit now
+    # carries the canonical lifecycle event with tool envelope, group_id,
+    # operation_key, etc. Firing here too produced duplicate
+    # ``persona.generate.completed`` (and ``chat.generate.completed``,
+    # etc.) on the wire. Single source of truth: the audit framework.
 
 
 async def _chat_post_complete(

@@ -25,11 +25,11 @@ from app.tools.entries.test_grade.search import search_test_grades
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
 )
-from app.tools.entries.test_invocation_traces.search import (
-    search_test_invocation_traces,
-)
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
+)
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
 )
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.evals.get import get_evals

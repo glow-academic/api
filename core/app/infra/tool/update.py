@@ -23,15 +23,15 @@ from app.infra.tool.permissions_context import (
     resolve_tool_values,
 )
 from app.infra.tool.refresh import refresh_tool_impl
+from app.infra.tool.types import (
+    UpdateToolApiRequest,
+    UpdateToolApiResponse,
+)
 from app.tools.artifacts.tool.update import (
     _UNSET,
 )
 from app.tools.artifacts.tool.update import (
     update_tool as update_tool_artifact,
-)
-from app.infra.tool.types import (
-    UpdateToolApiRequest,
-    UpdateToolApiResponse,
 )
 
 
@@ -40,7 +40,7 @@ async def update_tool_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    request: UpdateToolApiRequest,
+    request: UpdateToolApiRequest | None = None,
     session_id: UUID | None = None,
     draft_id: UUID | None = None,
     group_id: UUID | None = None,
@@ -50,21 +50,109 @@ async def update_tool_impl(
 ) -> UpdateToolApiResponse:
     """Tool bulk update using composable infra functions.
 
-    Flow:
+    Three call shapes:
+      - First call (explicit): ``request.tools`` required.
+      - First call (all-matching): ``request.all=true`` plus the filter
+        fields ``/tool/search`` accepts plus a single shared ``patch``.
+        The impl resolves matching ids, subtracts ``excluded_ids``, and
+        runs the existing per-row update flow with the patch cloned per
+        id. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        update is located by the operation key.
+
+    Flow (first call):
       1. resolve_profile_identity_context → role
-      2. Per-item: resolve_tool_permissions_context → exists + compute_can_edit
-      3. Per-item value resolution (raw → ID, no required field enforcement)
-      4. Single transaction: update_tool_artifact + denormalized snapshot per item
-      5. invalidate_tags
+      2. (all-matching only) resolve_matching_tool_ids → synthesize items
+      3. Per-item: resolve_tool_permissions_context → exists + compute_can_edit
+      4. Per-item value resolution (raw → ID, no required field enforcement)
+      5. Single transaction: update_tool_artifact + denormalized snapshot per item
+      6. canonical refresh
     """
     from app.infra.tool.permissions import compute_can_edit
     from app.infra.tool.types import (
         ToolResultItem,
     )
 
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key and accept is None:
-        accept = request.accept
+    # ── Merge ack fields from request ─────────────────────────────────
+    if request is not None:
+        idempotency_key = idempotency_key or request.idempotency_key
+        if idempotency_key and accept is None:
+            accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above per-row perm checks: under ack, ``request.tools`` is
+    # None (the dormant artifact is located by ``idempotency_key``) so
+    # the previous "perm-loop first" ordering broke on this shape.
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateToolApiResponse(
+                results=[
+                    ToolResultItem(
+                        success=True,
+                        tool_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+        # Promote dormant update — fall through to the normal flow with
+        # ``soft=False``; the rest of the impl handles the confirm.
+        # (Mirrors persona's promote semantics.)
+        soft = False
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # tool matching the filter, then clone ``request.patch`` per id
+    # (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[ToolResultItem] = []
+
+    if request is not None and request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.tool.resolve_matching_ids import resolve_matching_tool_ids
+        from app.infra.tool.types import UpdateToolItem
+
+        matching = await resolve_matching_tool_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_department_ids=request.filter_department_ids,
+            filter_creatable=request.filter_creatable,
+            filter_agent_ids=request.filter_agent_ids,
+            department_search=request.department_search,
+            flag_search=request.flag_search,
+            agent_search=request.agent_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [tid for tid in matching if tid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdateToolApiResponse(results=[], idempotency_key=idempotency_key)
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateToolItem(id=tid, **patch_fields) for tid in resolved_ids]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"tools": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if request is None or not request.tools:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.tools` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.tools
 
@@ -84,11 +172,22 @@ async def update_tool_impl(
         )
 
     # ── Step 2: Per-item permission check ──────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = request is not None and bool(request.all)
+    permitted_items: list = []
 
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_tool_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(ToolResultItem(
+                        success=False, tool_id=item.id,
+                        message=f"Tool {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Tool {item.id} not found.",
@@ -97,27 +196,29 @@ async def update_tool_impl(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 active_agent_count=perms.active_agent_count,
             ):
+                if is_all_matching:
+                    skipped_results.append(ToolResultItem(
+                        success=False, tool_id=item.id,
+                        message=f"No permission to update tool {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this tool.",
                 )
 
-    # ── Short-circuit: ack path ───────────────────────────────────────
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+            permitted_items.append(item)
+
+    # All-matching path: filter ``items`` to permitted rows only. The
+    # explicit path leaves it untouched (it already raised on any
+    # failure).
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateToolApiResponse(
-                results=[
-                    ToolResultItem(
-                        success=True,
-                        tool_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-
-        soft = False
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -213,7 +314,10 @@ async def update_tool_impl(
             operation_key=idempotency_key or (results[0].tool_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in one
+    # toast. Explicit path's ``skipped_results`` is empty.
     return UpdateToolApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

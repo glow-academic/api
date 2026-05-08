@@ -19,11 +19,11 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.persona.permissions import compute_can_duplicate
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import (
     DuplicatePersonaApiResponse,
 )
-from app.infra.persona.refresh import refresh_persona_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.create import (
     create_persona as create_persona_artifact,
 )
@@ -38,7 +38,7 @@ async def duplicate_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    id: UUID,
+    id: UUID | None = None,
     session_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -47,7 +47,12 @@ async def duplicate_persona_impl(
 ) -> DuplicatePersonaApiResponse:
     """Persona duplicate using composable infra functions.
 
-    Flow:
+    Two call shapes:
+      - First call: ``id`` of the original persona required.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        copy is located by the operation key.
+
+    Flow (first call):
       1. resolve_profile_identity_context → role
       2. compute_can_duplicate → permission check
       3. get_personas → fetch original with all junctions
@@ -56,8 +61,6 @@ async def duplicate_persona_impl(
       6. create_persona → new artifact with original IDs + inactive flag
       7. invalidate_tags
     """
-    persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
-
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:
@@ -75,6 +78,15 @@ async def duplicate_persona_impl(
             id=idempotency_key,
             message="Duplicate accepted" if accept else "Duplicate rejected",
         )
+
+    # ── First-call requirements ───────────────────────────────────────
+    if id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="`id` is required for first-call duplication "
+            "(or pass `idempotency_key` + `accept` for the ack call).",
+        )
+    persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
 
     # ── Step 1: Profile context ────────────────────────────────────────
 

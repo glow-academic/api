@@ -350,6 +350,22 @@ registry-validate: check-venv
 connect-db:
 	@psql -h "$${DB_HOST:-localhost}" -p "$${DB_PORT:-5432}" -U "$${DB_USER:-myuser}" -d "$${DB_NAME:-glowapi}"
 
+# External debug panel. Lives outside core/ so it can never affect
+# the live API. Three things in one command:
+#   1. Web panel at http://localhost:8765 (calls dashboard + live event
+#      sidebar — paste a JWT and it connects to the API as a client).
+#   2. Browser auto-opens to that URL.
+#   3. Live tail in the terminal: every new uploads/call/*.json prints
+#      a one-liner as it lands.
+# One-shot:
+#   make debug ARGS="--show 003af632"   # pretty-print one call and exit
+# Knobs:
+#   DEBUG_PORT=...        change web port (default 8765)
+#   DEBUG_API_BASE=...    point live sidebar at a remote API
+#   DEBUG_NO_OPEN=1       don't auto-open browser
+debug: check-venv
+	@$(VENV_PYTHON) scripts/debug/server.py $(ARGS)
+
 # Regenerate all template backups in history/ via testcontainers
 seed-gen: check-venv
 	@echo "Regenerating all templates..."

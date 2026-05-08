@@ -19,8 +19,8 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.tool.refresh import refresh_tool_impl
 from app.infra.tool.permissions import compute_can_duplicate
+from app.infra.tool.refresh import refresh_tool_impl
 from app.infra.tool.types import (
     DuplicateToolApiResponse,
 )
@@ -31,6 +31,7 @@ from app.tools.artifacts.tool.get import get_tools
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
 
 async def duplicate_tool_impl(
     pool: asyncpg.Pool,

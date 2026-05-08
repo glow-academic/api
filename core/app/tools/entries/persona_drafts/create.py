@@ -13,6 +13,7 @@ async def create_persona_draft(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    name: str = "",
     color_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     description_ids: list[UUID] | None = None,
@@ -33,14 +34,15 @@ async def create_persona_draft(
     """
     draft_id = await conn.fetchval(
         """
-        INSERT INTO persona_drafts_entry (id, session_id, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        INSERT INTO persona_drafts_entry (id, session_id, active, mcp, generated, name)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         session_id,
         not soft,
         mcp,
+        name,
         id,
     )
 

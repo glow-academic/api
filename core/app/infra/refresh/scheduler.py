@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import logging
 import os
 import time
 import uuid
@@ -37,8 +36,9 @@ from app.utils.cache.mv_refresh_queue import (
     set_next_run_at_ms,
     try_acquire_lock,
 )
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # Refresh primitive contract — matches the existing per-target signatures
@@ -132,7 +132,10 @@ class MVRefresher:
     async def _worker_loop(self, target: str) -> None:
         refresh_fn, interval_s = self._registry[target]
         interval_ms = int(interval_s * 1000)
-        logger.info(f"[mv-refresher:{target}] starting (interval={interval_s}s)")
+        # DEBUG (not INFO) — one line per registered MV at boot, ~60
+        # MVs floods the startup log. Tick errors below stay at ERROR
+        # because they're sparse + actionable.
+        logger.debug(f"[mv-refresher:{target}] starting (interval={interval_s}s)")
 
         try:
             while True:
@@ -148,7 +151,7 @@ class MVRefresher:
                     )
                     await asyncio.sleep(self.IDLE_SLEEP_S)
         except asyncio.CancelledError:
-            logger.info(f"[mv-refresher:{target}] cancelled")
+            logger.debug(f"[mv-refresher:{target}] cancelled")
             raise
 
     async def _tick(
@@ -201,7 +204,10 @@ class MVRefresher:
                     else:
                         raise
             duration_ms = int((time.monotonic() - t0) * 1000)
-            logger.info(
+            # DEBUG (not INFO) — fires per-tick when pending work
+            # exists; high-frequency MVs (groups_mv, runs_mv,
+            # messages_mv at 2s interval) emit constantly.
+            logger.debug(
                 f"[mv-refresher:{target}] refreshed in {duration_ms}ms"
             )
 

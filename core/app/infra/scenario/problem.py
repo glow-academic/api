@@ -13,8 +13,8 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
-from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import ProblemScenarioApiResponse
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 

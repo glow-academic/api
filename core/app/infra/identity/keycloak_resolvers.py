@@ -17,11 +17,11 @@ from app.tools.artifacts.department.get import (
     get_departments as get_department_artifacts,
 )
 from app.tools.artifacts.department.search import search_departments
+from app.tools.artifacts.profile.get import get_profiles as get_profile_artifacts
+from app.tools.artifacts.profile.search import search_profiles
 from app.tools.artifacts.setting.get import (
     get_settings as get_setting_artifacts,
 )
-from app.tools.artifacts.profile.get import get_profiles as get_profile_artifacts
-from app.tools.artifacts.profile.search import search_profiles
 from app.tools.artifacts.setting.search import search_settings
 from app.tools.resources.auth_item_keys.get import get_auth_item_keys
 from app.tools.resources.auth_item_values.get import get_auth_item_values

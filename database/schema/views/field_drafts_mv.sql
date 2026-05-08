@@ -11,7 +11,8 @@ CREATE MATERIALIZED VIEW public.field_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.field_drafts_entry
   WHERE (active = true)
   WITH NO DATA;

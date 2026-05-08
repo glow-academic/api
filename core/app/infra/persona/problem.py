@@ -35,8 +35,8 @@ async def problem_persona_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    type: str,
-    message: str,
+    type: str | None = None,
+    message: str | None = None,
     call_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -45,7 +45,13 @@ async def problem_persona_impl(
 ) -> ProblemPersonaApiResponse:
     """Create a problem entry for the persona artifact.
 
-    Lifecycle via soft + accept:
+    Two call shapes:
+      - First call: ``type`` + ``message`` required, ``soft`` optional.
+      - Ack call: ``idempotency_key`` + ``accept`` only — the dormant
+        problem is located by id; ``ON CONFLICT DO UPDATE`` flips active
+        without re-reading content, so type/message aren't needed.
+
+    Lifecycle:
       - soft=True: create problem with active=false
       - accept=True: promote (set active=true)
       - accept=False: no-op
@@ -53,15 +59,17 @@ async def problem_persona_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         if accept:
-            # Promote: re-call create with soft=False → ON CONFLICT activates
+            # Promote: re-call create with soft=False → ON CONFLICT
+            # branch fires and updates only ``active``. Empty-string
+            # sentinels for type/message are ignored on conflict.
             async with pool.acquire() as conn:
                 await create_problem_entry(
                     conn,
                     session_id=session_id,
                     call_id=call_id or UUID(int=0),
-                    type=type,
+                    type=type or "",
                     artifact_type=ARTIFACT_TYPE,
-                    message=message,
+                    message=message or "",
                     id=idempotency_key,
                     soft=False,
                 )
@@ -70,6 +78,14 @@ async def problem_persona_impl(
             problem_id=idempotency_key,
             success=True,
             message="Problem accepted" if accept else "Problem rejected",
+        )
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not type or not message:
+        raise HTTPException(
+            status_code=400,
+            detail="`type` and `message` are required for first-call problem report "
+            "(or pass `idempotency_key` + `accept` for the ack call).",
         )
 
     # ── Step 1: Validation ─────────────────────────────────────────────

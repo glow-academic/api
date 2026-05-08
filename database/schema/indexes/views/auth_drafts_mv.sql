@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX auth_drafts_mv_id_idx ON public.auth_drafts_mv USING btree (
 
 
 --
+
+-- Name: auth_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auth_drafts_mv_name_idx ON public.auth_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

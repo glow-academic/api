@@ -7,11 +7,11 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.benchmark.context import resolve_benchmark_search_context
 from app.infra.benchmark.get import _build_history
-from app.infra.globals import get_pool, get_redis_client
 from app.infra.benchmark.types import (
     BenchmarkHistoryResponse,
     BenchmarkRequest,
 )
+from app.infra.globals import get_pool, get_redis_client
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

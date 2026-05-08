@@ -37,7 +37,16 @@ async def update_auth_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateAuthApiResponse:
-    """Auth bulk update using composable infra functions."""
+    """Auth bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.auths`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+    """
     from app.infra.auth.permissions import compute_can_edit
     from app.infra.auth.types import AuthResultItem
     from app.infra.identity.keycloak_sync import perform_keycloak_sync
@@ -45,6 +54,83 @@ async def update_auth_impl(
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above perm checks so ack/all paths don't trip on
+    # ``request.auths`` being None.
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateAuthApiResponse(
+                results=[
+                    AuthResultItem(
+                        success=True,
+                        auth_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        # accept=True path: re-run as soft=False below if explicit items
+        # are still attached, otherwise nothing to do here.
+        soft = False
+        if not request.auths:
+            await refresh_auth_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
+            return UpdateAuthApiResponse(
+                results=[
+                    AuthResultItem(
+                        success=True,
+                        auth_id=idempotency_key,
+                        message="Update accepted",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    skipped_results: list[AuthResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.auth.resolve_matching_ids import resolve_matching_auth_ids
+        from app.infra.auth.types import UpdateAuthItem
+
+        matching = await resolve_matching_auth_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_department_ids=request.filter_department_ids,
+            department_search=request.department_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [aid for aid in matching if aid not in excluded]
+
+        if not resolved_ids:
+            return UpdateAuthApiResponse(results=[], idempotency_key=idempotency_key)
+
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateAuthItem(id=aid, **patch_fields) for aid in resolved_ids]
+        request = request.model_copy(update={"auths": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.auths:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.auths` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.auths
 
@@ -60,10 +146,23 @@ async def update_auth_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ─────────────────────────────────────
+    # Explicit path fails fast; all-matching path soft-skips so the
+    # response carries per-row outcomes without aborting rows the user
+    # CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_auth_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(AuthResultItem(
+                        success=False, auth_id=item.id,
+                        message=f"Auth {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Auth {item.id} not found.",
@@ -73,26 +172,27 @@ async def update_auth_impl(
                 role_permissions=profile.role_permissions,
                 active_settings_count=perms.active_settings_count,
             ):
+                if is_all_matching:
+                    skipped_results.append(AuthResultItem(
+                        success=False, auth_id=item.id,
+                        message=f"No permission to update auth {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this auth.",
                 )
+            permitted_items.append(item)
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateAuthApiResponse(
-                results=[
-                    AuthResultItem(
-                        success=True,
-                        auth_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
+    # ── Per-item value resolution ─────────────────────────────────────
     has_errors = False
     error_results: list[AuthResultItem] = []
 
@@ -117,6 +217,7 @@ async def update_auth_impl(
             idempotency_key=idempotency_key,
         )
 
+    # ── Per-item update ───────────────────────────────────────────────
     results: list[AuthResultItem] = []
     for item in items:
         async with pool.acquire() as conn:
@@ -205,7 +306,10 @@ async def update_auth_impl(
         except Exception:
             logger.warning("Keycloak sync failed after auth update (non-fatal)")
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in one
+    # toast. Explicit path's ``skipped_results`` is empty.
     return UpdateAuthApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

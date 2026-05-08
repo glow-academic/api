@@ -30,7 +30,6 @@ from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bridge
 from app.tools.entries.attempt_chat_bridge.refresh import refresh_attempt_chat_bridge
 
-
 # ---------------------------------------------------------------------------
 # Value types for denormalized input
 # ---------------------------------------------------------------------------
@@ -307,15 +306,15 @@ async def create_attempt_chat_impl(
 
     # ── Step 3: Resolve values ────────────────────────────────────────────────
 
-    from app.tools.resources.names.create import create_name
     from app.tools.resources.descriptions.create import create_description
-    from app.tools.resources.problem_statements.create import create_problem_statement
-    from app.tools.resources.objectives.create import create_objective
-    from app.tools.resources.questions.create import create_question
-    from app.tools.resources.options.create import create_option
-    from app.tools.resources.personas.search import search_personas
-    from app.tools.resources.parameter_fields.search import search_parameter_fields
     from app.tools.resources.documents.search import search_documents
+    from app.tools.resources.names.create import create_name
+    from app.tools.resources.objectives.create import create_objective
+    from app.tools.resources.options.create import create_option
+    from app.tools.resources.parameter_fields.search import search_parameter_fields
+    from app.tools.resources.personas.search import search_personas
+    from app.tools.resources.problem_statements.create import create_problem_statement
+    from app.tools.resources.questions.create import create_question
 
     scope_dept_ids = [department_id] if department_id else profile.department_ids
 

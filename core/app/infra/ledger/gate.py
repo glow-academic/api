@@ -14,7 +14,12 @@ from app.infra.ledger.chain import (
     write_entry,
 )
 from app.infra.ledger.client import phone_home
-from app.infra.ledger.types import AttemptContext, LedgerEntry, LearnLoopCheckpoint, UserUsage
+from app.infra.ledger.types import (
+    AttemptContext,
+    LearnLoopCheckpoint,
+    LedgerEntry,
+    UserUsage,
+)
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)

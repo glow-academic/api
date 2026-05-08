@@ -12,7 +12,9 @@ from redis.asyncio import Redis
 
 from app.infra.flag_icons import hydrate_flag_icons
 from app.infra.types import ArtifactContext, ResourcePair
-from app.tools.artifacts.department.get import get_departments as get_department_artifacts
+from app.tools.artifacts.department.get import (
+    get_departments as get_department_artifacts,
+)
 from app.tools.entries.department_drafts.get import get_department_drafts
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions

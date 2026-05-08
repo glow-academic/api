@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import UUID
-
 from typing import ClassVar
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -141,6 +140,32 @@ class DepartmentResultItem(BaseModel):
     errors: list[DepartmentFieldError] | None = Field(None, description="Per-field validation errors")
 
 
+class UpdateDepartmentPatch(BaseModel):
+    """Shared patch for bulk-update-all-matching mode.
+
+    Mirrors every field of ``UpdateDepartmentItem`` but with ``id``
+    relaxed to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(
+        None,
+        description="Ignored — bulk impl stamps the resolved department id per matched row",
+    )
+    # Optional single-select — provide ID or value
+    name_id: UUID | None = Field(None, description="UUID of the name resource")
+    name: str | None = Field(None, description="Name value to resolve or create")
+    description_id: UUID | None = Field(None, description="UUID of the description resource")
+    description: str | None = Field(None, description="Description value to resolve or create")
+    # Canonical multi-select flag ids + denormalized boolean for department_active.
+    flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
+    active: bool | None = Field(None, description="Denormalized department_active flag state; resolved to a flag_ids entry server-side")
+    # ID-only fields
+    settings_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
+    department_ids: list[UUID] | None = Field(None, description="Sub-department UUIDs to assign")
+
+
 # ========== Create Endpoint Types ==========
 
 
@@ -216,9 +241,33 @@ class UpdateDepartmentItem(ScopedItem):
 
 
 class UpdateDepartmentApiRequest(BaseModel):
-    """Request model for bulk update department endpoint."""
+    """Request model for bulk update department endpoint.
 
-    departments: list[UpdateDepartmentItem] = Field(..., description="List of departments to update")
+    Three body shapes:
+      - First call (explicit): ``departments`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/department/search`` accepts plus a single shared ``patch``
+        that every matched row receives. The impl resolves matching
+        ids, subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    departments: list[UpdateDepartmentItem] | None = Field(
+        None, description="List of departments to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteDepartmentApiRequest;
+    # ``patch`` is the shared change set applied to every matched row.
+    # ``patch.id`` is ignored — each resolved id is stamped onto a clone
+    # before the per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every department matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateDepartmentPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -238,9 +287,34 @@ class SaveDepartmentFieldError(BaseModel):
 
 
 class DeleteDepartmentApiRequest(BaseModel):
-    """Request model for bulk delete department endpoint."""
+    """Request model for bulk delete department endpoint.
 
-    department_ids: list[UUID] = Field(..., description="UUIDs of departments to delete")
+    Three body shapes:
+      - First call (explicit): ``department_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/department/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    department_ids: list[UUID] | None = Field(
+        None, description="UUIDs of departments to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchDepartmentApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every department matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /department/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``department_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
     accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -249,7 +323,7 @@ class DeleteDepartmentResult(BaseModel):
     """Per-item result within a bulk delete response."""
 
     success: bool = Field(..., description="Whether the deletion succeeded")
-    department_id: UUID = Field(..., description="UUID of the deleted department")
+    department_id: UUID | None = Field(None, description="UUID of the deleted department")
     message: str = Field(..., description="Result message")
 
 
@@ -429,3 +503,47 @@ class ProblemDepartmentApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadDepartmentApiRequest(BaseModel):
+    """Request model for department text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadDepartmentApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadDepartmentApiRequest(BaseModel):
+    """Request model for department call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadDepartmentApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

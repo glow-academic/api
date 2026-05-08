@@ -42,8 +42,8 @@ from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
-from app.tools.resources.profiles.search import search_profiles
 from app.tools.resources.profile_personas.create import create_profile_persona
+from app.tools.resources.profiles.search import search_profiles
 from app.tools.resources.simulation_availability.create import (
     create_simulation_availability,
 )
@@ -448,6 +448,7 @@ async def patch_cohort_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 department_ids=request.department_ids,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -518,6 +519,7 @@ async def patch_cohort_draft_impl(
         session_id=session_id,
         targets=["cohort_drafts_mv"],
         soft=soft,
+        name=request.name or "",
         operation_key=idempotency_key or result.id,
     )
 

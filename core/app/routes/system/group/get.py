@@ -5,11 +5,11 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.group.get import get_group_impl
-from app.infra.system.group import group_system_impl
 from app.infra.group.types import (
     GetGroupDetailRequest,
     GetGroupDetailResponse,
 )
+from app.infra.system.group import group_system_impl
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached

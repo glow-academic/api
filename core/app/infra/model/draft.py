@@ -25,8 +25,8 @@ from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
-from app.tools.resources.flags.search import search_flags
 from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.modalities.search import search_modalities
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
@@ -471,6 +471,7 @@ async def patch_model_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,

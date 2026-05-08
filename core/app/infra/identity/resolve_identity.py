@@ -12,7 +12,6 @@ contains either a profile_id claim (from default_idp) or an email claim
 
 from __future__ import annotations
 
-import logging
 import os
 import socket
 import time
@@ -25,8 +24,9 @@ import requests
 from jose import jwt
 
 from app.infra.identity.keycloak_sync import get_idp_public_url
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration (same env vars as mcp/oauth.py)

@@ -8,6 +8,10 @@ from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
+
 
 # ----------------------------
 # Streaming parser state classes
@@ -298,9 +302,6 @@ async def _parse_responses_chunk(
         return
 
     # Log unexpected event types for debugging (but don't fail)
-    import logging
-
-    logger = logging.getLogger(__name__)
     unexpected_types = {
         "response.output_item.delta",  # Old incorrect type
         "response.done",  # Old incorrect type

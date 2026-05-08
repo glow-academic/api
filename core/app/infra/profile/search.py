@@ -17,6 +17,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.identity.resolve_identity import resolve_emulation_chain
 from app.infra.profile.permissions import (
     compute_can_delete,
@@ -24,12 +25,11 @@ from app.infra.profile.permissions import (
     compute_can_edit,
     compute_can_emulate,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.profile.types import (
     ListProfilesApiProfile,
     ListProfilesApiResponse,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.profile.get import get_profiles
 from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.get import get_departments
@@ -45,7 +45,6 @@ from app.tools.resources.profiles.get import (
 )
 from app.tools.resources.roles.get import get_roles
 from app.tools.resources.roles.search import search_roles
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

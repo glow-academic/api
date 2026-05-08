@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX scenario_drafts_mv_id_idx ON public.scenario_drafts_mv USING
 
 
 --
+
+-- Name: scenario_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX scenario_drafts_mv_name_idx ON public.scenario_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

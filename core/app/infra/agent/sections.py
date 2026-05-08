@@ -39,10 +39,6 @@ from app.infra.agent.permissions import (
     has_access,
 )
 from app.infra.agent.permissions_context import AgentPermissionsContext
-from app.infra.common_context import CommonContext
-from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext
 from app.infra.agent.types import (
     AgentDepartmentSection,
     AgentDescriptionSection,
@@ -60,6 +56,10 @@ from app.infra.agent.types import (
     AgentVoiceSection,
     GetAgentApiResponse,
 )
+from app.infra.common_context import CommonContext
+from app.infra.helpers import sorted_dedupe_by_id
+from app.infra.tool_graph import ArtifactToolScores
+from app.infra.types import ArtifactContext
 
 
 def derive_flag_key_and_label(name: str | None) -> tuple[str, str]:

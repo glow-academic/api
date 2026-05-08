@@ -25,13 +25,14 @@ Events emitted:
 """
 
 import json
-import logging
 import uuid
 from typing import Any
 
 from app.infra.generation.emit import canonical_generation_event
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+from app.infra.websocket.attempt_types import AttemptErrorData, AttemptStoppedData
 from app.infra.websocket.session_store import get_session_by_group_id
 from app.infra.websocket.socket_event import (
     EmitFn,
@@ -380,26 +381,51 @@ class InternalBusAudioEmitter:
             str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
         )
         ctx = self._session_context(group_id)
+        complete_payload = {
+            **ctx,
+            "modality": "call",
+            "type": "complete",
+            "event_type": "tool_call_complete",
+            "tool_call_id": call_id,
+            "tool_name": name,
+            "arguments": arguments_dict,
+            "arguments_delta": arguments,
+            "call_id": internal_call_id,
+            "responses_call_id": st.get("responses_call_id", call_id),
+            "resolved_fields": resolved_fields,
+        }
         await self._emit(
             [
                 internal_event(
                     _canonical(ctx, "call", "complete"),
-                    {
-                        **ctx,
-                        "modality": "call",
-                        "type": "complete",
-                        "event_type": "tool_call_complete",
-                        "tool_call_id": call_id,
-                        "tool_name": name,
-                        "arguments": arguments_dict,
-                        "arguments_delta": arguments,
-                        "call_id": internal_call_id,
-                        "responses_call_id": st.get("responses_call_id", call_id),
-                        "resolved_fields": resolved_fields,
-                    },
+                    complete_payload,
                 )
             ]
         )
+
+        # Inline test-grade handling: when the audio session is grading
+        # a test attempt (artifact_type == "test", resource_type ==
+        # "grade"), drive ``test_grade_complete_impl`` directly. This
+        # was previously a subscriber in
+        # ``ws/output/test/generate_grade.py`` listening for
+        # ``test.generate.call.complete``. Only fires from this audio
+        # path in practice — the text-loop emit doesn't carry
+        # resource_type, so the old subscriber never matched there.
+        if (
+            ctx.get("artifact_type") == "test"
+            and ctx.get("resource_type") == "grade"
+            and session
+            and session.profile_id
+        ):
+            from app.infra.globals import get_pool
+            from app.infra.test.workflows import test_grade_complete_impl
+
+            await test_grade_complete_impl(
+                complete_payload,
+                emit=make_emit(),
+                pool=get_pool(),
+                profile_id=session.profile_id,
+            )
 
     # -- User speech --
 
@@ -486,40 +512,92 @@ class InternalBusAudioEmitter:
     # -- Lifecycle --
 
     async def on_error(self, group_id: str, error_message: str) -> None:
-        """Adapter or provider error — emits ``attempt.generate.audio.error``."""
+        """Adapter or provider error — emits ``attempt.generate.audio.error``
+        plus the client-facing ``attempt.audio.error`` translation. The
+        translation rename was previously in
+        ``ws/output/attempt/generate/audio_error.py`` → ``audio_error_impl``.
+        Inlined so the error pipeline reads top-to-bottom from the
+        adapter onError hook.
+        """
         ctx = self._session_context(group_id)
-        await self._emit(
-            [
+        events = [
+            internal_event(
+                "attempt.generate.audio.error",
+                {
+                    **ctx,
+                    "type": "error",
+                    "event_type": "audio_error",
+                    "error_message": error_message,
+                },
+            ),
+        ]
+        session = get_session_by_group_id(group_id)
+        if session:
+            events.append(
                 internal_event(
-                    "attempt.generate.audio.error",
-                    {
-                        **ctx,
-                        "type": "error",
-                        "event_type": "audio_error",
-                        "error_message": error_message,
-                    },
+                    "attempt.audio.error",
+                    AttemptErrorData(
+                        sid=session.sid,
+                        error_type="audio",
+                        message=error_message,
+                        chat_id=session.chat_id,
+                    ).model_dump(mode="json"),
                 )
-            ]
-        )
+            )
+        await self._emit(events)
 
     async def on_response_cancelled(
         self, group_id: str, usage: dict[str, Any] | None = None
     ) -> None:
-        """Provider response cancelled (barge-in) — emits ``attempt.generate.audio.response_cancelled``."""
+        """Provider response cancelled (barge-in) — emits the canonical
+        ``attempt.generate.audio.response_cancelled`` event plus the
+        client-facing barge-in handling: ``attempt.stop.completed`` to
+        unwind the chat UI and a fresh ``generate`` to re-enter the
+        rate-limit gate. The barge-in handling was previously in
+        ``ws/output/attempt/generate/audio_response_cancelled.py`` →
+        ``audio_response_cancelled_impl``. Inlined so the on-cancel
+        path reads top-to-bottom from the adapter hook.
+        """
         usage = usage or {}
         ctx = self._session_context(group_id)
-        await self._emit(
-            [
+        events = [
+            internal_event(
+                "attempt.generate.audio.response_cancelled",
+                {
+                    **ctx,
+                    "input_text_tokens": usage.get("input_tokens", 0),
+                    "output_text_tokens": usage.get("output_tokens", 0),
+                },
+            ),
+        ]
+        session = get_session_by_group_id(group_id)
+        if session:
+            sid = session.sid
+            chat_id = session.chat_id
+            logger.info(f"Response cancelled (barge-in) - group_id={group_id}")
+            events.extend([
                 internal_event(
-                    "attempt.generate.audio.response_cancelled",
+                    "attempt.stop.completed",
+                    AttemptStoppedData(
+                        sid=sid,
+                        rooms=[sid, str(group_id)],
+                        chat_id=chat_id,
+                        success=True,
+                        message=None,
+                    ).model_dump(mode="json"),
+                ),
+                internal_event(
+                    "generate",
                     {
-                        **ctx,
-                        "input_text_tokens": usage.get("input_tokens", 0),
-                        "output_text_tokens": usage.get("output_tokens", 0),
+                        "sid": sid,
+                        "artifact_type": ctx.get("artifact_type", ""),
+                        "operations": ["get"],
+                        "group_id": group_id,
+                        "metadata": ctx.get("metadata", {}),
                     },
-                )
-            ]
-        )
+                ),
+            ])
+        await self._emit(events)
 
     async def on_response_done(
         self, group_id: str, usage: dict[str, Any] | None = None

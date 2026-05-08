@@ -5,10 +5,12 @@ Core logic lives in app.infra.persona.group.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.group import (
     GroupPersonaApiRequest,
     GroupPersonaApiResponse,
@@ -43,13 +45,20 @@ async def group_persona(
         pool = get_pool()
         redis = get_redis_client()
 
-        async def _runner() -> GroupPersonaApiResponse:
+        async def _runner(group_id: UUID) -> GroupPersonaApiResponse:
+            # ``group_id`` is supplied by the audit framework: either the
+            # caller-provided ``request.group_id`` or a freshly-minted v7
+            # UUID (when ``mint_group_id_if_missing=True``). Forwarding
+            # it via the request body keeps the impl unchanged and lets
+            # ``create_group``'s idempotent upsert materialize the row
+            # under the framework-assigned id.
+            scoped_request = request.model_copy(update={"group_id": group_id})
             return await group_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                request=request,
+                request=scoped_request,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -60,6 +69,7 @@ async def group_persona(
             session_id=session_id,
             operation="group",
             group_id=request.group_id,
+            mint_group_id_if_missing=True,
             arguments=request.model_dump(mode="json"),
             response_model=GroupPersonaApiResponse,
             runner=_runner,

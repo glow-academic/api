@@ -14,12 +14,6 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.utils.cache.big import (
-    DEFAULT_BIG_CACHE_TTL_S,
-    big_cache_key,
-    get_or_build,
-)
-
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.types import (
@@ -27,6 +21,11 @@ from app.infra.simulation.types import (
     GenerationsSimulationListItem,
 )
 from app.tools.entries.groups.search import search_groups
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
 
 ARTIFACT_TYPE = "simulation"
 

@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import logging
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -35,8 +34,9 @@ from app.infra.tools.execute_infra_operation import (
 from app.infra.tools.render_result import render_tool_result
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.registry.operations import is_write_operation
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Map args_resource.field_type values to Python types for inputSchema inference.
 _FIELD_TYPE_MAP: dict[str, type] = {

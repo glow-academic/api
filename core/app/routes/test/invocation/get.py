@@ -7,8 +7,8 @@ from fastapi import APIRouter, HTTPException, Request
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.invocation.get import get_invocation_impl
-from app.infra.test.group import group_test_impl
 from app.infra.invocation.types import GetSuiteRequest, GetSuiteResponse
+from app.infra.test.group import group_test_impl
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

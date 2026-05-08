@@ -155,8 +155,8 @@ async def attempt_message_internal_impl(
             )
 
     # Refresh MVs so messages appear in the UI
-    from app.tools.entries.attempt_message.refresh import refresh_attempt_message
     from app.tools.entries.attempt_content.refresh import refresh_attempt_content
+    from app.tools.entries.attempt_message.refresh import refresh_attempt_message
     async with pool.acquire() as conn:
         await refresh_attempt_message(conn)
         await refresh_attempt_content(conn)

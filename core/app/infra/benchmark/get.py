@@ -17,20 +17,19 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
-from app.infra.benchmark.context import (
-    resolve_benchmark_context,
-    resolve_benchmark_search_context,
-)
+from app.infra.api_types import FilterOption
 from app.infra.attempt.chat.permissions import (
     compute_pass_pct,
     compute_score_status,
     compute_show_continue,
     compute_show_view,
 )
-from app.infra.benchmark.permissions import compute_benchmark_eval_status
-from app.infra.common_context import resolve_common_context
-from app.infra.types import ArtifactContext
 from app.infra.auth.types import AnalyticsFilterFields
+from app.infra.benchmark.context import (
+    resolve_benchmark_context,
+    resolve_benchmark_search_context,
+)
+from app.infra.benchmark.permissions import compute_benchmark_eval_status
 from app.infra.benchmark.types import (
     BenchmarkDepartmentItem,
     BenchmarkEvalOperational,
@@ -39,7 +38,8 @@ from app.infra.benchmark.types import (
     BenchmarkRequest,
     BenchmarkResponse,
 )
-from app.infra.api_types import FilterOption
+from app.infra.common_context import resolve_common_context
+from app.infra.types import ArtifactContext
 
 BENCHMARK_FACETS_CONFIG = AnalyticsFacetsConfig(
     fields=AnalyticsFilterFields(

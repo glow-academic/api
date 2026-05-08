@@ -9,19 +9,19 @@ Handles:
   - Path rewriting for Cursor/ChatGPT compatibility
 """
 
-import logging
 import os
 import time
 from typing import Any
 
 import httpx
-from jose import jwt
-
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
+from jose import jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger(__name__)
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 # Configuration from environment
 ORIGIN = os.getenv("ORIGIN", "http://localhost")

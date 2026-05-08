@@ -1,0 +1,10 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Group Renamed
+- **Group ID:** `{{ r.group_id }}`
+- **Title:** {{ r.title }}
+{% elif results and results[0] and results[0].error %}
+Error renaming group: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

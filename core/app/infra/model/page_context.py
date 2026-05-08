@@ -17,6 +17,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
@@ -24,7 +25,6 @@ from app.infra.docs.types import (
     OperationPrompts,
     StarterPrompt,
 )
-from app.infra.docs.build_profile_summary import build_profile_summary
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
 
@@ -55,7 +55,6 @@ from app.tools.resources.temperature_levels.docs import (
 )
 from app.tools.resources.values.docs import get_values_docs
 from app.tools.resources.voices.docs import get_voices_docs
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

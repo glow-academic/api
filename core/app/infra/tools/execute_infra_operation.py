@@ -521,9 +521,14 @@ async def execute_infra_operation(
                 # an LLM generate loop picked the tool. Every other caller
                 # (HTTP routes, socket impls) inherits the "user" default.
                 role="assistant",
-                # If the caller pre-minted a call_id, they also emitted
-                # ``.started`` upstream (streaming path). Don't double-fire.
-                suppress_started=ctx.call_id is not None,
+                # ``.started`` fires unconditionally — the client dedups
+                # by ``call_id``, so the audit's started arriving alongside
+                # the pipeline's ``generate.call.start`` (same id, both
+                # pre-minted to match) collapses to one bubble. The
+                # audit's emit additionally carries the ``tool`` envelope
+                # which the pipeline event doesn't have, so the bubble
+                # gets its registered-tool metadata symmetrically with
+                # SSR/user-side audit calls.
             )
 
             results.append(InfraOperationResult(

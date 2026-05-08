@@ -8,13 +8,13 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.department.group import group_department_impl
-from app.infra.department.update import update_department_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.department.types import (
     UpdateDepartmentApiRequest,
     UpdateDepartmentApiResponse,
 )
+from app.infra.department.update import update_department_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -64,11 +64,7 @@ async def update_department(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "departments": [
-                    item.model_dump(mode="json") for item in request.departments
-                ]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=UpdateDepartmentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

@@ -11,7 +11,8 @@ CREATE TABLE public.tool_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 

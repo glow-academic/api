@@ -11,12 +11,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.system.group import group_system_impl
 from app.infra.group.media_types import (
     VideoDownloadGroupApiRequest,
     VideoDownloadGroupApiResult,
 )
 from app.infra.group.video_download import video_download_group_impl
+from app.infra.system.group import group_system_impl
 from app.utils.error.handle_route_error import handle_route_error
 from app.utils.storage.range_response import create_range_response
 

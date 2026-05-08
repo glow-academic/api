@@ -20,6 +20,8 @@ from app.routes.tool.refresh import router as refresh_router
 from app.routes.tool.search import router as search_router
 from app.routes.tool.stream import router as stream_router
 from app.routes.tool.update import router as update_router
+from app.routes.tool.text import router as text_router
+from app.routes.tool.call import router as call_router
 
 router = APIRouter(prefix="/tool", tags=["tool"])
 
@@ -42,3 +44,7 @@ router.include_router(preview_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

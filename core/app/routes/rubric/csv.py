@@ -12,9 +12,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
+from app.infra.globals import UPLOAD_FOLDER, get_pool
 from app.infra.rubric.search import RUBRIC_IMPORT_FIELDS
 from app.infra.rubric.types import CreateRubricItem
-from app.infra.globals import UPLOAD_FOLDER, get_pool
 from app.tools.entries.uploads.create import create_upload
 from app.utils.error.handle_route_error import handle_route_error
 

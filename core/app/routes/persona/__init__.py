@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.routes.persona.call import router as call_router
 from app.routes.persona.context import router as context_router
 from app.routes.persona.create import router as create_router
 from app.routes.persona.csv import router as csv_router
@@ -18,6 +19,7 @@ from app.routes.persona.problem import router as problem_router
 from app.routes.persona.refresh import router as refresh_router
 from app.routes.persona.search import router as search_router
 from app.routes.persona.stream import router as stream_router
+from app.routes.persona.text import router as text_router
 from app.routes.persona.update import router as update_router
 
 router = APIRouter(prefix="/persona", tags=["persona"])
@@ -40,3 +42,7 @@ router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

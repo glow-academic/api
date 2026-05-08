@@ -12,9 +12,9 @@ from pydantic import BaseModel
 
 from app.infra.agent.group import group_agent_impl
 from app.infra.agent.search import search_agent_impl
+from app.infra.agent.types import ListAgentApiResponse
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.agent.types import ListAgentApiResponse
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

@@ -75,6 +75,18 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="drafts",
     ),
+    "operation_drafts_search": dict(
+        id=sid("args_output/operation_drafts_search"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="drafts_search",
+    ),
+    "operation_title": dict(
+        id=sid("args_output/operation_title"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="title",
+    ),
     "operation_duplicate": dict(
         id=sid("args_output/operation_duplicate"),
         args_id=_OPERATION_ARG_ID,

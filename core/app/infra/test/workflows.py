@@ -231,8 +231,8 @@ async def test_group_impl(
     pool: asyncpg.Pool,
 ) -> None:
     """Orchestrate sequential runs within a group."""
-    from app.infra.websocket.test_types import TestErrorData
     from app.infra.test.client_types import TestGroupPayload
+    from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.runs.search import search_runs
     from app.utils.logging.db_logger import get_logger
 
@@ -410,21 +410,25 @@ async def test_next_impl(
                     ]
                 )
                 return
-            await emit(
-                [
-                    internal_event(
-                        "test.group.started",
-                        {
-                            "sid": sid,
-                            "profile_id": data.get("profile_id"),
-                            "session_id": data.get("session_id"),
-                            "profiles_id": data.get("profiles_id"),
-                            "test_invocation_id": str(invocation.invocation_id),
-                            "test_id": str(test_id),
-                            "group_id": str(invocation.group_id),
-                        },
-                    )
-                ]
+            # Drive the group orchestration directly. Previously this
+            # emitted ``test.group.started`` which was subscribed by
+            # ``ws/output/test/group/started.py`` → ``test_group_impl``.
+            # That extra hop hid the workflow chain and swallowed any
+            # exception inside the impl. Calling directly keeps the
+            # orchestration in one async stack so failures propagate
+            # back here and surface in the test_next_impl error path.
+            await test_group_impl(
+                {
+                    "sid": sid,
+                    "profile_id": data.get("profile_id"),
+                    "session_id": data.get("session_id"),
+                    "profiles_id": data.get("profiles_id"),
+                    "test_invocation_id": str(invocation.invocation_id),
+                    "test_id": str(test_id),
+                    "group_id": str(invocation.group_id),
+                },
+                emit=emit,
+                pool=pool,
             )
             return
 

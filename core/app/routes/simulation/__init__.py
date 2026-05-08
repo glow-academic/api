@@ -19,6 +19,8 @@ from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
 from app.routes.simulation.stream import router as stream_router
 from app.routes.simulation.update import router as update_router
+from app.routes.simulation.text import router as text_router
+from app.routes.simulation.call import router as call_router
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
@@ -40,3 +42,7 @@ router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(group_router)
 router.include_router(stream_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

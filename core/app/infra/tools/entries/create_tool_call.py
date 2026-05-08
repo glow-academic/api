@@ -1,6 +1,7 @@
 """Create tool call — black box that executes a tool and persists everything."""
 
 import json
+import traceback as _tb
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -80,8 +81,27 @@ async def create_tool_call(
     try:
         raw_result = await tool_fn(conn, call_id=call_id, **arguments)
     except Exception as exc:
+        # Capture the full failure trail into the call receipt. The
+        # ``message`` + ``error_type`` fields stay shape-compatible with
+        # callers that already grep them; ``traceback`` and ``context``
+        # are additive and only present when the call threw. Single
+        # source of truth for any post-mortem of this call.
         tool_error = exc
-        raw_result = {"success": False, "message": str(exc)}
+        raw_result = {
+            "success": False,
+            "message": str(exc),
+            "error_type": type(exc).__name__,
+            "traceback": _tb.format_exc(),
+            "context": {
+                "call_id": str(call_id) if call_id else None,
+                "tool_id": str(tool_id) if tool_id else None,
+                "run_id": str(run_id) if run_id else None,
+                "session_id": str(session_id),
+                "operation_key": str(operation_key) if operation_key else None,
+                "instruction_template_present": bool(instruction_template),
+                "arguments": arguments,
+            },
+        }
 
     if isinstance(raw_result, str):
         output_raw = raw_result

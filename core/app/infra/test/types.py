@@ -19,11 +19,11 @@ from app.tools.entries.test.types import GetTestResponse
 from app.tools.entries.test_feedback.types import GetTestFeedbackResponse
 from app.tools.entries.test_grade.types import GetTestGradeResponse
 from app.tools.entries.test_invocation.types import GetTestInvocationResponse
-from app.tools.entries.test_invocation_traces.types import (
-    GetTestInvocationTracesResponse,
-)
 from app.tools.entries.test_invocation_runs.types import (
     GetTestInvocationRunsResponse,
+)
+from app.tools.entries.test_invocation_traces.types import (
+    GetTestInvocationTracesResponse,
 )
 
 # =============================================================================

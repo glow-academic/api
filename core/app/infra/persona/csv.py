@@ -28,7 +28,6 @@ from app.infra.persona.search import PERSONA_IMPORT_FIELDS
 from app.infra.persona.types import CreatePersonaItem
 from app.tools.entries.uploads.create import create_upload
 
-
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------

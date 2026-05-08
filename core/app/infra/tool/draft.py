@@ -21,13 +21,13 @@ from app.infra.tool.types import (
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.tool_drafts.create import create_tool_draft
 from app.tools.entries.tool_drafts.get import get_tool_drafts
+from app.tools.resources.arg_positions.create import create_arg_position
+from app.tools.resources.args.create import create_arg
+from app.tools.resources.args_outputs.create import create_args_output
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
-from app.tools.resources.args.create import create_arg
-from app.tools.resources.arg_positions.create import create_arg_position
-from app.tools.resources.args_outputs.create import create_args_output
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
@@ -377,6 +377,7 @@ async def patch_tool_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids or None,

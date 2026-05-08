@@ -294,10 +294,55 @@ class UpdateToolItem(ScopedItem):
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreateToolItem.RESOURCE_TYPE_MAP
 
 
-class UpdateToolApiRequest(BaseModel):
-    """Request model for bulk update tool endpoint."""
+class UpdateToolPatch(UpdateToolItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    tools: list[UpdateToolItem] = Field(..., description="List of tools to update")
+    Inherits every field from ``UpdateToolItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved tool id per matched row",
+    )
+
+
+class UpdateToolApiRequest(BaseModel):
+    """Request model for bulk update tool endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``tools`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/tool/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    tools: list[UpdateToolItem] | None = Field(
+        None, description="List of tools to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteToolApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every tool matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateToolPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    filter_creatable: list[str] | None = Field(None, description="Filter by creatable flag (no-op for row filtering today; accepted for forward compatibility)")
+    filter_agent_ids: list[UUID] | None = Field(None, description="Filter by agent UUIDs that reference these tools (no-op for row filtering today; accepted for forward compatibility)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+    agent_search: str | None = Field(None, description="Search text for agent facet (no-op for row filtering)")
+
+    # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -317,9 +362,40 @@ class SaveToolFieldError(BaseModel):
 
 
 class DeleteToolApiRequest(BaseModel):
-    """Request model for bulk delete tool endpoint."""
+    """Request model for bulk delete tool endpoint.
 
-    tool_ids: list[UUID] = Field(..., description="List of tool IDs to delete")
+    Three body shapes:
+      - First call (explicit): ``tool_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/tool/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    tool_ids: list[UUID] | None = Field(
+        None, description="List of tool IDs to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchToolApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every tool matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /tool/search). Only meaningful when
+    # ``all=true``; the validator does not enforce that today — the
+    # impl simply ignores them when ``tool_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    filter_creatable: list[str] | None = Field(None, description="Filter by creatable flag (no-op for row filtering today; accepted for forward compatibility)")
+    filter_agent_ids: list[UUID] | None = Field(None, description="Filter by agent UUIDs that reference these tools (no-op for row filtering today; accepted for forward compatibility)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+    agent_search: str | None = Field(None, description="Search text for agent facet (no-op for row filtering)")
+
+    # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
     accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -328,7 +404,11 @@ class DeleteToolResult(BaseModel):
     """Per-item result within a bulk delete response."""
 
     success: bool = Field(..., description="Whether the deletion succeeded")
-    tool_id: UUID = Field(..., description="Deleted tool identifier")
+    # Relaxed to optional so all-matching soft-skipped not-found rows
+    # (where the input id didn't resolve to an actual artifact) can be
+    # reported in the response without raising. Explicit-ids path
+    # always populates this with a real UUID.
+    tool_id: UUID | None = Field(None, description="Deleted tool identifier (None when soft-skipped without resolution)")
     message: str = Field(..., description="Result message")
 
 
@@ -617,3 +697,47 @@ class PreviewToolApiResponse(BaseModel):
     outputs: list[ToolPreviewOutputResult] = Field(default_factory=list, description="Rendered output blocks")
     type_hints: list[ToolPreviewArgHint] = Field(default_factory=list, description="Per-arg usage/filter hints")
     undeclared: list[str] = Field(default_factory=list, description="Variable names referenced by templates but not declared in args")
+
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadToolApiRequest(BaseModel):
+    """Request model for tool text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadToolApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadToolApiRequest(BaseModel):
+    """Request model for tool call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadToolApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

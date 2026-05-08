@@ -5,8 +5,6 @@ from app.infra.websocket.handler_wrapper import (
     build_generate_error_forward_payload,
     build_generate_error_validation_payload,
     build_handler_error_message,
-    build_profile_lookup_failed_message,
-    find_profile_id_for_sid,
     is_generate_error_event,
 )
 
@@ -52,40 +50,11 @@ def test_build_generate_error_validation_payload_uses_client_message_shape():
     }
 
 
-def test_find_profile_id_for_sid_returns_matching_owner():
-    profile_id = find_profile_id_for_sid(
-        {
-            "profile-1": "sid-1",
-            "profile-2": "sid-2",
-        },
-        "sid-2",
-    )
-
-    assert profile_id == "profile-2"
-
-
-def test_find_profile_id_for_sid_returns_none_when_missing():
-    profile_id = find_profile_id_for_sid(
-        {
-            "profile-1": "sid-1",
-        },
-        "sid-9",
-    )
-
-    assert profile_id is None
-
-
 def test_build_client_error_payload_uses_standard_shape():
     assert build_client_error_payload("broken") == {
         "success": False,
         "message": "broken",
     }
-
-
-def test_build_profile_lookup_failed_message_prefixes_exception_message():
-    assert build_profile_lookup_failed_message(RuntimeError("redis down")) == (
-        "Profile lookup failed: redis down"
-    )
 
 
 def test_build_handler_error_message_prefixes_exception_message():

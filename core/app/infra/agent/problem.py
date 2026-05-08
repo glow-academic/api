@@ -8,10 +8,10 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.permissions_helpers import has_permission
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.agent.types import ProblemAgentApiResponse
+from app.infra.permissions_helpers import has_permission
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 
 ARTIFACT_TYPE = "agent"

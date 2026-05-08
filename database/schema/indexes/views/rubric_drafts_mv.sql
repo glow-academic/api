@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX rubric_drafts_mv_id_idx ON public.rubric_drafts_mv USING btr
 
 
 --
+
+-- Name: rubric_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX rubric_drafts_mv_name_idx ON public.rubric_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

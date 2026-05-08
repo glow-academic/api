@@ -13,7 +13,6 @@ No generic events (generate_text_progress, generate_call_complete, etc.).
 from __future__ import annotations
 
 import json
-import logging
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -25,18 +24,18 @@ from app.infra.artifacts import (
     stream_litellm_events,
 )
 from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
-from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
-from app.infra.globals import get_internal_sio
-from app.infra.tools.execute_infra_operation import (
-    InfraContext,
-    execute_infra_operation,
-)
 from app.infra.generation.audio import execute_audio_dispatch
 from app.infra.generation.dispatch import resolve_executor
 from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.media import execute_media_dispatch
 from app.infra.generation.stt import execute_stt_dispatch
 from app.infra.generation.tts import execute_tts_dispatch
+from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
+from app.infra.globals import get_internal_sio
+from app.infra.tools.execute_infra_operation import (
+    InfraContext,
+    execute_infra_operation,
+)
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.infra.websocket.generation_types import GenerateErrorApiRequest
 from app.infra.websocket.socket_event import internal_event, make_emit
@@ -46,6 +45,7 @@ from app.infra.websocket.tool_call_utils import (
     resolve_output_fields,
 )
 from app.utils.auth.decrypt_api_key import decrypt_api_key
+from app.utils.logging.db_logger import get_logger
 
 try:
     import litellm  # type: ignore
@@ -54,7 +54,7 @@ try:
 except ImportError:
     LITELLM_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -385,6 +385,33 @@ async def _execute_agent_dispatch(
         and not m.get("tool_calls")
     ]
 
+    # Positive observability — log exactly what's about to be handed
+    # to the LLM. Without this we can't tell whether the threaded
+    # chat history actually reached the provider or got silently
+    # filtered along the way (e.g. the responses_input filter above
+    # drops `role: "tool"` and any message carrying `tool_calls`).
+    # We log the role sequence plus a short content preview per
+    # message — the actual provider call follows immediately, so
+    # this is "what OpenAI sees" with very high fidelity.
+    def _content_preview(c: Any) -> str:
+        if isinstance(c, str):
+            return c.replace("\n", " ")[:140]
+        if isinstance(c, list):  # multipart blocks
+            return f"[{len(c)} blocks]"
+        return str(c)[:140] if c is not None else "<None>"
+    _outgoing = responses_input if api_mode == "responses" else chat_messages
+    logger.info(
+        "LLM_CALL run=%s agent=%s api=%s model=%s msgs=%d roles=%s",
+        prepared.run_id, dispatch.agent_id, api_mode,
+        llm_config.get("model"), len(_outgoing),
+        [m.get("role") for m in _outgoing],
+    )
+    for _i, _m in enumerate(_outgoing):
+        logger.info(
+            "  [%d] %s: %s",
+            _i, _m.get("role"), _content_preview(_m.get("content")),
+        )
+
     total_input_tokens = 0
     total_output_tokens = 0
     all_tool_results: list[dict[str, Any]] = []
@@ -456,7 +483,7 @@ async def _execute_agent_dispatch(
                         f"{artifact_type}.generate.text.progress",
                         {
                             "sid": sid,
-                            "rooms": [sid] if sid else [],
+                            "rooms": [str(profile_id)],
                             "artifact_type": artifact_type,
                             "run_id": str(run_id),
                             "group_id": str(group_id),
@@ -471,7 +498,7 @@ async def _execute_agent_dispatch(
                     f"{artifact_type}.generate.text.complete",
                     {
                         "sid": sid,
-                        "rooms": [sid] if sid else [],
+                        "rooms": [str(profile_id)],
                         "artifact_type": artifact_type,
                         "run_id": str(run_id),
                         "group_id": str(group_id),
@@ -505,35 +532,31 @@ async def _execute_agent_dispatch(
                         f"{artifact_type}.generate.call.start",
                         {
                             "sid": sid,
-                            "rooms": [sid] if sid else [],
+                            "rooms": [str(profile_id)],
                             "artifact_type": artifact_type,
                             "run_id": str(run_id),
                             "group_id": str(group_id),
+                            # ``call_id`` carries the pre-minted DB row id so
+                            # the audit lifecycle (``{artifact}.{op}.started``)
+                            # and this pipeline event share one handle on the
+                            # client — natural dedup keys to one bubble per
+                            # logical tool call. ``tool_call_id`` stays as
+                            # the provider's own string id for provenance.
+                            "call_id": str(st["call_id"]),
                             "tool_call_id": tool_call_id,
                             "tool_name": st.get("tool_name"),
                         },
                     )
-                    # Per-tool .started fires as soon as the AI picks a
-                    # tool (before any args stream). Carries the pre-minted
-                    # call_id so every subsequent progress/completed event
-                    # for this same tool call shares the same handle.
-                    route = _resolve_tool_route(
-                        tool_def_by_name.get(st.get("tool_name") or "")
-                    )
-                    if route is not None:
-                        route_artifact, route_op = route
-                        await internal_sio.emit(
-                            f"{route_artifact}.{route_op}.started",
-                            {
-                                "sid": sid,
-                                "rooms": [sid] if sid else [],
-                                "artifact_type": artifact_type,
-                                "run_id": str(run_id),
-                                "group_id": str(group_id),
-                                "call_id": str(st["call_id"]),
-                                "tool_name": st.get("tool_name"),
-                            },
-                        )
+                    # ``{artifact}.{op}.started`` is now emitted by the
+                    # audit framework (``run_artifact_operation_with_audit``)
+                    # once args are parsed and the impl is about to run.
+                    # The audit emit carries the ``tool`` envelope,
+                    # ``operation_key``, etc. — a richer payload than this
+                    # pre-args pipeline emit could produce. Firing here
+                    # too produced duplicate ``<artifact>.<op>.started``
+                    # events on the wire (same ``call_id``, deduped to one
+                    # bubble client-side, but visible noise in the SSE
+                    # log). Single source of truth: the audit framework.
                 if event_type == "tool_call_delta":
                     delta = event.get("delta", "") or ""
                     if event.get("tool_name") and not st["tool_name"]:
@@ -556,7 +579,7 @@ async def _execute_agent_dispatch(
                             f"{route_artifact}.{route_op}.progress",
                             {
                                 "sid": sid,
-                                "rooms": [sid] if sid else [],
+                                "rooms": [str(profile_id)],
                                 "artifact_type": artifact_type,
                                 "run_id": str(run_id),
                                 "group_id": str(group_id),
@@ -671,10 +694,14 @@ async def _execute_agent_dispatch(
                     f"{artifact_type}.generate.call.complete",
                     {
                         "sid": sid,
-                        "rooms": [sid] if sid else [],
+                        "rooms": [str(profile_id)],
                         "artifact_type": artifact_type,
                         "run_id": str(run_id),
                         "group_id": str(group_id),
+                        # See ``generate.call.start`` for the ``call_id`` rationale —
+                        # same pre-minted DB row id, used for client-side dedup
+                        # against the audit lifecycle.
+                        "call_id": str(st["call_id"]) if st.get("call_id") else None,
                         "tool_call_id": tool_call_id,
                         "tool_name": tool_name,
                         "success": call_success,

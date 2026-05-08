@@ -19,11 +19,11 @@ from app.infra.test.permissions import compute_test_status
 from app.infra.test.types import (
     GetTestArtifactRequest,
     GetTestArtifactResponse,
+    TestConfigGroup,
+    TestConfigItem,
     TestEntries,
     TestInternalData,
     TestResources,
-    TestConfigGroup,
-    TestConfigItem,
     TestRunItem,
     TestStatusSummary,
 )
@@ -165,6 +165,75 @@ async def get_test_impl(
             if m.run_id:
                 msg_count_by_run_id[m.run_id] = msg_count_by_run_id.get(m.run_id, 0) + 1
 
+        # Per-binding agent + model lookup. The invocation's
+        # agent_ids reflects the test target (one agent), but each
+        # binding's run can have been fired by a different agent —
+        # see picker fan-out / replay flows where each card targets a
+        # distinct agent. Reading agent_name off `inv.agent_ids[0]`
+        # would label every history card with the invocation's agent
+        # regardless of which agent actually fired the binding's run.
+        # Resolve per-binding via runs_mv (the canonical run-level
+        # agent connection table source) so each card shows the
+        # correct agent.
+        from app.tools.entries.runs.search import (
+            search_runs as _search_runs_for_history,
+        )
+
+        binding_run_ids: list[UUID] = [
+            r.run_id for r in runs if r.run_id is not None
+        ]
+        run_agent_ids_by_run_id: dict[UUID, list[UUID]] = {}
+        if binding_run_ids:
+            async with pool.acquire() as conn:
+                # group_ids=None loads all runs; filter to our binding ids in-mem.
+                # search_runs doesn't accept run_ids directly, so we
+                # narrow via group_ids when we have them, else loop.
+                inv_group_ids = list({inv.group_id for inv in invocations if inv.group_id})
+                rows, _total = await _search_runs_for_history(
+                    conn,
+                    group_ids=inv_group_ids if inv_group_ids else None,
+                    limit=10000,
+                )
+                wanted = set(binding_run_ids)
+                for r in rows:
+                    if r.run_id in wanted:
+                        run_agent_ids_by_run_id[r.run_id] = list(r.agent_ids or [])
+
+        # The per-binding agent ids may reference agents NOT in the
+        # ws_ctx-resolved agent_map (which tends to be scoped to the
+        # invocation's test target). Hydrate any missing agent
+        # resources so the per-binding label lookup below resolves.
+        referenced_agent_ids: set[UUID] = set()
+        for ids in run_agent_ids_by_run_id.values():
+            referenced_agent_ids.update(ids)
+        missing_agent_ids = [
+            aid for aid in referenced_agent_ids if aid not in agent_map
+        ]
+        if missing_agent_ids:
+            from app.tools.resources.agents.get import (
+                get_agents as _get_agents_for_history,
+            )
+
+            async with pool.acquire() as conn:
+                extra_agents = await _get_agents_for_history(
+                    conn, missing_agent_ids, redis or get_redis_client(),
+                    bypass_cache=True,
+                )
+            for a in extra_agents:
+                agent_map[a.id] = a
+                if a.model_id and a.model_id not in model_map:
+                    # Also hydrate the model so model_name resolves.
+                    from app.tools.resources.models.get import (
+                        get_models as _get_models_for_history,
+                    )
+                    async with pool.acquire() as conn:
+                        extra_models = await _get_models_for_history(
+                            conn, [a.model_id], redis or get_redis_client(),
+                            bypass_cache=True,
+                        )
+                    for m in extra_models:
+                        model_map[m.id] = m
+
         def _binding_status(binding) -> str:
             if binding.id in completed_binding_ids:
                 return "completed"
@@ -172,18 +241,25 @@ async def get_test_impl(
                 return "in_progress"
             return "not_started"
 
+        # Invocation-level fallback agent (used when a binding has no
+        # explicit run-level agent connection, or the run was deleted).
+        inv_fallback_agent_name: str | None = None
+        inv_fallback_model_name: str | None = None
+        # Will be set per-invocation in the loop below.
+
         for inv in invocations:
             inv_runs = runs_by_invocation.get(inv.invocation_id, [])
 
-            # Resolve agent_name and model_name from resources
-            agent_name: str | None = None
-            model_name: str | None = None
+            # Invocation-level fallback (used only when a binding has
+            # no run-level agent association).
+            inv_fallback_agent_name = None
+            inv_fallback_model_name = None
             first_agent_id = inv.agent_ids[0] if inv.agent_ids else None
             if first_agent_id and first_agent_id in agent_map:
                 agent = agent_map[first_agent_id]
-                agent_name = agent.name
+                inv_fallback_agent_name = agent.name
                 if agent.model_id and agent.model_id in model_map:
-                    model_name = model_map[agent.model_id].name
+                    inv_fallback_model_name = model_map[agent.model_id].name
 
             # Emit one run_item per binding row. Each binding represents
             # a real past trace+run execution. Invocations with no
@@ -194,6 +270,13 @@ async def get_test_impl(
             # binding.run_id is the FK into runs_entry, which is what
             # messages_entry.run_id references — using binding.id would
             # break the run↔messages join on the client.
+            #
+            # agent_name / model_name resolve PER BINDING from
+            # runs_mv via run_agent_ids_by_run_id — different bindings
+            # under the same invocation can have been fired by
+            # different agents (picker fan-out, replay flows). Falls
+            # back to the invocation's agent only if the run row has
+            # no agent connection.
             for binding in inv_runs:
                 bstatus = _binding_status(binding)
                 if bstatus == "completed":
@@ -202,6 +285,19 @@ async def get_test_impl(
                     in_progress_count += 1
                 else:
                     not_started_count += 1
+
+                binding_agent_name = inv_fallback_agent_name
+                binding_model_name = inv_fallback_model_name
+                if binding.run_id:
+                    run_agent_ids = run_agent_ids_by_run_id.get(binding.run_id, [])
+                    if run_agent_ids:
+                        run_agent_id = run_agent_ids[0]
+                        if run_agent_id in agent_map:
+                            run_agent = agent_map[run_agent_id]
+                            binding_agent_name = run_agent.name
+                            if run_agent.model_id and run_agent.model_id in model_map:
+                                binding_model_name = model_map[run_agent.model_id].name
+
                 run_items.append(
                     TestRunItem(
                         chat_id=str(inv.invocation_id),
@@ -209,8 +305,8 @@ async def get_test_impl(
                         run_id=str(binding.run_id) if binding.run_id else None,
                         group_id=str(inv.group_id) if inv.group_id else None,
                         suite_entry_id=None,
-                        model_name=model_name,
-                        agent_name=agent_name,
+                        model_name=binding_model_name,
+                        agent_name=binding_agent_name,
                         status=bstatus,
                         grade_score=inv.grade_score,
                         grade_passed=inv.grade_passed,
@@ -236,8 +332,8 @@ async def get_test_impl(
         # uses len(items) == page_size to enable Next.
         import asyncio
 
-        from app.tools.entries.runs.search import search_runs
         from app.tools.entries.groups.search import search_groups
+        from app.tools.entries.runs.search import search_runs
 
         groups_offset = max(0, (configs_groups_page - 1) * configs_groups_page_size)
         expanded_set: set[UUID] = set(configs_expanded or [])

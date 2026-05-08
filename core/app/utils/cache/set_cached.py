@@ -6,6 +6,7 @@ from typing import Any
 
 from redis.asyncio import Redis
 
+from app.infra.cache_telemetry import record_write
 from app.utils.logging.db_logger import get_logger
 
 TAG_PREFIX = "http:tag:"
@@ -21,7 +22,11 @@ async def set_cached(
     *,
     redis: Redis,
 ) -> None:
-    """Store HTTP response in Redis with tag tracking."""
+    """Store HTTP response in Redis with tag tracking.
+
+    Per-write logging deferred to the request-scoped CacheTelemetry
+    summary — see app/infra/cache_telemetry.py.
+    """
     try:
         pipe = redis.pipeline()
         # Store response data
@@ -31,8 +36,6 @@ async def set_cached(
             pipe.sadd(f"{TAG_PREFIX}{tag}", key)
             pipe.expire(f"{TAG_PREFIX}{tag}", ttl)  # Expire tag set with cache
         await pipe.execute()
-        logger.info(
-            f"Cache written successfully: key={key[:50]}..., ttl={ttl}, tags={list(tags)}"
-        )
+        record_write()
     except Exception as e:
         logger.error(f"Error writing cache: {e}", exc_info=True)

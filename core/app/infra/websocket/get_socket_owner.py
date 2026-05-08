@@ -1,30 +1,42 @@
-"""Get the socket ID that owns a profile from Redis."""
+"""Read the set of socket IDs owning a profile.
+
+A profile may have multiple concurrent sockets (multi-tab, multi-device,
+debug panels). For per-event delivery, broadcast to ``room=profile_id``
+via ``sio.emit`` — ``output.py`` does that for all canonical events.
+This helper exists for the rare cases where caller code needs to
+inspect or count the sockets directly.
+
+Redis is required. There is no in-memory fallback.
+"""
 
 from typing import Any
 
-from app.infra.globals import get_redis_client, get_socket_owner_dict
+from app.infra.globals import get_redis_client
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
+
+
+async def get_socket_owners(
+    profile_id: str,
+    *,
+    redis_client: Any | None = None,
+) -> list[str]:
+    """Return all socket IDs currently attached to ``profile_id``."""
+    redis_client = redis_client if redis_client is not None else get_redis_client()
+    members = await redis_client.smembers(f"socket_owners:{profile_id}")
+    return [m.decode("utf-8") if isinstance(m, bytes) else m for m in members]
 
 
 async def get_socket_owner(
     profile_id: str,
     *,
     redis_client: Any | None = None,
-    socket_owner: dict[str, str] | None = None,
 ) -> str | None:
-    """Get the socket ID that owns a profile from Redis."""
-    redis_client = redis_client if redis_client is not None else get_redis_client()
-    socket_owner = socket_owner if socket_owner is not None else get_socket_owner_dict()
-    if not redis_client:
-        # Fallback to in-memory storage
-        return socket_owner.get(profile_id)
+    """Return one (arbitrary) socket id for the profile, or None.
 
-    try:
-        owner_sid = await redis_client.get(f"socket_owner:{profile_id}")
-        return owner_sid.decode("utf-8") if owner_sid else None
-    except Exception as e:
-        logger.error(f"Redis error getting socket owner for profile {profile_id}: {e}")
-        # Fallback to in-memory storage
-        return socket_owner.get(profile_id)
+    Back-compat shim for HTTP callers that haven't moved to room-based
+    broadcast yet. Prefer ``room=profile_id`` over picking a single sid.
+    """
+    sids = await get_socket_owners(profile_id, redis_client=redis_client)
+    return sids[0] if sids else None

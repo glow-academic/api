@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
 from app.infra.field.context import resolve_field_context
 from app.infra.field.permissions import (
     FIELD_BASIC_RESOURCES,
@@ -20,8 +19,6 @@ from app.infra.field.permissions import (
     has_access,
 )
 from app.infra.field.permissions_context import resolve_field_permissions_context
-from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
 from app.infra.field.types import (
     FieldConditionalParameterResource,
     FieldDepartmentResource,
@@ -31,6 +28,9 @@ from app.infra.field.types import (
     GetFieldApiResponse,
     SectionFilter,
 )
+from app.infra.group.resolve import resolve_group_impl
+from app.infra.helpers import dedupe_by_id
+from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "conditional_parameters"]
 

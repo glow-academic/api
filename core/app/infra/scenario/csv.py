@@ -28,7 +28,6 @@ from app.infra.scenario.search import SCENARIO_IMPORT_FIELDS
 from app.infra.scenario.types import CreateScenarioItem
 from app.tools.entries.uploads.create import create_upload
 
-
 # ---------------------------------------------------------------------------
 # Types
 # ---------------------------------------------------------------------------

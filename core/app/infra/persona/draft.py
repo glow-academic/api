@@ -19,16 +19,16 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.persona.permissions import compute_can_draft
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import (
     DraftFormState,
     PatchPersonaDraftApiRequest,
     PatchPersonaDraftApiResponse,
     SavePersonaFieldError,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.persona_drafts.create import create_persona_draft
 from app.tools.entries.persona_drafts.get import get_persona_drafts
-from app.infra.persona.refresh import refresh_persona_impl
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
@@ -395,6 +395,7 @@ async def patch_persona_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id

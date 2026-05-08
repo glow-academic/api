@@ -8,7 +8,8 @@ from typing import Any
 import asyncpg  # type: ignore
 import httpx  # type: ignore
 
-from app.infra.globals import get_pool, get_redis_client, get_sio_instance
+from app.infra import globals as _globals
+from app.infra.globals import get_pool, get_sio_instance
 
 
 @dataclass
@@ -126,7 +127,9 @@ async def check_websocket() -> ServiceCheckResult:
 async def run_service_checks() -> dict[str, ServiceCheckResult]:
     """Run all service health checks and return results."""
     pool = get_pool()
-    redis_client = get_redis_client()
+    # Read the raw module attribute so a not-yet-initialized client
+    # surfaces as a health failure rather than a startup-order exception.
+    redis_client = _globals.redis_client
 
     db = await check_database(pool)
     redis = await check_redis(redis_client)

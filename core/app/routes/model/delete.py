@@ -56,8 +56,19 @@ async def delete_model(
                 profile_id=profile_id,
                 ids=request.model_ids,
                 session_id=session_id,
-                accept=request.accept,
                 idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_provider_ids=request.filter_provider_ids,
+                filter_department_ids=request.filter_department_ids,
+                filter_agent_ids=request.filter_agent_ids,
+                provider_search=request.provider_search,
+                department_search=request.department_search,
+                agent_search=request.agent_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

@@ -21,21 +21,20 @@ from app.infra.parameter.permissions_context import (
     resolve_parameter_permissions_context,
     resolve_parameter_values,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.parameter.refresh import refresh_parameter_impl
+from app.infra.parameter.types import (
+    UpdateParameterApiRequest,
+    UpdateParameterApiResponse,
+)
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.parameter.get import get_parameters as get_parameter_artifacts
-from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 from app.tools.artifacts.parameter.update import (
     _UNSET,
 )
 from app.tools.artifacts.parameter.update import (
     update_parameter as update_parameter_artifact,
 )
-
-from app.infra.parameter.types import (
-    UpdateParameterApiRequest,
-    UpdateParameterApiResponse,
-)
+from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
 
 
 async def update_parameter_impl(
@@ -53,12 +52,21 @@ async def update_parameter_impl(
 ) -> UpdateParameterApiResponse:
     """Parameter bulk update using composable infra functions.
 
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. Per-item: resolve_parameter_permissions_context → exists + compute_can_edit
-      3. Per-item value resolution (raw → ID, no required field enforcement)
-      4. Single transaction: update_parameter_artifact + denormalized snapshot per item
-      5. invalidate_tags
+    Three call shapes:
+      - First call (explicit): ``request.parameters`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+
+    Flow (first call):
+      1. (all-matching only) resolve_matching_parameter_ids → synth items
+      2. resolve_profile_identity_context → role, department_ids
+      3. Per-item: resolve_parameter_permissions_context → exists + compute_can_edit
+      4. Per-item value resolution (raw → ID, no required field enforcement)
+      5. Single transaction: update_parameter_artifact + denormalized snapshot per item
+      6. canonical refresh via refresh_parameter_impl
     """
     from app.infra.parameter.permissions import compute_can_edit
     from app.infra.parameter.types import (
@@ -70,46 +78,11 @@ async def update_parameter_impl(
     if idempotency_key and accept is None:
         accept = request.accept
 
-    items = request.parameters
-
-    # ── Step 1: Profile context ────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Step 2: Per-item permission check ──────────────────────────────
-
-    async with pool.acquire() as conn:
-        for idx, item in enumerate(items):
-            perms = await resolve_parameter_permissions_context(conn, item.id)
-            if not perms.exists:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Item {idx}: Parameter {item.id} not found.",
-                )
-            if not compute_can_edit(
-                role_level=profile.role_level, role_permissions=profile.role_permissions,
-                parameter_department_ids=perms.department_ids,
-                active_scenario_count=perms.active_scenario_count,
-                user_department_ids=profile.department_ids,
-            ):
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Item {idx}: You don't have permission to update this parameter.",
-                )
-
-    # ── ACK short-circuit / promotion ─────────────────────────────────
-
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above per-row permission checks so the dormant promotion
+    # path doesn't need ``request.parameters`` populated (matches
+    # persona/scenario; see batch-1/2 lessons in
+    # project_bulk_write_pattern.md).
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
@@ -171,6 +144,130 @@ async def update_parameter_impl(
             ],
             idempotency_key=idempotency_key,
         )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # parameter matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[ParameterResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.parameter.resolve_matching_ids import (
+            resolve_matching_parameter_ids,
+        )
+        from app.infra.parameter.types import UpdateParameterItem
+
+        matching = await resolve_matching_parameter_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            scenario_ids=request.scenario_ids,
+            field_ids=request.field_ids,
+            filter_department_ids=request.filter_department_ids,
+            scenario_search=request.scenario_search,
+            field_search=request.field_search,
+            department_search=request.department_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [pid for pid in matching if pid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdateParameterApiResponse(
+                results=[],
+                idempotency_key=idempotency_key,
+            )
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateParameterItem(id=pid, **patch_fields) for pid in resolved_ids]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"parameters": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.parameters:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.parameters` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
+
+    items = request.parameters
+
+    # ── Step 1: Profile context ────────────────────────────────────────
+
+    profile = await resolve_profile_identity_context(
+        pool,
+        profile_id,
+        redis,
+        session_id=session_id,
+    )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    # ── Step 2: Per-item permission check ──────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
+    async with pool.acquire() as conn:
+        for idx, item in enumerate(items):
+            perms = await resolve_parameter_permissions_context(conn, item.id)
+            if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(ParameterResultItem(
+                        success=False, parameter_id=item.id,
+                        message=f"Parameter {item.id} not found (skipped)",
+                    ))
+                    continue
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Item {idx}: Parameter {item.id} not found.",
+                )
+            if not compute_can_edit(
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
+                parameter_department_ids=perms.department_ids,
+                active_scenario_count=perms.active_scenario_count,
+                user_department_ids=profile.department_ids,
+            ):
+                if is_all_matching:
+                    skipped_results.append(ParameterResultItem(
+                        success=False, parameter_id=item.id,
+                        message=f"No permission to update parameter {item.id} (skipped)",
+                    ))
+                    continue
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Item {idx}: You don't have permission to update this parameter.",
+                )
+
+            permitted_items.append(item)
+
+    if is_all_matching:
+        items = permitted_items
+        if not items:
+            return UpdateParameterApiResponse(
+                results=skipped_results,
+                idempotency_key=idempotency_key,
+            )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -259,7 +356,10 @@ async def update_parameter_impl(
         operation_key=idempotency_key or (results[0].parameter_id if results else None),
     )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateParameterApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

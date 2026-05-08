@@ -19,13 +19,13 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.cohort.permissions import (
     compute_can_delete,
     compute_can_duplicate,
     compute_can_edit,
     compute_can_leave,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.cohort.types import (
     ListCohortApiCohort,
     ListCohortApiDepartment,
@@ -33,7 +33,7 @@ from app.infra.cohort.types import (
     ListCohortApiResponse,
     ListCohortApiSimulation,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.cohort.get import get_cohorts
 from app.tools.artifacts.cohort.search import search_cohorts
 from app.tools.resources.departments.get import get_departments
@@ -52,7 +52,6 @@ from app.tools.resources.simulations.get import (
 from app.tools.resources.simulations.search import (
     search_simulations as search_simulations_resource,
 )
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

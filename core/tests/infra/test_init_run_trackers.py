@@ -34,10 +34,6 @@ class TestInitRunTrackers:
         res_ttl = await redis_client.ttl("resource_progress:run-123")
         assert res_ttl > 0 and res_ttl <= GENERATION_TTL
 
-    async def test_none_redis_skips_silently(self):
-        """When redis is None, does nothing (no error)."""
-        await init_run_trackers(None, run_id="run-456", num_agents=1, num_resources=2)
-
     async def test_single_agent_single_resource(self, redis_client):
         """Minimal case: 1 agent, 1 resource."""
         await init_run_trackers(

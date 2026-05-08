@@ -18,12 +18,13 @@ relays untouched. The chat-completion path stays on litellm because
 
 from __future__ import annotations
 
-import logging
 from uuid import UUID
 
 from openai import AsyncOpenAI
 
-logger = logging.getLogger(__name__)
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.types import AgentDispatch, PrepareGenerationResult

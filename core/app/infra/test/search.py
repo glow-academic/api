@@ -14,16 +14,15 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.test.types import (
     SearchTestApiResponse,
     SearchTestItem,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.entries.test.search import search_tests
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.evals.search import search_evals
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

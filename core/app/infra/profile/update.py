@@ -44,13 +44,100 @@ async def update_profile_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateProfileApiResponse:
-    """Profile bulk update using composable infra functions."""
+    """Profile bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.profiles`` required — per-row patches.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+    """
     from app.infra.profile.permissions import compute_can_edit
     from app.infra.profile.types import ProfileResultItem
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above the per-row permission loop because under ack and
+    # all-matching paths ``request.profiles`` is None on entry; running
+    # the loop first would either raise or silently no-op. Persona's
+    # canonical pattern.
+    if accept is not None and idempotency_key is not None:
+        if not accept:
+            return UpdateProfileApiResponse(
+                results=[
+                    ProfileResultItem(
+                        success=True,
+                        profile_id=item.profile_id,
+                        message="Update rejected",
+                    )
+                    for item in (request.profiles or [])
+                ],
+                idempotency_key=idempotency_key,
+            )
+        soft = False
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
+    # profile matching the filter, then clone ``request.patch`` per
+    # id (stamping the resolved id). The downstream per-row flow runs
+    # unchanged. Per-row permission failures soft-skip (collected into
+    # ``skipped_results`` and threaded into the final response).
+    skipped_results: list[ProfileResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.profile.resolve_matching_ids import resolve_matching_profile_ids
+        from app.infra.profile.types import UpdateProfileItem
+
+        matching = await resolve_matching_profile_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            cohort_ids=request.cohort_ids,
+            filter_department_ids=request.filter_department_ids,
+            role_filter=request.role_filter,
+            cohort_search=request.cohort_search,
+            department_search=request.department_search,
+            role_search=request.role_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [pid for pid in matching if pid not in excluded]
+
+        if not resolved_ids:
+            # Empty matching set — well-formed intent, just no rows.
+            return UpdateProfileApiResponse(results=[], idempotency_key=idempotency_key)
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"profile_id"})`` keeps
+        # sparse semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(
+            exclude_unset=True, exclude={"profile_id"},
+        )
+        synth_items = [
+            UpdateProfileItem(profile_id=pid, **patch_fields) for pid in resolved_ids
+        ]
+        # Splice into the request shape downstream code expects.
+        request = request.model_copy(update={"profiles": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.profiles:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.profiles` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.profiles
 
@@ -66,11 +153,24 @@ async def update_profile_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ──────────────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             target_is_self = item.profile_id == profile_id
             perms = await resolve_profile_permissions_context(conn, item.profile_id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(ProfileResultItem(
+                        success=False, profile_id=item.profile_id,
+                        message=f"Profile {item.profile_id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Profile {item.profile_id} not found.",
@@ -82,25 +182,26 @@ async def update_profile_impl(
                 target_department_ids=perms.department_ids,
                 user_department_ids=profile.department_ids,
             ):
+                if is_all_matching:
+                    skipped_results.append(ProfileResultItem(
+                        success=False, profile_id=item.profile_id,
+                        message=f"No permission to update profile {item.profile_id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this profile.",
                 )
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+            permitted_items.append(item)
+
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateProfileApiResponse(
-                results=[
-                    ProfileResultItem(
-                        success=True,
-                        profile_id=item.profile_id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[ProfileResultItem] = []
@@ -223,7 +324,10 @@ async def update_profile_impl(
             operation_key=idempotency_key or (results[0].profile_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateProfileApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

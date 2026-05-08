@@ -1673,8 +1673,19 @@ async def _run_tool_module_seeds(
 
     created = 0
     errors = 0
+    _total = len(tools)
+    _last_progress_pct = -1
 
-    for tool_def in tools:
+    for _idx, tool_def in enumerate(tools):
+        # Progress every 10% — 330 tools × ~50ms each is ~15-30s of
+        # otherwise-silent work; emit a heartbeat so it doesn't look hung.
+        _pct = int(_idx * 10 / _total)
+        if _pct != _last_progress_pct:
+            _last_progress_pct = _pct
+            print(
+                f"  ... {_idx}/{_total} tools processed",
+                flush=True,
+            )
         # Resolve arg keys → arg IDs from shared vocabulary
         arg_ids: list[UUID] = []
         for arg_key in tool_def.get("args", []):
@@ -2036,8 +2047,22 @@ async def main_setup(setup: str = "university") -> None:
         pool = await asyncpg.create_pool(pg_url)
         redis_client = Redis.from_url(redis_url)
 
+        # The seed runner runs OUTSIDE the FastAPI lifespan, so the
+        # globals singletons (redis_client, _db_pool) are never set by
+        # the normal startup path. Bind them manually — many infra
+        # functions (e.g. sync_benchmark_entries, keycloak sync) do
+        # lazy get_redis_client() / get_pool() lookups, and under our
+        # strict-Redis contract those raise / report unavailable
+        # instead of silently no-oping.
+        from app.infra import globals as _app_globals
+        _app_globals.redis_client = redis_client
+        _app_globals._db_pool = pool
+
         os.environ.setdefault("SECRET_KEY", "seed_runner_secret_key")
         os.environ.setdefault("AUTH_SECRET", "seed_runner_auth_secret")
+        # Keycloak isn't running during seed generation — short-circuit
+        # the auth-create sync hook so we don't block 30s on retries.
+        os.environ.setdefault("SKIP_KEYCLOAK_SYNC", "1")
 
         setup_module = importlib.import_module(f"database.seeds.setups.{setup}")
 
@@ -2049,6 +2074,8 @@ async def main_setup(setup: str = "university") -> None:
             )
         await pool.close()
         pool = await asyncpg.create_pool(pg_url)
+        # Pool was recreated — rebind the globals singleton.
+        _app_globals._db_pool = pool
         print("  FK checks disabled")
 
         # ── Phase 1: Base platform modules ────────────────────────────
@@ -2327,6 +2354,12 @@ async def main_setup(setup: str = "university") -> None:
         )
 
     finally:
+        # Unbind the runner's pool + redis client from globals so a
+        # long-running process that re-runs seeds doesn't pick up
+        # closed handles.
+        from app.infra import globals as _app_globals
+        _app_globals.redis_client = None
+        _app_globals._db_pool = None
         pg.stop()
         redis_container.stop()
 

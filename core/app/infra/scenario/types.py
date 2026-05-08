@@ -10,10 +10,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.resource_type_filter import ScopedItem
-
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import SectionFilter
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
 
 # =============================================================================
@@ -583,10 +582,54 @@ class UpdateScenarioItem(ScopedItem):
     options: list[str] | None = Field(None, description="Option texts for matching")
 
 
-class UpdateScenarioApiRequest(BaseModel):
-    """Request model for bulk update scenario endpoint."""
+class UpdateScenarioPatch(UpdateScenarioItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    scenarios: list[UpdateScenarioItem] = Field(..., description="List of scenarios to update")
+    Inherits every field from ``UpdateScenarioItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved scenario id per matched row",
+    )
+
+
+class UpdateScenarioApiRequest(BaseModel):
+    """Request model for bulk update scenario endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``scenarios`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/scenario/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    scenarios: list[UpdateScenarioItem] | None = Field(
+        None, description="List of scenarios to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteScenarioApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every scenario matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateScenarioPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    persona_ids: list[UUID] | None = Field(None, description="Filter by persona UUIDs")
+    simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    persona_search: str | None = Field(None, description="Search text for persona facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
@@ -638,9 +681,39 @@ class ExportScenarioApiResponse(BaseModel):
 
 
 class DeleteScenarioApiRequest(BaseModel):
-    """Bulk delete request."""
+    """Request model for bulk delete scenario endpoint.
 
-    scenario_ids: list[UUID] = Field(..., description="UUIDs of scenarios to delete")
+    Three body shapes:
+      - First call (explicit): ``scenario_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/scenario/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    scenario_ids: list[UUID] | None = Field(
+        None, description="UUIDs of scenarios to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchScenarioApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every scenario matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /scenario/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``scenario_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    persona_ids: list[UUID] | None = Field(None, description="Filter by persona UUIDs")
+    simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    persona_search: str | None = Field(None, description="Search text for persona facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
@@ -1322,3 +1395,25 @@ class ProblemScenarioApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadScenarioApiRequest(BaseModel):
+    """Request model for scenario call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadScenarioApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

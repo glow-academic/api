@@ -1,20 +1,24 @@
-"""Scenario drafts list logic — composable infra architecture.
+"""Scenario drafts list/search — composable infra architecture.
 
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (profiles_id)
-  2. search_scenario_drafts — declarative filter by profile ownership
+Thin wrapper that delegates to the shared ``search_drafts_impl`` black
+box (which queries ``scenario_drafts_mv`` with the indexed
+``lower(name)`` prefix filter + date/pagination). One operation
+``drafts`` covers both the FE list page and the LLM-callable searchable
+tool — there are no separate dispatch paths.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
-from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.types import ArtifactContext
-from app.tools.entries.scenario_drafts.search import search_scenario_drafts
+from app.infra.drafts.search import (
+    SearchDraftsResponse,
+    search_drafts_impl,
+)
 
 
 async def list_scenario_drafts_impl(
@@ -22,43 +26,26 @@ async def list_scenario_drafts_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
+    search: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    page_size: int = 50,
+    page_offset: int = 0,
     bypass_cache: bool = False,
-) -> ArtifactContext:
-    """List scenario drafts owned by the current profile.
-
-    Flow:
-      1. resolve_profile_identity_context → profiles_id
-      2. search_scenario_drafts(profile_ids=[profiles_id]) → entries
-      3. Return ArtifactContext(resources={}, entries={"drafts": [...]})
-    """
-    from fastapi import HTTPException
-
-    # ── Step 1: Profile context ────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, bypass_cache=bypass_cache
-    )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Step 2: Search drafts by ownership ─────────────────────────────
-
-    async with pool.acquire() as conn:
-        drafts = await search_scenario_drafts(
-            conn,
-            profile_ids=[profile.profiles_id],
-        )
-
-    # ── Step 3: Return canonical ArtifactContext ───────────────────────
-
-    return ArtifactContext(
-        artifact_id=None,
-        active=True,
-        group_id=UUID(int=0),
-        resources={},
-        entries={"drafts": drafts},
+    **_kwargs,
+) -> SearchDraftsResponse:
+    """List/search scenario drafts owned by the current profile."""
+    return await search_drafts_impl(
+        pool,
+        redis,
+        artifact_type="scenario",
+        profile_id=profile_id,
+        session_id=session_id,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        page_size=page_size,
+        page_offset=page_offset,
+        own_only=True,
     )

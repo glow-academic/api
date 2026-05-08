@@ -3,16 +3,20 @@
 from fastapi import APIRouter
 
 from app.routes.test.archive import router as archive_router
+
+# Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
+from app.routes.test.benchmark import router as benchmark_router
+from app.routes.test.call import router as call_router
 from app.routes.test.complete import router as complete_router
 from app.routes.test.context import router as context_router
 from app.routes.test.export import router as export_router
-from app.routes.test.call import router as call_router
 from app.routes.test.feedback import router as feedback_router
 from app.routes.test.generate import router as generate_router
 from app.routes.test.generations import router as generations_router
 from app.routes.test.get import router as get_router
-from app.routes.test.group import router as group_router
 from app.routes.test.grade import router as grade_router
+from app.routes.test.group import router as group_router
+from app.routes.test.invocation import router as invocation_router
 from app.routes.test.problem import router as problem_router
 from app.routes.test.refresh import router as refresh_router
 from app.routes.test.run import router as run_router
@@ -20,12 +24,8 @@ from app.routes.test.search import router as search_router
 from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
 from app.routes.test.stream import router as stream_router
-from app.routes.test.trace import router as trace_router
 from app.routes.test.text import router as text_router
-
-# Absorbed sub-routers (one-to-one nesting, each keeps its own prefix)
-from app.routes.test.benchmark import router as benchmark_router
-from app.routes.test.invocation import router as invocation_router
+from app.routes.test.trace import router as trace_router
 
 router = APIRouter(prefix="/test", tags=["test"])
 

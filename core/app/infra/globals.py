@@ -7,7 +7,6 @@ stores. Every other module imports from here — never from app.main.
 
 import asyncio
 import datetime
-import logging
 import os
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -17,6 +16,8 @@ from typing import TYPE_CHECKING, Any
 import asyncpg  # type: ignore
 import socketio  # type: ignore
 from dotenv import load_dotenv
+
+from app.utils.logging.db_logger import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover
     pass
@@ -34,7 +35,7 @@ except ImportError:
 
 load_dotenv()
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_client_origins() -> list[str]:
@@ -78,6 +79,7 @@ CALL_FOLDER.mkdir(parents=True, exist_ok=True)
 # Internal event bus
 # ---------------------------------------------------------------------------
 InternalHandler = Callable[[dict[str, Any]], Awaitable[None]]
+CatchAllHandler = Callable[[str, dict[str, Any]], Awaitable[None]]
 
 
 def _json_safe(value: Any) -> Any:
@@ -106,36 +108,57 @@ def _json_safe(value: Any) -> Any:
 
 
 class InternalBus:
-    """Simple in-process event bus for triggering handlers internally."""
+    """Simple in-process event bus for triggering handlers internally.
+
+    Two subscription kinds:
+      - Named (``on("event.name")``) — called as ``handler(data)`` for
+        that exact event.
+      - Catch-all (``on("*")``) — called as ``handler(event, data)``
+        for every event. The canonical ``ws/output.py`` forwarder
+        registers here so all WS+SSE fan-out flows through one chokepoint.
+    """
 
     def __init__(self) -> None:
         self._handlers: dict[str, list[InternalHandler]] = {}
+        self._catchall: list[CatchAllHandler] = []
 
-    def on(self, event: str) -> Callable[[InternalHandler], InternalHandler]:
-        def decorator(fn: InternalHandler) -> InternalHandler:
-            self._handlers.setdefault(event, []).append(fn)
+    def on(
+        self, event: str
+    ) -> Callable[[InternalHandler | CatchAllHandler], InternalHandler | CatchAllHandler]:
+        def decorator(
+            fn: InternalHandler | CatchAllHandler,
+        ) -> InternalHandler | CatchAllHandler:
+            if event == "*":
+                self._catchall.append(fn)  # type: ignore[arg-type]
+            else:
+                self._handlers.setdefault(event, []).append(fn)  # type: ignore[arg-type]
             return fn
 
         return decorator
 
     async def emit(self, event: str, data: dict[str, Any]) -> None:
-        handlers = self._handlers.get(event, [])
-        if not handlers:
+        named = self._handlers.get(event, [])
+        if not named and not self._catchall:
             logger.warning(f"[InternalBus] No handlers registered for event: {event}")
             return
         # Coerce UUIDs / datetimes once at the bus boundary so every
         # downstream handler — and ultimately ``sio.emit`` — sees only
-        # JSON-native leaves. Cheaper than fixing each emit site, and
-        # catches both audit-originated and audio-originated payloads
-        # (see audit.py:153 + audio_events.py:_session_context which both
-        # leak typed UUIDs into ``attempt.chat_message.started`` data).
+        # JSON-native leaves. Cheaper than fixing each emit site.
         safe_data = _json_safe(data) if isinstance(data, dict) else data
-        for handler in handlers:
+        for handler in named:
             try:
                 await handler(safe_data)
             except Exception as e:
                 logger.error(
                     f"[InternalBus] Error in handler for event '{event}': {e}",
+                    exc_info=True,
+                )
+        for catchall in self._catchall:
+            try:
+                await catchall(event, safe_data)
+            except Exception as e:
+                logger.error(
+                    f"[InternalBus] Error in catch-all for event '{event}': {e}",
                     exc_info=True,
                 )
 
@@ -173,7 +196,13 @@ sio = socketio.AsyncServer(
     cors_allowed_origins=["*"],
     cors_credentials=False,
     logger=True,
-    engineio_logger=True,
+    # engineio_logger=False — the engineio packet log dumps the full
+    # event payload inline (delta chunks, audio frames, image bytes,
+    # etc.) on every emit. socketio's own logger above still emits
+    # the concise `emitting event "X" to <sid>` line, which is what
+    # we actually want for observability. Flip back to True only when
+    # debugging low-level transport issues.
+    engineio_logger=False,
     async_mode="asgi",
     transports=["websocket", "polling"],
     allow_upgrades=True,
@@ -194,22 +223,33 @@ def get_sio_instance() -> socketio.AsyncServer:
 
 
 # ---------------------------------------------------------------------------
-# Redis client (HTTP caching, health checks)
+# Redis client
 # ---------------------------------------------------------------------------
+# Redis is REQUIRED. Set in lifespan via _initialize_redis_client. Callers
+# can rely on the getter returning a live client; it raises if Redis hasn't
+# been initialized yet (boot-order bug) or has been torn down.
 redis_client: Any | None = None
 
 
-def get_redis_client() -> Any | None:
+def get_redis_client() -> Any:
+    if redis_client is None:
+        raise RuntimeError(
+            "Redis client not initialized — get_redis_client() called before "
+            "lifespan startup or after shutdown."
+        )
     return redis_client
 
 
 # ---------------------------------------------------------------------------
-# In-memory stores
+# Genuinely per-process in-memory state
+#
+# These are NOT Redis fallbacks — they hold live Python objects (Runner
+# result handles, asyncio.Locks) that can't be serialized to Redis. They
+# stay process-local by design. State that should be shared across
+# replicas lives in Redis exclusively.
 # ---------------------------------------------------------------------------
 active_results: dict[str, dict[str, Any]] = {}
-socket_owner: dict[str, str] = {}
-classification_results: dict[str, list[str]] = {}
-classification_progress: dict[str, bool] = {}
+
 DEFAULT_CATEGORIES = [
     "homeworks",
     "projects",
@@ -223,35 +263,9 @@ DEFAULT_CATEGORIES = [
 _voice_message_ids: dict[str, list[str]] = {}
 _voice_message_ids_lock = asyncio.Lock()
 
-_simulation_tool_calls: dict[str, dict[str, dict[str, Any]]] = {}
-_simulation_tool_calls_locks: dict[str, dict[str, asyncio.Lock]] = {}
-
-_voice_speech_timestamps: dict[str, dict[str, datetime.datetime]] = {}
-_voice_speech_timestamps_lock = asyncio.Lock()
-
-
-def get_socket_owner_dict() -> dict[str, str]:
-    return socket_owner
-
 
 def get_active_results_dict() -> dict[str, dict[str, Any]]:
     return active_results
-
-
-def get_simulation_tool_calls_dict() -> dict[str, dict[str, dict[str, Any]]]:
-    return _simulation_tool_calls
-
-
-def get_simulation_tool_calls_locks() -> dict[str, dict[str, asyncio.Lock]]:
-    return _simulation_tool_calls_locks
-
-
-def get_voice_speech_timestamps() -> dict[str, dict[str, datetime.datetime]]:
-    return _voice_speech_timestamps
-
-
-def get_voice_speech_timestamps_lock() -> asyncio.Lock:
-    return _voice_speech_timestamps_lock
 
 
 # ---------------------------------------------------------------------------

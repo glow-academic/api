@@ -21,6 +21,7 @@ from app.routes.document.search import router as search_router
 from app.routes.document.stream import router as stream_router
 from app.routes.document.text import router as text_router
 from app.routes.document.update import router as update_router
+from app.routes.document.call import router as call_router
 
 router = APIRouter(prefix="/document", tags=["document"])
 
@@ -46,3 +47,6 @@ router.include_router(stream_router)
 # Typed media operations
 router.include_router(text_router)
 router.include_router(file_router)
+
+# Typed media operations
+router.include_router(call_router)

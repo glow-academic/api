@@ -39,7 +39,6 @@ from app.tools.resources.values.create import create_value
 from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
 
-
 PROVIDER_ACTIVE_FLAG = "provider_active"
 
 
@@ -388,6 +387,7 @@ async def patch_provider_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,

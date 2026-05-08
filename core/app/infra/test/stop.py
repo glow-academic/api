@@ -12,7 +12,6 @@ from app.infra.events.audit import (
     run_artifact_operation_with_audit,
 )
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.stream.socket_bridge import wrap_emit_with_stream_bridge
 from app.infra.test.client_types import TestStopPayload
 from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
 
@@ -32,6 +31,7 @@ async def test_stop_internal_impl(
     """Run canonical test stop orchestration for any surface."""
     payload = TestStopPayload(**data)
     sid = data.get("sid")
+    profile_id_val = data.get("profile_id")
 
     async def _run() -> TestStopInternalResult:
         result = TestStopInternalResult(
@@ -39,12 +39,10 @@ async def test_stop_internal_impl(
             success=True,
             message="Test execution stopped",
         )
-        downstream_emit = wrap_emit_with_stream_bridge(
-            artifact="test",
-            operation="stop",
-            emit=emit or make_emit(),
-            entity_id=payload.invocation_id,
-        )
+        rooms: list[str] = [f"test_{payload.invocation_id}"]
+        if profile_id_val:
+            rooms.append(str(profile_id_val))
+        downstream_emit = emit or make_emit()
         await downstream_emit(
             [
                 SocketEvent(
@@ -52,7 +50,7 @@ async def test_stop_internal_impl(
                     event="test.stop.completed",
                     data={
                         "sid": sid,
-                        "rooms": [sid, f"test_{payload.invocation_id}"] if sid else [],
+                        "rooms": rooms,
                         "invocation_id": str(payload.invocation_id),
                         "success": True,
                         "message": result.message,

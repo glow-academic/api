@@ -18,8 +18,8 @@ async def get_dashboard(
 ):
     try:
         # Lazy imports to avoid circular import
-        from app.infra.dashboard.get import get_dashboard_impl_cached
         from app.infra.attempt.group import group_attempt_impl
+        from app.infra.dashboard.get import get_dashboard_impl_cached
         from app.infra.dashboard.types import DashboardBundleResponse, DashboardRequest
 
         body = await http_request.json()

@@ -57,27 +57,7 @@ async def _emit_error(
         ]
     )
 
-    # Mirror the failure to the SSE hub so http-sse clients clear
-    # ``isGenerating``. WS path above only reaches socket subscribers.
-    try:
-        from app.infra.stream.emitter import emit_artifact_operation_failure
-
-        group_uuid: UUID | None = None
-        if group_id:
-            try:
-                group_uuid = UUID(group_id)
-            except ValueError:
-                group_uuid = None
-        await emit_artifact_operation_failure(
-            artifact=artifact_type,
-            operation="generate",
-            arguments={},
-            message=message,
-            group_id=group_uuid,
-            role="assistant",
-        )
-    except Exception:
-        logger.exception("SSE mirror of generate.error failed")
+    # SSE mirror happens automatically via ``ws/output.py`` catch-all.
 
 
 async def run_generation_from_payload(
@@ -169,24 +149,7 @@ async def run_generation_from_payload(
         ]
     )
 
-    # Mirror the started lifecycle to the SSE hub so http-sse clients
-    # see the same event the WS subscribers see. The run_id doubles as
-    # the call_id so the corresponding ``completed`` from
-    # ``run_complete_impl`` correlates against the same bubble.
-    try:
-        from app.infra.stream.emitter import emit_artifact_operation_started
-
-        await emit_artifact_operation_started(
-            artifact=artifact_type,
-            operation="generate",
-            arguments={"resource_types": prepared.resource_types},
-            group_id=group_id,
-            entity_id=prepared.run_id,
-            call_id=prepared.run_id,
-            role="assistant",
-        )
-    except Exception:
-        logger.exception("SSE mirror of generate.started failed")
+    # SSE mirror happens automatically via ``ws/output.py`` catch-all.
 
     # Echo persisted user instructions so the generation panel can show them live.
     if payload.instructions:

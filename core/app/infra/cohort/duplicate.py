@@ -20,10 +20,10 @@ from redis.asyncio import Redis
 
 from app.infra.cohort.permissions import compute_can_duplicate
 from app.infra.cohort.refresh import refresh_cohort_impl
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.cohort.types import (
     DuplicateCohortApiResponse,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.cohort.create import (
     create_cohort as create_cohort_artifact,
 )

@@ -7,8 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.auth.types import AnalyticsFacets
 from app.infra.api_types import FilterOption
+from app.infra.auth.types import AnalyticsFacets
 
 
 class BenchmarkRequest(BaseModel):

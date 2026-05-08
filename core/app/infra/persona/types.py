@@ -9,9 +9,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.resource_type_filter import ScopedItem
-
 from app.infra.api_types import ListFilterSection
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 from app.tools.resources.fields.types import GetFieldResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -491,9 +490,17 @@ class CreatePersonaItem(ScopedItem):
 
 
 class CreatePersonaApiRequest(BaseModel):
-    """Request model for bulk create persona endpoint."""
+    """Request model for bulk create persona endpoint.
 
-    personas: list[CreatePersonaItem] = Field(..., description="List of persona items to create")
+    Two body shapes:
+      - First call: ``personas`` required.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant artifact by ``idempotency_key``.
+    """
+
+    personas: list[CreatePersonaItem] | None = Field(
+        None, description="List of persona items to create (required on first call)",
+    )
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
@@ -546,10 +553,57 @@ class UpdatePersonaItem(ScopedItem):
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = CreatePersonaItem.RESOURCE_TYPE_MAP
 
 
-class UpdatePersonaApiRequest(BaseModel):
-    """Request model for bulk update persona endpoint."""
+class UpdatePersonaPatch(UpdatePersonaItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    personas: list[UpdatePersonaItem] = Field(..., description="List of persona items to update")
+    Inherits every field from ``UpdatePersonaItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved persona id per matched row",
+    )
+
+
+class UpdatePersonaApiRequest(BaseModel):
+    """Request model for bulk update persona endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``personas`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/persona/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    personas: list[UpdatePersonaItem] | None = Field(
+        None, description="List of persona items to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeletePersonaApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every persona matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdatePersonaPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    scenario_ids: list[UUID] | None = Field(None, description="Filter by scenario UUIDs")
+    field_ids: list[UUID] | None = Field(None, description="Filter by field UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    scenario_search: str | None = Field(None, description="Search text for scenario facet (no-op for row filtering)")
+    field_search: str | None = Field(None, description="Search text for field facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    color_search: str | None = Field(None, description="Search text for color facet (no-op for row filtering)")
+    icon_search: str | None = Field(None, description="Search text for icon facet (no-op for row filtering)")
+    voice_search: str | None = Field(None, description="Search text for voice facet (no-op for row filtering)")
+    instruction_search: str | None = Field(None, description="Search text for instruction facet (no-op for row filtering)")
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
@@ -574,9 +628,43 @@ class SavePersonaFieldError(BaseModel):
 
 
 class DeletePersonaApiRequest(BaseModel):
-    """Request model for bulk delete persona endpoint."""
+    """Request model for bulk delete persona endpoint.
 
-    ids: list[UUID] = Field(..., description="List of persona UUIDs to delete")
+    Three body shapes:
+      - First call (explicit): ``ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/persona/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    ids: list[UUID] | None = Field(
+        None, description="List of persona UUIDs to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchPersonaApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial
+    # — e.g. delete might exclude rows referenced by active scenarios.
+    all: bool | None = Field(False, description="When true, delete every persona matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /persona/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    scenario_ids: list[UUID] | None = Field(None, description="Filter by scenario UUIDs")
+    field_ids: list[UUID] | None = Field(None, description="Filter by field UUIDs")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    scenario_search: str | None = Field(None, description="Search text for scenario facet (no-op for row filtering)")
+    field_search: str | None = Field(None, description="Search text for field facet (no-op for row filtering)")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    color_search: str | None = Field(None, description="Search text for color facet (no-op for row filtering)")
+    icon_search: str | None = Field(None, description="Search text for icon facet (no-op for row filtering)")
+    voice_search: str | None = Field(None, description="Search text for voice facet (no-op for row filtering)")
+    instruction_search: str | None = Field(None, description="Search text for instruction facet (no-op for row filtering)")
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
@@ -602,9 +690,17 @@ class DeletePersonaApiResponse(BaseModel):
 
 
 class DuplicatePersonaApiRequest(BaseModel):
-    """Request model for duplicate persona endpoint."""
+    """Request model for duplicate persona endpoint.
 
-    id: UUID = Field(..., description="UUID of the persona to duplicate")
+    Two body shapes:
+      - First call: ``id`` required.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant copy by ``idempotency_key``.
+    """
+
+    id: UUID | None = Field(
+        None, description="UUID of the persona to duplicate (required on first call)",
+    )
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
@@ -787,10 +883,20 @@ class GenerationsPersonaApiResponse(BaseModel):
 
 
 class ProblemPersonaApiRequest(BaseModel):
-    """Request model for persona problem endpoint."""
+    """Request model for persona problem endpoint.
 
-    type: str = Field(..., description="Problem type: feature, bug, question, other")
-    message: str = Field(..., description="Problem description (max 1000 chars)")
+    Two body shapes:
+      - First call: ``type`` and ``message`` required.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant problem by ``idempotency_key``.
+    """
+
+    type: str | None = Field(
+        None, description="Problem type: feature, bug, question, other (required on first call)",
+    )
+    message: str | None = Field(
+        None, description="Problem description, max 1000 chars (required on first call)",
+    )
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
@@ -804,3 +910,48 @@ class ProblemPersonaApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadPersonaApiRequest(BaseModel):
+    """Request model for persona text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadPersonaApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadPersonaApiRequest(BaseModel):
+    """Request model for persona call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadPersonaApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

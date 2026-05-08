@@ -40,13 +40,122 @@ async def update_rubric_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> UpdateRubricApiResponse:
-    """Rubric bulk update using composable infra functions."""
+    """Rubric bulk update using composable infra functions.
+
+    Three call shapes:
+      - First call (explicit): ``request.rubrics`` required.
+      - First call (all-matching): ``request.all=true`` plus ``patch``
+        plus filter fields. The impl resolves matching ids, clones
+        the patch per id (stamping each id), then runs the existing
+        per-row update flow. Per-row permission failures soft-skip.
+      - Ack call: ``idempotency_key`` + ``accept`` only.
+    """
     from app.infra.rubric.permissions import compute_can_edit
     from app.infra.rubric.types import RubricResultItem
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # Hoisted above per-row perm checks so ack/all paths don't need
+    # ``request.rubrics``. Under ack=False we just echo a "rejected"
+    # result; under ack=True the soft-update junctions are already
+    # active (existing semantics), we just refresh caches.
+    if accept is not None and idempotency_key is not None:
+        items = request.rubrics or []
+        if not accept:
+            return UpdateRubricApiResponse(
+                results=[
+                    RubricResultItem(
+                        success=True,
+                        rubric_id=item.id,
+                        message="Update rejected",
+                    )
+                    for item in items
+                ] or [
+                    RubricResultItem(
+                        success=True,
+                        rubric_id=idempotency_key,
+                        message="Update rejected",
+                    )
+                ],
+                idempotency_key=idempotency_key,
+            )
+        # Accept ⇒ refresh caches; the per-row write happened in the
+        # original soft call. Existing behavior.
+        await refresh_rubric_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return UpdateRubricApiResponse(
+            results=[
+                RubricResultItem(
+                    success=True,
+                    rubric_id=item.id,
+                    message="Update accepted",
+                )
+                for item in items
+            ] or [
+                RubricResultItem(
+                    success=True,
+                    rubric_id=idempotency_key,
+                    message="Update accepted",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
+
+    # ── All-matching path: resolve ids + synthesize per-row items ─────
+    skipped_results: list[RubricResultItem] = []
+
+    if request.all:
+        if request.patch is None:
+            raise HTTPException(
+                status_code=400,
+                detail="`patch` is required when `all=true` "
+                "(it carries the shared change set applied to every matched row).",
+            )
+        from app.infra.rubric.resolve_matching_ids import resolve_matching_rubric_ids
+        from app.infra.rubric.types import UpdateRubricItem
+
+        matching = await resolve_matching_rubric_ids(
+            pool, redis,
+            profile_id=profile_id,
+            search=request.search,
+            filter_department_ids=request.filter_department_ids,
+            filter_simulation_ids=request.filter_simulation_ids,
+            department_search=request.department_search,
+            simulation_search=request.simulation_search,
+            flag_search=request.flag_search,
+        )
+        excluded = set(request.excluded_ids or [])
+        resolved_ids = [rid for rid in matching if rid not in excluded]
+
+        if not resolved_ids:
+            return UpdateRubricApiResponse(
+                results=[],
+                idempotency_key=idempotency_key,
+            )
+
+        # Clone the patch per matched row, stamping the resolved id.
+        # ``model_dump(exclude_unset=True, exclude={"id"})`` keeps sparse
+        # semantics — only fields the client actually set are written.
+        patch_fields = request.patch.model_dump(exclude_unset=True, exclude={"id"})
+        synth_items = [UpdateRubricItem(id=rid, **patch_fields) for rid in resolved_ids]
+        request = request.model_copy(update={"rubrics": synth_items})
+
+    # ── First-call requirements ───────────────────────────────────────
+    if not request.rubrics:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.rubrics` is required for first-call update "
+            "(or pass `idempotency_key` + `accept` for the ack call, "
+            "or `all=true` with `patch` and filter fields).",
+        )
 
     items = request.rubrics
 
@@ -62,10 +171,23 @@ async def update_rubric_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Per-item permission check ─────────────────────────────────────
+    # Explicit path fails fast (existing behavior).
+    # All-matching path soft-skips so the response carries per-row
+    # outcomes without aborting rows the user CAN edit.
+    is_all_matching = bool(request.all)
+    permitted_items: list = []
+
     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_rubric_permissions_context(conn, item.id)
             if not perms.exists:
+                if is_all_matching:
+                    skipped_results.append(RubricResultItem(
+                        success=False, rubric_id=item.id,
+                        message=f"Rubric {item.id} not found (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=404,
                     detail=f"Item {idx}: Rubric {item.id} not found.",
@@ -76,25 +198,25 @@ async def update_rubric_impl(
                 rubric_department_ids=perms.department_ids,
                 active_simulation_count=perms.active_simulation_count,
             ):
+                if is_all_matching:
+                    skipped_results.append(RubricResultItem(
+                        success=False, rubric_id=item.id,
+                        message=f"No permission to update rubric {item.id} (skipped)",
+                    ))
+                    continue
                 raise HTTPException(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this rubric.",
                 )
+            permitted_items.append(item)
 
-    if accept is not None and idempotency_key is not None:
-        if not accept:
+    if is_all_matching:
+        items = permitted_items
+        if not items:
             return UpdateRubricApiResponse(
-                results=[
-                    RubricResultItem(
-                        success=True,
-                        rubric_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ],
+                results=skipped_results,
                 idempotency_key=idempotency_key,
             )
-        soft = False
 
     has_errors = False
     error_results: list[RubricResultItem] = []
@@ -197,9 +319,7 @@ async def update_rubric_impl(
                 success=True,
                 rubric_id=item.id,
                 message=(
-                    "Rubric update accepted"
-                    if accept is not None and idempotency_key is not None
-                    else "Rubric updated (pending acceptance)"
+                    "Rubric updated (pending acceptance)"
                     if soft
                     else "Rubric updated successfully"
                 ),
@@ -216,7 +336,10 @@ async def update_rubric_impl(
             operation_key=idempotency_key or (results[0].rubric_id if results else None),
         )
 
+    # All-matching path threads soft-skipped rows back into the
+    # response so the client can surface "X updated, Y skipped" in
+    # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateRubricApiResponse(
-        results=results,
+        results=results + skipped_results,
         idempotency_key=idempotency_key,
     )

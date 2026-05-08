@@ -27,8 +27,8 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.evals.create import (
     create_eval as create_eval_resource,
 )
-from app.tools.resources.names.create import create_name
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
 if TYPE_CHECKING:

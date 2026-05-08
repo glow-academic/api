@@ -54,8 +54,8 @@ async def test_invocation_complete_internal_impl(
 
     async def _run() -> TestInvocationCompleteInternalResult:
         from app.tools.entries.calls.create import create_call
-        from app.tools.entries.runs.create import create_run
         from app.tools.entries.groups.get import get_groups
+        from app.tools.entries.runs.create import create_run
         from app.tools.entries.test_invocation.get import get_test_invocations
         from app.tools.entries.test_invocation_completion.create import (
             create_test_invocation_completion,

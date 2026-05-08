@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.csv import ParsePersonaCsvApiResponse, parse_persona_csv_impl
 from app.infra.persona.group import group_persona_impl
 from app.utils.error.handle_route_error import handle_route_error

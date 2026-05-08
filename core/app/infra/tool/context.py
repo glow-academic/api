@@ -9,8 +9,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.infra.helpers import dedupe_by_id
 from app.infra.flag_icons import hydrate_flag_icons
+from app.infra.helpers import dedupe_by_id
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.artifacts.tool.get import get_tools as get_tool_artifacts
 from app.tools.entries.tool_drafts.get import get_tool_drafts

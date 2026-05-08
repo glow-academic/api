@@ -99,7 +99,6 @@ class GenerateErrorApiRequest(BaseModel):
 
 from pydantic import model_validator
 
-
 # ═══════════════════════════════════════════════════════════════════════════
 # Internal bus payload — flows between prepare and execute
 # ═══════════════════════════════════════════════════════════════════════════

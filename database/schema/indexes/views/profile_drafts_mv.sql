@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX profile_drafts_mv_id_idx ON public.profile_drafts_mv USING b
 
 
 --
+
+-- Name: profile_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profile_drafts_mv_name_idx ON public.profile_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

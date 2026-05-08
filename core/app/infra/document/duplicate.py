@@ -19,11 +19,11 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.document.permissions import compute_can_duplicate
-from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.document.refresh import refresh_document_impl
 from app.infra.document.types import (
     DuplicateDocumentApiResponse,
 )
-from app.infra.document.refresh import refresh_document_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )

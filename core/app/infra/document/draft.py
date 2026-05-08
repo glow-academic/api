@@ -34,10 +34,10 @@ from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.files.create import create_file as create_file_resource
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.images.create import create_image as create_image_resource
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
-from app.tools.resources.flags.search import search_flags
 from app.tools.resources.texts.create import create_text as create_text_resource
 
 
@@ -341,6 +341,7 @@ async def patch_document_draft_impl(
                 session_id=session_id,
                 id=operation_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id] if request.description_id else None,
                 flag_ids=request.flag_ids,
@@ -399,6 +400,7 @@ async def patch_document_draft_impl(
         session_id=session_id,
         targets=["document_drafts_mv"],
         soft=soft,
+        name=request.name or "",
         operation_key=idempotency_key or result.id,
     )
 

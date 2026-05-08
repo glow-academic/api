@@ -9,6 +9,8 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.infra.globals import get_internal_sio, get_pool
+from app.infra.websocket.attempt_types import AttemptAudioEndedData
+from app.infra.websocket.audio_lifecycle import cleanup_audio_session
 from app.infra.websocket.session_store import get_session_by_chat_id
 from app.tools.entries.attempt_conversation_completion.create import (
     create_attempt_conversation_completion,
@@ -65,6 +67,16 @@ async def attempt_chat_silence_internal_impl(
         except Exception as e:
             logger.warning(f"Failed to record conversation completion: {e}")
 
+    # Clean up the realtime adapter session, then emit:
+    #   - the canonical session_complete event (kept for log filter +
+    #     observability)
+    #   - the client-facing voice_ended signal that closes the mic UI
+    # Previously the rename + cleanup lived in
+    # ``ws/output/attempt/generate/audio_session_complete.py`` →
+    # ``audio_stop_impl``. Inlined here so the workflow reads
+    # top-to-bottom at the originating impl.
+    await cleanup_audio_session(session)
+
     internal_sio = get_internal_sio()
     await internal_sio.emit(
         "attempt.generate.audio.session_complete",
@@ -72,6 +84,15 @@ async def attempt_chat_silence_internal_impl(
             "group_id": group_id,
             "sid": sid,
         },
+    )
+    await internal_sio.emit(
+        "attempt.chat.voice_ended",
+        AttemptAudioEndedData(
+            sid=sid,
+            chat_id=str(chat_id),
+            success=True,
+            message="Voice session stopped",
+        ).model_dump(mode="json"),
     )
 
     return AudioStopInternalResult(chat_id=str(chat_id))

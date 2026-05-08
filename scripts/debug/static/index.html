@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Glow Debug Panel</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+          integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Glow Debug</h1>
+  <div class="api-base" id="api-base">api=…</div>
+  <div class="auth">
+    <input id="jwt" type="password" placeholder="Paste JWT, ‘Bearer …’, or session JSON" autocomplete="off">
+    <button id="btn-connect">Connect</button>
+    <button id="btn-clear" title="Clear stored JWT and disconnect">Clear</button>
+    <span id="ws-status" class="status idle">idle</span>
+  </div>
+</header>
+
+<main class="grid">
+
+  <section class="pane calls-pane">
+    <div class="pane-header">
+      <h2>Calls <span class="dot" id="calls-dot" title="Polling /data every 2s"></span></h2>
+      <div class="filters">
+        <label>since
+          <select id="since">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="6h">6h</option>
+            <option value="1d" selected>1d</option>
+            <option value="7d">7d</option>
+            <option value="all">all</option>
+          </select>
+        </label>
+        <label>tool
+          <input id="tool" type="text" placeholder="substring filter">
+        </label>
+        <label class="checkbox">
+          <input id="failures-only" type="checkbox"> failures only
+        </label>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis">
+      <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">—</div></div>
+      <div class="kpi"><div class="kpi-label">Failures</div><div class="kpi-value fail" id="kpi-failures">—</div></div>
+      <div class="kpi"><div class="kpi-label">Disk</div><div class="kpi-value" id="kpi-disk">—</div></div>
+      <div class="kpi"><div class="kpi-label">Last call</div><div class="kpi-value tiny" id="kpi-last">—</div></div>
+    </div>
+
+    <h3>Top tools</h3>
+    <table class="tools">
+      <thead><tr><th>Tool</th><th></th><th>Count</th><th>OK</th><th>p50</th><th>p95</th></tr></thead>
+      <tbody id="top-tools"><tr><td colspan="6" class="dim">loading…</td></tr></tbody>
+    </table>
+
+    <h3 id="failures-h3" style="display:none">Recent failures <span class="count" id="failures-count"></span></h3>
+    <div class="calls" id="recent-failures"></div>
+
+    <h3>Recent activity <span class="count" id="activity-count"></span></h3>
+    <div class="calls" id="recent-activity"></div>
+  </section>
+
+  <section class="pane events-pane">
+    <div class="pane-header">
+      <h2>Live events <span class="dot" id="events-dot"></span></h2>
+      <div class="filters">
+        <label>filter
+          <input id="event-filter" type="text" placeholder="substring (event name)">
+        </label>
+        <button id="btn-pause" class="ghost">Pause</button>
+        <button id="btn-clear-events" class="ghost">Clear</button>
+      </div>
+    </div>
+    <div class="events-meta">
+      <span id="events-count">0 events</span>
+      <span id="events-rate" class="dim"></span>
+    </div>
+    <div class="events" id="events"></div>
+  </section>
+
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

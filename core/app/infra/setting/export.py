@@ -27,6 +27,7 @@ from app.tools.resources.colors.get import get_colors
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.names.get import get_names
+
 PIPE = "|"
 
 CSV_COLUMNS = [

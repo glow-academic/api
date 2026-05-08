@@ -26,21 +26,22 @@ from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
+from app.tools.resources.keys.create import create_key
 from app.tools.resources.logins.create import create_logins
 from app.tools.resources.logins.search import search_logins
 from app.tools.resources.mcp.create import create_mcp
-from app.tools.resources.systems.create import create_system
-from app.tools.resources.thresholds.create import create_threshold
-from app.tools.resources.thresholds.get import get_thresholds
-from app.tools.resources.thresholds.search import search_thresholds
 from app.tools.resources.mcp.search import search_mcp
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.names.search import search_names
-from app.tools.resources.keys.create import create_key
 from app.tools.resources.provider_keys.create import create_provider_key
 from app.tools.resources.provider_keys.search import search_provider_keys
+from app.tools.resources.systems.create import create_system
+from app.tools.resources.thresholds.create import create_threshold
+from app.tools.resources.thresholds.get import get_thresholds
+from app.tools.resources.thresholds.search import search_thresholds
 from app.utils.auth.encrypt_api_key import encrypt_api_key
+
 
 async def _resolve_creatable_values(
     pool: asyncpg.Pool,
@@ -553,6 +554,7 @@ async def patch_setting_draft_impl(
                 session_id=session_id,
                 id=target_draft_id,
                 soft=soft,
+                name=request.name or "",
                 agent_ids=request.system_ids,
                 auth_ids=request.auth_ids,
                 auth_item_key_ids=request.auth_item_key_ids,

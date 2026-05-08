@@ -11,8 +11,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from app.infra.globals import get_pool
-from app.tools.entries.attempt_highlight.create import create_attempt_highlight
 from app.tools.entries.attempt_grade.search import search_attempt_grades
+from app.tools.entries.attempt_highlight.create import create_attempt_highlight
 from app.tools.entries.attempt_strength.create import create_attempt_strength
 
 router = APIRouter()

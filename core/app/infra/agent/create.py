@@ -21,14 +21,14 @@ from app.infra.agent.permissions_context import (
     resolve_agent_values,
 )
 from app.infra.agent.refresh import refresh_agent_impl
+from app.infra.agent.types import (
+    AgentResultItem,
+    CreateAgentApiRequest,
+    CreateAgentApiResponse,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
-)
-from app.infra.agent.types import (
-    CreateAgentApiRequest,
-    CreateAgentApiResponse,
-    AgentResultItem,
 )
 
 

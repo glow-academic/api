@@ -15,12 +15,26 @@ async def create_group_name(
     id: UUID | None = None,
     generated: bool = False,
     mcp: bool = False,
+    soft: bool = False,
 ) -> CreateGroupNameResponse:
-    """Create a group_names entry (append-only)."""
+    """Create a group_names entry (append-only).
+
+    Lifecycle:
+      - ``soft=True``: write with ``active=False`` (dormant). Hidden from
+        ``group_names_mv`` (which filters active=true), so the displayed
+        title is unchanged until acked.
+      - ``soft=False``: write with ``active=True`` (immediate).
+      - ``id`` provided + already-existing dormant row (UPSERT): promote
+        ``active`` to the new value via ``ON CONFLICT (id) DO UPDATE``.
+        Lets the ack flow flip a dormant rename to active without
+        re-rolling the row id.
+    """
     entry_id = await conn.fetchval(
         """
-        INSERT INTO group_names_entry (id, group_id, name, session_id, generated, mcp)
-        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6)
+        INSERT INTO group_names_entry
+                (id, group_id, name, session_id, generated, mcp, active)
+        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
         id,
@@ -29,6 +43,7 @@ async def create_group_name(
         session_id,
         generated,
         mcp,
+        not soft,
     )
 
     if entry_id is None:

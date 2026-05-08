@@ -17,23 +17,21 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.permissions_context import (
     create_denormalized_snapshot,
     resolve_simulation_values,
+)
+from app.infra.simulation.refresh import refresh_simulation_impl
+from app.infra.simulation.types import (
+    CreateSimulationApiRequest,
+    CreateSimulationApiResponse,
+    SimulationResultItem,
 )
 from app.tools.artifacts.simulation.create import (
     create_simulation as create_simulation_artifact,
 )
 from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.resources.flags.get import get_flags
-
-
-from app.infra.simulation.types import (
-    CreateSimulationApiRequest,
-    CreateSimulationApiResponse,
-    SimulationResultItem,
-)
 
 
 async def create_simulation_impl(

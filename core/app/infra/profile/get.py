@@ -33,12 +33,12 @@ from app.infra.profile.permissions import (
 from app.infra.profile.permissions_context import resolve_profile_permissions_context
 from app.infra.profile.types import (
     GetProfileApiResponse,
-    ProfilePermissionResource,
-    ProfileRequestLimitResource,
     ProfileDepartmentResource,
     ProfileEmailResource,
     ProfileFlagResource,
     ProfileNameResource,
+    ProfilePermissionResource,
+    ProfileRequestLimitResource,
     ProfileRoleResource,
     SectionFilter,
 )

@@ -88,40 +88,6 @@ async def user_progress_impl(
     )
 
 
-async def audio_session_start_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-) -> None:
-    """Translate attempt.generate.audio.session_start → attempt.chat.voice_ready.
-
-    Client subscribes to ``attempt.chat.voice_ready`` (see
-    glow-client hooks/use-attempt-voice.ts) — the older
-    ``attempt.audio_start.completed`` name was renamed but the impl was
-    left behind, so the mic UI never armed and voice sessions appeared
-    to hang after the realtime provider session opened.
-    """
-    group_id = data.get("group_id")
-    sid = data.get("sid")
-    if not sid or not group_id:
-        return
-    session = get_session_by_group_id(group_id)
-    chat_id = session.chat_id if session else group_id
-    await emit(
-        [
-            internal_event(
-                "attempt.chat.voice_ready",
-                AttemptAudioReadyData(
-                    sid=sid,
-                    chat_id=chat_id,
-                    success=True,
-                    message="Voice session ready",
-                ).model_dump(mode="json"),
-            )
-        ]
-    )
-
-
 async def audio_speech_start_impl(
     data: dict[str, Any],
     *,
@@ -183,33 +149,6 @@ async def audio_speech_delta_impl(
                     chat_id=session.chat_id,
                     item_id=item_id,
                     transcript=data.get("transcript", ""),
-                ).model_dump(mode="json"),
-            )
-        ]
-    )
-
-
-async def audio_error_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-) -> None:
-    """Translate generate_audio_error → attempt_error."""
-    group_id = data.get("group_id")
-    if not group_id:
-        return
-    session = get_session_by_group_id(group_id)
-    if not session:
-        return
-    await emit(
-        [
-            internal_event(
-                "attempt.audio.error",
-                AttemptErrorData(
-                    sid=session.sid,
-                    error_type="audio",
-                    message=data.get("error_message", "Unknown audio error"),
-                    chat_id=session.chat_id,
                 ).model_dump(mode="json"),
             )
         ]
@@ -333,90 +272,6 @@ async def user_start_impl(
 
     except Exception as e:
         logger.exception(f"Error in user_received_start: {e}")
-
-
-async def audio_stop_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-    cleanup_audio_session_fn: Callable[[Any], Awaitable[None]] | None = None,
-) -> None:
-    """Clean up audio session and emit attempt.chat.voice_ended.
-
-    Paired with audio_session_start_impl — same rename: client listens for
-    ``attempt.chat.voice_ended`` (use-attempt-voice.ts), the legacy
-    ``attempt.audio_stop.completed`` name was retired with the rest of
-    the chat→voice migration.
-    """
-    from app.infra.websocket.audio_lifecycle import cleanup_audio_session
-
-    sid = data.get("sid")
-    group_id = data.get("group_id")
-    if not sid:
-        return
-
-    session = get_session_by_group_id(group_id) if group_id else None
-    chat_id = session.chat_id if session else (group_id or "")
-    if session:
-        await (cleanup_audio_session_fn or cleanup_audio_session)(session)
-
-    await emit(
-        [
-            internal_event(
-                "attempt.chat.voice_ended",
-                AttemptAudioEndedData(
-                    sid=sid,
-                    chat_id=chat_id,
-                    success=True,
-                    message="Voice session stopped",
-                ).model_dump(mode="json"),
-            )
-        ]
-    )
-
-
-async def audio_response_cancelled_impl(
-    data: dict[str, Any],
-    *,
-    emit: EmitFn,
-) -> None:
-    """Handle barge-in cancellation: notify client + re-enter rate limit gate."""
-    group_id = data.get("group_id")
-    if not group_id:
-        return
-    session = get_session_by_group_id(group_id)
-    if not session:
-        return
-
-    sid = session.sid
-    chat_id = session.chat_id
-
-    logger.info(f"Response cancelled (barge-in) - group_id={group_id}")
-
-    await emit(
-        [
-            internal_event(
-                "attempt.stop.completed",
-                AttemptStoppedData(
-                    sid=sid,
-                    rooms=[sid, str(group_id)],
-                    chat_id=chat_id,
-                    success=True,
-                    message=None,
-                ).model_dump(mode="json"),
-            ),
-            internal_event(
-                "generate",
-                {
-                    "sid": sid,
-                    "artifact_type": data.get("artifact_type", ""),
-                    "operations": data.get("operations") or ["get"],
-                    "group_id": group_id,
-                    "metadata": data.get("metadata", {}),
-                },
-            ),
-        ]
-    )
 
 
 async def user_complete_impl(
@@ -748,12 +603,12 @@ async def attempt_start_impl(
 
     # Resolve simulation context from the home/practice entry
     try:
-        from app.tools.entries.home.get import get_homes
-        from app.tools.resources.simulations.get import get_simulations as _get_sims
-        from app.tools.artifacts.rubric.search import search_rubrics
-        from app.tools.artifacts.rubric.get import get_rubrics
-        from app.tools.resources.points.get import get_points
         from app.infra.attempt.chat.permissions import compute_pass_pct
+        from app.tools.artifacts.rubric.get import get_rubrics
+        from app.tools.artifacts.rubric.search import search_rubrics
+        from app.tools.entries.home.get import get_homes
+        from app.tools.resources.points.get import get_points
+        from app.tools.resources.simulations.get import get_simulations as _get_sims
 
         if payload.home_id:
             async with pool.acquire() as conn:
@@ -1478,9 +1333,7 @@ async def attempt_proceed_impl(
                             "sid": sid,
                             "attempt_id": str(attempt_id),
                             "chat_id": str(attempt_chat_id),
-                            "rooms": [sid, str(group_id)]
-                            if sid
-                            else None,
+                            "rooms": [str(profile_id_uuid), str(group_id)],
                         },
                     )
                 ]

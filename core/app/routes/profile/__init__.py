@@ -3,12 +3,12 @@
 from fastapi import APIRouter
 
 from app.routes.profile.context import router as context_router
-from app.routes.profile.emulate import router as emulate_router
 from app.routes.profile.create import router as create_router
 from app.routes.profile.delete import router as delete_router
 from app.routes.profile.draft import router as draft_router
 from app.routes.profile.drafts import router as drafts_router
 from app.routes.profile.duplicate import router as duplicate_router
+from app.routes.profile.emulate import router as emulate_router
 from app.routes.profile.export import router as export_router
 from app.routes.profile.generate import router as generate_router
 from app.routes.profile.generations import router as generations_router
@@ -18,8 +18,10 @@ from app.routes.profile.problem import router as problem_router
 from app.routes.profile.refresh import router as refresh_router
 from app.routes.profile.search import router as search_router
 from app.routes.profile.stream import router as stream_router
-from app.routes.profile.update import router as update_router
 from app.routes.profile.unemulate import router as unemulate_router
+from app.routes.profile.update import router as update_router
+from app.routes.profile.text import router as text_router
+from app.routes.profile.call import router as call_router
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -44,3 +46,7 @@ router.include_router(stream_router)
 router.include_router(context_router)
 router.include_router(emulate_router)
 router.include_router(unemulate_router)
+
+# Typed media operations
+router.include_router(text_router)
+router.include_router(call_router)

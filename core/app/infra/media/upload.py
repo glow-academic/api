@@ -42,7 +42,6 @@ from app.tools.resources.images.create import create_image as create_image_resou
 from app.tools.resources.videos.create import create_video as create_video_resource
 from app.utils.cache.invalidate_tags import invalidate_tags
 
-
 _FOLDERS: dict[str, Path] = {
     "audio": AUDIO_FOLDER,
     "image": IMAGE_FOLDER,

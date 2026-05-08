@@ -18,15 +18,6 @@ def is_generate_error_event(error_event_name: str | None) -> bool:
     return error_event_name == "generate_error"
 
 
-def find_profile_id_for_sid(
-    socket_owner: dict[str, str],
-    sid: str,
-) -> str | None:
-    """Reverse-lookup a profile id from the in-memory socket owner mapping."""
-    for profile_id, owner_sid in socket_owner.items():
-        if owner_sid == sid:
-            return profile_id
-    return None
 
 
 def build_client_error_payload(message: str) -> dict[str, Any]:
@@ -35,11 +26,6 @@ def build_client_error_payload(message: str) -> dict[str, Any]:
         "success": False,
         "message": message,
     }
-
-
-def build_profile_lookup_failed_message(lookup_error: Exception) -> str:
-    """Build a consistent lookup failure message."""
-    return f"Profile lookup failed: {str(lookup_error)}"
 
 
 def build_handler_error_message(error: Exception) -> str:
@@ -176,53 +162,11 @@ async def handle_internal_event(
         return  # Socket.IO logs missing sid automatically
 
     try:
-        # Get profile_id from sid (O(1) Redis lookup)
-        # Wrap in try-catch to prevent recursion if lookup fails
-        profile_id_str = None
-        try:
-            profile_id_str = await find_profile_by_socket(sid)
-        except Exception as lookup_error:
-            # If Redis lookup fails (e.g., recursion error), try in-memory fallback
-            # This prevents infinite recursion while still allowing error propagation
-            try:
-                from app.infra.globals import get_socket_owner_dict
-
-                socket_owner = get_socket_owner_dict()
-                profile_id_str = find_profile_id_for_sid(socket_owner, sid)
-            except Exception:
-                # If even in-memory lookup fails, we can't proceed
-                # But we should still emit an error to the client
-                if error_event_name:
-                    try:
-                        # Emit error directly to client using sid as room (doesn't require profile lookup)
-                        from app.infra.globals import sio
-
-                        if is_generate_error_event(error_event_name):
-                            # For generate_error, emit to internal bus
-                            from app.infra.globals import get_internal_sio
-
-                            internal_sio = get_internal_sio()
-                            await internal_sio.emit(
-                                error_event_name,
-                                build_generate_error_forward_payload(
-                                    sid,
-                                    data,
-                                    build_profile_lookup_failed_message(lookup_error),
-                                ),
-                            )
-                        else:
-                            # For other errors, emit directly to client
-                            await sio.emit(
-                                error_event_name,
-                                build_client_error_payload(
-                                    build_profile_lookup_failed_message(lookup_error)
-                                ),
-                                room=sid,
-                            )
-                    except Exception:
-                        # If emitting also fails, just return silently to prevent infinite recursion
-                        pass
-                return
+        # Get profile_id from sid (O(1) Redis lookup via reverse index).
+        # find_profile_by_socket has its own recursion guard and never
+        # raises — it returns None on any failure, which is then handled
+        # by the "No profile found" branch below.
+        profile_id_str = await find_profile_by_socket(sid)
 
         if not profile_id_str:
             if error_event_name and error_response_type:

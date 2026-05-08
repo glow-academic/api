@@ -10,8 +10,6 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
 from app.infra.cohort.context import resolve_cohort_context
 from app.infra.cohort.permissions import (
     compute_can_draft,
@@ -23,6 +21,8 @@ from app.infra.cohort.permissions_context import resolve_cohort_permissions_cont
 from app.infra.cohort.types import (
     GetCohortApiResponse,
 )
+from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
 
 
 def _sf(filters: dict[str, Any | None], section: str, attr: str, default=None):

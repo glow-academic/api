@@ -15,9 +15,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.resource_type_filter import ScopedItem
-
 from app.infra.api_types import InternalResponseBase
+from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.chat_drafts.types import GetChatDraftResponse
 
 # =============================================================================

@@ -18,13 +18,14 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.persona.types import ImportField
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import (
     compute_can_delete,
     compute_can_duplicate,
     compute_can_edit,
 )
-from app.infra.persona.types import ImportField
 from app.infra.scenario.types import (
     ListScenarioApiCohort,
     ListScenarioApiDepartment,
@@ -35,7 +36,6 @@ from app.infra.scenario.types import (
     ListScenarioApiScenario,
     ListScenarioApiSimulation,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.scenario.search import search_scenarios
 from app.tools.resources.departments.get import get_departments
@@ -61,7 +61,6 @@ from app.tools.resources.simulations.get import (
 from app.tools.resources.simulations.search import (
     search_simulations as search_simulations_resource,
 )
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

@@ -21,7 +21,6 @@ from app.infra.attempt.permissions import (
     compute_percentage,
     compute_total_possible_points,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.attempt.types import (
     AggregatedResults,
     AnalysisEntry,
@@ -59,6 +58,7 @@ from app.infra.attempt.types import (
     TimerData,
     VideoEntry,
 )
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -856,12 +856,12 @@ async def get_attempt_internal(
             chat.chat_id for chat in chats_result if chat.chat_id
         } if chats_result else set()
         try:
-            from app.tools.entries.home_chat.search import search_home_chats
-            from app.tools.entries.practice_chat.search import search_practice_chats
             from app.tools.entries.attempt_home.search import search_attempt_homes
             from app.tools.entries.attempt_practice.search import (
                 search_attempt_practice_entries,
             )
+            from app.tools.entries.home_chat.search import search_home_chats
+            from app.tools.entries.practice_chat.search import search_practice_chats
 
             async with pool.acquire() as conn:
                 if practice:

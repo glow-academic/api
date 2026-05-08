@@ -56,8 +56,18 @@ async def delete_tool(
                 profile_id=profile_id,
                 ids=request.tool_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_department_ids=request.filter_department_ids,
+                filter_creatable=request.filter_creatable,
+                filter_agent_ids=request.filter_agent_ids,
+                department_search=request.department_search,
+                flag_search=request.flag_search,
+                agent_search=request.agent_search,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -68,7 +78,7 @@ async def delete_tool(
             session_id=session_id,
             group_id=group_id,
             operation="delete",
-            arguments=request.model_dump(mode="json"),
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=DeleteToolApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

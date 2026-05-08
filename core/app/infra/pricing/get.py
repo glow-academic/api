@@ -15,16 +15,16 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
+from app.infra.api_types import FilterOption
+from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.common_context import resolve_common_context
 from app.infra.pricing.context import resolve_pricing_context
-from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.pricing.types import (
     PricingDailyItem,
     PricingRequest,
     PricingResources,
     PricingResponse,
 )
-from app.infra.api_types import FilterOption
 
 PRICING_FACETS_CONFIG = AnalyticsFacetsConfig(
     fields=AnalyticsFilterFields(

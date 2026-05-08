@@ -21,7 +21,6 @@ from app.infra.group.types import (
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.groups.search import search_groups
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

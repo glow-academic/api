@@ -11,9 +11,9 @@ from redis.asyncio import Redis
 from app.infra.attempt.chat.context import resolve_chat_context
 from app.infra.attempt.chat.permissions import CHAT_BUNDLE_RESOURCES
 from app.infra.attempt.chat.sections import build_chat_get_result
+from app.infra.attempt.chat.types import GetChatRequest, GetChatResponse, SectionFilter
 from app.infra.common_context import resolve_common_context
 from app.infra.tool_graph import score_tools
-from app.infra.attempt.chat.types import GetChatRequest, GetChatResponse, SectionFilter
 
 SECTIONS = [
     "names",

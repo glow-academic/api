@@ -8,18 +8,17 @@ from uuid import UUID
 import asyncpg
 from pydantic import BaseModel
 
+from app.infra.attempt.client_types import AttemptResponsePayload
 from app.infra.events.audit import (
     build_audit_arguments,
     run_artifact_operation_with_audit,
 )
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client
-from app.infra.stream.socket_bridge import wrap_emit_with_stream_bridge
-from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
-from app.infra.attempt.client_types import AttemptResponsePayload
 from app.infra.websocket.attempt_types import (
     AttemptErrorData,
     AttemptResponseResultData,
 )
+from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
 
 internal_sio = get_internal_sio()
 
@@ -61,12 +60,7 @@ async def attempt_response_internal_impl(
             refresh_attempt_responses,
         )
 
-        downstream_emit = wrap_emit_with_stream_bridge(
-            artifact="attempt",
-            operation="response",
-            emit=emit or make_emit(),
-            entity_id=None,
-        )
+        downstream_emit = emit or make_emit()
         recorded: list[SocketEvent] = []
 
         async def _emit(events: list[SocketEvent]) -> None:
@@ -170,7 +164,6 @@ async def attempt_response_internal_impl(
             UUID(str(data["attempt_id"])) if data.get("attempt_id") is not None else None
         ),
         sid=sid,
-        rooms=[sid] if sid else None,
         response_model=AttemptResponseInternalResult,
     )
 

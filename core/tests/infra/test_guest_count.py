@@ -21,10 +21,3 @@ async def test_get_guest_count_reads_real_redis_value(redis_client):
         globals_mod.redis_client = original_redis
 
 
-async def test_get_guest_count_returns_zero_without_redis():
-    original_redis = globals_mod.redis_client
-    try:
-        globals_mod.redis_client = None
-        assert await get_guest_count() == 0
-    finally:
-        globals_mod.redis_client = original_redis

@@ -4,16 +4,15 @@ Used by generate.py (session creation), audio_session.py (stop),
 disconnect.py (cleanup on disconnect), and the stale session reaper.
 """
 
-import logging
-
 from app.infra.globals import (
     _voice_message_ids,
     _voice_message_ids_lock,
 )
 from app.infra.websocket.adapters.audio.realtime import RealtimeAudioAdapter
 from app.infra.websocket.session_store import AudioSession, remove_session
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _audio_adapter: RealtimeAudioAdapter | None = None
 

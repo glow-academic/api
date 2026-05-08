@@ -357,6 +357,7 @@ async def patch_profile_draft_impl(
                     redis,
                     departments_id=request.primary_department_id,
                     soft=soft,
+                    name=request.name or "",
                 )
 
             result = await create_profile_draft(
@@ -364,6 +365,7 @@ async def patch_profile_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 profile_ids=[profile.profiles_id],
                 name_ids=[request.name_id] if request.name_id else None,
                 flag_ids=request.flag_ids or None,

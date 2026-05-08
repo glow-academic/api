@@ -5,10 +5,10 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.activity.get import get_activity_impl_cached
-from app.infra.system.group import group_system_impl
+from app.infra.activity.types import ActivityRequest, ActivityResponse
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
-from app.infra.activity.types import ActivityRequest, ActivityResponse
+from app.infra.system.group import group_system_impl
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()

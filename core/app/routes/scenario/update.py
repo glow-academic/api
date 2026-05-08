@@ -10,11 +10,11 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.scenario.group import group_scenario_impl
-from app.infra.scenario.update import update_scenario_impl
 from app.infra.scenario.types import (
     UpdateScenarioApiRequest,
     UpdateScenarioApiResponse,
 )
+from app.infra.scenario.update import update_scenario_impl
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -64,11 +64,13 @@ async def update_scenario(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "scenarios": [
-                    item.model_dump(mode="json") for item in request.scenarios
-                ]
-            },
+            # Audit ``arguments`` carry the full request body verbatim
+            # (delete/all-matching shape, ack shape, or explicit-scenarios
+            # shape — all serialize cleanly). ``request.scenarios`` is
+            # None under ``all=true`` and ack paths, so we can't grab
+            # just that field. Mode="json" so UUIDs/datetimes serialize
+            # via Pydantic's JSON encoder.
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=UpdateScenarioApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

@@ -19,6 +19,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tool.permissions import (
     compute_can_delete,
@@ -29,7 +30,6 @@ from app.infra.tool.types import (
     ListToolApiResponse,
     ListToolApiTool,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
 from app.tools.resources.agents.search import search_agents
@@ -37,7 +37,6 @@ from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.get import get_names
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

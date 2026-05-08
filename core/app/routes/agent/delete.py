@@ -9,12 +9,12 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.agent.delete import delete_agent_impl
 from app.infra.agent.group import group_agent_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.agent.types import (
     DeleteAgentApiRequest,
     DeleteAgentApiResponse,
 )
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -56,8 +56,19 @@ async def delete_agent(
                 profile_id=profile_id,
                 ids=request.agent_ids,
                 session_id=session_id,
-                accept=request.accept,
+                accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
+                # All-matching path
+                all=bool(request.all),
+                excluded_ids=request.excluded_ids,
+                search=request.search,
+                filter_department_ids=request.filter_department_ids,
+                filter_model_ids=request.filter_model_ids,
+                filter_tool_ids=request.filter_tool_ids,
+                department_search=request.department_search,
+                model_search=request.model_search,
+                tool_search=request.tool_search,
+                flag_search=request.flag_search,
             )
 
         result = await run_artifact_operation_with_audit(

@@ -1,9 +1,16 @@
-{% if drafts and drafts|length > 0 %}
-## Persona Drafts ({{ drafts|length }})
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.items and r.items|length > 0 %}
+## Persona Drafts ({{ r.items|length }} result{{ "s" if r.items|length != 1 else "" }})
 
-{% for d in drafts %}
-- Draft `{{ d.id }}` — version {{ d.version }}{% if d.name %}, name: {{ d.name }}{% endif %}
+{% for item in r.items %}
+- **{{ item.name or "(unnamed draft)" }}** — {{ item.created_at }} (ID: `{{ item.draft_id }}`)
 {% endfor %}
 {% else %}
-No persona drafts found.
+No persona drafts match the search.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching drafts: {{ results[0].error }}
+{% else %}
+No drafts result returned.
 {% endif %}

@@ -20,18 +20,18 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.persona.permissions import (
     compute_can_delete,
     compute_can_duplicate,
     compute_can_edit,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.persona.types import (
     ImportField,
     ListPersonaApiPersona,
     ListPersonaApiResponse,
 )
-from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.resources.colors.get import get_colors
@@ -52,7 +52,6 @@ from app.tools.resources.scenarios.search import (
     search_scenarios as search_scenarios_resource,
 )
 from app.tools.resources.voices.search import search_voices
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

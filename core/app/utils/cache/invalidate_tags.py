@@ -5,6 +5,7 @@ from collections.abc import Iterable
 
 from redis.asyncio import Redis
 
+from app.infra.cache_telemetry import record_invalidation
 from app.utils.logging.db_logger import get_logger
 
 TAG_PREFIX = "http:tag:"
@@ -50,6 +51,8 @@ async def invalidate_tags(tags: Iterable[str], *, redis: Redis) -> None:
 
         # Execute all delete operations in a single batch
         await pipe.execute()
-        logger.info(f"Invalidated cache for tags: {tags_list}")
+        # Record on the request-scoped CacheTelemetry; the request
+        # middleware emits a single summary line at response time.
+        record_invalidation(tags_list)
     except Exception as e:
         logger.error(f"Error invalidating cache: {e}")

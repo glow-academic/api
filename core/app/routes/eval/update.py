@@ -8,13 +8,13 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.eval.group import group_eval_impl
-from app.infra.eval.update import update_eval_impl
-from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.eval.types import (
     UpdateEvalApiRequest,
     UpdateEvalApiResponse,
 )
+from app.infra.eval.update import update_eval_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -64,9 +64,13 @@ async def update_eval(
             session_id=session_id,
             group_id=group_id,
             operation="update",
-            arguments={
-                "evals": [item.model_dump(mode="json") for item in request.evals]
-            },
+            # Audit ``arguments`` carry the full request body verbatim
+            # (delete/all-matching shape, ack shape, or explicit-evals
+            # shape — all serialize cleanly). ``request.evals`` is None
+            # under ``all=true`` and ack paths, so we can't grab just
+            # that field. ``mode="json"`` so UUIDs/datetimes serialize
+            # via Pydantic's JSON encoder.
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=UpdateEvalApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

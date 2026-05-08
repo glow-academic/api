@@ -113,6 +113,7 @@ async def prepare_generation(
     but nothing executes until accepted.
     """
     from app.infra.tool_graph import score_agents
+    from fastapi import HTTPException
     from app.infra.websocket.prepare_pipeline import (
         build_agent_dispatch,
         compute_createable_resources,
@@ -427,6 +428,40 @@ async def prepare_generation(
                 uncovered -= gained
                 if not uncovered:
                     break
+
+            # Loud failure when no agent (or no combination of agents)
+            # can serve the requested ops. Silent dispatches=0 leaves
+            # the user staring at an empty chat with no signal — much
+            # easier to diagnose seed/agent/tool wiring drift here than
+            # downstream. Two distinct failure modes:
+            #   - ranked is empty: no agent matched modalities + ops.
+            #   - ranked non-empty but ``uncovered`` non-empty: some
+            #     ops have no agent that owns the matching tool.
+            if not ranked:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"No {artifact_type} agent matches input "
+                        f"modalities {sorted(selection_in_mods)} + "
+                        f"output modalities {sorted(selection_out_mods)} "
+                        f"+ ops {sorted(payload.operations)}. "
+                        "Check agents seed: at least one agent for this "
+                        "artifact must own the tool resources covering "
+                        "every requested op."
+                    ),
+                )
+            if uncovered:
+                missing_ops = sorted({op for (_, op) in uncovered})
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"No {artifact_type} agent owns tool resources "
+                        f"for ops {missing_ops}. Ranked agents: "
+                        f"{[a.agent_id for a in ranked]}. Either add "
+                        "the missing tool to an existing agent's "
+                        "``tool_ids`` or drop the op from the request."
+                    ),
+                )
         elif ranked:
             # No operations — pure modality conversion (STT, TTS) or a
             # tool-less variant. Pick the single best agent, empty
@@ -590,8 +625,65 @@ async def prepare_generation(
                         content=instruction,
                     )
 
+        # Resolve this agent's full input-modality set from the tool
+        # graph so chat-history rendering can decide between OpenAI
+        # tool_calls format (when "call" ∈ input_modalities) and the
+        # plain-text fallback. Falls back to {"text"} if the agent
+        # somehow isn't in the graph (defensive — shouldn't happen).
+        _agent_in_mods: set[str] = {"text"}
+        if tool_graph is not None:
+            for _ag in getattr(tool_graph, "agents", []) or []:
+                if getattr(_ag, "id", None) == agent_group_id:
+                    _agent_in_mods = set(_ag.input_modalities or {"text"})
+                    break
+
+        # Modality-filter the group's prior messages and splice in
+        # between the system+developer framing and the current user
+        # instruction. Each dispatch sees its own version because
+        # different agents in a multi-agent run can have different
+        # input modalities. See render_history.py for the role × call
+        # support truth table.
+        from app.infra.generation.chat_history import fetch_group_history
+        from app.infra.generation.render_history import (
+            render_history_for_dispatch,
+        )
+
+        rendered_history: list[dict[str, Any]] = []
+        if group_id is not None and tool_graph is not None:
+            try:
+                _raw_history = await fetch_group_history(
+                    pool,
+                    group_id=group_id,
+                    exclude_run_id=run_id,
+                )
+                rendered_history = render_history_for_dispatch(
+                    _raw_history,
+                    input_modalities=_agent_in_mods,
+                    scoped_tools=dispatch.scoped_tools,
+                )
+                # Mark history items so each artifact's per-generate
+                # emit loop skips them. ``dispatch.messages`` carries
+                # both new framing (system + developer + current user
+                # instruction) AND threaded history; only the former
+                # should fire as ``{artifact}.generate.text.complete``
+                # live events. The frontend already shows historicals
+                # via the group_get path — re-emitting them as live
+                # events produces duplicate bubbles.
+                for _h in rendered_history:
+                    _h["_emit"] = False
+            except Exception as e:
+                # History threading is enhancement, not required —
+                # never fail a generation because we couldn't load it.
+                logger.warning(
+                    "fetch/render group history failed for group %s "
+                    "(non-fatal): %r",
+                    group_id, e,
+                )
+
         # Collect all messages for LLM
         all_messages = list(dispatch.messages_for_llm)
+        if rendered_history:
+            all_messages.extend(rendered_history)
         if payload.extra_messages:
             for em in payload.extra_messages:
                 all_messages.append(em)

@@ -22,17 +22,16 @@ from app.infra.scenario.permissions_context import (
     resolve_scenario_values,
 )
 from app.infra.scenario.refresh import refresh_scenario_impl
+from app.infra.scenario.types import (
+    CreateScenarioApiRequest,
+    CreateScenarioApiResponse,
+    CreateScenarioItem,
+    ScenarioResultItem,
+)
 from app.tools.artifacts.scenario.create import (
     create_scenario as create_scenario_artifact,
 )
 from app.tools.artifacts.scenario.get import get_scenarios
-
-from app.infra.scenario.types import (
-    CreateScenarioApiRequest,
-    CreateScenarioItem,
-    ScenarioResultItem,
-    CreateScenarioApiResponse,
-)
 
 
 def _batch_department_scope(items: list[CreateScenarioItem]) -> list[str] | None:

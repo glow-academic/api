@@ -6,7 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # ── Audio ─────────────────────────────────────────────────────────────────────
 
 class AudioUploadAttemptApiResponse(BaseModel):

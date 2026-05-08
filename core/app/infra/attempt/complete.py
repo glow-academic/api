@@ -11,9 +11,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.tools.entries.attempt.refresh import refresh_attempt
 from app.tools.entries.attempt_completion.create import create_attempt_completion
 from app.tools.entries.attempt_completion.refresh import refresh_attempt_completion
-from app.tools.entries.attempt.refresh import refresh_attempt
 
 
 async def complete_attempt_impl(

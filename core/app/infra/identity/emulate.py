@@ -9,7 +9,6 @@ the chain iteratively (supports nested emulation up to depth 5).
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -30,8 +29,9 @@ from app.tools.entries.grant_consumptions.create import (
 )
 from app.tools.entries.grants.create import create_grant
 from app.tools.entries.sessions.search import search_sessions
+from app.utils.logging.db_logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

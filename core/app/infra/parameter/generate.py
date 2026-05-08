@@ -23,9 +23,9 @@ from redis.asyncio import Redis
 from app.infra.generation.execute import execute_generation
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
+from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
@@ -141,6 +141,14 @@ async def generate_parameter_impl(
         # Emit text.complete for each persisted message (system, developer, user).
         for dispatch in prepared.dispatches:
             for msg in dispatch.messages:
+                # Skip history items threaded into the dispatch by
+                # prepare.py — the panel already shows them via
+                # group_get; re-emitting as live events produces
+                # duplicate bubbles. New messages (system, developer,
+                # current user instruction) have no _emit key and
+                # default to True.
+                if not msg.get("_emit", True):
+                    continue
                 role = msg.get("role", "")
                 content = msg.get("content", "")
                 if role and content:
@@ -148,7 +156,7 @@ async def generate_parameter_impl(
                         f"{ARTIFACT_TYPE}.generate.text.complete",
                         {
                             "sid": resolved_sid,
-                            "rooms": [resolved_sid] if resolved_sid else [],
+                            "rooms": [str(profile_id)],
                             "artifact_type": ARTIFACT_TYPE,
                             "run_id": str(prepared.run_id),
                             "group_id": str(group_id),

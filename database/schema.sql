@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict SjIbNKu8ZgNbhCDDY9niSh58uDwgJ7PMAfqUMSgH71CdmZ4LBMg3hSyPP2JhU9L
+\restrict 93rEvavHcwtq2KVZBIcQPCl3EtP5eHygBYDEncv1txHGAdHLzd4Op8UaTpwWcJC
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -212,7 +212,8 @@ CREATE TABLE public.agent_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -268,7 +269,8 @@ CREATE MATERIALIZED VIEW public.agent_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.agent_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -2570,7 +2572,8 @@ CREATE TABLE public.auth_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -2612,7 +2615,8 @@ CREATE MATERIALIZED VIEW public.auth_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.auth_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -3157,7 +3161,8 @@ CREATE TABLE public.chat_drafts_entry (
     generated boolean DEFAULT false CONSTRAINT training_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT training_drafts_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT training_drafts_entry_active_not_null NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -3213,7 +3218,8 @@ CREATE MATERIALIZED VIEW public.chat_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.chat_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -3944,7 +3950,8 @@ CREATE TABLE public.cohort_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -3972,7 +3979,8 @@ CREATE MATERIALIZED VIEW public.cohort_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.cohort_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -4319,7 +4327,8 @@ CREATE TABLE public.department_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -4347,7 +4356,8 @@ CREATE MATERIALIZED VIEW public.department_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.department_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -4588,7 +4598,8 @@ CREATE TABLE public.document_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -4644,7 +4655,8 @@ CREATE MATERIALIZED VIEW public.document_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.document_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -5022,7 +5034,8 @@ CREATE TABLE public.eval_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -5106,7 +5119,8 @@ CREATE MATERIALIZED VIEW public.eval_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.eval_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -5420,7 +5434,8 @@ CREATE TABLE public.field_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -5448,7 +5463,8 @@ CREATE MATERIALIZED VIEW public.field_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.field_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -6357,7 +6373,8 @@ CREATE TABLE public.invocation_drafts_entry (
     generated boolean DEFAULT false CONSTRAINT suite_drafts_entry_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT suite_drafts_entry_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT suite_drafts_entry_active_not_null NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -6455,7 +6472,8 @@ CREATE MATERIALIZED VIEW public.invocation_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.invocation_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -7276,7 +7294,8 @@ CREATE TABLE public.model_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -7318,7 +7337,8 @@ CREATE MATERIALIZED VIEW public.model_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.model_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -7848,7 +7868,8 @@ CREATE TABLE public.parameter_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -7890,7 +7911,8 @@ CREATE MATERIALIZED VIEW public.parameter_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.parameter_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -8169,7 +8191,8 @@ CREATE TABLE public.persona_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -8239,7 +8262,8 @@ CREATE MATERIALIZED VIEW public.persona_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.persona_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -8875,7 +8899,8 @@ CREATE TABLE public.profile_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -8903,7 +8928,8 @@ CREATE MATERIALIZED VIEW public.profile_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.profile_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -9275,7 +9301,8 @@ CREATE TABLE public.provider_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -9317,7 +9344,8 @@ CREATE MATERIALIZED VIEW public.provider_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.provider_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -9827,7 +9855,8 @@ CREATE TABLE public.rubric_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -9855,7 +9884,8 @@ CREATE MATERIALIZED VIEW public.rubric_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.rubric_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -10330,7 +10360,8 @@ CREATE TABLE public.scenario_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -10372,7 +10403,8 @@ CREATE MATERIALIZED VIEW public.scenario_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.scenario_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -10990,7 +11022,8 @@ CREATE TABLE public.setting_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -11056,7 +11089,8 @@ CREATE MATERIALIZED VIEW public.setting_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.setting_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -11387,7 +11421,8 @@ CREATE TABLE public.simulation_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -11415,7 +11450,8 @@ CREATE MATERIALIZED VIEW public.simulation_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.simulation_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -13027,7 +13063,8 @@ CREATE TABLE public.tool_drafts_entry (
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
     active boolean DEFAULT true NOT NULL,
-    session_id uuid NOT NULL
+    session_id uuid NOT NULL,
+    name text DEFAULT ''::text NOT NULL
 );
 
 
@@ -13069,7 +13106,8 @@ CREATE MATERIALIZED VIEW public.tool_drafts_mv AS
     generated,
     mcp,
     active,
-    session_id
+    session_id,
+    name
    FROM public.tool_drafts_entry
   WHERE (active = true)
   WITH NO DATA;
@@ -19554,6 +19592,13 @@ CREATE UNIQUE INDEX agent_drafts_mv_id_idx ON public.agent_drafts_mv USING btree
 
 
 --
+-- Name: agent_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX agent_drafts_mv_name_idx ON public.agent_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: agent_flags_agent_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -19995,6 +20040,13 @@ CREATE UNIQUE INDEX auth_drafts_mv_id_idx ON public.auth_drafts_mv USING btree (
 
 
 --
+-- Name: auth_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auth_drafts_mv_name_idx ON public.auth_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: auth_flags_auth_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20149,6 +20201,13 @@ CREATE UNIQUE INDEX chat_drafts_mv_id_idx ON public.chat_drafts_mv USING btree (
 
 
 --
+-- Name: chat_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX chat_drafts_mv_name_idx ON public.chat_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: cohort_cohorts_cohort_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20195,6 +20254,13 @@ CREATE INDEX cohort_descriptions_description_id_idx ON public.cohort_description
 --
 
 CREATE UNIQUE INDEX cohort_drafts_mv_id_idx ON public.cohort_drafts_mv USING btree (id);
+
+
+--
+-- Name: cohort_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX cohort_drafts_mv_name_idx ON public.cohort_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -20394,6 +20460,13 @@ CREATE UNIQUE INDEX department_drafts_mv_id_idx ON public.department_drafts_mv U
 
 
 --
+-- Name: department_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX department_drafts_mv_name_idx ON public.department_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: department_flags_department_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20517,6 +20590,13 @@ CREATE INDEX document_documents_documents_id_idx ON public.document_documents_ju
 --
 
 CREATE UNIQUE INDEX document_drafts_mv_id_idx ON public.document_drafts_mv USING btree (id);
+
+
+--
+-- Name: document_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX document_drafts_mv_name_idx ON public.document_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -20695,6 +20775,13 @@ CREATE UNIQUE INDEX eval_drafts_mv_id_idx ON public.eval_drafts_mv USING btree (
 
 
 --
+-- Name: eval_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX eval_drafts_mv_name_idx ON public.eval_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: eval_evals_eval_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20832,6 +20919,13 @@ CREATE INDEX field_descriptions_field_id_idx ON public.field_descriptions_juncti
 --
 
 CREATE UNIQUE INDEX field_drafts_mv_id_idx ON public.field_drafts_mv USING btree (id);
+
+
+--
+-- Name: field_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX field_drafts_mv_name_idx ON public.field_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -26862,6 +26956,13 @@ CREATE UNIQUE INDEX invocation_drafts_mv_id_idx ON public.invocation_drafts_mv U
 
 
 --
+-- Name: invocation_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invocation_drafts_mv_name_idx ON public.invocation_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: items_active_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27020,6 +27121,13 @@ CREATE INDEX model_descriptions_model_id_idx ON public.model_descriptions_juncti
 --
 
 CREATE UNIQUE INDEX model_drafts_mv_id_idx ON public.model_drafts_mv USING btree (id);
+
+
+--
+-- Name: model_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX model_drafts_mv_name_idx ON public.model_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -27310,6 +27418,13 @@ CREATE UNIQUE INDEX parameter_drafts_mv_id_idx ON public.parameter_drafts_mv USI
 
 
 --
+-- Name: parameter_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX parameter_drafts_mv_name_idx ON public.parameter_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: parameter_fields_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27447,6 +27562,13 @@ CREATE INDEX persona_descriptions_persona_id_idx ON public.persona_descriptions_
 --
 
 CREATE UNIQUE INDEX persona_drafts_mv_id_idx ON public.persona_drafts_mv USING btree (id);
+
+
+--
+-- Name: persona_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX persona_drafts_mv_name_idx ON public.persona_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -27667,6 +27789,13 @@ CREATE UNIQUE INDEX profile_drafts_mv_id_idx ON public.profile_drafts_mv USING b
 
 
 --
+-- Name: profile_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profile_drafts_mv_name_idx ON public.profile_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: profile_emails_email_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27874,6 +28003,13 @@ CREATE INDEX provider_descriptions_provider_id_idx ON public.provider_descriptio
 --
 
 CREATE UNIQUE INDEX provider_drafts_mv_id_idx ON public.provider_drafts_mv USING btree (id);
+
+
+--
+-- Name: provider_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX provider_drafts_mv_name_idx ON public.provider_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -28157,6 +28293,13 @@ CREATE UNIQUE INDEX rubric_drafts_mv_id_idx ON public.rubric_drafts_mv USING btr
 
 
 --
+-- Name: rubric_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX rubric_drafts_mv_name_idx ON public.rubric_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: rubric_flags_flag_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28378,6 +28521,13 @@ CREATE INDEX scenario_documents_scenario_id_v7_idx ON public.scenario_documents_
 --
 
 CREATE UNIQUE INDEX scenario_drafts_mv_id_idx ON public.scenario_drafts_mv USING btree (id);
+
+
+--
+-- Name: scenario_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX scenario_drafts_mv_name_idx ON public.scenario_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -28752,6 +28902,13 @@ CREATE UNIQUE INDEX setting_drafts_mv_id_idx ON public.setting_drafts_mv USING b
 
 
 --
+-- Name: setting_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX setting_drafts_mv_name_idx ON public.setting_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--
 -- Name: setting_flags_flag_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28938,6 +29095,13 @@ CREATE INDEX simulation_descriptions_simulation_id_idx ON public.simulation_desc
 --
 
 CREATE UNIQUE INDEX simulation_drafts_mv_id_idx ON public.simulation_drafts_mv USING btree (id);
+
+
+--
+-- Name: simulation_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX simulation_drafts_mv_name_idx ON public.simulation_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -29358,6 +29522,13 @@ CREATE INDEX tool_descriptions_tool_id_idx ON public.tool_descriptions_junction 
 --
 
 CREATE UNIQUE INDEX tool_drafts_mv_id_idx ON public.tool_drafts_mv USING btree (id);
+
+
+--
+-- Name: tool_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tool_drafts_mv_name_idx ON public.tool_drafts_mv USING btree (lower(name) text_pattern_ops);
 
 
 --
@@ -32925,14 +33096,6 @@ ALTER TABLE ONLY public.grants_entry
 
 ALTER TABLE ONLY public.group_names_entry
     ADD CONSTRAINT group_names_entry_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: groups_entry groups_entry_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.groups_entry
-    ADD CONSTRAINT groups_entry_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions_entry(id) ON DELETE CASCADE;
 
 
 --
@@ -37944,14 +38107,6 @@ ALTER TABLE ONLY public.test_invocation_traces_entry
 
 
 --
--- Name: text_completion_entry text_completion_entry_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.text_completion_entry
-    ADD CONSTRAINT text_completion_entry_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions_entry(id);
-
-
---
 -- Name: text_completion_entry text_completion_entry_text_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -38955,5 +39110,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SjIbNKu8ZgNbhCDDY9niSh58uDwgJ7PMAfqUMSgH71CdmZ4LBMg3hSyPP2JhU9L
+\unrestrict 93rEvavHcwtq2KVZBIcQPCl3EtP5eHygBYDEncv1txHGAdHLzd4Op8UaTpwWcJC
 

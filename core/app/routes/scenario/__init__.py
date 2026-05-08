@@ -23,6 +23,7 @@ from app.routes.scenario.stream import router as stream_router
 from app.routes.scenario.text import router as text_router
 from app.routes.scenario.update import router as update_router
 from app.routes.scenario.video import router as video_router
+from app.routes.scenario.call import router as call_router
 
 router = APIRouter(prefix="/scenario", tags=["scenario"])
 
@@ -50,3 +51,6 @@ router.include_router(image_router)
 router.include_router(video_router)
 router.include_router(text_router)
 router.include_router(file_router)
+
+# Typed media operations
+router.include_router(call_router)

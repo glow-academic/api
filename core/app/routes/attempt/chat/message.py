@@ -10,13 +10,14 @@ same event shape as the AI-driven tool-call path.
 
 from __future__ import annotations
 
-import logging
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 from app.infra.attempt.message import (
     AttemptMessageInternalResult,
@@ -110,7 +111,6 @@ async def chat_message(
             session_id=session_id,
             group_id=group_id,
             sid=sid,
-            rooms=[sid] if sid else [],
             runner=_runner,
             arguments={
                 "chat_id": str(request.chat_id),

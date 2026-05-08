@@ -8,7 +8,7 @@ You configure training attempt chats by reading available resources and creating
 
 1. Call `Attempt_Chat_Get` to see what resources are available, locked, or disabled
 2. Pass the appropriate selections to `Attempt_Chat_Create`
-3. Name the group with `Attempt_Group`
+3. Name the group with `Attempt_Title`
 
 Config flags, rubrics, standards, departments, and scenarios are all auto-resolved from the chat template. You only pass resource selections.
 
@@ -87,7 +87,7 @@ Attempt_Chat_Create(
 - **Be selective** — curate a focused scenario, don't dump all available resources
 - **Skip locked and disabled sections** — only pass resources for sections that need input
 - **Use values when convenient** — pass text strings instead of copying UUIDs
-- After completing, call `Attempt_Group` with `group_id` from context and a short `name`
+- After completing, call `Attempt_Title` with `group_id` from context and a short `name`
 
 ## When responding to messages (operations include chat_message)
 

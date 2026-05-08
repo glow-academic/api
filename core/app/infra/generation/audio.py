@@ -14,7 +14,9 @@ from typing import Any
 from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
 from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
+from app.infra.websocket.attempt_types import AttemptAudioReadyData
 from app.infra.websocket.generation_types import GenerateErrorApiRequest
+from app.infra.websocket.session_store import get_session_by_group_id
 from app.infra.websocket.socket_event import EmitFn, internal_event
 from app.infra.websocket.tool_call_utils import build_tool_output_schemas
 
@@ -161,6 +163,13 @@ async def execute_audio_dispatch(
         )
         return
 
+    # Emit the canonical session-start event (kept for log filter +
+    # observability), then directly translate to the client-facing
+    # voice_ready signal that arms the mic. Previously the rename
+    # lived in ws/output/.../audio_session_start.py — moved here so
+    # the workflow is readable top-to-bottom at the emit site.
+    session = get_session_by_group_id(group_id)
+    chat_id = session.chat_id if session else group_id
     await emit(
         [
             internal_event(
@@ -175,7 +184,16 @@ async def execute_audio_dispatch(
                     "message": "Audio session ready",
                     "metadata": metadata or None,
                 },
-            )
+            ),
+            internal_event(
+                "attempt.chat.voice_ready",
+                AttemptAudioReadyData(
+                    sid=sid,
+                    chat_id=chat_id,
+                    success=True,
+                    message="Voice session ready",
+                ).model_dump(mode="json"),
+            ),
         ]
     )
 

@@ -2188,13 +2188,17 @@ async def perform_keycloak_sync(
     Returns:
         KeycloakSyncResult with success status and message.
     """
-    if os.getenv("PYTEST_CURRENT_TEST"):
+    if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("SKIP_KEYCLOAK_SYNC"):
+        # Tests and the seed runner short-circuit — Keycloak isn't running
+        # in those environments, and the 10-attempt retry loop would block
+        # the run for ~30s only to fail anyway.
+        reason = "tests" if os.getenv("PYTEST_CURRENT_TEST") else "SKIP_KEYCLOAK_SYNC"
         if department_id:
             message = (
-                f"Keycloak sync skipped during tests for department {department_id}"
+                f"Keycloak sync skipped ({reason}) for department {department_id}"
             )
         else:
-            message = "Keycloak sync skipped during tests"
+            message = f"Keycloak sync skipped ({reason})"
         return KeycloakSyncResult(
             success=True,
             message=message,

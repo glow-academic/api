@@ -1,6 +1,5 @@
 """LiteLLM-based media adapter for image/video generation."""
 
-import logging
 import uuid
 from typing import Any
 
@@ -8,6 +7,7 @@ from app.infra.globals import get_pool, get_redis_client
 from app.infra.media.upload import media_upload_impl
 from app.infra.websocket.adapters.media.base import BaseMediaAdapter, MediaResult
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
+from app.utils.logging.db_logger import get_logger
 
 try:
     import litellm  # type: ignore
@@ -16,7 +16,7 @@ try:
 except ImportError:
     LITELLM_AVAILABLE = False
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class LitellmMediaAdapter(BaseMediaAdapter):

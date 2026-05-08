@@ -28,10 +28,6 @@ from app.infra.cohort.permissions import (
     compute_simulations_required,
 )
 from app.infra.cohort.permissions_context import CohortPermissionsContext
-from app.infra.common_context import CommonContext
-from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext
 from app.infra.cohort.types import (
     CohortDepartment,
     CohortDepartmentSection,
@@ -53,6 +49,10 @@ from app.infra.cohort.types import (
     CohortSimulationSection,
     GetCohortApiResponse,
 )
+from app.infra.common_context import CommonContext
+from app.infra.helpers import sorted_dedupe_by_id
+from app.infra.tool_graph import ArtifactToolScores
+from app.infra.types import ArtifactContext
 
 
 def build_cohort_get_result(

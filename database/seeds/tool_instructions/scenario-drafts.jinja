@@ -1,9 +1,16 @@
-{% if drafts and drafts|length > 0 %}
-## Scenario Drafts ({{ drafts|length }})
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.items and r.items|length > 0 %}
+## Scenario Drafts ({{ r.items|length }} result{{ "s" if r.items|length != 1 else "" }})
 
-{% for d in drafts %}
-- `{{ d.id }}` — {{ d.name or '(unnamed)' }}{% if d.created_at %} | {{ d.created_at }}{% endif %}
+{% for item in r.items %}
+- **{{ item.name or "(unnamed draft)" }}** — {{ item.created_at }} (ID: `{{ item.draft_id }}`)
 {% endfor %}
 {% else %}
-No scenario drafts found.
+No scenario drafts match the search.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching drafts: {{ results[0].error }}
+{% else %}
+No drafts result returned.
 {% endif %}

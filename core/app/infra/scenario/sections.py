@@ -13,8 +13,6 @@ from app.infra.scenario.permissions import (
     compute_disabled_reason,
 )
 from app.infra.scenario.permissions_context import ScenarioPermissionsContext
-from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext, ResourcePair
 from app.infra.scenario.types import (
     GetScenarioApiResponse,
     ScenarioDepartment,
@@ -32,6 +30,8 @@ from app.infra.scenario.types import (
     ScenarioQuestion,
     ScenarioVideo,
 )
+from app.infra.tool_graph import ArtifactToolScores
+from app.infra.types import ArtifactContext, ResourcePair
 
 
 def build_scenario_get_result(

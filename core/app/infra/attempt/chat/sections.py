@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.infra.common_context import CommonContext
-from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
-from app.infra.types import ArtifactContext
 from app.infra.attempt.chat.types import (
     ChatDepartmentResource,
     ChatDescriptionResource,
@@ -26,6 +22,10 @@ from app.infra.attempt.chat.types import (
     ChatVideoResource,
     GetChatResponse,
 )
+from app.infra.common_context import CommonContext
+from app.infra.helpers import sorted_dedupe_by_id
+from app.infra.tool_graph import ArtifactToolScores
+from app.infra.types import ArtifactContext
 
 CHAT_SECTIONS = [
     "names",

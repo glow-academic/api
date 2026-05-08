@@ -26,10 +26,6 @@ from app.infra.auth.permissions import (
     compute_slugs_required,
 )
 from app.infra.auth.permissions_context import resolve_auth_permissions_context
-from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
-from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import score_tools
 from app.infra.auth.types import (
     AuthDepartmentResource,
     AuthDescriptionResource,
@@ -41,6 +37,10 @@ from app.infra.auth.types import (
     GetAuthApiResponse,
     SectionFilter,
 )
+from app.infra.common_context import resolve_common_context
+from app.infra.group.resolve import resolve_group_impl
+from app.infra.helpers import sorted_dedupe_by_id
+from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "protocols", "slugs", "items"]
 

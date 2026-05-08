@@ -9,7 +9,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.infra.api_types import ListFilterSection
 from app.infra.identity.settings import SettingsThemeResult
+from app.infra.resource_type_filter import ScopedItem
 from app.infra.shared_types import (
     QGetAgentsV4Item,
     QGetProfileContextV4ThemeTokens,
@@ -17,8 +19,6 @@ from app.infra.shared_types import (
     QGetSystemsV4Item,
     QGetToolsV4Item,
 )
-from app.infra.api_types import ListFilterSection
-from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.auth_drafts.types import GetAuthDraftResponse
 
 
@@ -409,10 +409,51 @@ class UpdateAuthItem(ScopedItem):
     auth_resource_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs")
 
 
-class UpdateAuthApiRequest(BaseModel):
-    """Request model for bulk update auth endpoint."""
+class UpdateAuthPatch(UpdateAuthItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    auths: list[UpdateAuthItem] = Field(..., description="List of auth providers to update")
+    Inherits every field from ``UpdateAuthItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved auth id per matched row",
+    )
+
+
+class UpdateAuthApiRequest(BaseModel):
+    """Request model for bulk update auth endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``auths`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/auth/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    auths: list[UpdateAuthItem] | None = Field(
+        None, description="List of auth providers to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteAuthApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every auth matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateAuthPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -432,9 +473,36 @@ class SaveAuthFieldError(BaseModel):
 
 
 class DeleteAuthApiRequest(BaseModel):
-    """Request model for bulk delete auth endpoint."""
+    """Request model for bulk delete auth endpoint.
 
-    auth_ids: list[UUID] = Field(..., description="UUIDs of auth providers to delete")
+    Three body shapes:
+      - First call (explicit): ``auth_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/auth/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    auth_ids: list[UUID] | None = Field(
+        None, description="UUIDs of auth providers to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchAuthApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every auth matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /auth/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``auth_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
     accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -443,7 +511,10 @@ class DeleteAuthResult(BaseModel):
     """Per-item result within a bulk delete response."""
 
     success: bool = Field(..., description="Whether the deletion succeeded")
-    auth_id: UUID = Field(..., description="UUID of the deleted auth provider")
+    # Relaxed to ``UUID | None`` so soft-skipped rows (under all-matching)
+    # whose ids didn't resolve to an actual artifact can still be
+    # reported. Explicit-ids path always populates this.
+    auth_id: UUID | None = Field(None, description="UUID of the deleted auth provider")
     message: str = Field(..., description="Result message")
 
 
@@ -651,3 +722,47 @@ class ProblemAuthApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadAuthApiRequest(BaseModel):
+    """Request model for auth text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadAuthApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadAuthApiRequest(BaseModel):
+    """Request model for auth call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadAuthApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

@@ -8,6 +8,7 @@ from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
+
 class RubricNameResource(BaseModel):
     """Name resource for rubric."""
 
@@ -277,10 +278,56 @@ class UpdateRubricItem(ScopedItem):
     standard_ids: list[UUID] | None = Field(None, description="Standard UUIDs")
 
 
-class UpdateRubricApiRequest(BaseModel):
-    """Request model for bulk update rubric endpoint."""
+class UpdateRubricPatch(UpdateRubricItem):
+    """Shared patch for bulk-update-all-matching mode.
 
-    rubrics: list[UpdateRubricItem] = Field(..., description="List of rubrics to update")
+    Inherits every field from ``UpdateRubricItem`` and just relaxes
+    ``id`` to optional — the bulk impl stamps the resolved id onto a
+    clone of the patch per matched row, so any client-supplied id is
+    ignored. Sparse semantics: only fields the client sets are written.
+    """
+
+    id: UUID | None = Field(  # type: ignore[assignment]
+        None,
+        description="Ignored — bulk impl stamps the resolved rubric id per matched row",
+    )
+
+
+class UpdateRubricApiRequest(BaseModel):
+    """Request model for bulk update rubric endpoint.
+
+    Three body shapes:
+      - First call (explicit): ``rubrics`` required — per-row patches.
+      - First call (all-matching): ``all=true`` plus the filter fields
+        ``/rubric/search`` accepts plus a single shared ``patch`` that
+        every matched row receives. The impl resolves matching ids,
+        subtracts ``excluded_ids``, and runs the existing per-row
+        update flow with the patch cloned per id.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant update by ``idempotency_key``.
+    """
+
+    rubrics: list[UpdateRubricItem] | None = Field(
+        None, description="List of rubrics to update (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Same shape as DeleteRubricApiRequest; ``patch``
+    # is the shared change set applied to every matched row. ``patch.id``
+    # is ignored — each resolved id is stamped onto a clone before the
+    # per-row update fires.
+    all: bool | None = Field(False, description="When true, apply ``patch`` to every rubric matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    patch: UpdateRubricPatch | None = Field(None, description="Shared change set applied to every matched row when ``all=true`` (sparse — only set fields are updated; ``patch.id`` ignored)")
+    # Filter fields (same shape as /rubric/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``rubrics`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    filter_simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
     accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -300,9 +347,38 @@ class SaveRubricFieldError(BaseModel):
 
 
 class DeleteRubricApiRequest(BaseModel):
-    """Request model for bulk delete rubric endpoint."""
+    """Request model for bulk delete rubric endpoint.
 
-    rubric_ids: list[UUID] = Field(..., description="Rubric UUIDs to delete")
+    Three body shapes:
+      - First call (explicit): ``rubric_ids`` required.
+      - First call (all-matching): ``all=true`` plus the same filter
+        fields ``/rubric/search`` accepts. The impl resolves every
+        matching id server-side, subtracts ``excluded_ids``, and runs
+        the existing per-row delete flow.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant deletion by ``idempotency_key``.
+    """
+
+    rubric_ids: list[UUID] | None = Field(
+        None, description="Rubric UUIDs to delete (required on first call when ``all`` is false)",
+    )
+
+    # All-matching path. Field names mirror ``SearchRubricApiRequest``
+    # so the client can pass URL-backed nuqs filter state through to a
+    # bulk delete unchanged. Independent class (not a shared "filter"
+    # sub-model) so future divergence from search predicates is trivial.
+    all: bool | None = Field(False, description="When true, delete every rubric matching the filter fields below (minus ``excluded_ids``)")
+    excluded_ids: list[UUID] | None = Field(None, description="UUIDs to skip even when matched by ``all``-mode filters")
+    # Filter fields (same shape as /rubric/search). Only meaningful
+    # when ``all=true``; the validator does not enforce that today —
+    # the impl simply ignores them when ``rubric_ids`` is set.
+    search: str | None = Field(None, description="Full-text search query")
+    filter_department_ids: list[UUID] | None = Field(None, description="Filter by department UUIDs")
+    filter_simulation_ids: list[UUID] | None = Field(None, description="Filter by simulation UUIDs")
+    department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
+    simulation_search: str | None = Field(None, description="Search text for simulation facet (no-op for row filtering)")
+    flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
+
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
     accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
@@ -311,7 +387,10 @@ class DeleteRubricResult(BaseModel):
     """Per-item result within a bulk delete response."""
 
     success: bool = Field(..., description="Whether the operation succeeded")
-    rubric_id: UUID = Field(..., description="Rubric UUID")
+    # Relaxed to optional — under all-matching, soft-skipped rows that
+    # didn't resolve to an actual artifact may report a None id. The
+    # explicit-ids path always populates this.
+    rubric_id: UUID | None = Field(None, description="Rubric UUID")
     message: str = Field(..., description="Human-readable result message")
 
 
@@ -596,3 +675,47 @@ class ProblemRubricApiResponse(BaseModel):
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+
+
+
+# =============================================================================
+# Text Download Types
+# =============================================================================
+
+
+class TextDownloadRubricApiRequest(BaseModel):
+    """Request model for rubric text download endpoint."""
+
+    text_id: UUID = Field(..., description="UUID of the texts_resource to download")
+
+
+class TextDownloadRubricApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
+
+
+
+# =============================================================================
+# Call Download Types
+# =============================================================================
+
+
+class CallDownloadRubricApiRequest(BaseModel):
+    """Request model for rubric call download endpoint."""
+
+    call_id: UUID = Field(..., description="UUID of the calls_resource to download")
+
+
+class CallDownloadRubricApiResult(BaseModel):
+    """Resolved call file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

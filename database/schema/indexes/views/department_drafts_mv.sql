@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX department_drafts_mv_id_idx ON public.department_drafts_mv U
 
 
 --
+
+-- Name: department_drafts_mv_name_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX department_drafts_mv_name_idx ON public.department_drafts_mv USING btree (lower(name) text_pattern_ops);
+
+
+--

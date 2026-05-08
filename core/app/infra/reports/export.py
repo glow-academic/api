@@ -27,11 +27,11 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
 )
-from app.tools.entries.test_invocation_traces.search import (
-    search_test_invocation_traces,
-)
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
+)
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
 )
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.names.get import get_names

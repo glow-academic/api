@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
-from app.infra.group.resolve import resolve_group_impl
 from app.infra.eval.context import resolve_eval_context
 from app.infra.eval.permissions import (
     EVAL_BASIC_RESOURCES,
@@ -45,11 +44,12 @@ from app.infra.eval.types import (
     EvalModelPositionResource,
     EvalModelResource,
     EvalModelRubricResource,
-    EvalRubricResource,
     EvalNameResource,
+    EvalRubricResource,
     GetEvalApiResponse,
     SectionFilter,
 )
+from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.tool_graph import score_tools
 

@@ -19,7 +19,6 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.infra.simulation.permissions import compute_can_draft
 from app.infra.simulation.refresh import refresh_simulation_impl
 from app.infra.simulation.types import (
@@ -29,15 +28,17 @@ from app.infra.simulation.types import (
     SaveSimulationFieldError,
     SimulationDraftFormState,
 )
-from app.tools.resources.scenario_flags.get import get_scenario_flags
+from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.simulation_drafts.create import (
     create_simulation_draft,
 )
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 from app.tools.resources.scenario_flags.create import create_scenario_flag
+from app.tools.resources.scenario_flags.get import get_scenario_flags
 from app.tools.resources.scenario_positions.create import (
     create_scenario_position,
 )
@@ -45,8 +46,6 @@ from app.tools.resources.scenario_rubrics.create import create_scenario_rubric
 from app.tools.resources.scenario_time_limits.create import (
     create_scenario_time_limit,
 )
-from app.tools.resources.flags.search import search_flags
-
 
 # Denormalized bool field name → flag type in flags_resource.
 SIMULATION_DENORM_FLAG_FIELDS = {
@@ -400,6 +399,7 @@ async def patch_simulation_draft_impl(
                 session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
+                name=request.name or "",
                 name_ids=[request.name_id] if request.name_id else None,
                 description_ids=[request.description_id]
                 if request.description_id
@@ -424,6 +424,7 @@ async def patch_simulation_draft_impl(
         session_id=session_id,
         targets=["simulation_drafts_mv"],
         soft=soft,
+        name=request.name or "",
         operation_key=idempotency_key or result.id,
     )
 

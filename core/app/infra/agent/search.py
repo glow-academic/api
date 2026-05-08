@@ -23,12 +23,12 @@ from app.infra.agent.permissions import (
     compute_can_duplicate,
     compute_list_can_edit,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.agent.types import (
     ListAgentApiAgent,
     ListAgentApiResponse,
 )
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.get import get_agents
 from app.tools.artifacts.agent.search import search_agents
 from app.tools.resources.departments.search import search_departments
@@ -44,7 +44,6 @@ from app.tools.resources.names.get import get_names
 from app.tools.resources.tools.search import (
     search_tools as search_tools_resource,
 )
-
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
     big_cache_key,

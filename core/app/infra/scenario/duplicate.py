@@ -20,10 +20,10 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import compute_can_duplicate
+from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
     DuplicateScenarioApiResponse,
 )
-from app.infra.scenario.refresh import refresh_scenario_impl
 from app.tools.artifacts.scenario.create import (
     create_scenario as create_scenario_artifact,
 )

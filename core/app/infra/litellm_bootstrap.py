@@ -6,12 +6,13 @@ MockResponsesAPIStreamingIterator for unknown models, which buffers
 tool call events instead of streaming them.
 """
 
-import logging
 import os
 
 import httpx
 
-logger = logging.getLogger(__name__)
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 async def bootstrap_litellm_from_proxy() -> None:

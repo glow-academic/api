@@ -44,7 +44,7 @@
    - `invocation_id`: `"{{ params.invocation_id }}"`  *(the BENCHMARK template id — verbatim from params)*
    - `use_custom`: only if you are passing overrides in step 3
    - Your curated overrides (or none) from step 3
-5. Call **Test_Group**(group_id: "{{ group_id }}", name: "short descriptive name")
+5. Call **Test_Title**(group_id: "{{ group_id }}", title: "short descriptive name")
 
 **IMPORTANT:**
 - **Use `params.invocation_id` verbatim** — it's the benchmark template, the input. The new `test_invocation_entry.id` is the OUTPUT of `Test_Invocation_Create`, not the input.
@@ -54,7 +54,7 @@
 - **Never pass `agent_ids` or `rubric_ids` directly** unless `use_custom` is set — server auto-resolves these from the template's `model_ids` / `model_rubric_ids`.
 - **Pick exactly one** for each level field (`reasoning_level_ids`, `temperature_level_ids`, `quality_ids`).
 - **One materialization per call** — call `Test_Invocation_Create` exactly once.
-- Always call `Test_Group` as the final step with a short, descriptive name capturing the configuration (e.g., "Helpfulness Eval — high reasoning, low temp").
+- Always call `Test_Title` as the final step with a short, descriptive name capturing the configuration (e.g., "Helpfulness Eval — high reasoning, low temp").
 
 {% elif "test_run" in operations or "run" in operations %}
 {# ── RUN MODE ── #}

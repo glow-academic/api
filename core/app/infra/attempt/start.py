@@ -236,7 +236,9 @@ async def attempt_start_impl(
             )
 
             if is_practice:
-                from app.tools.entries.attempt_practice.create import create_attempt_practice
+                from app.tools.entries.attempt_practice.create import (
+                    create_attempt_practice,
+                )
                 await create_attempt_practice(
                     conn,
                     attempt_id=attempt_result.id,

@@ -4,8 +4,8 @@ from fastapi import APIRouter, Request, Response
 
 from app.infra.docs.types import ComposedContextResponse
 from app.infra.docs_helper import DocsApiRequest
-from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.persona.group import group_persona_impl
 from app.infra.persona.page_context import page_context_persona_impl
 
