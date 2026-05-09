@@ -323,26 +323,40 @@ async def resolve_test_context(
     )
 
     # ── Phase 5d: Historical-permission filter for the tools picker ────
-    # When the test is bound to a historical run, the tools picker is
-    # narrowed to tools whose permissions intersect with the operations
-    # the historical run actually executed. Same canned outputs are
-    # served either way (replay tape is keyed by (artifact, operation),
-    # not tool_id), so a tool only makes sense if it grants one of the
-    # historical permissions. See project_test_replay_design memory.
+    # When the test has traces bound to historical runs, the tools picker
+    # is narrowed to tools whose permissions intersect with the
+    # operations any of those historical runs actually executed. Same
+    # canned outputs are served either way (replay tape is keyed by
+    # (artifact, operation), not tool_id), so a tool only makes sense
+    # if it grants one of the historical permissions. See
+    # project_test_replay_design memory.
+    #
+    # Source of truth: each trace (``groups[*]``) carries the
+    # historical run_id it was bound to via /test/trace. Union the
+    # calls across every trace's run; parse the (artifact, operation)
+    # from each call's persisted ``events`` log.
     from app.infra.generation.chat_history import _load_call_data
 
+    trace_run_ids: list[UUID] = [
+        g.run_id for g in groups if getattr(g, "run_id", None) is not None
+    ]
     historical_perms: set[tuple[str, str]] = set()
-    for call in original_calls:
-        if call.file_path is None:
-            continue
-        receipt = await _load_call_data(call.file_path)
-        if receipt is None:
-            continue
-        for evt in receipt.get("events", []):
-            name = evt.get("event", "")
-            parts = name.split(".") if isinstance(name, str) else []
-            if len(parts) >= 3 and parts[-1] == "completed":
-                historical_perms.add((parts[0], parts[1]))
+    if trace_run_ids:
+        async with pool.acquire() as c:
+            historical_calls = await search_calls(
+                c, run_ids=trace_run_ids, limit=10000,
+            )
+        for call in historical_calls:
+            if call.file_path is None:
+                continue
+            receipt = await _load_call_data(call.file_path)
+            if receipt is None:
+                continue
+            for evt in receipt.get("events", []):
+                name = evt.get("event", "")
+                parts = name.split(".") if isinstance(name, str) else []
+                if len(parts) >= 3 and parts[-1] == "completed":
+                    historical_perms.add((parts[0], parts[1]))
 
     if historical_perms:
         # Bulk-fetch the permissions referenced by tools_all so we can
