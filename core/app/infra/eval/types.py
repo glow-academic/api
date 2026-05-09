@@ -13,6 +13,21 @@ from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
 
+class GetEvalDraftsApiRequest(BaseModel):
+    """Request model for the eval drafts list endpoint.
+
+    Mirrors ``GenerationsEvalApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetEvalDraftsApiResponse(BaseModel):
     """Response model for eval drafts list endpoint."""
 
@@ -185,6 +200,11 @@ class GetEvalApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the basic step")
     model_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the model step")
     show_ai_generate: bool | None = Field(None, description="Whether any AI generate action should be shown")
@@ -221,6 +241,11 @@ class ListEvalApiEval(BaseModel):
     is_inactive: bool | None = Field(None, description="Whether the eval is inactive")
     is_dynamic: bool | None = Field(None, description="Whether the eval uses dynamic mode")
     use_groups: bool | None = Field(None, description="Whether the eval uses groups")
+    # Soft-call ledger snapshot — set when this eval has a pending op
+    # in ``soft_calls_mv``. Client renders ghost/pending styling when set.
+    pending_status: str | None = Field(None, description="Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'")
+    pending_operation: str | None = Field(None, description="Operation type ('create'|'update'|'delete'|'duplicate') of the pending op")
+    pending_call_id: UUID | None = Field(None, description="call_id (idempotency key for ack) of the pending op")
     num_runs: int | None = Field(None, description="Number of eval runs")
     num_groups: int | None = Field(None, description="Number of eval groups")
     # Computed in Python

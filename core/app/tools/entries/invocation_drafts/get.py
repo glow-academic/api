@@ -26,6 +26,7 @@ async def get_invocation_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -80,7 +81,7 @@ async def get_invocation_drafts(
         WHERE d.id = ANY($1)
           AND d.active = true
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -94,6 +95,7 @@ async def get_invocation_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],

@@ -17,6 +17,7 @@ class GetToolDraftResponse(BaseModel):
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
     session_id: UUID = Field(..., description="Associated session UUID")
+    name: str = Field(default="", description="Immutable draft label set at create time")
     arg_position_ids: list[UUID] = Field(..., description="Associated arg position UUIDs")
     arg_ids: list[UUID] = Field(..., description="Associated arg UUIDs")
     args_output_ids: list[UUID] = Field(..., description="Associated args output UUIDs")

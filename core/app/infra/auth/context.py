@@ -280,7 +280,7 @@ async def resolve_auth_context(
             "slugs": ResourcePair(selected=slugs_selected, suggestions=slugs_suggestions),
             "items": ResourcePair(selected=items_selected, suggestions=items_suggestions),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )
 
 

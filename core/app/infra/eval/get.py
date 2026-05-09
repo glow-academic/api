@@ -472,6 +472,9 @@ async def get_eval_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_eval_context``). ``None`` when no draft was active.
+        draft_name=eval_ctx.entries.get("draft_name") if eval_ctx.entries else None,
         basic_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_BASIC_RESOURCES),
         model_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_MODEL_RESOURCES),
         show_ai_generate=any(scores.has_any.values()),

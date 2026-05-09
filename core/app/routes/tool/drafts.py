@@ -13,7 +13,10 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.tool.drafts import list_tool_drafts_impl
 from app.infra.tool.group import group_tool_impl
-from app.infra.tool.types import GetToolDraftsApiResponse
+from app.infra.tool.types import (
+    GetToolDraftsApiRequest,
+    GetToolDraftsApiResponse,
+)
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetToolDraftsApiResponse)
 async def get_tool_drafts(
+    request: GetToolDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetToolDraftsApiResponse:
@@ -48,13 +52,18 @@ async def get_tool_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetToolDraftsApiResponse:
-            context = await list_tool_drafts_impl(
+            return await list_tool_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetToolDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

@@ -12,8 +12,12 @@ from app.tools.entries.department_drafts.types import (
 async def get_department_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetDepartmentDraftResponse]:
-    """Get department_drafts entries by IDs with connection data."""
+    """Get department_drafts entries by IDs with connection data.
+
+    ``active=True`` (default), ``active=False``, or ``active=None`` (both).
+    """
     if not ids:
         return []
 
@@ -22,6 +26,7 @@ async def get_department_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = true), '{}') AS description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = true), '{}') AS flag_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = true), '{}') AS name_ids,
@@ -38,12 +43,13 @@ async def get_department_drafts(
         LEFT JOIN department_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN department_drafts_settings_connection s ON s.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -54,6 +60,7 @@ async def get_department_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],
             name_ids=r["name_ids"],

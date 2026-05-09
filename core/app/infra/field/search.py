@@ -184,21 +184,39 @@ async def _search_field_build(
             offset_count=page_offset,
         )
 
-    if not field_ids:
-        return _empty_response(actor_name, total_count=0)
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="field", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for fid in [*field_ids, *pending_ledger_ids]:
+        if fid in seen:
+            continue
+        seen.add(fid)
+        merged_ids.append(fid)
+    added = sum(1 for fid in pending_ledger_ids if fid not in set(field_ids))
+    total_count = total_count + added
+
+    if not merged_ids:
+        return _empty_response(actor_name, total_count=total_count)
 
     # -- Step 3: Get field artifacts with junction IDs --
 
     async with pool.acquire() as conn:
         artifacts = await get_fields(
             conn,
-            field_ids,
+            merged_ids,
             names=True,
             descriptions=True,
             departments=True,
             flags=True,
             conditional_parameters=True,
             fields=True,
+            active=None,
         )
 
     # -- Step 4: Parallel hydration + facets --
@@ -301,6 +319,7 @@ async def _search_field_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         fields.append(
             ListFieldApiField(
                 field_id=a.id,
@@ -310,6 +329,9 @@ async def _search_field_build(
                 conditional_parameter_ids=a.conditional_parameter_ids,
                 persona_ids=None,
                 is_inactive=is_inactive,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

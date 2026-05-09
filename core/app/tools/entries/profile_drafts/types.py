@@ -17,6 +17,7 @@ class GetProfileDraftResponse(BaseModel):
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
     session_id: UUID = Field(..., description="Associated session UUID")
+    name: str = Field(default="", description="Immutable draft label set at create time")
     profile_ids: list[UUID] = Field(..., description="Associated profile UUIDs")
     department_ids: list[UUID] = Field(..., description="Associated department UUIDs")
     email_ids: list[UUID] = Field(..., description="Associated email UUIDs")

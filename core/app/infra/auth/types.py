@@ -281,6 +281,11 @@ class GetAuthApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the actor can edit this auth")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Whether any auth resource supports AI generate")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
@@ -291,6 +296,21 @@ class GetAuthApiResponse(BaseModel):
     protocols: list[AuthProtocolResource] | None = Field(None, description="Protocol resources")
     slugs: list[AuthSlugResource] | None = Field(None, description="Slug resources")
     items: list[AuthItemResource] | None = Field(None, description="Auth item resources")
+
+
+class GetAuthDraftsApiRequest(BaseModel):
+    """Request model for the auth drafts list endpoint.
+
+    Mirrors ``GenerationsAuthApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
 
 
 class GetAuthDraftsApiResponse(BaseModel):
@@ -690,6 +710,9 @@ class ListAuthApiAuth(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the actor can edit this auth")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this auth")
     can_delete: bool | None = Field(None, description="Whether the actor can delete this auth")
+    pending_status: str | None = Field(None, description="Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row")
+    pending_operation: str | None = Field(None, description="Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for the latest pending soft-call entry")
 
 
 class ListAuthApiResponse(BaseModel):

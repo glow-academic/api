@@ -13,7 +13,10 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.provider.drafts import list_provider_drafts_impl
 from app.infra.provider.group import group_provider_impl
-from app.infra.provider.types import GetProviderDraftsApiResponse
+from app.infra.provider.types import (
+    GetProviderDraftsApiRequest,
+    GetProviderDraftsApiResponse,
+)
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetProviderDraftsApiResponse)
 async def get_provider_drafts(
+    request: GetProviderDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetProviderDraftsApiResponse:
@@ -47,13 +51,18 @@ async def get_provider_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetProviderDraftsApiResponse:
-            context = await list_provider_drafts_impl(
+            return await list_provider_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetProviderDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

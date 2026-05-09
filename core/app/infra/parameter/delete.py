@@ -29,7 +29,12 @@ from app.infra.parameter.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.parameter.delete import delete_parameters
 from app.tools.artifacts.parameter.get import get_parameters
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "parameter"
 
 
 async def delete_parameter_impl(
@@ -83,18 +88,37 @@ async def delete_parameter_impl(
     # path doesn't need ``ids`` to be populated (matches persona/scenario
     # pattern; see batch-1/2 lessons in project_bulk_write_pattern.md).
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending parameter delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Confirm deletion: no-op (already deactivated by soft delete)
             pass
         else:
-            # Reject: restore soft-deleted artifacts
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
                         conn,
                         table="parameter_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_parameter_impl(
             pool,
@@ -108,14 +132,13 @@ async def delete_parameter_impl(
             results=[
                 DeleteParameterResult(
                     success=True,
-                    parameter_id=parameter_id,
+                    parameter_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — parameter restored"
                     ),
                 )
-                for parameter_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -246,7 +269,20 @@ async def delete_parameter_impl(
         async with conn.transaction():
             result = await delete_parameters(conn, ids, soft=soft)
 
+            if soft and idempotency_key is not None:
+                for pid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=pid,
+                    )
+
     # -- Step 6: Canonical refresh --------------------------------------------
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_parameter_impl(
         pool,

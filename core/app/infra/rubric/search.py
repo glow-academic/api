@@ -180,7 +180,24 @@ async def _search_rubric_build(
             offset_count=page_offset,
         )
 
-    if not rubric_ids_list:
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="rubric", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for rid in [*rubric_ids_list, *pending_ledger_ids]:
+        if rid in seen:
+            continue
+        seen.add(rid)
+        merged_ids.append(rid)
+    added = sum(1 for rid in pending_ledger_ids if rid not in set(rubric_ids_list))
+    total_count = total_count + added
+
+    if not merged_ids:
         return _empty_response(actor_name, total_count=0)
 
     # ── Step 4: Get rubric artifacts with junction IDs ────────────────
@@ -188,7 +205,7 @@ async def _search_rubric_build(
     async with pool.acquire() as conn:
         artifacts = await get_rubrics(
             conn,
-            rubric_ids_list,
+            merged_ids,
             names=True,
             descriptions=True,
             departments=True,
@@ -197,6 +214,7 @@ async def _search_rubric_build(
             standard_groups=True,
             standards=True,
             rubrics=True,
+            active=None,
         )
 
     # Build per-rubric eval_ids map (eval_artifact ids referencing this rubric).
@@ -386,6 +404,7 @@ async def _search_rubric_build(
                     seen_eval_ids.add(eid)
                     rubric_eval_ids.append(eid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rubrics_list.append(
             ListRubricApiRubric(
                 rubric_id=a.id,
@@ -403,6 +422,9 @@ async def _search_rubric_build(
                 standard_group_ids=rubric_sg_ids,
                 eval_ids=rubric_eval_ids,
                 is_inactive=not a.active,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

@@ -10,8 +10,15 @@ from app.tools.entries.field_drafts.types import GetFieldDraftResponse
 async def get_field_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetFieldDraftResponse]:
-    """Get field_drafts entries by IDs with connection data."""
+    """Get field_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only returns committed drafts.
+    ``active=False`` — only dormant pending drafts (rare).
+    ``active=None`` — both. Use when loading a draft for the editor that
+    may still be in pending state (soft_calls_entry ledger has it).
+    """
     if not ids:
         return []
 
@@ -20,6 +27,7 @@ async def get_field_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT cp.conditional_parameters_id) FILTER (WHERE cp.conditional_parameters_id IS NOT NULL), '{}') AS conditional_parameter_ids,
             COALESCE(ARRAY_AGG(DISTINCT cp.conditional_parameters_id) FILTER (WHERE cp.conditional_parameters_id IS NOT NULL AND cp.active = false), '{}') AS pending_conditional_parameter_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
@@ -39,12 +47,13 @@ async def get_field_drafts(
         LEFT JOIN field_drafts_names_connection n ON n.draft_id = d.id
         LEFT JOIN field_drafts_profiles_connection p ON p.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -55,6 +64,7 @@ async def get_field_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             conditional_parameter_ids=r["conditional_parameter_ids"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],

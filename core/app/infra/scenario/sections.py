@@ -497,6 +497,9 @@ def build_scenario_get_result(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_scenario_context``). ``None`` when no draft was active.
+        draft_name=scenario.entries.get("draft_name") if scenario.entries else None,
         show_ai_generate=show_ai_generate,
         resolved_parameter_ids=resolved_parameter_ids or None,
         names=_filter_section(all_names_conv, "names") if inc.get("names", True) else None,

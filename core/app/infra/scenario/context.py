@@ -605,6 +605,7 @@ async def resolve_scenario_context(
             "persona_parameter_fields": ResourcePair(selected=[], suggestions=persona_parameter_fields),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "files": file_entries,
             "images": image_entries,
             "videos": video_entries,

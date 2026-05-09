@@ -22,6 +22,11 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.department.create import (
     create_department as create_department_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "department"
 
 
 async def create_department_impl(
@@ -71,18 +76,48 @@ async def create_department_impl(
         )
 
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return CreateDepartmentApiResponse(
-                results=[
-                    DepartmentResultItem(
-                        success=True,
-                        department_id=idempotency_key,
-                        message="Department rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending department create for this call.",
             )
-        soft = False
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_department_artifact(conn, id=target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_department_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return CreateDepartmentApiResponse(
+            results=[
+                DepartmentResultItem(
+                    success=True,
+                    department_id=target_id,
+                    message="Department accepted" if accept else "Department rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     has_errors = False
     error_results: list[DepartmentResultItem] = []
@@ -137,6 +172,16 @@ async def create_department_impl(
                     settings_ids=item.settings_ids,
                     soft=soft,
                 )
+
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 saved_department_ids.append(result.id)
                 results.append(
                     DepartmentResultItem(
@@ -151,6 +196,10 @@ async def create_department_impl(
                         ),
                     )
                 )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_department_impl(

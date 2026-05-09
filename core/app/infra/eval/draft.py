@@ -21,7 +21,85 @@ from app.infra.eval.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.eval_drafts.create import create_eval_draft
 from app.tools.entries.eval_drafts.get import get_eval_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.resources.departments.search import search_departments
+
+ARTIFACT = "eval"
+OPERATION = "draft"
+
+
+async def _maybe_auto_accept_eval_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Merge step — auto-accept the draft when no pending fields remain."""
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_eval_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    if (
+        getattr(draft, "pending_department_ids", None)
+        or getattr(draft, "pending_description_ids", None)
+        or getattr(draft, "pending_flag_ids", None)
+        or getattr(draft, "pending_model_ids", None)
+        or getattr(draft, "pending_name_ids", None)
+        or getattr(draft, "pending_rubric_ids", None)
+        or getattr(draft, "pending_model_flag_ids", None)
+        or getattr(draft, "pending_model_position_ids", None)
+        or getattr(draft, "pending_model_rubric_ids", None)
+    ):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_eval_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                department_ids=draft.department_ids,
+                description_ids=draft.description_ids,
+                flag_ids=draft.flag_ids,
+                model_ids=draft.model_ids,
+                name_ids=draft.name_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                rubric_ids=draft.rubric_ids,
+                model_flag_ids=draft.model_flag_ids,
+                model_position_ids=draft.model_position_ids,
+                model_rubric_ids=draft.model_rubric_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
@@ -304,16 +382,25 @@ async def patch_eval_draft_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending eval draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_eval_drafts(conn, [idempotency_key])
+                drafts = await get_eval_drafts(conn, [target_id], active=None)
                 if drafts:
                     draft = drafts[0]
                     async with conn.transaction():
                         await create_eval_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             department_ids=draft.department_ids,
                             description_ids=draft.description_ids,
@@ -327,17 +414,30 @@ async def patch_eval_draft_impl(
                             model_rubric_ids=draft.model_rubric_ids,
                             pending_ids=set(),
                         )
-            await refresh_eval_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_eval_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return PatchEvalDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
@@ -370,6 +470,20 @@ async def patch_eval_draft_impl(
                 profile_ids=[profile.profiles_id],
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
+
+            # Pending ledger row tied to this tool call.
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # Re-derive denormalized active bool from the final flag_ids so the client
     # echo matches whatever the server actually persisted.
@@ -445,7 +559,14 @@ async def patch_eval_draft_impl(
         pending_ids=request.pending_ids or [],
     )
 
+    auto_accepted = False
     if not soft:
+        auto_accepted = await _maybe_auto_accept_eval_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
         await refresh_eval_impl(
             pool,
             redis,
@@ -456,10 +577,17 @@ async def patch_eval_draft_impl(
             operation_key=result.id,
         )
 
+    if auto_accepted:
+        message = "Draft accepted (all fields resolved)"
+    elif soft:
+        message = "Draft created (pending acceptance)"
+    else:
+        message = "Draft created successfully"
+
     return PatchEvalDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
+        message=message,
         form_state=form_state,
     )

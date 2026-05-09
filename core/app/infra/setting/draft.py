@@ -19,6 +19,10 @@ from app.infra.setting.types import (
 )
 from app.tools.entries.setting_drafts.create import create_setting_draft
 from app.tools.entries.setting_drafts.get import get_setting_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.resources.auth_item_keys.create import create_auth_item_key
 from app.tools.resources.auth_item_values.create import create_auth_item_value
 from app.tools.resources.departments.search import search_departments
@@ -41,6 +45,90 @@ from app.tools.resources.thresholds.create import create_threshold
 from app.tools.resources.thresholds.get import get_thresholds
 from app.tools.resources.thresholds.search import search_thresholds
 from app.utils.auth.encrypt_api_key import encrypt_api_key
+
+ARTIFACT = "setting"
+OPERATION = "draft"
+
+
+async def _maybe_auto_accept_setting_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Auto-accept the setting draft when no pending fields remain. Mirrors persona/draft.py."""
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_setting_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    pending_lists = [
+        getattr(draft, "pending_name_ids", None),
+        getattr(draft, "pending_description_ids", None),
+        getattr(draft, "pending_department_ids", None),
+        getattr(draft, "pending_color_ids", None),
+        getattr(draft, "pending_flag_ids", None),
+        getattr(draft, "pending_provider_ids", None),
+        getattr(draft, "pending_provider_key_ids", None),
+        getattr(draft, "pending_auth_ids", None),
+        getattr(draft, "pending_auth_item_key_ids", None),
+        getattr(draft, "pending_item_ids", None),
+        getattr(draft, "pending_threshold_ids", None),
+        getattr(draft, "pending_agent_ids", None),
+        getattr(draft, "pending_mcp_ids", None),
+        getattr(draft, "pending_logins_ids", None),
+    ]
+    if any(pl for pl in pending_lists if pl):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_setting_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                agent_ids=draft.agent_ids,
+                auth_ids=draft.auth_ids,
+                auth_item_key_ids=draft.auth_item_key_ids,
+                color_ids=draft.color_ids,
+                department_ids=draft.department_ids,
+                description_ids=draft.description_ids,
+                flag_ids=draft.flag_ids,
+                item_ids=draft.item_ids,
+                name_ids=draft.name_ids,
+                provider_ids=draft.provider_ids,
+                provider_key_ids=draft.provider_key_ids,
+                threshold_ids=draft.threshold_ids,
+                mcp_ids=draft.mcp_ids,
+                logins_ids=draft.logins_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
 
 
 async def _resolve_creatable_values(
@@ -496,16 +584,25 @@ async def patch_setting_draft_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending setting draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_setting_drafts(conn, [idempotency_key])
+                drafts = await get_setting_drafts(conn, [target_id], active=None)
                 if drafts:
                     draft = drafts[0]
                     async with conn.transaction():
                         await create_setting_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             agent_ids=draft.agent_ids,
                             auth_ids=draft.auth_ids,
@@ -523,6 +620,20 @@ async def patch_setting_draft_impl(
                             logins_ids=draft.logins_ids,
                             pending_ids=set(),
                         )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        if accept:
             await refresh_setting_impl(
                 pool,
                 redis,
@@ -531,7 +642,7 @@ async def patch_setting_draft_impl(
 
         return PatchSettingDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
@@ -570,6 +681,27 @@ async def patch_setting_draft_impl(
                 logins_ids=request.logins_ids,
                 pending_ids=pending_ids,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    if not soft:
+        await _maybe_auto_accept_setting_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
 
     resolved_name = request.name
     if request.name_id and resolved_name is None:

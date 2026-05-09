@@ -19,7 +19,12 @@ from app.infra.model.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.model.delete import delete_models
 from app.tools.artifacts.model.get import get_models
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "model"
 
 
 async def delete_model_impl(
@@ -63,14 +68,34 @@ async def delete_model_impl(
     # ``idempotency_key``. The original impl ran perm checks first,
     # which broke the ack path; mirror persona/scenario shape now.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending model delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn,
-                        table="model_artifact",
-                        ids=ids or [idempotency_key],
+                        conn, table="model_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_model_impl(
             pool,
             redis,
@@ -82,10 +107,9 @@ async def delete_model_impl(
             results=[
                 DeleteModelResult(
                     success=True,
-                    model_id=model_id,
+                    model_id=target_id,
                     message="Delete confirmed" if accept else "Delete rejected — model restored",
                 )
-                for model_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -198,6 +222,21 @@ async def delete_model_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_models(conn, ids, soft=soft)
+
+            # Pending ledger rows tied to this tool call.
+            if soft and idempotency_key is not None:
+                for mid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=mid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_model_impl(
         pool,

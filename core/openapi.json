@@ -414,6 +414,16 @@
         "summary": "Get Persona Drafts",
         "description": "List persona drafts owned by the current profile.",
         "operationId": "get_persona_drafts_persona_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPersonaDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -421,6 +431,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetPersonaDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1330,6 +1350,16 @@
         "summary": "Get Scenario Drafts",
         "description": "List scenario drafts owned by the current profile.",
         "operationId": "get_scenario_drafts_scenario_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetScenarioDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1337,6 +1367,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetScenarioDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2688,6 +2728,16 @@
         "summary": "Get Simulation Drafts",
         "description": "List simulation drafts owned by the current profile.",
         "operationId": "get_simulation_drafts_simulation_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetSimulationDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2695,6 +2745,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetSimulationDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3524,6 +3584,16 @@
         "summary": "Get Document Drafts",
         "description": "List document drafts owned by the current profile.",
         "operationId": "get_document_drafts_document_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDocumentDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3531,6 +3601,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetDocumentDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -4664,6 +4744,16 @@
         "summary": "Get Department Drafts",
         "description": "List department drafts owned by the current profile.",
         "operationId": "get_department_drafts_department_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetDepartmentDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -4671,6 +4761,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetDepartmentDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -5600,6 +5700,16 @@
         "summary": "Get Cohort Drafts",
         "description": "List cohort drafts owned by the current profile.",
         "operationId": "get_cohort_drafts_cohort_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetCohortDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5607,6 +5717,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetCohortDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -6586,6 +6706,16 @@
         "summary": "Get Eval Drafts",
         "description": "List eval drafts owned by the current profile.",
         "operationId": "get_eval_drafts_eval_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetEvalDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -6593,6 +6723,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetEvalDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -7522,6 +7662,16 @@
         "summary": "Get Rubric Drafts",
         "description": "List rubric drafts owned by the current profile.",
         "operationId": "get_rubric_drafts_rubric_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetRubricDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -7529,6 +7679,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetRubricDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -8404,6 +8564,16 @@
         "summary": "Get Setting Drafts",
         "description": "List setting drafts owned by the current profile.",
         "operationId": "get_setting_drafts_setting_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetSettingDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8411,6 +8581,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetSettingDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -9490,6 +9670,16 @@
         "summary": "Get Agent Drafts",
         "description": "List agent drafts owned by the current profile.",
         "operationId": "get_agent_drafts_agent_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetAgentDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -9497,6 +9687,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetAgentDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -10326,6 +10526,16 @@
         "summary": "Get Model Drafts",
         "description": "List model drafts owned by the current profile.",
         "operationId": "get_model_drafts_model_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetModelDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -10333,6 +10543,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetModelDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -11262,6 +11482,16 @@
         "summary": "Get Provider Drafts",
         "description": "List provider drafts owned by the current profile.",
         "operationId": "get_provider_drafts_provider_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetProviderDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11269,6 +11499,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetProviderDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -12298,6 +12538,16 @@
         "summary": "Get Parameter Drafts",
         "description": "List parameter drafts owned by the current profile.",
         "operationId": "get_parameter_drafts_parameter_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetParameterDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -12305,6 +12555,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetParameterDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -13184,6 +13444,16 @@
         "summary": "Get Field Drafts",
         "description": "List field drafts owned by the current profile.",
         "operationId": "get_field_drafts_field_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetFieldDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -13191,6 +13461,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetFieldDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -14070,6 +14350,16 @@
         "summary": "Get Profile Drafts",
         "description": "List profile drafts owned by the current profile.",
         "operationId": "get_profile_drafts_profile_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetProfileDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -14077,6 +14367,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetProfileDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -15160,6 +15460,16 @@
         "summary": "Get Auth Drafts",
         "description": "List auth drafts owned by the current profile.",
         "operationId": "get_auth_drafts_auth_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetAuthDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -15167,6 +15477,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetAuthDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -15996,6 +16316,16 @@
         "summary": "Get Tool Drafts",
         "description": "List tool drafts owned by the current profile.",
         "operationId": "get_tool_drafts_tool_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetToolDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -16003,6 +16333,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetToolDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -18252,6 +18592,16 @@
         "summary": "Get Chat Drafts",
         "description": "List chat drafts owned by the current profile.",
         "operationId": "get_chat_drafts_attempt_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetChatDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -18259,6 +18609,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetChatDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -21066,6 +21426,16 @@
         "summary": "Get Invocation Drafts",
         "description": "List invocation drafts owned by the current profile.",
         "operationId": "get_invocation_drafts_test_invocation_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetInvocationDraftsApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -21073,6 +21443,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetInvocationDraftsApiResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -54437,6 +54817,18 @@
             "title": "Group Id",
             "description": "UUID of the owning group"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "agent_id": {
             "anyOf": [
               {
@@ -54737,6 +55129,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "name_ids": {
             "items": {
               "type": "string",
@@ -55021,6 +55419,66 @@
           "quality_ids"
         ],
         "title": "GetAgentDraftResponse"
+      },
+      "GetAgentDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetAgentDraftsApiRequest",
+        "description": "Request model for the agent drafts list endpoint.\n\nMirrors ``GenerationsAgentApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetAgentDraftsApiResponse": {
         "properties": {
@@ -55688,6 +56146,18 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -55873,6 +56343,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -56028,6 +56504,66 @@
         ],
         "title": "GetAuthDraftResponse"
       },
+      "GetAuthDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetAuthDraftsApiRequest",
+        "description": "Request model for the auth drafts list endpoint.\n\nMirrors ``GenerationsAuthApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
+      },
       "GetAuthDraftsApiResponse": {
         "properties": {
           "entries": {
@@ -56084,6 +56620,12 @@
             "format": "uuid",
             "title": "Session Id",
             "description": "Associated session UUID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
           },
           "department_ids": {
             "items": {
@@ -56410,6 +56952,66 @@
           "video_ids"
         ],
         "title": "GetChatDraftResponse"
+      },
+      "GetChatDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetChatDraftsApiRequest",
+        "description": "Request model for the chat drafts list endpoint.\n\nMirrors ``GenerationsChatApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetChatDraftsApiResponse": {
         "properties": {
@@ -57511,6 +58113,18 @@
             "title": "Group Id",
             "description": "Associated group UUID"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -57765,6 +58379,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -57947,6 +58567,66 @@
           "simulation_ids"
         ],
         "title": "GetCohortDraftResponse"
+      },
+      "GetCohortDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetCohortDraftsApiRequest",
+        "description": "Request model for the cohort drafts list endpoint.\n\nMirrors ``GenerationsCohortApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetCohortDraftsApiResponse": {
         "properties": {
@@ -58135,6 +58815,18 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -58275,6 +58967,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "description_ids": {
             "items": {
               "type": "string",
@@ -58373,6 +59071,66 @@
         ],
         "title": "GetDepartmentDraftResponse",
         "description": "Resolved department draft entry with selected and pending links."
+      },
+      "GetDepartmentDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetDepartmentDraftsApiRequest",
+        "description": "Request model for the department drafts list endpoint.\n\nMirrors ``GenerationsDepartmentApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetDepartmentDraftsApiResponse": {
         "properties": {
@@ -58638,6 +59396,18 @@
             "title": "Group Id",
             "description": "Associated group UUID"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -58865,6 +59635,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -59057,6 +59833,66 @@
           "text_ids"
         ],
         "title": "GetDocumentDraftResponse"
+      },
+      "GetDocumentDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetDocumentDraftsApiRequest",
+        "description": "Request model for the document drafts list endpoint.\n\nMirrors ``GenerationsDocumentApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetDocumentDraftsApiResponse": {
         "properties": {
@@ -59288,6 +60124,18 @@
             ],
             "title": "Group Id",
             "description": "Associated group UUID"
+          },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
           },
           "basic_show_ai_generate": {
             "anyOf": [
@@ -59531,6 +60379,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -59720,6 +60574,66 @@
           "rubric_ids"
         ],
         "title": "GetEvalDraftResponse"
+      },
+      "GetEvalDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetEvalDraftsApiRequest",
+        "description": "Request model for the eval drafts list endpoint.\n\nMirrors ``GenerationsEvalApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetEvalDraftsApiResponse": {
         "properties": {
@@ -59955,6 +60869,18 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -60110,6 +61036,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "conditional_parameter_ids": {
             "items": {
               "type": "string",
@@ -60226,6 +61158,66 @@
           "profile_ids"
         ],
         "title": "GetFieldDraftResponse"
+      },
+      "GetFieldDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetFieldDraftsApiRequest",
+        "description": "Request model for the field drafts list endpoint.\n\nMirrors ``GenerationsFieldApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetFieldDraftsApiResponse": {
         "properties": {
@@ -61007,6 +61999,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -61333,6 +62331,66 @@
           "endpoint_ids"
         ],
         "title": "GetInvocationDraftResponse"
+      },
+      "GetInvocationDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetInvocationDraftsApiRequest",
+        "description": "Request model for the invocation drafts list endpoint.\n\nMirrors ``GenerationsInvocationApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetInvocationDraftsApiResponse": {
         "properties": {
@@ -61682,6 +62740,18 @@
             "title": "Group Id",
             "description": "Group identifier for the model"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "model_id": {
             "anyOf": [
               {
@@ -61978,6 +63048,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -62231,6 +63307,66 @@
         ],
         "title": "GetModelDraftResponse"
       },
+      "GetModelDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetModelDraftsApiRequest",
+        "description": "Request model for the model drafts list endpoint.\n\nMirrors ``GenerationsModelApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
+      },
       "GetModelDraftsApiResponse": {
         "properties": {
           "entries": {
@@ -62440,6 +63576,18 @@
             "title": "Group Id",
             "description": "Group identifier for the parameter"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -62607,6 +63755,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -62723,6 +63877,66 @@
           "profile_ids"
         ],
         "title": "GetParameterDraftResponse"
+      },
+      "GetParameterDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetParameterDraftsApiRequest",
+        "description": "Request model for the parameter drafts list endpoint.\n\nMirrors ``GenerationsParameterApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetParameterDraftsApiResponse": {
         "properties": {
@@ -62952,6 +64166,18 @@
             ],
             "title": "Group Id",
             "description": "Generation group UUID for AI operations"
+          },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches. The FE uses this to show the draft name in the SaveToolbar trigger."
           },
           "show_ai_generate": {
             "anyOf": [
@@ -63198,6 +64424,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "color_ids": {
             "items": {
               "type": "string",
@@ -63409,6 +64641,66 @@
           "voice_ids"
         ],
         "title": "GetPersonaDraftResponse"
+      },
+      "GetPersonaDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetPersonaDraftsApiRequest",
+        "description": "Request model for the persona drafts list endpoint.\n\nMirrors ``GenerationsPersonaApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetPersonaDraftsApiResponse": {
         "properties": {
@@ -63703,6 +64995,18 @@
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "profile_id": {
             "anyOf": [
               {
@@ -63927,6 +65231,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "profile_ids": {
             "items": {
               "type": "string",
@@ -64061,6 +65371,66 @@
           "role_ids"
         ],
         "title": "GetProfileDraftResponse"
+      },
+      "GetProfileDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetProfileDraftsApiRequest",
+        "description": "Request model for the profile drafts list endpoint.\n\nMirrors ``GenerationsProfileApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetProfileDraftsApiResponse": {
         "properties": {
@@ -64282,6 +65652,18 @@
             "title": "Group Id",
             "description": "Group identifier for the provider"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "provider_id": {
             "anyOf": [
               {
@@ -64492,6 +65874,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -64649,6 +66037,66 @@
           "profile_ids"
         ],
         "title": "GetProviderDraftResponse"
+      },
+      "GetProviderDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetProviderDraftsApiRequest",
+        "description": "Request model for the provider drafts list endpoint.\n\nMirrors ``GenerationsProviderApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetProviderDraftsApiResponse": {
         "properties": {
@@ -64870,6 +66318,18 @@
             "title": "Group Id",
             "description": "Associated group UUID"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -65067,6 +66527,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -65221,6 +66687,66 @@
           "standard_ids"
         ],
         "title": "GetRubricDraftResponse"
+      },
+      "GetRubricDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetRubricDraftsApiRequest",
+        "description": "Request model for the rubric drafts list endpoint.\n\nMirrors ``GenerationsRubricApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetRubricDraftsApiResponse": {
         "properties": {
@@ -65501,6 +67027,18 @@
             "title": "Group Id",
             "description": "UUID of the owning group"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -65776,6 +67314,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -66044,6 +67588,66 @@
           "video_ids"
         ],
         "title": "GetScenarioDraftResponse"
+      },
+      "GetScenarioDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetScenarioDraftsApiRequest",
+        "description": "Request model for the scenario drafts list endpoint.\n\nMirrors ``GenerationsScenarioApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetScenarioDraftsApiResponse": {
         "properties": {
@@ -66446,6 +68050,18 @@
             ],
             "title": "Group Id",
             "description": "Group UUID for draft collaboration"
+          },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
           },
           "show_ai_generate": {
             "anyOf": [
@@ -66887,6 +68503,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "agent_ids": {
             "items": {
               "type": "string",
@@ -67187,6 +68809,66 @@
         ],
         "title": "GetSettingDraftResponse"
       },
+      "GetSettingDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetSettingDraftsApiRequest",
+        "description": "Request model for the setting drafts list endpoint.\n\nMirrors ``GenerationsSettingApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
+      },
       "GetSettingDraftsApiResponse": {
         "properties": {
           "entries": {
@@ -67469,6 +69151,18 @@
             "title": "Group Id",
             "description": "UUID of the owning group"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "show_ai_generate": {
             "anyOf": [
               {
@@ -67698,6 +69392,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "department_ids": {
             "items": {
               "type": "string",
@@ -67890,6 +69590,66 @@
           "scenario_ids"
         ],
         "title": "GetSimulationDraftResponse"
+      },
+      "GetSimulationDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetSimulationDraftsApiRequest",
+        "description": "Request model for the simulation drafts list endpoint.\n\nMirrors ``GenerationsSimulationApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetSimulationDraftsApiResponse": {
         "properties": {
@@ -69363,6 +71123,18 @@
             "title": "Group Id",
             "description": "Group identifier for the tool"
           },
+          "draft_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Name",
+            "description": "Immutable draft label from the active draft entry, when a ``draft_id`` was supplied. ``None`` for non-draft fetches."
+          },
           "tool_id": {
             "anyOf": [
               {
@@ -69614,6 +71386,12 @@
             "title": "Session Id",
             "description": "Associated session UUID"
           },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Immutable draft label set at create time",
+            "default": ""
+          },
           "arg_position_ids": {
             "items": {
               "type": "string",
@@ -69823,6 +71601,66 @@
           "profile_ids"
         ],
         "title": "GetToolDraftResponse"
+      },
+      "GetToolDraftsApiRequest": {
+        "properties": {
+          "search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search",
+            "description": "Name search (ILIKE substring)"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Start date filter"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "End date filter"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Maximum items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Offset for pagination",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "GetToolDraftsApiRequest",
+        "description": "Request model for the tool drafts list endpoint.\n\nMirrors ``GenerationsToolApiRequest`` \u2014 name search +\ndate window + pagination. All fields optional; an empty body\nreturns the caller's most recent drafts."
       },
       "GetToolDraftsApiResponse": {
         "properties": {
@@ -70362,6 +72200,51 @@
               }
             ],
             "title": "Tool"
+          },
+          "ledger_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ledger Status"
+          },
+          "ledger_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ledger Operation"
+          },
+          "ledger_artifact": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ledger Artifact"
+          },
+          "ledger_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ledger Artifact Id"
           }
         },
         "type": "object",
@@ -75698,6 +77581,43 @@
             ],
             "title": "Can Delete",
             "description": "Whether the current user can delete"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for the latest pending soft-call entry"
           }
         },
         "type": "object",
@@ -75925,6 +77845,43 @@
             ],
             "title": "Can Delete",
             "description": "Whether the actor can delete this auth"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for the latest pending soft-call entry"
           }
         },
         "type": "object",
@@ -76225,6 +78182,43 @@
             ],
             "title": "Updated At",
             "description": "Last updated timestamp"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for the latest pending soft-call entry"
           }
         },
         "type": "object",
@@ -76839,6 +78833,43 @@
             ],
             "title": "Updated At",
             "description": "Timestamp of last update"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for the latest pending soft-call entry"
           }
         },
         "type": "object",
@@ -77058,6 +79089,43 @@
             ],
             "title": "Is Template",
             "description": "Whether the document is a template (derived from document_template flag)"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
           },
           "extension": {
             "anyOf": [
@@ -77360,6 +79428,43 @@
             "title": "Use Groups",
             "description": "Whether the eval uses groups"
           },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
+          },
           "num_runs": {
             "anyOf": [
               {
@@ -77637,6 +79742,43 @@
             ],
             "title": "Is Inactive",
             "description": "Whether the field is inactive"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
           },
           "can_edit": {
             "anyOf": [
@@ -78445,6 +80587,43 @@
             "title": "Image Model",
             "description": "Whether this is an image model"
           },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
+          },
           "can_edit": {
             "anyOf": [
               {
@@ -78774,6 +80953,43 @@
             ],
             "title": "Updated At",
             "description": "Timestamp of last update"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Pending soft_calls_entry status (e.g. 'pending')"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Pending operation (create/update/delete/duplicate)"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for ack"
           }
         },
         "type": "object",
@@ -78989,6 +81205,43 @@
             ],
             "title": "Is Inactive",
             "description": "Whether the persona is marked inactive"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
           },
           "generated": {
             "anyOf": [
@@ -79726,6 +81979,43 @@
             ],
             "title": "Is Inactive",
             "description": "Whether the profile is inactive"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Pending soft_calls_entry status (e.g. 'pending')"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Pending operation (create/update/delete/duplicate)"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for ack"
           }
         },
         "type": "object",
@@ -79989,6 +82279,43 @@
             ],
             "title": "Can Duplicate",
             "description": "Whether the current user can duplicate"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Pending soft_calls_entry status (e.g. 'pending')"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Pending operation (create/update/delete/duplicate)"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for ack"
           }
         },
         "type": "object",
@@ -80552,6 +82879,43 @@
             ],
             "title": "Is Inactive",
             "description": "Whether the rubric is inactive"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Pending soft_calls_entry status (e.g. 'pending')"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Pending operation (create/update/delete/duplicate)"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "Originating tool call id for ack"
           }
         },
         "type": "object",
@@ -81349,6 +83713,43 @@
             "title": "Cohort Ids",
             "description": "Associated cohort UUIDs"
           },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
+          },
           "updated_at": {
             "anyOf": [
               {
@@ -81766,6 +84167,43 @@
             ],
             "title": "Can Duplicate",
             "description": "Whether the actor can duplicate this setting"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
           }
         },
         "type": "object",
@@ -82190,6 +84628,43 @@
             "title": "Cohort Ids",
             "description": "Associated cohort UUIDs"
           },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
+          },
           "updated_at": {
             "anyOf": [
               {
@@ -82462,6 +84937,43 @@
             ],
             "title": "Can Delete",
             "description": "Whether the current user can delete"
+          },
+          "pending_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Status",
+            "description": "Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'"
+          },
+          "pending_operation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation",
+            "description": "Operation type ('create'|'update'|'delete'|'duplicate') of the pending op"
+          },
+          "pending_call_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Call Id",
+            "description": "call_id (idempotency key for ack) of the pending op"
           }
         },
         "type": "object",

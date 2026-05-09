@@ -375,6 +375,9 @@ async def get_provider_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=provider_ctx.group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_provider_context``). ``None`` when no draft was active.
+        draft_name=provider.entries.get("draft_name") if provider.entries else None,
         provider_id=provider_ctx.artifact_id,
         show_ai_generate=any(
             scores.has_any.get(resource, False)

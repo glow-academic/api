@@ -70,7 +70,15 @@ async def hydrate_auth_list_rows(
             flags=True,
             items=True,
             auths=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="auth", artifact_ids=auth_ids,
+            limit=len(auth_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -188,6 +196,7 @@ async def hydrate_auth_list_rows(
             role_permissions=profile.role_permissions,
         )
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListAuthApiAuth(
                 auth_id=a.id,
@@ -201,6 +210,9 @@ async def hydrate_auth_list_rows(
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

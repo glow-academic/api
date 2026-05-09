@@ -69,7 +69,15 @@ async def hydrate_scenario_list_rows(
             personas=True,
             parameter_fields=True,
             scenarios=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="scenario", artifact_ids=scenario_ids,
+            limit=len(scenario_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -125,6 +133,7 @@ async def hydrate_scenario_list_rows(
             role_level=user_role_level, role_permissions=profile.role_permissions,
         )
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListScenarioApiScenario(
                 scenario_id=a.id,
@@ -144,6 +153,9 @@ async def hydrate_scenario_list_rows(
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
                 cohort_ids=None,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 updated_at=a.updated_at,
             )
         )

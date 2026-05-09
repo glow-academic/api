@@ -30,9 +30,14 @@ from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
 from app.tools.artifacts.parameter.get import get_parameters
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
+
+ARTIFACT = "parameter"
 
 
 async def duplicate_parameter_impl(
@@ -84,18 +89,27 @@ async def duplicate_parameter_impl(
     # -- Short-circuit: ack path ----------------------------------------------
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending parameter duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await create_parameter_artifact(
                         conn,
-                        id=idempotency_key,
+                        id=target_id,
                         soft=False,
                     )
             async with pool.acquire() as conn:
                 artifacts = await get_parameters(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -128,16 +142,29 @@ async def duplicate_parameter_impl(
                     scenario_parameter=parameter_resource.scenario_parameter if parameter_resource else False,
                     video_parameter=parameter_resource.video_parameter if parameter_resource else False,
                 )
-            await refresh_parameter_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
         return DuplicateParameterApiResponse(
             success=True,
-            parameter_id=idempotency_key,
+            parameter_id=target_id,
             message="Duplicate accepted" if accept else "Duplicate rejected",
             idempotency_key=idempotency_key,
         )
@@ -192,7 +219,19 @@ async def duplicate_parameter_impl(
                 soft=soft,
             )
 
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
     # -- Step 6: Refresh --------------------------------------------------------
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_parameter_impl(

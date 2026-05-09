@@ -352,6 +352,9 @@ async def get_parameter_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_parameter_context``). ``None`` when no draft was active.
+        draft_name=parameter.entries.get("draft_name") if parameter.entries else None,
         show_ai_generate=basic_show_ai_generate or fields_step_show_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,
         fields_step_show_ai_generate=fields_step_show_ai_generate,

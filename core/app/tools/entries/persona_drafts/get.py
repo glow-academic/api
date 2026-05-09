@@ -27,6 +27,7 @@ async def get_persona_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT col.colors_id) FILTER (WHERE col.colors_id IS NOT NULL), '{}') AS color_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -64,7 +65,7 @@ async def get_persona_drafts(
         WHERE d.id = ANY($1)
           AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
@@ -79,6 +80,7 @@ async def get_persona_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             color_ids=r["color_ids"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],

@@ -68,7 +68,15 @@ async def hydrate_cohort_list_rows(
             flags=True,
             profiles=True,
             simulations=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="cohort", artifact_ids=cohort_ids,
+            limit=len(cohort_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -106,6 +114,7 @@ async def hydrate_cohort_list_rows(
         )
         can_leave = compute_can_leave(is_member=is_member)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListCohortApiCohort(
                 cohort_id=a.id,
@@ -124,6 +133,9 @@ async def hydrate_cohort_list_rows(
                 can_duplicate=can_duplicate,
                 can_leave=can_leave,
                 updated_at=a.updated_at,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

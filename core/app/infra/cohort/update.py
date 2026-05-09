@@ -33,9 +33,14 @@ from app.tools.artifacts.cohort.update import (
 from app.tools.artifacts.cohort.update import (
     update_cohort as update_cohort_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
+
+ARTIFACT = "cohort"
 
 
 async def update_cohort_impl(
@@ -84,15 +89,24 @@ async def update_cohort_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending cohort update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await update_cohort_artifact(conn, idempotency_key, soft=False)
+                    await update_cohort_artifact(conn, target_id, soft=False)
 
             async with pool.acquire() as conn:
                 artifacts = await get_cohorts(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -118,19 +132,31 @@ async def update_cohort_impl(
                     simulation_availability_ids=artifact.simulation_availability_ids or None,
                 )
 
-            await refresh_cohort_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return UpdateCohortApiResponse(
             results=[
                 CohortResultItem(
                     success=True,
-                    cohort_id=idempotency_key,
+                    cohort_id=target_id,
                     message="Update accepted" if accept else "Update rejected",
                 )
             ],
@@ -339,6 +365,15 @@ async def update_cohort_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             CohortResultItem(
                 success=True,
@@ -370,6 +405,10 @@ async def update_cohort_impl(
                 logger.warning(
                     f"sync_home_practice_entries failed (non-fatal): {sync_err}"
                 )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     first_id = results[0].cohort_id if results else None
     await refresh_cohort_impl(

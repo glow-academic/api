@@ -28,6 +28,11 @@ from app.tools.artifacts.department.update import (
 from app.tools.artifacts.department.update import (
     update_department as update_department_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "department"
 
 
 async def update_department_impl(
@@ -61,44 +66,50 @@ async def update_department_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    # ── ACK short-circuit FIRST (mirrors persona/scenario/document) ────
-    # Permission checks below assume real items; under ack we just
-    # promote/reject the dormant artifact, no items list to iterate.
+    # ── ACK short-circuit ──────────────────────────────────────────────
     if accept is not None and idempotency_key is not None:
-        items = request.departments or []
-        if not accept:
-            return UpdateDepartmentApiResponse(
-                results=[
-                    DepartmentResultItem(
-                        success=True,
-                        department_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ] or [
-                    DepartmentResultItem(
-                        success=True,
-                        department_id=idempotency_key,
-                        message="Update rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending department update for this call.",
             )
-        # accept=True: fall through to apply with soft=False
-        soft = False
-        # If no items provided (pure ack), return ok — caller already
-        # promoted via the prior soft update; no junction work needed.
-        if not items:
-            return UpdateDepartmentApiResponse(
-                results=[
-                    DepartmentResultItem(
-                        success=True,
-                        department_id=idempotency_key,
-                        message="Update accepted",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_department_artifact(conn, target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_department_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return UpdateDepartmentApiResponse(
+            results=[
+                DepartmentResultItem(
+                    success=True,
+                    department_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -279,6 +290,15 @@ async def update_department_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         saved_department_ids.append(item.id)
         results.append(
             DepartmentResultItem(
@@ -293,6 +313,10 @@ async def update_department_impl(
                 ),
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_department_impl(

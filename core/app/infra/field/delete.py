@@ -29,7 +29,12 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.field.delete import delete_fields
 from app.tools.artifacts.field.get import get_fields
 from app.tools.artifacts.parameter.search import search_parameters
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "field"
 
 
 async def _refresh_field_deletes(
@@ -145,14 +150,34 @@ async def delete_field_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
     # (Done before per-item work since ack doesn't need any ids work.)
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending field delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn,
-                        table="field_artifact",
-                        ids=ids or [idempotency_key],
+                        conn, table="field_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await _refresh_field_deletes(
             pool,
             redis,
@@ -164,14 +189,13 @@ async def delete_field_impl(
             results=[
                 DeleteFieldResult(
                     success=True,
-                    field_id=field_id,
+                    field_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — field restored"
                     ),
                 )
-                for field_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -275,6 +299,21 @@ async def delete_field_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_fields(conn, ids, soft=soft)
+
+            # Pending ledger rows tied to this tool call.
+            if soft and idempotency_key is not None:
+                for fid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=fid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # -- Step 7: Canonical refresh --------------------------------------------
 

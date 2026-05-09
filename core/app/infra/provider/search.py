@@ -219,7 +219,24 @@ async def _search_provider_build(
             offset_count=page_offset,
         )
 
-    if not provider_ids_list:
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="provider", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for pid in [*provider_ids_list, *pending_ledger_ids]:
+        if pid in seen:
+            continue
+        seen.add(pid)
+        merged_ids.append(pid)
+    added = sum(1 for pid in pending_ledger_ids if pid not in set(provider_ids_list))
+    total_count = total_count + added
+
+    if not merged_ids:
         return _empty_response(actor_name, total_count=0)
 
     # ── Step 4: Get provider artifacts with junction IDs ────────────────
@@ -227,13 +244,14 @@ async def _search_provider_build(
     async with pool.acquire() as conn:
         all_artifacts = await get_providers(
             conn,
-            provider_ids_list,
+            merged_ids,
             names=True,
             descriptions=True,
             departments=True,
             flags=True,
             values=True,
             providers=True,
+            active=None,
         )
 
     # Post-filter for inactive_only (search tool only supports active_only)
@@ -358,6 +376,7 @@ async def _search_provider_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         providers_list.append(
             ListProviderApiProvider(
                 provider_id=a.id,
@@ -373,6 +392,9 @@ async def _search_provider_build(
                 can_edit=can_edit,
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

@@ -1,10 +1,10 @@
 {% if success and results and results[0] and results[0].result %}
 {% set r = results[0].result %}
-{% if r.items and r.items|length > 0 %}
-## Auth Drafts ({{ r.items|length }} result{{ "s" if r.items|length != 1 else "" }})
+{% if r.entries and r.entries|length > 0 %}
+## Auth Drafts ({{ r.entries|length }})
 
-{% for item in r.items %}
-- **{{ item.name or "(unnamed draft)" }}** — {{ item.created_at }} (ID: `{{ item.draft_id }}`)
+{% for d in r.entries %}
+- **{{ d.name or "(unnamed draft)" }}** — {{ d.created_at }} (ID: `{{ d.id }}`)
 {% endfor %}
 {% else %}
 No auth drafts match the search.

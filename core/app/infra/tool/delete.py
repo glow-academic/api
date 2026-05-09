@@ -27,7 +27,12 @@ from app.infra.tool.types import (
 )
 from app.tools.artifacts.tool.delete import delete_tools
 from app.tools.artifacts.tool.get import get_tools
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "tool"
 
 
 async def delete_tool_impl(
@@ -82,9 +87,15 @@ async def delete_tool_impl(
     # broke when callers stopped passing ``ids`` on ack and broke the
     # all-matching path which pulls ids from the resolver.
     if accept is not None and idempotency_key is not None:
-        # ``ids`` may be empty under ack — restore_artifacts takes the
-        # idempotency_key as the artifact id (matches existing
-        # semantic; that's how the dormant row is recorded).
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending tool delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             # Confirm deletion: no-op (already deactivated by soft delete)
             pass
@@ -95,8 +106,21 @@ async def delete_tool_impl(
                     await restore_artifacts(
                         conn,
                         table="tool_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_tool_impl(
             pool,
             redis,
@@ -104,19 +128,17 @@ async def delete_tool_impl(
             session_id=session_id,
             operation_key=idempotency_key,
         )
-        ack_ids = ids or [idempotency_key]
         return DeleteToolApiResponse(
             results=[
                 DeleteToolResult(
                     success=True,
-                    tool_id=tool_id,
+                    tool_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — tool restored"
                     ),
                 )
-                for tool_id in ack_ids
             ],
             idempotency_key=idempotency_key,
         )
@@ -239,6 +261,20 @@ async def delete_tool_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_tools(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for tid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=tid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # -- Step 6: Canonical refresh ---------------------------------------------
 

@@ -29,6 +29,10 @@ from app.infra.scenario.types import (
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.scenario_drafts.create import create_scenario_draft
 from app.tools.entries.scenario_drafts.get import get_scenario_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.images.create import create_image
@@ -40,6 +44,90 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
+
+ARTIFACT = "scenario"
+OPERATION = "draft"
+
+
+async def _maybe_auto_accept_scenario_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Auto-accept the draft when no pending fields remain. Mirrors persona/draft.py."""
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_scenario_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    pending_lists = [
+        getattr(draft, "pending_name_ids", None),
+        getattr(draft, "pending_description_ids", None),
+        getattr(draft, "pending_problem_statement_ids", None),
+        getattr(draft, "pending_department_ids", None),
+        getattr(draft, "pending_persona_ids", None),
+        getattr(draft, "pending_document_ids", None),
+        getattr(draft, "pending_objective_ids", None),
+        getattr(draft, "pending_image_ids", None),
+        getattr(draft, "pending_video_ids", None),
+        getattr(draft, "pending_question_ids", None),
+        getattr(draft, "pending_option_ids", None),
+        getattr(draft, "pending_flag_ids", None),
+        getattr(draft, "pending_parameter_field_ids", None),
+    ]
+    if any(pl for pl in pending_lists if pl):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_scenario_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                name_ids=draft.name_ids,
+                description_ids=draft.description_ids,
+                problem_statement_ids=draft.problem_statement_ids,
+                flag_ids=draft.flag_ids,
+                department_ids=draft.department_ids,
+                persona_ids=draft.persona_ids,
+                document_ids=draft.document_ids,
+                parameter_field_ids=draft.parameter_field_ids,
+                objective_ids=draft.objective_ids,
+                image_ids=draft.image_ids,
+                video_ids=draft.video_ids,
+                question_ids=draft.question_ids,
+                option_ids=draft.option_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
+
 
 # Denormalized bool field name → flag type in flags_resource.
 SCENARIO_DENORM_FLAG_FIELDS = {
@@ -206,16 +294,29 @@ async def patch_scenario_draft_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending scenario draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
+            # Need profile context to drop owner; resolve before flow promotion.
+            from app.infra.profile_identity_context import resolve_profile_identity_context as _rpic
+            profile_ack = await _rpic(pool, profile_id, redis, session_id=session_id)
+            owner_profile_id = profile_ack.profiles_id if profile_ack else profile_id
             async with pool.acquire() as conn:
-                drafts = await get_scenario_drafts(conn, [idempotency_key])
+                drafts = await get_scenario_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_scenario_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
                             description_ids=draft.description_ids,
@@ -230,28 +331,41 @@ async def patch_scenario_draft_impl(
                             video_ids=draft.video_ids,
                             question_ids=draft.question_ids,
                             option_ids=draft.option_ids,
-                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            profile_ids=draft.profile_ids or [owner_profile_id],
                             pending_ids=set(),
                         )
                     else:
                         await create_scenario_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
-                            profile_ids=[profile.profiles_id],
+                            profile_ids=[owner_profile_id],
                         )
-            await refresh_scenario_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                targets=["scenario_drafts_mv"],
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_scenario_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["scenario_drafts_mv"],
+            operation_key=idempotency_key,
+        )
         return PatchScenarioDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=ScenarioDraftFormState(
@@ -365,6 +479,29 @@ async def patch_scenario_draft_impl(
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
                 profile_ids=[profile.profiles_id],
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    # ── Auto-accept merge step: if no pending fields remain and a
+    # pending soft_calls_entry exists for this draft, promote it.
+    if not soft:
+        await _maybe_auto_accept_scenario_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
 
     # ── Step 5: Build form state (server is source of truth) ──────────
 

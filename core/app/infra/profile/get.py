@@ -370,6 +370,9 @@ async def get_profile_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_profile_context``). ``None`` when no draft was active.
+        draft_name=profile_ctx.entries.get("draft_name") if profile_ctx.entries else None,
         profile_id=target_profile_id,
         show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_RESOURCES),
         basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_BASIC_RESOURCES),

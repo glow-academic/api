@@ -426,7 +426,7 @@ async def resolve_tool_context(
                 suggestions=dedupe_by_id(instructions_suggestions),
             ),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )
 
 

@@ -10,8 +10,15 @@ from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 async def get_parameter_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetParameterDraftResponse]:
-    """Get parameter_drafts entries by IDs with connection data."""
+    """Get parameter_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only returns committed drafts.
+    ``active=False`` — only dormant pending drafts.
+    ``active=None`` — both. Use when loading a draft for the editor that
+    may still be in pending state (soft_calls_entry ledger has it).
+    """
     if not ids:
         return []
 
@@ -20,6 +27,7 @@ async def get_parameter_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -39,12 +47,13 @@ async def get_parameter_drafts(
         LEFT JOIN parameter_drafts_names_connection n ON n.draft_id = d.id
         LEFT JOIN parameter_drafts_profiles_connection p ON p.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -55,6 +64,7 @@ async def get_parameter_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],
             field_ids=r["field_ids"],

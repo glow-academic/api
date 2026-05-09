@@ -11,7 +11,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.eval.drafts import list_eval_drafts_impl
 from app.infra.eval.group import group_eval_impl
-from app.infra.eval.types import GetEvalDraftsApiResponse
+from app.infra.eval.types import (
+    GetEvalDraftsApiRequest,
+    GetEvalDraftsApiResponse,
+)
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetEvalDraftsApiResponse)
 async def get_eval_drafts(
+    request: GetEvalDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetEvalDraftsApiResponse:
@@ -48,13 +52,18 @@ async def get_eval_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetEvalDraftsApiResponse:
-            context = await list_eval_drafts_impl(
+            return await list_eval_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetEvalDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

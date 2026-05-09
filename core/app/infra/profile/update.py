@@ -30,6 +30,11 @@ from app.tools.artifacts.profile.update import _UNSET
 from app.tools.artifacts.profile.update import (
     update_profile as update_profile_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "profile"
 
 
 async def update_profile_impl(
@@ -68,19 +73,52 @@ async def update_profile_impl(
     # the loop first would either raise or silently no-op. Persona's
     # canonical pattern.
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateProfileApiResponse(
-                results=[
-                    ProfileResultItem(
-                        success=True,
-                        profile_id=item.profile_id,
-                        message="Update rejected",
-                    )
-                    for item in (request.profiles or [])
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending profile update for this call.",
             )
-        soft = False
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_profile_artifact(
+                        conn,
+                        target_id,
+                        soft=False,
+                        redis=redis,
+                    )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_profile_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return UpdateProfileApiResponse(
+            results=[
+                ProfileResultItem(
+                    success=True,
+                    profile_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -307,6 +345,15 @@ async def update_profile_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.profile_id,
+                    )
+
         results.append(
             ProfileResultItem(
                 success=True,
@@ -314,6 +361,10 @@ async def update_profile_impl(
                 message="Profile updated (pending acceptance)" if soft else "Profile updated successfully",
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_profile_impl(

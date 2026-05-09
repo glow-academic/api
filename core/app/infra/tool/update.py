@@ -34,6 +34,11 @@ from app.tools.artifacts.tool.update import (
 from app.tools.artifacts.tool.update import (
     update_tool as update_tool_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "tool"
 
 
 async def update_tool_impl(
@@ -85,12 +90,32 @@ async def update_tool_impl(
     # None (the dormant artifact is located by ``idempotency_key``) so
     # the previous "perm-loop first" ordering broke on this shape.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending tool update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             return UpdateToolApiResponse(
                 results=[
                     ToolResultItem(
                         success=True,
-                        tool_id=idempotency_key,
+                        tool_id=target_id,
                         message="Update rejected",
                     )
                 ],
@@ -289,6 +314,24 @@ async def update_tool_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+                elif accept is True and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                        status="accepted",
+                    )
+
         results.append(
             ToolResultItem(
                 success=True,
@@ -302,6 +345,12 @@ async def update_tool_impl(
                 ),
             )
         )
+
+    # ── Step 4b: Refresh soft_calls_mv after pending ledger row insert ─
+
+    if (soft or accept is True) and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # ── Step 5: Refresh via canonical helper ────────────────────────────
 

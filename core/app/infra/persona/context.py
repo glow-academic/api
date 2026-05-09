@@ -488,7 +488,14 @@ async def resolve_persona_context(
             "fields": ResourcePair(selected=[], suggestions=fields_catalog),
             "conditional_parameters": ResourcePair(selected=[], suggestions=conditional_params),
         },
-        entries={"pending_ids": merged.pending_ids},
+        entries={
+            "pending_ids": merged.pending_ids,
+            # Immutable draft label set at create time. ``None`` when
+            # there's no active draft (browse-only / artifact-only fetch).
+            # The FE uses this to show the draft name in the SaveToolbar
+            # trigger without an extra fetch.
+            "draft_name": draft.name if draft else None,
+        },
     )
 
 

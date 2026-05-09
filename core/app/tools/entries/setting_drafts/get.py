@@ -10,8 +10,14 @@ from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 async def get_setting_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetSettingDraftResponse]:
-    """Get setting_drafts entries by IDs with connection data."""
+    """Get setting_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only committed drafts.
+    ``active=None`` — both committed and dormant pending. Use for
+    ack short-circuit / auto-accept lookups.
+    """
     if not ids:
         return []
 
@@ -20,6 +26,7 @@ async def get_setting_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL), '{}') AS auth_item_key_ids,
@@ -65,12 +72,13 @@ async def get_setting_drafts(
         LEFT JOIN setting_drafts_mcp_connection mc ON mc.draft_id = d.id
         LEFT JOIN setting_drafts_logins_connection lo ON lo.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -81,6 +89,7 @@ async def get_setting_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             agent_ids=r["agent_ids"],
             auth_item_key_ids=r["auth_item_key_ids"],
             auth_ids=r["auth_ids"],

@@ -384,6 +384,9 @@ async def get_tool_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_tool_context``). ``None`` when no draft was active.
+        draft_name=tool.entries.get("draft_name") if tool.entries else None,
         tool_id=tool_ctx.artifact_id,
         show_ai_generate=show_ai_generate,
         basic_show_ai_generate=show_ai_generate,

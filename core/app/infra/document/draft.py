@@ -24,6 +24,87 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.document_drafts.create import create_document_draft
 from app.tools.entries.document_drafts.get import get_document_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
+
+ARTIFACT = "document"
+OPERATION = "draft"
+
+
+async def _maybe_auto_accept_document_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Merge step — auto-accept the draft when no pending fields remain.
+
+    Mirrors persona/draft.py::_maybe_auto_accept_draft.
+    """
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_document_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    if (
+        getattr(draft, "pending_department_ids", None)
+        or getattr(draft, "pending_description_ids", None)
+        or getattr(draft, "pending_file_ids", None)
+        or getattr(draft, "pending_flag_ids", None)
+        or getattr(draft, "pending_image_ids", None)
+        or getattr(draft, "pending_name_ids", None)
+        or getattr(draft, "pending_parameter_field_ids", None)
+        or getattr(draft, "pending_parameter_ids", None)
+        or getattr(draft, "pending_text_ids", None)
+    ):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_document_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                name_ids=draft.name_ids,
+                description_ids=draft.description_ids,
+                flag_ids=draft.flag_ids,
+                department_ids=draft.department_ids,
+                file_ids=draft.file_ids,
+                image_ids=draft.image_ids,
+                text_ids=draft.text_ids,
+                parameter_field_ids=draft.parameter_field_ids,
+                parameter_ids=draft.parameter_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.tools.entries.image_uploads.create import create_image_upload
@@ -275,16 +356,25 @@ async def patch_document_draft_impl(
 
     # ── Step 3: ACK short-circuit ──────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending document draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_document_drafts(conn, [idempotency_key])
+                drafts = await get_document_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_document_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
                             description_ids=draft.description_ids,
@@ -302,21 +392,34 @@ async def patch_document_draft_impl(
                         await create_document_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
                         )
-            await refresh_document_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                targets=["document_drafts_mv"],
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["document_drafts_mv"],
+            operation_key=idempotency_key,
+        )
         return PatchDocumentDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
@@ -354,6 +457,20 @@ async def patch_document_draft_impl(
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
                 profile_ids=[profile.profiles_id],
             )
+
+            # Pending ledger row tied to this tool call.
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # Re-derive denormalized flag booleans from the final flag_ids so the client
     # echo matches whatever the server actually persisted.
@@ -393,6 +510,16 @@ async def patch_document_draft_impl(
         pending_ids=request.pending_ids or [],
     )
 
+    # Merge step — auto-accept the draft if every pending field is now resolved.
+    auto_accepted = False
+    if not soft:
+        auto_accepted = await _maybe_auto_accept_document_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
+
     await refresh_document_impl(
         pool,
         redis,
@@ -406,10 +533,17 @@ async def patch_document_draft_impl(
 
     response_idempotency_key = idempotency_key or result.id
 
+    if auto_accepted:
+        message = "Draft accepted (all fields resolved)"
+    elif soft:
+        message = "Draft created (pending acceptance)"
+    else:
+        message = "Draft created successfully"
+
     return PatchDocumentDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=response_idempotency_key,
-        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
+        message=message,
         form_state=form_state,
     )

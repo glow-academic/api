@@ -27,7 +27,12 @@ from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.cohort.delete import delete_cohorts
 from app.tools.artifacts.cohort.get import get_cohorts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "cohort"
 
 
 async def delete_cohort_impl(
@@ -78,25 +83,42 @@ async def delete_cohort_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending cohort delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Confirm deletion: already soft-deleted, so just refresh state.
             pass
         else:
-            # Reject: restore the soft-deleted cohort artifacts.
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn,
-                        table="cohort_artifact",
-                        ids=ids or [idempotency_key],
+                        conn, table="cohort_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_cohort_impl(
             pool,
             redis,
             profile_id=profile_id,
             session_id=session_id,
-            operation_key=idempotency_key or (ids[0] if ids else None),
+            operation_key=idempotency_key,
         )
 
         return DeleteCohortApiResponse(
@@ -104,14 +126,13 @@ async def delete_cohort_impl(
             results=[
                 DeleteCohortResult(
                     success=True,
-                    cohort_id=cohort_id,
+                    cohort_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — cohort restored"
                     ),
                 )
-                for cohort_id in (ids or [idempotency_key])
             ],
         )
 
@@ -238,6 +259,20 @@ async def delete_cohort_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_cohorts(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for cid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=cid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # ── Step 6: Canonical refresh ──────────────────────────────────────
 

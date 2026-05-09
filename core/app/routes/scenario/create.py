@@ -64,11 +64,7 @@ async def create_scenario(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "scenarios": [
-                    item.model_dump(mode="json") for item in request.scenarios
-                ]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateScenarioApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

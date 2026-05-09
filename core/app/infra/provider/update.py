@@ -24,6 +24,11 @@ from app.tools.artifacts.provider.update import _UNSET
 from app.tools.artifacts.provider.update import (
     update_provider as update_provider_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "provider"
 
 
 async def update_provider_impl(
@@ -61,36 +66,51 @@ async def update_provider_impl(
     # ``request.providers`` is None and the perm loop would explode.
     # The dormant row is located by ``idempotency_key``.
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateProviderApiResponse(
-                results=[
-                    ProviderResultItem(
-                        success=True,
-                        provider_id=idempotency_key,
-                        message="Update rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending provider update for this call.",
             )
-        soft = False
-        # accept=True falls through to the per-row update flow below
-        # only when ``request.providers`` is provided. Persona/scenario
-        # have a more elaborate "promote dormant artifact" branch here,
-        # but provider's existing impl just drops back into the normal
-        # update flow when accept=True (matching the prior behavior).
-        # If providers is None on ack-accept, return a minimal echo —
-        # the dormant row was located + activated by upstream tooling.
-        if not request.providers and not request.all:
-            return UpdateProviderApiResponse(
-                results=[
-                    ProviderResultItem(
-                        success=True,
-                        provider_id=idempotency_key,
-                        message="Update accepted",
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_provider_artifact(
+                        conn,
+                        target_id,
+                        soft=False,
                     )
-                ],
-                idempotency_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_provider_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return UpdateProviderApiResponse(
+            results=[
+                ProviderResultItem(
+                    success=True,
+                    provider_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -267,6 +287,15 @@ async def update_provider_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             ProviderResultItem(
                 success=True,
@@ -274,6 +303,10 @@ async def update_provider_impl(
                 message="Provider updated (pending acceptance)" if soft else "Provider updated successfully",
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_provider_impl(

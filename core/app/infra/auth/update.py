@@ -23,9 +23,14 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.auth.get import get_auths as get_auth_artifacts
 from app.tools.artifacts.auth.update import _UNSET
 from app.tools.artifacts.auth.update import update_auth as update_auth_artifact
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
+
+ARTIFACT = "auth"
 
 
 async def update_auth_impl(
@@ -63,38 +68,48 @@ async def update_auth_impl(
     # Hoisted above perm checks so ack/all paths don't trip on
     # ``request.auths`` being None.
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateAuthApiResponse(
-                results=[
-                    AuthResultItem(
-                        success=True,
-                        auth_id=idempotency_key,
-                        message="Update rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending auth update for this call.",
             )
-        # accept=True path: re-run as soft=False below if explicit items
-        # are still attached, otherwise nothing to do here.
-        soft = False
-        if not request.auths:
-            await refresh_auth_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_auth_artifact(conn, target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-            return UpdateAuthApiResponse(
-                results=[
-                    AuthResultItem(
-                        success=True,
-                        auth_id=idempotency_key,
-                        message="Update accepted",
-                    )
-                ],
-                idempotency_key=idempotency_key,
-            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_auth_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return UpdateAuthApiResponse(
+            results=[
+                AuthResultItem(
+                    success=True,
+                    auth_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     skipped_results: list[AuthResultItem] = []
@@ -281,6 +296,15 @@ async def update_auth_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             AuthResultItem(
                 success=True,
@@ -294,6 +318,10 @@ async def update_auth_impl(
                 ),
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_auth_impl(

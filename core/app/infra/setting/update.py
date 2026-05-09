@@ -26,6 +26,11 @@ from app.tools.artifacts.setting.update import _UNSET
 from app.tools.artifacts.setting.update import (
     update_setting as update_setting_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "setting"
 
 
 async def update_setting_impl(
@@ -64,12 +69,32 @@ async def update_setting_impl(
     # None and the dormant artifact is located by ``idempotency_key``
     # alone. Mirrors the persona/scenario pattern (batch-1 lesson #1).
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending setting update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             return UpdateSettingApiResponse(
                 results=[
                     SettingResultItem(
                         success=True,
-                        setting_id=idempotency_key,
+                        setting_id=target_id,
                         message="Update rejected",
                     )
                 ],
@@ -81,6 +106,17 @@ async def update_setting_impl(
         # this is a no-op promotion — the dormant artifact already
         # carries the patch.
         if not request.settings:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="accepted",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             await refresh_setting_impl(
                 pool,
                 redis,
@@ -92,7 +128,7 @@ async def update_setting_impl(
                 results=[
                     SettingResultItem(
                         success=True,
-                        setting_id=idempotency_key,
+                        setting_id=target_id,
                         message="Update accepted",
                     )
                 ],
@@ -342,6 +378,27 @@ async def update_setting_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+                elif (
+                    accept is True
+                    and idempotency_key is not None
+                ):
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                        status="accepted",
+                    )
+
         results.append(
             SettingResultItem(
                 success=True,
@@ -355,6 +412,10 @@ async def update_setting_impl(
                 ),
             )
         )
+
+    if (soft or accept is True) and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_setting_impl(

@@ -340,7 +340,7 @@ async def resolve_provider_context(
             ),
             "keys": ResourcePair(selected=keys_selected, suggestions=keys_suggestions),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )
 
 

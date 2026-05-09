@@ -36,6 +36,10 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.cohort_drafts.create import create_cohort_draft
 from app.tools.entries.cohort_drafts.get import get_cohort_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
@@ -51,6 +55,79 @@ from app.tools.resources.simulation_positions.create import (
     create_simulation_position as create_sim_position,
 )
 from app.tools.resources.simulations.search import search_simulations
+
+ARTIFACT = "cohort"
+OPERATION = "draft"
+
+
+async def _maybe_auto_accept_cohort_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Auto-accept a cohort draft when no pending fields remain."""
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_cohort_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    if (
+        draft.pending_department_ids
+        or draft.pending_description_ids
+        or draft.pending_flag_ids
+        or draft.pending_name_ids
+        or draft.pending_profile_persona_ids
+        or draft.pending_profile_ids
+        or draft.pending_simulation_availability_ids
+        or draft.pending_simulation_position_ids
+        or draft.pending_simulation_ids
+    ):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_cohort_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                department_ids=draft.department_ids,
+                description_ids=draft.description_ids,
+                flag_ids=draft.flag_ids,
+                name_ids=draft.name_ids,
+                profile_persona_ids=draft.profile_persona_ids,
+                simulation_availability_ids=draft.simulation_availability_ids,
+                simulation_position_ids=draft.simulation_position_ids,
+                simulation_ids=draft.simulation_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
 
 
 def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
@@ -320,16 +397,38 @@ async def patch_cohort_draft_impl(
     # Ack short-circuit.
     # ------------------------------------------------------------------
     if accept is not None and idempotency_key is not None:
+        # NOTE: pre-existing code in this branch referenced
+        # ``profile.profiles_id`` before ``profile`` was defined
+        # (NameError waiting to happen). We resolve profile here for
+        # the new ledger-pattern path.
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
+        if profile is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Profile not found. Please sign in again.",
+            )
+
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending cohort draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_cohort_drafts(conn, [idempotency_key])
+                drafts = await get_cohort_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_cohort_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             department_ids=draft.department_ids,
                             description_ids=draft.description_ids,
@@ -346,21 +445,34 @@ async def patch_cohort_draft_impl(
                         await create_cohort_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
                         )
-            await refresh_cohort_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                targets=["cohort_drafts_mv"],
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["cohort_drafts_mv"],
+            operation_key=idempotency_key,
+        )
         return PatchCohortDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=CohortDraftFormState(),
@@ -462,6 +574,27 @@ async def patch_cohort_draft_impl(
                 simulation_ids=request.simulation_ids,
                 pending_ids=set(resolved_pending_ids) if resolved_pending_ids else None,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    if not soft:
+        await _maybe_auto_accept_cohort_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
 
     # ------------------------------------------------------------------
     # Step 5: Build form state (server is source of truth)

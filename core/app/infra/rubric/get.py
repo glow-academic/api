@@ -405,6 +405,9 @@ async def get_rubric_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_rubric_context``). ``None`` when no draft was active.
+        draft_name=rubric.entries.get("draft_name") if rubric.entries else None,
         show_ai_generate=basic_show_ai_generate or content_show_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,
         content_show_ai_generate=content_show_ai_generate,

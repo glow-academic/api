@@ -12,6 +12,7 @@ async def search_tool_drafts(
     conn: asyncpg.Connection,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    name: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
@@ -24,6 +25,7 @@ async def search_tool_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
             COALESCE(ARRAY_AGG(DISTINCT ao.args_outputs_id) FILTER (WHERE ao.args_outputs_id IS NOT NULL), '{}') AS args_output_ids,
@@ -51,16 +53,18 @@ async def search_tool_drafts(
           AND ($3::timestamptz IS NULL OR d.created_at >= $3)
           AND ($4::timestamptz IS NULL OR d.created_at <= $4)
           AND ($5::boolean IS NULL OR d.mcp = $5)
+          AND ($6::text IS NULL OR d.name ILIKE '%' || $6 || '%')
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
-        LIMIT $6 OFFSET $7
+        LIMIT $7 OFFSET $8
         """,
         session_ids,
         profile_ids,
         date_from,
         date_to,
         mcp,
+        name,
         limit,
         offset,
     )
@@ -73,6 +77,7 @@ async def search_tool_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             arg_position_ids=r["arg_position_ids"],
             arg_ids=r["arg_ids"],
             args_output_ids=r["args_output_ids"],

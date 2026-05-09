@@ -19,9 +19,14 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.eval.get import get_evals as get_eval_artifacts
 from app.tools.artifacts.eval.update import _UNSET
 from app.tools.artifacts.eval.update import update_eval as update_eval_artifact
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
+
+ARTIFACT = "eval"
 
 
 async def update_eval_impl(
@@ -61,32 +66,48 @@ async def update_eval_impl(
     # know which rows were touched without a registry hop, so we just
     # echo the operation key back as a single result.
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateEvalApiResponse(
-                results=[
-                    EvalResultItem(
-                        success=True,
-                        eval_id=idempotency_key,
-                        message="Update rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending eval update for this call.",
             )
-        soft = False
-        # On accept the dormant write was already committed during
-        # the original soft-update; nothing further to do here. Drop
-        # through with empty items so we just echo a success result.
-        if not request.evals and not request.all:
-            return UpdateEvalApiResponse(
-                results=[
-                    EvalResultItem(
-                        success=True,
-                        eval_id=idempotency_key,
-                        message="Update accepted",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_eval_artifact(conn, target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_eval_impl(
+            pool, redis,
+            profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return UpdateEvalApiResponse(
+            results=[
+                EvalResultItem(
+                    success=True,
+                    eval_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -277,19 +298,31 @@ async def update_eval_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call.
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             EvalResultItem(
                 success=True,
                 eval_id=item.id,
                 message=(
-                    "Eval update accepted"
-                    if accept is not None and idempotency_key is not None
-                    else "Eval updated (pending acceptance)"
+                    "Eval updated (pending acceptance)"
                     if soft
                     else "Eval updated successfully"
                 ),
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_eval_impl(

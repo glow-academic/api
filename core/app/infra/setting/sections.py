@@ -544,6 +544,9 @@ def build_setting_get_result(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_setting_context``). ``None`` when no draft was active.
+        draft_name=setting.entries.get("draft_name") if setting.entries else None,
         show_ai_generate=show_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,
         pending_ids=sorted(pending_ids),

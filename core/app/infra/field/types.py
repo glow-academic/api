@@ -13,6 +13,21 @@ from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.field_drafts.types import GetFieldDraftResponse
 
 
+class GetFieldDraftsApiRequest(BaseModel):
+    """Request model for the field drafts list endpoint.
+
+    Mirrors ``GenerationsFieldApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetFieldDraftsApiResponse(BaseModel):
     """Response model for field drafts list endpoint."""
 
@@ -119,6 +134,11 @@ class GetFieldApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the actor can edit this field")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button anywhere")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate button")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers when available")
@@ -140,6 +160,11 @@ class ListFieldApiField(BaseModel):
     conditional_parameter_ids: list[UUID] | None = Field(None, description="Associated conditional parameter UUIDs")
     persona_ids: list[UUID] | None = Field(None, description="Associated persona UUIDs")
     is_inactive: bool | None = Field(None, description="Whether the field is inactive")
+    # Soft-call ledger snapshot — set when this field has a pending op
+    # in ``soft_calls_mv``. Client renders ghost/pending styling when set.
+    pending_status: str | None = Field(None, description="Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'")
+    pending_operation: str | None = Field(None, description="Operation type ('create'|'update'|'delete'|'duplicate') of the pending op")
+    pending_call_id: UUID | None = Field(None, description="call_id (idempotency key for ack) of the pending op")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this field")
     can_duplicate: bool | None = Field(None, description="Whether the actor can duplicate this field")
     can_delete: bool | None = Field(None, description="Whether the actor can delete this field")

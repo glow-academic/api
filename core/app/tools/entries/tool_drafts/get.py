@@ -10,8 +10,14 @@ from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 async def get_tool_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetToolDraftResponse]:
-    """Get tool_drafts entries by IDs with connection data."""
+    """Get tool_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only committed drafts.
+    ``active=None`` — both committed and dormant pending. Use for
+    ack short-circuit / auto-accept lookups.
+    """
     if not ids:
         return []
 
@@ -20,6 +26,7 @@ async def get_tool_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL), '{}') AS arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT ap.arg_positions_id) FILTER (WHERE ap.arg_positions_id IS NOT NULL AND ap.active = false), '{}') AS pending_arg_position_ids,
             COALESCE(ARRAY_AGG(DISTINCT a.args_id) FILTER (WHERE a.args_id IS NOT NULL), '{}') AS arg_ids,
@@ -54,12 +61,13 @@ async def get_tool_drafts(
         LEFT JOIN tool_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN tool_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -70,6 +78,7 @@ async def get_tool_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             arg_position_ids=r["arg_position_ids"],
             arg_ids=r["arg_ids"],
             args_output_ids=r["args_output_ids"],

@@ -31,7 +31,12 @@ from app.tools.artifacts.simulation.create import (
     create_simulation as create_simulation_artifact,
 )
 from app.tools.artifacts.simulation.get import get_simulations
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.get import get_flags
+
+ARTIFACT = "simulation"
 
 
 async def create_simulation_impl(
@@ -98,19 +103,28 @@ async def create_simulation_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending simulation create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await create_simulation_artifact(
                         conn,
-                        id=idempotency_key,
+                        id=target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_simulations(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -149,19 +163,31 @@ async def create_simulation_impl(
                     scenario_flag_ids=artifact.scenario_flag_ids,
                 )
 
-            await refresh_simulation_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return CreateSimulationApiResponse(
             results=[
                 SimulationResultItem(
                     success=True,
-                    simulation_id=idempotency_key,
+                    simulation_id=target_id,
                     message="Simulation accepted" if accept else "Simulation rejected",
                 )
             ],
@@ -251,6 +277,15 @@ async def create_simulation_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 results.append(
                     SimulationResultItem(
                         success=True,
@@ -259,7 +294,13 @@ async def create_simulation_impl(
                     )
                 )
 
-    # ── Step 6: Refresh via canonical simulation refresh ───────────────
+    # ── Step 6: Refresh soft_calls_mv after pending ledger row insert ─
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    # ── Step 7: Refresh via canonical simulation refresh ───────────────
 
     await refresh_simulation_impl(
         pool,

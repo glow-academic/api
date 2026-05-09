@@ -10,8 +10,12 @@ from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 async def get_rubric_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetRubricDraftResponse]:
-    """Get rubric_drafts entries by IDs with connection data."""
+    """Get rubric_drafts entries by IDs with connection data.
+
+    ``active=None`` returns dormant + active rows.
+    """
     if not ids:
         return []
 
@@ -20,6 +24,7 @@ async def get_rubric_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = true), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL AND desc_c.active = true), '{}') AS description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL AND f.active = true), '{}') AS flag_ids,
@@ -45,12 +50,13 @@ async def get_rubric_drafts(
         LEFT JOIN rubric_drafts_standard_groups_connection sg ON sg.draft_id = d.id
         LEFT JOIN rubric_drafts_standards_connection s ON s.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -61,6 +67,7 @@ async def get_rubric_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],

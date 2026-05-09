@@ -564,5 +564,5 @@ async def resolve_agent_context(
             "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
             "rubrics": ResourcePair(selected=rubrics_selected, suggestions=rubrics_suggestions),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )

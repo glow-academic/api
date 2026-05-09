@@ -23,6 +23,7 @@ async def search_setting_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL), '{}') AS auth_item_key_ids,
@@ -67,7 +68,7 @@ async def search_setting_drafts(
           AND ($3::timestamptz IS NULL OR d.created_at <= $3)
           AND ($4::boolean IS NULL OR d.mcp = $4)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         LIMIT $5 OFFSET $6
         """,
@@ -75,6 +76,7 @@ async def search_setting_drafts(
         date_from,
         date_to,
         mcp,
+        name,
         limit,
         offset,
     )
@@ -87,6 +89,7 @@ async def search_setting_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             agent_ids=r["agent_ids"],
             auth_item_key_ids=r["auth_item_key_ids"],
             auth_ids=r["auth_ids"],

@@ -548,6 +548,9 @@ async def get_simulation_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_simulation_context``). ``None`` when no draft was active.
+        draft_name=simulation.entries.get("draft_name") if simulation.entries else None,
         show_ai_generate=can_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,
         names=names,

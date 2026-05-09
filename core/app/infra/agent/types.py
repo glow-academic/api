@@ -267,6 +267,11 @@ class GetAgentApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the agent is disabled")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     agent_id: UUID | None = Field(None, description="UUID of the selected agent")
     show_ai_generate: bool | None = Field(None, description="Whether any step should show AI generate")
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
@@ -650,6 +655,21 @@ class PatchAgentDraftApiResponse(BaseModel):
     form_state: DraftFormState | None = Field(None, description="Server-authoritative form state")
 
 
+class GetAgentDraftsApiRequest(BaseModel):
+    """Request model for the agent drafts list endpoint.
+
+    Mirrors ``GenerationsAgentApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetAgentDraftsApiResponse(BaseModel):
     """Response model for agent drafts list endpoint."""
 
@@ -697,6 +717,9 @@ class ListAgentApiAgent(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     can_delete: bool | None = Field(None, description="Whether the current user can delete")
+    pending_status: str | None = Field(None, description="Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row")
+    pending_operation: str | None = Field(None, description="Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for the latest pending soft-call entry")
 
 
 class ListAgentApiResponse(BaseModel):

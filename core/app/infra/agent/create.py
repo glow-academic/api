@@ -30,6 +30,11 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "agent"
 
 
 async def create_agent_impl(
@@ -90,19 +95,53 @@ async def create_agent_impl(
             detail="You don't have permission to create agents.",
         )
 
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id)
+    # we need to act on. See project_soft_calls_entry_pattern.
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return CreateAgentApiResponse(
-                results=[
-                    AgentResultItem(
-                        success=True,
-                        agent_id=idempotency_key,
-                        message="Agent rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending agent create for this call.",
             )
-        soft = False
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_agent_artifact(conn, id=target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_agent_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return CreateAgentApiResponse(
+            results=[
+                AgentResultItem(
+                    success=True,
+                    agent_id=target_id,
+                    message="Agent accepted" if accept else "Agent rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -180,6 +219,18 @@ async def create_agent_impl(
                     soft=soft,
                 )
 
+                # Soft writes append a pending ledger row tied to the
+                # originating tool call so ack lookups can resolve
+                # (artifact, operation, artifact_id).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 results.append(
                     AgentResultItem(
                         success=True,
@@ -193,6 +244,12 @@ async def create_agent_impl(
                         ),
                     )
                 )
+
+    # Refresh soft_calls_mv synchronously after pending ledger insert so
+    # subsequent reads (search, hydrate, group resolve) see the new row.
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_agent_impl(

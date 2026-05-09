@@ -19,7 +19,12 @@ from app.infra.setting.types import (
 )
 from app.tools.artifacts.setting.delete import delete_settings
 from app.tools.artifacts.setting.get import get_settings
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "setting"
 
 
 async def delete_setting_impl(
@@ -65,6 +70,15 @@ async def delete_setting_impl(
     # None and the dormant artifact is located by ``idempotency_key``
     # alone. Mirrors the persona/scenario pattern (batch-1 lesson #1).
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending setting delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             # Confirm deletion: no-op (already deactivated by soft delete)
             pass
@@ -75,8 +89,21 @@ async def delete_setting_impl(
                     await restore_artifacts(
                         conn,
                         table="setting_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_setting_impl(
             pool,
             redis,
@@ -88,14 +115,13 @@ async def delete_setting_impl(
             results=[
                 DeleteSettingResult(
                     success=True,
-                    setting_id=setting_id,
+                    setting_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — setting restored"
                     ),
                 )
-                for setting_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -220,6 +246,20 @@ async def delete_setting_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_settings(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for sid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=sid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_setting_impl(
         pool,

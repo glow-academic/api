@@ -207,20 +207,40 @@ async def _search_document_build(
             offset_count=page_offset,
         )
 
-    if not document_ids:
-        return _empty_response(actor_name, total_count=0)
+        # Merge pending ledger entries so dormant create/duplicate rows
+        # (and pending soft-deletes) surface in the list as ghost cards.
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="document", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for did in [*document_ids, *pending_ledger_ids]:
+        if did in seen:
+            continue
+        seen.add(did)
+        merged_ids.append(did)
+    added = sum(1 for did in pending_ledger_ids if did not in set(document_ids))
+    total_count = total_count + added
+
+    if not merged_ids:
+        return _empty_response(actor_name, total_count=total_count)
 
     # -- Step 3: Get document artifacts with junction IDs --
 
     async with pool.acquire() as conn:
         artifacts = await get_documents(
             conn,
-            document_ids,
+            merged_ids,
             names=True,
             departments=True,
             flags=True,
             files=True,
             documents=True,
+            active=None,
         )
 
     # -- Step 4: Parallel hydration + facets --
@@ -378,6 +398,7 @@ async def _search_document_build(
                 is_template = True
                 break
 
+        ledger = ledger_by_artifact_id.get(a.id)
         documents.append(
             ListDocumentApiDocument(
                 document_id=a.id,
@@ -392,6 +413,9 @@ async def _search_document_build(
                 num_scenarios=active_scenario_count,
                 active_scenario_count=active_scenario_count,
                 file_id=file_id,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

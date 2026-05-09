@@ -492,6 +492,9 @@ async def get_model_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=model_ctx.group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_model_context``). ``None`` when no draft was active.
+        draft_name=model.entries.get("draft_name") if model.entries else None,
         model_id=model_ctx.artifact_id or model_id,
         show_ai_generate=basic_show_ai_generate or provider_show_ai_generate or features_show_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,

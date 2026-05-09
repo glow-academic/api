@@ -25,6 +25,11 @@ from app.tools.artifacts.rubric.update import (
 from app.tools.artifacts.rubric.update import (
     update_rubric as update_rubric_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "rubric"
 
 
 async def update_rubric_impl(
@@ -63,27 +68,36 @@ async def update_rubric_impl(
     # result; under ack=True the soft-update junctions are already
     # active (existing semantics), we just refresh caches.
     if accept is not None and idempotency_key is not None:
-        items = request.rubrics or []
-        if not accept:
-            return UpdateRubricApiResponse(
-                results=[
-                    RubricResultItem(
-                        success=True,
-                        rubric_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in items
-                ] or [
-                    RubricResultItem(
-                        success=True,
-                        rubric_id=idempotency_key,
-                        message="Update rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending rubric update for this call.",
             )
-        # Accept ⇒ refresh caches; the per-row write happened in the
-        # original soft call. Existing behavior.
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_rubric_artifact(
+                        conn,
+                        target_id,
+                        soft=False,
+                    )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_rubric_impl(
             pool,
             redis,
@@ -92,27 +106,16 @@ async def update_rubric_impl(
             operation_key=idempotency_key,
         )
 
-        # Hydrate the now-promoted rows so the client's ghost rail can
-        # finalize the cards without a ``router.refresh()``.
         from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
-
-        ack_ids = [it.id for it in items if it.id] or [idempotency_key]
         hydrated_rows = await hydrate_rubric_list_rows(
-            pool, redis, profile_id=profile_id, rubric_ids=ack_ids,
+            pool, redis, profile_id=profile_id, rubric_ids=[target_id],
         )
         return UpdateRubricApiResponse(
             results=[
                 RubricResultItem(
                     success=True,
-                    rubric_id=item.id,
-                    message="Update accepted",
-                )
-                for item in items
-            ] or [
-                RubricResultItem(
-                    success=True,
-                    rubric_id=idempotency_key,
-                    message="Update accepted",
+                    rubric_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
                 )
             ],
             rubrics=hydrated_rows,
@@ -324,6 +327,15 @@ async def update_rubric_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             RubricResultItem(
                 success=True,
@@ -335,6 +347,10 @@ async def update_rubric_impl(
                 ),
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_rubric_impl(

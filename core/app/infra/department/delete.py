@@ -21,7 +21,12 @@ from app.infra.department.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.department.delete import delete_departments
 from app.tools.artifacts.department.get import get_departments
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "department"
 
 
 async def delete_department_impl(
@@ -55,18 +60,37 @@ async def delete_department_impl(
     from app.infra.identity.keycloak_sync import perform_keycloak_sync
 
     # ── Short-circuit: ack path ───────────────────────────────────────
-    # Hoisted above permission checks (matches persona/scenario) — under
-    # ack the dormant artifact is located by ``idempotency_key`` alone;
-    # we don't have a real items list to permission-check.
     if accept is not None and idempotency_key is not None:
-        if not accept:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending department delete for this call.",
+            )
+        target_id = entry.artifact_id
+
+        if accept:
+            pass
+        else:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn,
-                        table="department_artifact",
-                        ids=ids or [idempotency_key],
+                        conn, table="department_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_department_impl(
             pool,
             redis,
@@ -75,18 +99,16 @@ async def delete_department_impl(
             operation_key=idempotency_key,
         )
         try:
-            for department_id in (ids or [idempotency_key]):
-                await perform_keycloak_sync(department_id=str(department_id))
+            await perform_keycloak_sync(department_id=str(target_id))
         except Exception:
             pass
         return DeleteDepartmentApiResponse(
             results=[
                 DeleteDepartmentResult(
                     success=True,
-                    department_id=department_id,
+                    department_id=target_id,
                     message="Delete confirmed" if accept else "Delete rejected — department restored",
                 )
-                for department_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -207,6 +229,20 @@ async def delete_department_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_departments(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for did in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=did,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_department_impl(
         pool,

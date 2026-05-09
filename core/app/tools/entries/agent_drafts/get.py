@@ -10,8 +10,15 @@ from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
 async def get_agent_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetAgentDraftResponse]:
-    """Get agent_drafts entries by IDs with connection data."""
+    """Get agent_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only returns committed drafts.
+    ``active=False`` — only dormant pending drafts.
+    ``active=None`` — both. Use when loading a draft for the editor that
+    may still be in pending state (soft_calls_entry ledger has it).
+    """
     if not ids:
         return []
 
@@ -20,6 +27,7 @@ async def get_agent_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL AND n.active = false), '{}') AS pending_name_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -66,12 +74,13 @@ async def get_agent_drafts(
         LEFT JOIN agent_drafts_instructions_connection ins ON ins.draft_id = d.id
         LEFT JOIN agent_drafts_agents_connection ag ON ag.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -82,6 +91,7 @@ async def get_agent_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             name_ids=r["name_ids"],
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],

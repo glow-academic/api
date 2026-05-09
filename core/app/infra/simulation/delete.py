@@ -29,7 +29,12 @@ from app.infra.simulation.types import (
 )
 from app.tools.artifacts.simulation.delete import delete_simulations
 from app.tools.artifacts.simulation.get import get_simulations
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "simulation"
 
 
 async def delete_simulation_impl(
@@ -80,18 +85,39 @@ async def delete_simulation_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending simulation delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             # Confirm deletion: no-op (already deactivated by soft delete)
             pass
         else:
-            # Reject: restore soft-deleted artifacts
+            # Reject: restore soft-deleted artifact
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
                         conn,
                         table="simulation_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_simulation_impl(
             pool,
@@ -105,14 +131,13 @@ async def delete_simulation_impl(
             results=[
                 DeleteSimulationResult(
                     success=True,
-                    simulation_id=simulation_id,
+                    simulation_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — simulation restored"
                     ),
                 )
-                for simulation_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -246,6 +271,20 @@ async def delete_simulation_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_simulations(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for sid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=sid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
 

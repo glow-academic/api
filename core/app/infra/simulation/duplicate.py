@@ -28,9 +28,14 @@ from app.tools.artifacts.simulation.create import (
     create_simulation as create_simulation_artifact,
 )
 from app.tools.artifacts.simulation.get import get_simulations
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "simulation"
 
 
 async def duplicate_simulation_impl(
@@ -84,22 +89,43 @@ async def duplicate_simulation_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending simulation duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             # Promote: re-call create with soft=False -> ON CONFLICT activates
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await create_simulation_artifact(conn, id=idempotency_key, soft=False)
-            await refresh_simulation_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+                    await create_simulation_artifact(conn, id=target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-        # accept=False: no-op
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
         return DuplicateSimulationApiResponse(
             success=True,
-            simulation_id=idempotency_key,
+            simulation_id=target_id,
             message="Duplicate accepted" if accept else "Duplicate rejected",
             idempotency_key=idempotency_key,
         )
@@ -176,6 +202,19 @@ async def duplicate_simulation_impl(
                 flag_ids=flag_ids,
                 soft=soft,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # ── Step 7: Refresh (via canonical refresh) ─────────────────────────
 

@@ -142,6 +142,11 @@ class GetParameterApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Group identifier for the parameter")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Show AI generate if any resource supports it")
     basic_show_ai_generate: bool | None = Field(None, description="Show AI generate for basic step")
     fields_step_show_ai_generate: bool | None = Field(None, description="Show AI generate for fields step")
@@ -151,6 +156,21 @@ class GetParameterApiResponse(BaseModel):
     flags: list[ParameterFlagResource] | None = Field(None, description="Flag configs")
     departments: list[ParameterDepartmentResource] | None = Field(None, description="Department resources")
     parameter_fields: list[ParameterFieldResource] | None = Field(None, description="Parameter field resources")
+
+
+class GetParameterDraftsApiRequest(BaseModel):
+    """Request model for the parameter drafts list endpoint.
+
+    Mirrors ``GenerationsParameterApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
 
 
 class GetParameterDraftsApiResponse(BaseModel):
@@ -177,6 +197,9 @@ class ListParameterApiParameter(BaseModel):
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     can_delete: bool | None = Field(None, description="Whether the current user can delete")
     updated_at: datetime | None = Field(None, description="Timestamp of last update")
+    pending_status: str | None = Field(None, description="Pending soft_calls_entry status (e.g. 'pending')")
+    pending_operation: str | None = Field(None, description="Pending operation (create/update/delete/duplicate)")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for ack")
 
 
 class ListParameterApiResponse(BaseModel):

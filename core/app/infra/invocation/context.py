@@ -336,6 +336,7 @@ async def resolve_invocation_context(
             "voices": ResourcePair(selected=voices_selected, suggestions=voices_suggestions),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             "invocation_exists": base_invocation is not None or draft is not None,
         },

@@ -1,10 +1,16 @@
 """Model drafts list/search — composable infra architecture.
 
-Thin wrapper that delegates to the shared ``search_drafts_impl`` black
-box (which queries ``model_drafts_mv`` with the indexed
-``lower(name)`` prefix filter + date/pagination). One operation
-``drafts`` covers both the FE list page and the LLM-callable searchable
-tool — there are no separate dispatch paths.
+Composes existing black-box tools — no inline SQL:
+  1. resolve_profile_identity_context — caller's profiles_id
+  2. search_model_drafts — declarative filters (name ILIKE, date window,
+     pagination) on the entry table + connections
+
+Single function powers both:
+  - LLM dispatch (artifact, "drafts") via INFRA_OPS auto-discovery
+  - FE ``POST /model/drafts`` HTTP route
+
+Both consumers receive the same ``GetModelDraftsApiResponse`` shape; the
+LLM render template iterates ``entries[]`` like the FE list page does.
 """
 
 from __future__ import annotations
@@ -13,12 +19,12 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg
+from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.drafts.search import (
-    SearchDraftsResponse,
-    search_drafts_impl,
-)
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.model.types import GetModelDraftsApiResponse
+from app.tools.entries.model_drafts.search import search_model_drafts
 
 
 async def list_model_drafts_impl(
@@ -30,22 +36,31 @@ async def list_model_drafts_impl(
     search: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
-    page_size: int = 50,
+    page_limit: int = 50,
     page_offset: int = 0,
     bypass_cache: bool = False,
     **_kwargs,
-) -> SearchDraftsResponse:
+) -> GetModelDraftsApiResponse:
     """List/search model drafts owned by the current profile."""
-    return await search_drafts_impl(
-        pool,
-        redis,
-        artifact_type="model",
-        profile_id=profile_id,
-        session_id=session_id,
-        search=search,
-        date_from=date_from,
-        date_to=date_to,
-        page_size=page_size,
-        page_offset=page_offset,
-        own_only=True,
+    profile = await resolve_profile_identity_context(
+        pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
     )
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    async with pool.acquire() as conn:
+        drafts = await search_model_drafts(
+            conn,
+            profile_ids=[profile.profiles_id],
+            session_ids=[session_id] if session_id else None,
+            name=search,
+            date_from=date_from,
+            date_to=date_to,
+            limit=page_limit,
+            offset=page_offset,
+        )
+
+    return GetModelDraftsApiResponse(entries=drafts)

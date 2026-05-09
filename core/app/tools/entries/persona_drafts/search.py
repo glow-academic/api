@@ -12,6 +12,7 @@ async def search_persona_drafts(
     conn: asyncpg.Connection,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    name: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
@@ -24,6 +25,7 @@ async def search_persona_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT col.colors_id) FILTER (WHERE col.colors_id IS NOT NULL), '{}') AS color_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
@@ -64,16 +66,18 @@ async def search_persona_drafts(
           AND ($3::timestamptz IS NULL OR d.created_at >= $3)
           AND ($4::timestamptz IS NULL OR d.created_at <= $4)
           AND ($5::boolean IS NULL OR d.mcp = $5)
+          AND ($6::text IS NULL OR d.name ILIKE '%' || $6 || '%')
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
-        LIMIT $6 OFFSET $7
+        LIMIT $7 OFFSET $8
         """,
         session_ids,
         profile_ids,
         date_from,
         date_to,
         mcp,
+        name,
         limit,
         offset,
     )
@@ -86,6 +90,7 @@ async def search_persona_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             color_ids=r["color_ids"],
             department_ids=r["department_ids"],
             description_ids=r["description_ids"],

@@ -32,7 +32,12 @@ from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
 from app.tools.artifacts.parameter.get import get_parameters as get_parameter_artifacts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
+
+ARTIFACT = "parameter"
 
 
 async def create_parameter_impl(
@@ -96,19 +101,29 @@ async def create_parameter_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        # Locate the dormant create via the canonical soft_calls ledger.
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending parameter create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await create_parameter_artifact(
                         conn,
-                        id=idempotency_key,
+                        id=target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_parameter_artifacts(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -138,29 +153,33 @@ async def create_parameter_impl(
                     scenario_parameter=parameter_resource.scenario_parameter if parameter_resource else False,
                     video_parameter=parameter_resource.video_parameter if parameter_resource else False,
                 )
-            await refresh_parameter_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
-            )
-            return CreateParameterApiResponse(
-                results=[
-                    ParameterResultItem(
-                        success=True,
-                        parameter_id=idempotency_key,
-                        message="Parameter accepted",
-                    )
-                ],
-                idempotency_key=idempotency_key,
-            )
 
+        # Append accepted/rejected ledger row + sync refresh.
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
         return CreateParameterApiResponse(
             results=[
                 ParameterResultItem(
                     success=True,
-                    message="Parameter rejected",
+                    parameter_id=target_id,
+                    message="Parameter accepted" if accept else "Parameter rejected",
                 )
             ],
             idempotency_key=idempotency_key,
@@ -235,6 +254,17 @@ async def create_parameter_impl(
                     soft=soft,
                 )
 
+                # Soft-write: append pending ledger row in same txn so ack
+                # lookups can resolve (artifact, operation, artifact_id).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
         results.append(
             ParameterResultItem(
                 success=True,
@@ -248,6 +278,9 @@ async def create_parameter_impl(
         )
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_parameter_impl(
         pool,

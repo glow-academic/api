@@ -167,7 +167,24 @@ async def _search_tool_build(
             offset_count=page_offset,
         )
 
-    if not tool_ids_list:
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="tool", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for tid in [*tool_ids_list, *pending_ledger_ids]:
+        if tid in seen:
+            continue
+        seen.add(tid)
+        merged_ids.append(tid)
+    added = sum(1 for tid in pending_ledger_ids if tid not in set(tool_ids_list))
+    total_count = total_count + added
+
+    if not merged_ids:
         return _empty_response(actor_name, total_count=0)
 
     # ── Step 4: Get tool artifacts with junction IDs ────────────────
@@ -175,19 +192,20 @@ async def _search_tool_build(
     async with pool.acquire() as conn:
         artifacts = await get_tools(
             conn,
-            tool_ids_list,
+            merged_ids,
             names=True,
             descriptions=True,
             departments=True,
             flags=True,
             permissions=True,
+            active=None,
         )
 
     # Build per-tool agent_ids map (agent_artifact ids referencing this tool).
     # tool_agents_junction.agents_id → agents_resource.id; reverse-walk
     # agent_agents_junction.agents_id → agent_artifact.id.
     agent_ids_by_tool: dict[UUID, list[UUID]] = {}
-    if tool_ids_list:
+    if merged_ids:
         async with pool.acquire() as conn:
             agent_rows = await conn.fetch(
                 """
@@ -200,7 +218,7 @@ async def _search_tool_build(
                 WHERE taj.tool_id = ANY($1) AND taj.active = true
                 GROUP BY taj.tool_id
                 """,
-                tool_ids_list,
+                merged_ids,
             )
         for r in agent_rows:
             agent_ids_by_tool[r["tool_id"]] = list(r["agent_ids"] or [])
@@ -288,6 +306,7 @@ async def _search_tool_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         tools_list.append(
             ListToolApiTool(
                 tool_id=a.id,
@@ -303,6 +322,9 @@ async def _search_tool_build(
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

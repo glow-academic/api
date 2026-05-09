@@ -17,9 +17,14 @@ from app.tools.artifacts.setting.create import (
     create_setting as create_setting_artifact,
 )
 from app.tools.artifacts.setting.get import get_settings
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "setting"
 
 
 async def duplicate_setting_impl(
@@ -58,14 +63,37 @@ async def duplicate_setting_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending setting duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=target_id,
+                    status="rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             return DuplicateSettingApiResponse(
                 success=True,
-                setting_id=idempotency_key,
+                setting_id=target_id,
                 message="Setting duplicate rejected",
                 idempotency_key=idempotency_key,
             )
+        # accept=True: promote dormant duplicate via the normal create path
+        # with soft=False. Stamp idempotency_key so the artifact id matches.
         soft = False
+        idempotency_key = target_id
 
     async with pool.acquire() as conn:
         originals = await get_settings(
@@ -136,6 +164,28 @@ async def duplicate_setting_impl(
                 setting_ids=original.setting_ids,
                 soft=soft,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+            elif accept is True and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                    status="accepted",
+                )
+
+    if (soft or accept is True) and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_setting_impl(

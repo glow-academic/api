@@ -340,6 +340,9 @@ async def get_field_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_field_context``). ``None`` when no draft was active.
+        draft_name=field.entries.get("draft_name") if field.entries else None,
         show_ai_generate=basic_show_ai_generate,
         basic_show_ai_generate=basic_show_ai_generate,
         pending_ids=list(pending_ids) or None,

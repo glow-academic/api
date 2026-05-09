@@ -36,6 +36,11 @@ from app.tools.artifacts.scenario.update import (
 from app.tools.artifacts.scenario.update import (
     update_scenario as update_scenario_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "scenario"
 
 if TYPE_CHECKING:
     from app.infra.scenario.types import UpdateScenarioItem
@@ -89,19 +94,28 @@ async def update_scenario_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending scenario update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await update_scenario_artifact(
                         conn,
-                        idempotency_key,
+                        target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_scenarios(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -134,19 +148,31 @@ async def update_scenario_impl(
                     problem_statement_ids=artifact.problem_statement_ids or None,
                 )
 
-            await refresh_scenario_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_scenario_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return UpdateScenarioApiResponse(
             results=[
                 ScenarioResultItem(
                     success=True,
-                    scenario_id=idempotency_key,
+                    scenario_id=target_id,
                     message="Update accepted" if accept else "Update rejected",
                 )
             ],
@@ -352,6 +378,16 @@ async def update_scenario_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call (see persona/update.py).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             ScenarioResultItem(
                 success=True,
@@ -364,7 +400,13 @@ async def update_scenario_impl(
             )
         )
 
-    # ── Step 5: Canonical refresh ──────────────────────────────────────
+    # ── Step 5: Refresh soft_calls_mv after pending ledger row insert ──
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    # ── Step 6: Canonical refresh ──────────────────────────────────────
 
     first_id = results[0].scenario_id if results else None
     await refresh_scenario_impl(

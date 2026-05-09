@@ -273,6 +273,12 @@ class GetPersonaApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user has edit permission")
     disabled_reason: str | None = Field(None, description="Human-readable reason if editing is disabled")
     group_id: UUID | None = Field(None, description="Generation group UUID for AI operations")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches. The FE uses "
+        "this to show the draft name in the SaveToolbar trigger.",
+    )
 
     # AI generation flag (user has draft permission)
     show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")

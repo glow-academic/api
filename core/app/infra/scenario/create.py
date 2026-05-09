@@ -33,6 +33,11 @@ from app.tools.artifacts.scenario.create import (
     create_scenario as create_scenario_artifact,
 )
 from app.tools.artifacts.scenario.get import get_scenarios
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "scenario"
 
 
 def _batch_department_scope(items: list[CreateScenarioItem]) -> list[str] | None:
@@ -110,21 +115,33 @@ async def create_scenario_impl(
         )
 
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id)
+    # we need to act on. See project_soft_calls_entry_pattern.
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending scenario create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await create_scenario_artifact(
                         conn,
-                        id=idempotency_key,
+                        id=target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_scenarios(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -157,19 +174,31 @@ async def create_scenario_impl(
                     problem_statement_ids=artifact.problem_statement_ids or None,
                 )
 
-            await refresh_scenario_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_scenario_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return CreateScenarioApiResponse(
             results=[
                 ScenarioResultItem(
                     success=True,
-                    scenario_id=idempotency_key,
+                    scenario_id=target_id,
                     message="Scenario accepted" if accept else "Scenario rejected",
                 )
             ],
@@ -282,6 +311,18 @@ async def _create_scenarios(
                     soft=soft,
                 )
 
+                # Soft writes append a pending ledger row tied to the
+                # originating tool call so ack lookups can resolve
+                # (artifact, operation, artifact_id).
+                if soft and operation_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=operation_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 results.append(
                     ScenarioResultItem(
                         success=True,
@@ -292,7 +333,13 @@ async def _create_scenarios(
                     )
                 )
 
-    # ── Step 6: Refresh via canonical scenario refresh ─────────────────
+    # ── Step 6: Refresh soft_calls_mv after pending ledger row insert ──
+
+    if soft and operation_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    # ── Step 7: Refresh via canonical scenario refresh ─────────────────
 
     first_id = results[0].scenario_id if results else None
     await refresh_scenario_impl(

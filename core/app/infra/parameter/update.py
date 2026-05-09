@@ -35,7 +35,12 @@ from app.tools.artifacts.parameter.update import (
 from app.tools.artifacts.parameter.update import (
     update_parameter as update_parameter_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
+
+ARTIFACT = "parameter"
 
 
 async def update_parameter_impl(
@@ -85,19 +90,28 @@ async def update_parameter_impl(
     # persona/scenario; see batch-1/2 lessons in
     # project_bulk_write_pattern.md).
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending parameter update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await update_parameter_artifact(
                         conn,
-                        idempotency_key,
+                        target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_parameter_artifacts(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -127,19 +141,31 @@ async def update_parameter_impl(
                     video_parameter=parameter_resource.video_parameter if parameter_resource else False,
                 )
 
-            await refresh_parameter_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return UpdateParameterApiResponse(
             results=[
                 ParameterResultItem(
                     success=True,
-                    parameter_id=idempotency_key,
+                    parameter_id=target_id,
                     message="Update accepted" if accept else "Update rejected",
                 )
             ],
@@ -334,6 +360,15 @@ async def update_parameter_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             ParameterResultItem(
                 success=True,
@@ -347,6 +382,9 @@ async def update_parameter_impl(
         )
 
     # ── Step 5: Canonical refresh ──────────────────────────────────────
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_parameter_impl(
         pool,

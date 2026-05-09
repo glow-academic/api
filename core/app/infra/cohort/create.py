@@ -28,9 +28,14 @@ from app.tools.artifacts.cohort.create import (
     create_cohort as create_cohort_artifact,
 )
 from app.tools.artifacts.cohort.get import get_cohorts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
+
+ARTIFACT = "cohort"
 
 
 from app.infra.cohort.types import (
@@ -157,6 +162,15 @@ async def create_cohort_impl(
                         soft=soft_value,
                     )
 
+                    if soft_value and operation_key is not None:
+                        await create_soft_call(
+                            conn,
+                            call_id=operation_key,
+                            artifact=ARTIFACT,
+                            operation="create",
+                            artifact_id=result.id,
+                        )
+
             results.append(
                 CohortResultItem(
                     success=True,
@@ -166,6 +180,10 @@ async def create_cohort_impl(
             )
             if not soft_value:
                 sync_items.append((snapshot_ids[idx], item))
+
+        if soft_value and operation_key is not None:
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
 
         refresh_key = operation_key or (results[0].cohort_id if results else None)
         await _refresh_cohort(
@@ -225,15 +243,24 @@ async def create_cohort_impl(
 
     # ── Step 3: ACK short-circuit ─────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending cohort create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await create_cohort_artifact(conn, id=idempotency_key, soft=False)
+                    await create_cohort_artifact(conn, id=target_id, soft=False)
 
             async with pool.acquire() as conn:
                 artifacts = await get_cohorts(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -259,19 +286,31 @@ async def create_cohort_impl(
                     simulation_availability_ids=artifact.simulation_availability_ids or None,
                 )
 
-            await refresh_cohort_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return CreateCohortApiResponse(
             results=[
                 CohortResultItem(
                     success=True,
-                    cohort_id=idempotency_key,
+                    cohort_id=target_id,
                     message="Cohort accepted" if accept else "Cohort rejected",
                 )
             ],

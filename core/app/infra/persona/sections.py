@@ -294,6 +294,10 @@ def build_persona_get_result(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=group_id,
+        # Draft label sourced from the active draft entry (None when no
+        # draft_id was supplied). Stashed in ``entries`` by
+        # ``resolve_persona_context`` so we don't need to refetch here.
+        draft_name=persona.entries.get("draft_name") if persona.entries else None,
         show_ai_generate=show_ai_generate,
         names=_filter_section(_model_many_with_flags(all_names, PersonaNameResource, suggestions_sets.get("names", set()), selected_sets.get("names", set())), "names") if inc.get("names", True) else None,
         descriptions=_filter_section(_model_many_with_flags(all_descriptions, PersonaDescriptionResource, suggestions_sets.get("descriptions", set()), selected_sets.get("descriptions", set())), "descriptions") if inc.get("descriptions", True) else None,

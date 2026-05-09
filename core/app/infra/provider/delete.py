@@ -27,7 +27,12 @@ from app.infra.provider.types import (
 )
 from app.tools.artifacts.provider.delete import delete_providers
 from app.tools.artifacts.provider.get import get_providers
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "provider"
 
 
 async def delete_provider_impl(
@@ -80,14 +85,36 @@ async def delete_provider_impl(
     # ``ids`` is None and the perm loop would explode. The dormant row
     # is located by ``idempotency_key`` — no per-row work needed.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending provider delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
                         conn,
                         table="provider_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_provider_impl(
             pool,
             redis,
@@ -99,14 +126,13 @@ async def delete_provider_impl(
             results=[
                 DeleteProviderResult(
                     success=True,
-                    provider_id=provider_id,
+                    provider_id=target_id,
                     message=(
                         "Delete confirmed"
                         if accept
                         else "Delete rejected — provider restored"
                     ),
                 )
-                for provider_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -238,7 +264,20 @@ async def delete_provider_impl(
         async with conn.transaction():
             result = await delete_providers(conn, ids, soft=soft)
 
+            if soft and idempotency_key is not None:
+                for pid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=pid,
+                    )
+
     # ── Step 6: Canonical refresh ─────────────────────────────────────
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_provider_impl(
         pool,

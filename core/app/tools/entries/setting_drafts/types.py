@@ -17,6 +17,7 @@ class GetSettingDraftResponse(BaseModel):
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
     session_id: UUID = Field(..., description="Associated session UUID")
+    name: str = Field(default="", description="Immutable draft label set at create time")
     agent_ids: list[UUID] = Field(..., description="Associated agent UUIDs")
     auth_item_key_ids: list[UUID] = Field(..., description="Associated auth item key UUIDs")
     auth_ids: list[UUID] = Field(..., description="Associated auth UUIDs")

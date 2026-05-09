@@ -12,6 +12,7 @@ async def search_agent_drafts(
     conn: asyncpg.Connection,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    name: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
@@ -24,6 +25,7 @@ async def search_agent_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT n.names_id) FILTER (WHERE n.names_id IS NOT NULL), '{}') AS name_ids,
             COALESCE(ARRAY_AGG(DISTINCT desc_c.descriptions_id) FILTER (WHERE desc_c.descriptions_id IS NOT NULL), '{}') AS description_ids,
             COALESCE(ARRAY_AGG(DISTINCT f.flags_id) FILTER (WHERE f.flags_id IS NOT NULL), '{}') AS flag_ids,
@@ -55,16 +57,18 @@ async def search_agent_drafts(
           AND ($3::timestamptz IS NULL OR d.created_at >= $3)
           AND ($4::timestamptz IS NULL OR d.created_at <= $4)
           AND ($5::boolean IS NULL OR d.mcp = $5)
+          AND ($6::text IS NULL OR d.name ILIKE '%' || $6 || '%')
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
-        LIMIT $6 OFFSET $7
+        LIMIT $7 OFFSET $8
         """,
         session_ids,
         profile_ids,
         date_from,
         date_to,
         mcp,
+        name,
         limit,
         offset,
     )
@@ -77,6 +81,7 @@ async def search_agent_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             name_ids=r["name_ids"],
             description_ids=r["description_ids"],
             flag_ids=r["flag_ids"],

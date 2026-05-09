@@ -471,6 +471,7 @@ async def resolve_eval_context(
             ),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             # Flag catalog rows for model-scoped flag types (hydrated with
             # icon SVG). Used by eval/get.py to build the cross-product

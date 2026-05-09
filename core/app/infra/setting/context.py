@@ -653,6 +653,7 @@ async def resolve_setting_context(
             "auth_item_values": ResourcePair(selected=auth_item_values_selected, suggestions=[]),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             "providers": providers_catalog,
             "keys": keys_catalog,

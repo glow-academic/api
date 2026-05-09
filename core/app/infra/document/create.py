@@ -26,7 +26,12 @@ from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )
 from app.tools.artifacts.document.get import get_documents
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.get import get_flags
+
+ARTIFACT = "document"
 
 
 async def _item_is_template(
@@ -62,22 +67,95 @@ async def create_document_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
 ) -> CreateDocumentApiResponse:
-    """Document bulk create using composable infra functions.
-
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. compute_can_create — single check (applies to all items)
-      3. Per-item value resolution (raw → ID, required field enforcement)
-      4. ACK short-circuit for dormant create promotion/rejection
-      5. Per-item value resolution (raw → ID, required field enforcement)
-      6. Single transaction: create_document_artifact + denormalized snapshot per item
-      7. Refresh via canonical document refresh
-    """
+    """Document bulk create using composable infra functions."""
     from app.infra.document.permissions import compute_can_create
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key and accept is None:
         accept = request.accept
+
+    # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id);
+    # without that lookup the impl can't tell which row to promote.
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending document create for this call.",
+            )
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_document_artifact(
+                        conn,
+                        id=target_id,
+                        soft=False,
+                    )
+
+            async with pool.acquire() as conn:
+                artifacts = await get_documents(
+                    conn,
+                    [target_id],
+                    names=True,
+                    descriptions=True,
+                    departments=True,
+                    flags=True,
+                    images=True,
+                    parameter_fields=True,
+                )
+            if artifacts:
+                artifact = artifacts[0]
+                template = False
+                if artifact.flag_ids:
+                    flag_artifacts = await get_flags(
+                        pool, list(artifact.flag_ids), redis, bypass_cache=True,
+                    )
+                    template = any(flag.type == "template" for flag in flag_artifacts)
+                await create_denormalized_snapshot(
+                    pool,
+                    redis,
+                    id=artifact.id,
+                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
+                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
+                    department_ids=artifact.department_ids or None,
+                    image_ids=artifact.images_ids or None,
+                    parameter_field_ids=artifact.parameter_field_ids or None,
+                    template=template,
+                )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_document_impl(
+            pool, redis,
+            profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return CreateDocumentApiResponse(
+            results=[
+                DocumentResultItem(
+                    success=True,
+                    document_id=target_id,
+                    message="Document accepted" if accept else "Document rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     items = request.documents
 
@@ -106,71 +184,6 @@ async def create_document_impl(
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create documents.",
-        )
-
-    # ── Short-circuit: ack path ───────────────────────────────────────
-
-    if accept is not None and idempotency_key is not None:
-        if accept:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await create_document_artifact(
-                        conn,
-                        id=idempotency_key,
-                        soft=False,
-                    )
-
-            async with pool.acquire() as conn:
-                artifacts = await get_documents(
-                    conn,
-                    [idempotency_key],
-                    names=True,
-                    descriptions=True,
-                    departments=True,
-                    flags=True,
-                    images=True,
-                    parameter_fields=True,
-                )
-            if artifacts:
-                artifact = artifacts[0]
-                template = False
-                if artifact.flag_ids:
-                    flag_artifacts = await get_flags(pool,
-                        list(artifact.flag_ids),
-                        redis,
-                        bypass_cache=True,
-                    )
-                    template = any(flag.type == "template" for flag in flag_artifacts)
-
-                await create_denormalized_snapshot(
-                    pool,
-                    redis,
-                    id=artifact.id,
-                    name_id=artifact.name_ids[0] if artifact.name_ids else None,
-                    description_id=artifact.description_ids[0] if artifact.description_ids else None,
-                    department_ids=artifact.department_ids or None,
-                    image_ids=artifact.images_ids or None,
-                    parameter_field_ids=artifact.parameter_field_ids or None,
-                    template=template,
-                )
-
-            await refresh_document_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
-            )
-
-        return CreateDocumentApiResponse(
-            results=[
-                DocumentResultItem(
-                    success=True,
-                    document_id=idempotency_key,
-                    message="Document accepted" if accept else "Document rejected",
-                )
-            ],
-            idempotency_key=idempotency_key,
         )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
@@ -223,11 +236,11 @@ async def create_document_impl(
             )
             snapshot_ids.append(documents_resource_id)
 
-    for idx, item in enumerate(items):
-        flag_ids = list(item.flag_ids) if item.flag_ids else None
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for idx, item in enumerate(items):
+                flag_ids = list(item.flag_ids) if item.flag_ids else None
 
-        async with pool.acquire() as conn:
-            async with conn.transaction():
                 result = await create_document_artifact(
                     conn,
                     id=item.id,
@@ -243,17 +256,31 @@ async def create_document_impl(
                     soft=soft,
                 )
 
-        results.append(
-            DocumentResultItem(
-                success=True,
-                document_id=result.id,
-                message="Document created (pending acceptance)"
-                if soft
-                else "Document created successfully",
-            )
-        )
+                # Pending ledger row tied to this tool call.
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
+                results.append(
+                    DocumentResultItem(
+                        success=True,
+                        document_id=result.id,
+                        message="Document created (pending acceptance)"
+                        if soft
+                        else "Document created successfully",
+                    )
+                )
 
     # ── Step 5: Canonical refresh ─────────────────────────────────────
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_document_impl(
         pool,

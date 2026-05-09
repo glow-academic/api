@@ -30,6 +30,11 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.field.create import (
     create_field as create_field_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "field"
 
 
 async def create_field_impl(
@@ -93,22 +98,48 @@ async def create_field_impl(
 
     # ── ACK short-circuit ─────────────────────────────────────────────
     if accept is not None and idempotency_key is not None:
-        if accept is False:
-            return CreateFieldApiResponse(
-                results=[
-                    FieldResultItem(
-                        success=True,
-                        field_id=idempotency_key,
-                        message="Field rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending field create for this call.",
             )
+        target_id = entry.artifact_id
 
-        soft = False
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_field_artifact(conn, id=target_id, soft=False)
 
-        if len(items) == 1 and items[0].id is None:
-            items = [items[0].model_copy(update={"id": idempotency_key})]
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_field_impl(
+            pool, redis,
+            profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return CreateFieldApiResponse(
+            results=[
+                FieldResultItem(
+                    success=True,
+                    field_id=target_id,
+                    message="Field accepted" if accept else "Field rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -199,6 +230,16 @@ async def create_field_impl(
                         soft=True,
                     )
 
+                    # Pending ledger row tied to this tool call.
+                    if idempotency_key is not None:
+                        await create_soft_call(
+                            conn,
+                            call_id=idempotency_key,
+                            artifact=ARTIFACT,
+                            operation="create",
+                            artifact_id=result.id,
+                        )
+
             results.append(
                 FieldResultItem(
                     success=True,
@@ -206,5 +247,9 @@ async def create_field_impl(
                     message="Field created (pending acceptance)",
                 )
             )
+
+        if idempotency_key is not None:
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
 
     return CreateFieldApiResponse(results=results, idempotency_key=idempotency_key)

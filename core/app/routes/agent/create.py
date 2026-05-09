@@ -63,9 +63,7 @@ async def create_agent(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "agents": [item.model_dump(mode="json") for item in request.agents]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateAgentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

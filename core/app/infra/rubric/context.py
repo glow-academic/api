@@ -343,5 +343,5 @@ async def resolve_rubric_context(
                 suggestions=standards_suggestions,
             ),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )

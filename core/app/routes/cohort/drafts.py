@@ -11,7 +11,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.cohort.drafts import list_cohort_drafts_impl
 from app.infra.cohort.group import group_cohort_impl
-from app.infra.cohort.types import GetCohortDraftsApiResponse
+from app.infra.cohort.types import (
+    GetCohortDraftsApiRequest,
+    GetCohortDraftsApiResponse,
+)
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetCohortDraftsApiResponse)
 async def get_cohort_drafts(
+    request: GetCohortDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetCohortDraftsApiResponse:
@@ -47,13 +51,18 @@ async def get_cohort_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetCohortDraftsApiResponse:
-            context = await list_cohort_drafts_impl(
+            return await list_cohort_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetCohortDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

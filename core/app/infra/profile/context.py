@@ -293,6 +293,7 @@ async def resolve_profile_context(
             "roles": ResourcePair(selected=roles_selected, suggestions=roles_suggestions),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             "permissions": permissions_catalog,
             "request_limits": request_limits_catalog,

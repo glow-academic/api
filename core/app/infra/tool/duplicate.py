@@ -29,9 +29,14 @@ from app.tools.artifacts.tool.create import (
     create_tool as create_tool_artifact,
 )
 from app.tools.artifacts.tool.get import get_tools
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "tool"
 
 
 async def duplicate_tool_impl(
@@ -84,14 +89,35 @@ async def duplicate_tool_impl(
     # -- Step 3: Ack short-circuit ---------------------------------------------
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending tool duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=target_id,
+                    status="rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             return DuplicateToolApiResponse(
                 success=True,
-                tool_id=idempotency_key,
+                tool_id=target_id,
                 message="Tool duplicate rejected",
                 idempotency_key=idempotency_key,
             )
         soft = False
+        idempotency_key = target_id
 
     # -- Step 4: Fetch original tool with all junctions -------------------------
 
@@ -165,6 +191,28 @@ async def duplicate_tool_impl(
                 flag_ids=flag_ids,
                 soft=soft,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+            elif accept is True and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                    status="accepted",
+                )
+
+    if (soft or accept is True) and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # -- Step 8: Refresh only when live write occurred --------------------------
 

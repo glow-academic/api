@@ -21,6 +21,7 @@ class GetDepartmentDraftResponse(BaseModel):
     mcp: bool = Field(..., description="Whether MCP tooling was used")
     active: bool = Field(..., description="Whether this draft is active")
     session_id: UUID = Field(..., description="Associated session UUID")
+    name: str = Field(default="", description="Immutable draft label set at create time")
     description_ids: list[UUID] = Field(..., description="Associated description UUIDs")
     flag_ids: list[UUID] = Field(..., description="Associated flag UUIDs")
     name_ids: list[UUID] = Field(..., description="Associated name UUIDs")

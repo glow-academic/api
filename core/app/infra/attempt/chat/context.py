@@ -688,6 +688,7 @@ async def resolve_chat_context(
         group_id=group_id,
         resources=resources,
         entries={
+            "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             "chat_exists": has_template or chat_entry_id is None,
         },

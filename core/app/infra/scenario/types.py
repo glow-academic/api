@@ -302,6 +302,11 @@ class GetScenarioApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason the scenario is disabled")
     group_id: UUID | None = Field(None, description="UUID of the owning group")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
 
     # AI generation flag (user has draft permission)
     show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
@@ -351,6 +356,11 @@ class ListScenarioApiScenario(BaseModel):
     can_delete: bool | None = Field(None, description="Whether the current user can delete")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     cohort_ids: list[str] | None = Field(None, description="Associated cohort UUIDs")
+    # Soft-call ledger snapshot — set when this scenario has a pending op
+    # in ``soft_calls_mv``. Client renders ghost/pending styling when set.
+    pending_status: str | None = Field(None, description="Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'")
+    pending_operation: str | None = Field(None, description="Operation type ('create'|'update'|'delete'|'duplicate') of the pending op")
+    pending_call_id: UUID | None = Field(None, description="call_id (idempotency key for ack) of the pending op")
     updated_at: datetime | None = Field(None, description="Last updated timestamp")
 
 
@@ -940,6 +950,21 @@ class PatchScenarioDraftApiResponse(BaseModel):
     idempotency_key: UUID = Field(..., description="Idempotency key for this draft operation (same as draft entry ID)")
     message: str = Field(..., description="Human-readable result message")
     form_state: ScenarioDraftFormState = Field(..., description="Server-authoritative form state")
+
+
+class GetScenarioDraftsApiRequest(BaseModel):
+    """Request model for the scenario drafts list endpoint.
+
+    Mirrors ``GenerationsScenarioApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
 
 
 class GetScenarioDraftsApiResponse(BaseModel):

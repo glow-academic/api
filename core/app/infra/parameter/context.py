@@ -302,6 +302,7 @@ async def resolve_parameter_context(
             ),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "fields": fields,
             "field_map": field_map,
             "pending_ids": pending_ids,

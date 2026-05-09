@@ -158,7 +158,26 @@ async def _search_department_build(
             offset_count=page_offset,
         )
 
-    if not department_ids:
+    # Pending ledger entries — see project_soft_calls_entry_pattern.
+    from app.tools.entries.soft_calls.search import search_soft_calls
+    async with pool.acquire() as conn:
+        pending_entries = await search_soft_calls(
+            conn, artifact="department", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for did in [*department_ids, *pending_ledger_ids]:
+        if did in seen:
+            continue
+        seen.add(did)
+        merged_ids.append(did)
+    added = sum(1 for did in pending_ledger_ids if did not in set(department_ids))
+    total_count = total_count + added
+
+    if not merged_ids:
         return _empty_response(actor_name, total_count=0)
 
     # ── Step 3: Get department artifacts with junction IDs ─────────────
@@ -166,11 +185,12 @@ async def _search_department_build(
     async with pool.acquire() as conn:
         artifacts = await get_departments(
             conn,
-            department_ids,
+            merged_ids,
             names=True,
             descriptions=True,
             flags=True,
             departments=True,
+            active=None,
         )
 
     # ── Step 4: Parallel hydration + permissions + staff counts ────────
@@ -346,6 +366,7 @@ async def _search_department_build(
                         seen_l.add(lid)
                         dept_login_ids.append(lid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         departments.append(
             ListDepartmentApiDepartment(
                 department_id=a.id,
@@ -360,6 +381,9 @@ async def _search_department_build(
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
                 updated_at=a.updated_at,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

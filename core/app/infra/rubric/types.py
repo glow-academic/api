@@ -143,6 +143,11 @@ class GetRubricApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Whether any section supports AI generation")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the basic step")
     content_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for the content step")
@@ -154,6 +159,21 @@ class GetRubricApiResponse(BaseModel):
     points: list[RubricPointResource] | None = Field(None, description="Point resources")
     standard_groups: list[RubricStandardGroupResource] | None = Field(None, description="Standard group resources")
     standards: list[RubricStandardResource] | None = Field(None, description="Standard resources")
+
+
+class GetRubricDraftsApiRequest(BaseModel):
+    """Request model for the rubric drafts list endpoint.
+
+    Mirrors ``GenerationsRubricApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
 
 
 class GetRubricDraftsApiResponse(BaseModel):
@@ -609,6 +629,9 @@ class ListRubricApiRubric(BaseModel):
     standard_group_ids: list[UUID] | None = Field(None, description="Associated standard group UUIDs")
     eval_ids: list[UUID] = Field(default_factory=list, description="Eval artifact UUIDs that reference this rubric (via model_rubrics_resource)")
     is_inactive: bool | None = Field(None, description="Whether the rubric is inactive")
+    pending_status: str | None = Field(None, description="Pending soft_calls_entry status (e.g. 'pending')")
+    pending_operation: str | None = Field(None, description="Pending operation (create/update/delete/duplicate)")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for ack")
 
 
 class ListRubricApiStandardGroup(BaseModel):

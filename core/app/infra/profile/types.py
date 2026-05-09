@@ -192,6 +192,11 @@ class GetProfileApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the actor can edit this profile")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")
     group_id: UUID | None = Field(None, description="Group UUID for draft collaboration")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     profile_id: UUID | None = Field(None, description="UUID of the profile")
     show_ai_generate: bool | None = Field(None, description="Whether to show AI generate anywhere")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate on the basic step")
@@ -206,6 +211,21 @@ class GetProfileApiResponse(BaseModel):
     roles: list[ProfileRoleResource] | None = Field(None, description="Role resources")
     permissions: list[ProfilePermissionResource] | None = Field(None, description="Permission catalog for the role editor")
     request_limits: list[ProfileRequestLimitResource] | None = Field(None, description="Request-limit catalog for the role editor")
+
+
+class GetProfileDraftsApiRequest(BaseModel):
+    """Request model for the profile drafts list endpoint.
+
+    Mirrors ``GenerationsProfileApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
 
 
 class GetProfileDraftsApiResponse(BaseModel):
@@ -633,6 +653,9 @@ class ListProfilesApiProfile(BaseModel):
     can_emulate: bool | None = Field(None, description="Whether the actor can emulate this profile")
     is_emulated: bool | None = Field(None, description="Whether this profile is currently being emulated by the actor")
     is_inactive: bool | None = Field(None, description="Whether the profile is inactive")
+    pending_status: str | None = Field(None, description="Pending soft_calls_entry status (e.g. 'pending')")
+    pending_operation: str | None = Field(None, description="Pending operation (create/update/delete/duplicate)")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for ack")
 
 
 class ListProfilesApiResponse(BaseModel):

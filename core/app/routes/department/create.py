@@ -64,11 +64,7 @@ async def create_department(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "departments": [
-                    item.model_dump(mode="json") for item in request.departments
-                ]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateDepartmentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

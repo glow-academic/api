@@ -28,9 +28,14 @@ from app.tools.artifacts.document.create import (
     create_document as create_document_artifact,
 )
 from app.tools.artifacts.document.get import get_documents
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "document"
 
 
 async def duplicate_document_impl(
@@ -60,26 +65,47 @@ async def duplicate_document_impl(
     # -- Short-circuit: ack path ------------------------------------------------
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending document duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await create_document_artifact(
                         conn,
-                        id=idempotency_key,
+                        id=target_id,
                         soft=False,
                     )
 
-            await refresh_document_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return DuplicateDocumentApiResponse(
             success=True,
-            document_id=idempotency_key,
+            document_id=target_id,
             message="Duplicate accepted" if accept else "Duplicate rejected",
             idempotency_key=idempotency_key,
         )
@@ -179,7 +205,21 @@ async def duplicate_document_impl(
                 soft=soft,
             )
 
+            # Pending ledger row tied to this tool call.
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
     # -- Step 7: Refresh via canonical document refresh -------------------------
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_document_impl(
         pool,

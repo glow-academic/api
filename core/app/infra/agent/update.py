@@ -30,6 +30,11 @@ from app.tools.artifacts.agent.update import (
 from app.tools.artifacts.agent.update import (
     update_agent as update_agent_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "agent"
 
 
 async def update_agent_impl(
@@ -81,19 +86,48 @@ async def update_agent_impl(
     # a presumed ``items`` list, which fails when the ack path passes
     # an empty/None agents list — same hoist scenario does for persona).
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateAgentApiResponse(
-                results=[
-                    AgentResultItem(
-                        success=True,
-                        agent_id=item.id,
-                        message="Update rejected",
-                    )
-                    for item in (request.agents or [])
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending agent update for this call.",
             )
-        soft = False
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_agent_artifact(conn, target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_agent_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
+        return UpdateAgentApiResponse(
+            results=[
+                AgentResultItem(
+                    success=True,
+                    agent_id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -284,6 +318,16 @@ async def update_agent_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call (see create.py).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             AgentResultItem(
                 success=True,
@@ -297,6 +341,10 @@ async def update_agent_impl(
                 ),
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_agent_impl(

@@ -33,6 +33,11 @@ from app.tools.artifacts.field.update import (
 from app.tools.artifacts.field.update import (
     update_field as update_field_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "field"
 
 
 async def update_field_impl(
@@ -199,21 +204,48 @@ async def update_field_impl(
     # ── ACK short-circuit ──────────────────────────────────────────────
 
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return UpdateFieldApiResponse(
-                results=[
-                    FieldResultItem(
-                        success=True,
-                        field_id=item.id,
-                        message="Field update rejected",
-                    )
-                    for item in items
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending field update for this call.",
             )
+        target_id = entry.artifact_id
 
-        # ACK promote path reuses the normal update flow with soft=False.
-        soft = False
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await update_field_artifact(conn, target_id, soft=False)
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_field_impl(
+            pool, redis,
+            profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return UpdateFieldApiResponse(
+            results=[
+                FieldResultItem(
+                    success=True,
+                    field_id=target_id,
+                    message="Field update accepted" if accept else "Field update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # All-matching path: every row was soft-skipped — return only
     # ``skipped_results`` without touching the DB.
@@ -279,6 +311,16 @@ async def update_field_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call.
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             FieldResultItem(
                 success=True,
@@ -286,6 +328,10 @@ async def update_field_impl(
                 message="Field updated (pending acceptance)" if soft else "Field updated successfully",
             )
         )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_field_impl(

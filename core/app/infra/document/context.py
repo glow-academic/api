@@ -394,6 +394,7 @@ async def resolve_document_context(
             "texts": ResourcePair(selected=texts_selected, suggestions=texts_suggestions),
         },
         entries={
+            "draft_name": draft.name if draft else None,
             "fields": fields_catalog,
             "file_entries": file_entries,
             "image_entries": image_entries,

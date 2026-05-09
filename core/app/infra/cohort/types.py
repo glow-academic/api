@@ -16,6 +16,21 @@ from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
 from app.tools.resources.personas.types import GetPersonaResponse
 
 
+class GetCohortDraftsApiRequest(BaseModel):
+    """Request model for the cohort drafts list endpoint.
+
+    Mirrors ``GenerationsCohortApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetCohortDraftsApiResponse(BaseModel):
     """Response model for cohort drafts list endpoint."""
 
@@ -284,6 +299,11 @@ class GetCohortApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
 
     names: list[CohortNameResource] | None = Field(None, description="Name resources with selected/suggested flags")
@@ -327,6 +347,9 @@ class ListCohortApiCohort(BaseModel):
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
     can_leave: bool | None = Field(None, description="Whether the current user can leave")
     updated_at: datetime | None = Field(None, description="Last updated timestamp")
+    pending_status: str | None = Field(None, description="Soft-call ledger status (pending/accepted/rejected) for the latest pending op on this row")
+    pending_operation: str | None = Field(None, description="Operation name (create/update/delete/duplicate/draft) of the latest pending soft-call entry")
+    pending_call_id: UUID | None = Field(None, description="Originating tool call id for the latest pending soft-call entry")
 
 
 class ListCohortApiProfile(BaseModel):

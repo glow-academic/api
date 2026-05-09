@@ -68,7 +68,15 @@ async def hydrate_field_list_rows(
             flags=True,
             conditional_parameters=True,
             fields=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="field", artifact_ids=field_ids,
+            limit=len(field_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -128,6 +136,7 @@ async def hydrate_field_list_rows(
             role_level=user_role_level, role_permissions=profile.role_permissions,
         )
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListFieldApiField(
                 field_id=a.id,
@@ -137,6 +146,9 @@ async def hydrate_field_list_rows(
                 conditional_parameter_ids=a.conditional_parameter_ids,
                 persona_ids=None,
                 is_inactive=is_inactive,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

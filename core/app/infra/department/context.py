@@ -241,5 +241,5 @@ async def resolve_department_context(
                 suggestions=settings_suggestions,
             ),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )

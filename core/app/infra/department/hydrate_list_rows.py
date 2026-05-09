@@ -69,7 +69,15 @@ async def hydrate_department_list_rows(
             descriptions=True,
             flags=True,
             departments=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="department", artifact_ids=department_ids,
+            limit=len(department_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -235,6 +243,7 @@ async def hydrate_department_list_rows(
                         seen_l.add(lid)
                         dept_login_ids.append(lid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListDepartmentApiDepartment(
                 department_id=a.id,
@@ -249,6 +258,9 @@ async def hydrate_department_list_rows(
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
                 updated_at=a.updated_at,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

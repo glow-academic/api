@@ -33,6 +33,11 @@ from app.infra.tool.types import (
 from app.tools.artifacts.tool.create import (
     create_tool as create_tool_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "tool"
 
 
 async def _validate_tool_schema(
@@ -131,18 +136,41 @@ async def create_tool_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending tool create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="create",
+                    artifact_id=target_id,
+                    status="rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
             return CreateToolApiResponse(
                 results=[
                     ToolResultItem(
                         success=True,
-                        tool_id=idempotency_key,
+                        tool_id=target_id,
                         message="Tool rejected",
                     )
                 ],
                 idempotency_key=idempotency_key,
             )
+        # accept=True: promote dormant via normal path with soft=False;
+        # stamp target_id so the artifact id matches the dormant row.
         soft = False
+        items = [items[0].model_copy(update={"id": target_id})] if items else items
 
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
@@ -227,6 +255,24 @@ async def create_tool_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+                elif accept is True and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                        status="accepted",
+                    )
+
                 results.append(
                     ToolResultItem(
                         success=True,
@@ -241,6 +287,10 @@ async def create_tool_impl(
                         ),
                     )
                 )
+
+    if (soft or accept is True) and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_tool_impl(

@@ -142,7 +142,22 @@ async def _search_setting_build(
             offset_count=0,
         )
 
-    if not setting_ids:
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="setting", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for sid in [*setting_ids, *pending_ledger_ids]:
+        if sid in seen:
+            continue
+        seen.add(sid)
+        merged_ids.append(sid)
+
+    if not merged_ids:
         return _empty_response(actor_name, user_role=profile.role)
 
     # ── Step 3: Get setting artifacts with junction IDs ────────────────
@@ -150,7 +165,7 @@ async def _search_setting_build(
     async with pool.acquire() as conn:
         artifacts = await get_settings(
             conn,
-            setting_ids,
+            merged_ids,
             names=True,
             descriptions=True,
             departments=True,
@@ -158,6 +173,7 @@ async def _search_setting_build(
             providers=True,
             auths=True,
             systems=True,
+            active=None,
         )
 
     # ── Step 4: Parallel hydration + keys fetch ────────────────────────
@@ -222,6 +238,7 @@ async def _search_setting_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         settings_list.append(
             ListSettingApiSetting(
                 settings_id=a.id,
@@ -237,6 +254,9 @@ async def _search_setting_build(
                 can_edit=can_edit,
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

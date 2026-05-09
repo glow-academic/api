@@ -161,6 +161,24 @@ async def _search_eval_build(
             offset_count=page_offset,
         )
 
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="eval", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for eid in [*eval_ids, *pending_ledger_ids]:
+        if eid in seen:
+            continue
+        seen.add(eid)
+        merged_ids.append(eid)
+    added = sum(1 for eid in pending_ledger_ids if eid not in set(eval_ids))
+    total_count = total_count + added
+    eval_ids = merged_ids
+
     if not eval_ids:
         # Still fetch facets for empty results
         async with pool.acquire() as conn:
@@ -211,6 +229,7 @@ async def _search_eval_build(
             flags=True,
             models=True,
             model_rubrics=True,
+            active=None,
         )
 
     # Resolve rubric_artifact_ids per model_rubrics_resource row:
@@ -330,6 +349,7 @@ async def _search_eval_build(
                     seen_rubric_ids.add(rid)
                     eval_rubric_ids.append(rid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         evals_list.append(
             ListEvalApiEval(
                 eval_id=a.id,
@@ -341,6 +361,9 @@ async def _search_eval_build(
                 is_inactive=not a.active,
                 is_dynamic=is_dynamic,
                 use_groups=use_groups,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 num_runs=None,
                 num_groups=None,
                 can_edit=can_edit,

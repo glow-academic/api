@@ -82,7 +82,16 @@ async def hydrate_document_list_rows(
             flags=True,
             files=True,
             documents=True,
+            active=None,
         )
+
+        # Latest ledger row per artifact_id — same black box as search.
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="document", artifact_ids=document_ids,
+            limit=len(document_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -192,6 +201,7 @@ async def hydrate_document_list_rows(
                 is_template = True
                 break
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListDocumentApiDocument(
                 document_id=a.id,
@@ -206,6 +216,9 @@ async def hydrate_document_list_rows(
                 num_scenarios=active_scenario_count,
                 active_scenario_count=active_scenario_count,
                 file_id=file_id,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,

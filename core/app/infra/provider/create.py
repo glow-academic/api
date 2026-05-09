@@ -23,6 +23,11 @@ from app.infra.provider.types import (
 from app.tools.artifacts.provider.create import (
     create_provider as create_provider_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "provider"
 
 
 async def create_provider_impl(
@@ -77,18 +82,51 @@ async def create_provider_impl(
         )
 
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return CreateProviderApiResponse(
-                results=[
-                    ProviderResultItem(
-                        success=True,
-                        provider_id=idempotency_key,
-                        message="Provider rejected",
-                    )
-                ],
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending provider create for this call.",
             )
-        soft = False
+        target_id = entry.artifact_id
+
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await create_provider_artifact(
+                        conn,
+                        id=target_id,
+                        soft=False,
+                    )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_provider_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            operation_key=idempotency_key,
+        )
+
+        return CreateProviderApiResponse(
+            results=[
+                ProviderResultItem(
+                    success=True,
+                    provider_id=target_id,
+                    message="Provider accepted" if accept else "Provider rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     has_errors = False
     error_results: list[ProviderResultItem] = []
@@ -154,6 +192,15 @@ async def create_provider_impl(
                     soft=soft,
                 )
 
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 results.append(
                     ProviderResultItem(
                         success=True,
@@ -167,6 +214,10 @@ async def create_provider_impl(
                         ),
                     )
                 )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_provider_impl(

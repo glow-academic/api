@@ -141,6 +141,27 @@ async def _search_auth_build(
             offset_count=page_offset,
         )
 
+    # Pending ledger entries — see project_soft_calls_entry_pattern.
+    from app.tools.entries.soft_calls.search import search_soft_calls
+    async with pool.acquire() as conn:
+        pending_entries = await search_soft_calls(
+            conn, artifact="auth", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for aid in [*auth_ids, *pending_ledger_ids]:
+        if aid in seen:
+            continue
+        seen.add(aid)
+        merged_ids.append(aid)
+    added = sum(1 for aid in pending_ledger_ids if aid not in set(auth_ids))
+    total_count = total_count + added
+
+    auth_ids = merged_ids
+
     if not auth_ids:
         # Still fetch facets for empty results
         async with pool.acquire() as conn:
@@ -190,6 +211,7 @@ async def _search_auth_build(
             flags=True,
             items=True,
             auths=True,
+            active=None,
         )
 
     # Build per-auth setting_ids map (setting_artifact ids that reference any
@@ -323,6 +345,7 @@ async def _search_auth_build(
                     seen_setting_ids.add(sid)
                     auth_setting_ids.append(sid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         auths_list.append(
             ListAuthApiAuth(
                 auth_id=a.id,
@@ -336,6 +359,9 @@ async def _search_auth_build(
                 can_edit=can_edit,
                 can_duplicate=can_duplicate,
                 can_delete=can_delete,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

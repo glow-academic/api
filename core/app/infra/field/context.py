@@ -292,5 +292,5 @@ async def resolve_field_context(
                 suggestions=conditional_parameters_suggestions,
             ),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )

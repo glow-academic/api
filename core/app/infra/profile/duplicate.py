@@ -19,9 +19,14 @@ from app.tools.artifacts.profile.create import (
     create_profile as create_profile_artifact,
 )
 from app.tools.artifacts.profile.get import get_profiles
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "profile"
 
 
 async def duplicate_profile_impl(
@@ -58,22 +63,43 @@ async def duplicate_profile_impl(
         )
 
     if accept is not None and idempotency_key is not None:
-        if not accept:
-            return DuplicateProfileApiResponse(
-                success=True,
-                profile_id=idempotency_key,
-                message="Profile duplicate rejected",
-                idempotency_key=idempotency_key,
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending profile duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
+        result_id = target_id
+        profiles_rows_ack = None
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    result = await create_profile_artifact(
+                        conn,
+                        id=target_id,
+                        soft=False,
+                        redis=redis,
+                    )
+            result_id = result.id
+            from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+            profiles_rows_ack = await hydrate_profile_list_rows(
+                pool, redis, profile_id=profile_id, profile_ids=[result_id],
             )
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
-                result = await create_profile_artifact(
-                    conn,
-                    id=idempotency_key,
-                    soft=False,
-                    redis=redis,
-                )
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_profile_impl(
             pool,
@@ -83,16 +109,10 @@ async def duplicate_profile_impl(
             operation_key=idempotency_key,
         )
 
-        # Hydrate the promoted row for the client ghost rail (only on accept).
-        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
-        profiles_rows_ack = await hydrate_profile_list_rows(
-            pool, redis, profile_id=profile_id, profile_ids=[result.id],
-        )
-
         return DuplicateProfileApiResponse(
             success=True,
-            profile_id=result.id,
-            message="Profile duplicate accepted",
+            profile_id=result_id,
+            message="Profile duplicate accepted" if accept else "Profile duplicate rejected",
             profiles=profiles_rows_ack,
             idempotency_key=idempotency_key,
         )
@@ -150,6 +170,19 @@ async def duplicate_profile_impl(
                 redis=redis,
                 soft=soft,
             )
+
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_profile_impl(

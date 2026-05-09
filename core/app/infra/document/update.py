@@ -32,7 +32,12 @@ from app.tools.artifacts.document.update import (
 from app.tools.artifacts.document.update import (
     update_document as update_document_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.get import get_flags
+
+ARTIFACT = "document"
 
 
 async def _item_is_template(
@@ -96,19 +101,28 @@ async def update_document_impl(
     # Permission checks below assume real items; under ack we just
     # promote/reject the dormant artifact, no items list to iterate.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending document update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await update_document_artifact(
                         conn,
-                        idempotency_key,
+                        target_id,
                         soft=False,
                     )
 
             async with pool.acquire() as conn:
                 artifacts = await get_documents(
                     conn,
-                    [idempotency_key],
+                    [target_id],
                     names=True,
                     descriptions=True,
                     departments=True,
@@ -138,19 +152,31 @@ async def update_document_impl(
                     template=template,
                 )
 
-            await refresh_document_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
 
         return UpdateDocumentApiResponse(
             results=[
                 DocumentResultItem(
                     success=True,
-                    document_id=idempotency_key,
+                    document_id=target_id,
                     message="Update accepted" if accept else "Update rejected",
                 )
             ],
@@ -344,6 +370,16 @@ async def update_document_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call.
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
         results.append(
             DocumentResultItem(
                 success=True,
@@ -353,6 +389,10 @@ async def update_document_impl(
         )
 
     # ── Step 6: Canonical refresh ──────────────────────────────────────
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_document_impl(
         pool,

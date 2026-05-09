@@ -456,7 +456,7 @@ async def resolve_model_context(
             "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
             "voices": ResourcePair(selected=voices_selected, suggestions=voices_suggestions),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )
 
 

@@ -330,6 +330,9 @@ async def get_auth_impl(
         can_edit=can_edit,
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
+        # Draft label sourced from ``entries['draft_name']`` (set by
+        # ``resolve_auth_context``). ``None`` when no draft was active.
+        draft_name=auth.entries.get("draft_name") if auth.entries else None,
         show_ai_generate=any(scores.has_any.get(resource, False) for resource in AUTH_RESOURCES),
         basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in AUTH_BASIC_RESOURCES),
         pending_ids=list(pending_ids),

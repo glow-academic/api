@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 93rEvavHcwtq2KVZBIcQPCl3EtP5eHygBYDEncv1txHGAdHLzd4Op8UaTpwWcJC
+\restrict IeYJ8RhuO1b0XWkS5dcIM0NrkH8oOpJMHcnnrJoXOmSUiCiieEOchq1o9TsudL6
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -11758,6 +11758,45 @@ CREATE TABLE public.slugs_resource (
 
 
 --
+-- Name: soft_calls_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.soft_calls_entry (
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT uuidv7() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    call_id uuid NOT NULL,
+    artifact text NOT NULL,
+    operation text NOT NULL,
+    status text NOT NULL,
+    artifact_id uuid NOT NULL,
+    patch jsonb,
+    CONSTRAINT soft_calls_entry_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])))
+);
+
+
+--
+-- Name: soft_calls_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.soft_calls_mv AS
+ SELECT DISTINCT ON (call_id) id AS soft_call_entry_id,
+    call_id,
+    artifact,
+    operation,
+    status,
+    artifact_id,
+    patch,
+    created_at
+   FROM public.soft_calls_entry s
+  WHERE (active = true)
+  ORDER BY call_id, created_at DESC
+  WITH NO DATA;
+
+
+--
 -- Name: standard_groups_calls_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -18607,6 +18646,14 @@ ALTER TABLE ONLY public.slugs_resource
 
 ALTER TABLE ONLY public.slugs_resource
     ADD CONSTRAINT slugs_value_key UNIQUE (value);
+
+
+--
+-- Name: soft_calls_entry soft_calls_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.soft_calls_entry
+    ADD CONSTRAINT soft_calls_entry_pkey PRIMARY KEY (id);
 
 
 --
@@ -26001,6 +26048,34 @@ CREATE INDEX idx_simulations_resource_scenario_ids ON public.simulations_resourc
 --
 
 CREATE INDEX idx_slugs_mcp ON public.slugs_resource USING btree (mcp);
+
+
+--
+-- Name: idx_soft_calls_entry_call_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_soft_calls_entry_call_lookup ON public.soft_calls_entry USING btree (call_id, created_at DESC);
+
+
+--
+-- Name: idx_soft_calls_entry_target_lookup; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_soft_calls_entry_target_lookup ON public.soft_calls_entry USING btree (artifact, artifact_id, status);
+
+
+--
+-- Name: idx_soft_calls_mv_call; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_soft_calls_mv_call ON public.soft_calls_mv USING btree (call_id);
+
+
+--
+-- Name: idx_soft_calls_mv_target; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_soft_calls_mv_target ON public.soft_calls_mv USING btree (artifact, artifact_id, status);
 
 
 --
@@ -37563,6 +37638,14 @@ ALTER TABLE ONLY public.slugs_calls_connection
 
 
 --
+-- Name: soft_calls_entry soft_calls_entry_call_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.soft_calls_entry
+    ADD CONSTRAINT soft_calls_entry_call_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
+
+
+--
 -- Name: standard_groups_calls_connection standard_groups_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39110,5 +39193,5 @@ ALTER TABLE ONLY public.voices_calls_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 93rEvavHcwtq2KVZBIcQPCl3EtP5eHygBYDEncv1txHGAdHLzd4Op8UaTpwWcJC
+\unrestrict IeYJ8RhuO1b0XWkS5dcIM0NrkH8oOpJMHcnnrJoXOmSUiCiieEOchq1o9TsudL6
 

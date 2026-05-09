@@ -21,7 +21,14 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.parameter_drafts.create import create_parameter_draft
 from app.tools.entries.parameter_drafts.get import get_parameter_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.resources.departments.search import search_departments
+
+ARTIFACT = "parameter"
+OPERATION = "draft"
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.fields.get import get_fields
@@ -163,6 +170,69 @@ async def _resolve_creatable_values(
     return errors
 
 
+async def _maybe_auto_accept_parameter_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Auto-accept a draft when no pending fields remain. Mirrors persona."""
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    async with pool.acquire() as conn:
+        drafts = await get_parameter_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    if (
+        draft.pending_department_ids
+        or draft.pending_description_ids
+        or draft.pending_field_ids
+        or draft.pending_flag_ids
+        or draft.pending_name_ids
+    ):
+        return False
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_parameter_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                name_ids=draft.name_ids,
+                description_ids=draft.description_ids,
+                flag_ids=draft.flag_ids,
+                department_ids=draft.department_ids,
+                field_ids=draft.field_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
+
+
 async def _refresh_parameter_drafts(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -238,16 +308,25 @@ async def patch_parameter_draft_impl(
         )
 
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending parameter draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_parameter_drafts(conn, [idempotency_key])
+                drafts = await get_parameter_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_parameter_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
                             description_ids=draft.description_ids,
@@ -261,20 +340,33 @@ async def patch_parameter_draft_impl(
                         await create_parameter_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
                         )
-            await _refresh_parameter_drafts(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await _refresh_parameter_drafts(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
         return PatchParameterDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
@@ -338,6 +430,28 @@ async def patch_parameter_draft_impl(
                 pending_ids=set(request.pending_ids) if request.pending_ids else None,
             )
 
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+    auto_accepted = False
+    if not soft:
+        auto_accepted = await _maybe_auto_accept_parameter_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
+
     form_state = DraftFormState(
         name_id=request.name_id,
         name=request.name,
@@ -360,10 +474,17 @@ async def patch_parameter_draft_impl(
 
     response_idempotency_key = idempotency_key or result.id
 
+    if auto_accepted:
+        message = "Draft accepted (all fields resolved)"
+    elif soft:
+        message = "Draft created (pending acceptance)"
+    else:
+        message = "Draft created successfully"
+
     return PatchParameterDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=response_idempotency_key,
-        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
+        message=message,
         form_state=form_state,
     )

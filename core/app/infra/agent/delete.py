@@ -27,7 +27,12 @@ from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.agent.delete import delete_agents
 from app.tools.artifacts.agent.get import get_agents
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "agent"
 
 
 async def delete_agent_impl(
@@ -79,14 +84,38 @@ async def delete_agent_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
-        if not accept:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending agent delete for this call.",
+            )
+        target_id = entry.artifact_id
+
+        if accept:
+            # Confirm deletion: no-op (already deactivated by soft delete).
+            pass
+        else:
+            # Reject: restore the soft-deleted artifact.
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn,
-                        table="agent_artifact",
-                        ids=ids or [idempotency_key],
+                        conn, table="agent_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_agent_impl(
             pool,
             redis,
@@ -98,10 +127,9 @@ async def delete_agent_impl(
             results=[
                 DeleteAgentResult(
                     success=True,
-                    agent_id=agent_id,
+                    agent_id=target_id,
                     message="Delete confirmed" if accept else "Delete rejected — agent restored",
                 )
-                for agent_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -239,6 +267,22 @@ async def delete_agent_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_agents(conn, ids, soft=soft)
+
+            # Soft delete: append a pending ledger row per id so ack
+            # lookups can resolve which agent to restore on reject.
+            if soft and idempotency_key is not None:
+                for aid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=aid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_agent_impl(
         pool,

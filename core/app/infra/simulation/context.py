@@ -536,7 +536,7 @@ async def resolve_simulation_context(
             ),
             "rubrics": ResourcePair(selected=[], suggestions=rubrics_catalog),
         },
-        entries={"pending_ids": pending_ids},
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
     )
 
 

@@ -10,8 +10,13 @@ from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
 async def get_profile_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetProfileDraftResponse]:
-    """Get profile_drafts entries by IDs with connection data."""
+    """Get profile_drafts entries by IDs with connection data.
+
+    ``active=None`` returns dormant + active rows; used by ack short-circuit
+    + auto-accept to reach soft-pending drafts.
+    """
     if not ids:
         return []
 
@@ -20,6 +25,7 @@ async def get_profile_drafts(
         SELECT
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
+            d.name,
             COALESCE(ARRAY_AGG(DISTINCT p.profiles_id) FILTER (WHERE p.profiles_id IS NOT NULL), '{}') AS profile_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL), '{}') AS department_ids,
             COALESCE(ARRAY_AGG(DISTINCT dep.departments_id) FILTER (WHERE dep.departments_id IS NOT NULL AND dep.active = false), '{}') AS pending_department_ids,
@@ -42,12 +48,13 @@ async def get_profile_drafts(
         LEFT JOIN profile_drafts_roles_connection ro ON ro.draft_id = d.id
         LEFT JOIN profile_drafts_primary_departments_connection pd ON pd.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
-                 d.session_id
+                 d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [
@@ -58,6 +65,7 @@ async def get_profile_drafts(
             mcp=r["mcp"],
             active=r["active"],
             session_id=r["session_id"],
+            name=r["name"],
             profile_ids=r["profile_ids"],
             department_ids=r["department_ids"],
             email_ids=r["email_ids"],

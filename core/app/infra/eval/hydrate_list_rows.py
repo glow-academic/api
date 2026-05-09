@@ -67,7 +67,15 @@ async def hydrate_eval_list_rows(
             flags=True,
             models=True,
             model_rubrics=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="eval", artifact_ids=eval_ids,
+            limit=len(eval_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -169,6 +177,7 @@ async def hydrate_eval_list_rows(
                     seen_rubric_ids.add(rid)
                     eval_rubric_ids.append(rid)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListEvalApiEval(
                 eval_id=a.id,
@@ -180,6 +189,9 @@ async def hydrate_eval_list_rows(
                 is_inactive=is_inactive,
                 is_dynamic=is_dynamic,
                 use_groups=use_groups,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 num_runs=None,
                 num_groups=None,
                 can_edit=can_edit,

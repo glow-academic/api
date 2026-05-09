@@ -19,7 +19,12 @@ from app.infra.rubric.types import (
 )
 from app.tools.artifacts.rubric.delete import delete_rubrics
 from app.tools.artifacts.rubric.get import get_rubrics
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "rubric"
 
 
 async def delete_rubric_impl(
@@ -55,16 +60,37 @@ async def delete_rubric_impl(
         needed, the dormant deletion is located by the operation key.
     """
     # ── Short-circuit: ack path ───────────────────────────────────────
-    # Hoisted above per-row perm checks so ack/all paths don't need ids.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending rubric delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if not accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
                         conn,
                         table="rubric_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_rubric_impl(
             pool,
             redis,
@@ -76,10 +102,9 @@ async def delete_rubric_impl(
             results=[
                 DeleteRubricResult(
                     success=True,
-                    rubric_id=rid,
+                    rubric_id=target_id,
                     message="Delete confirmed" if accept else "Delete rejected — rubric restored",
                 )
-                for rid in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -188,6 +213,20 @@ async def delete_rubric_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_rubrics(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for pid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=pid,
+                    )
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_rubric_impl(
         pool,

@@ -13,7 +13,10 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.simulation.drafts import list_simulation_drafts_impl
 from app.infra.simulation.group import group_simulation_impl
-from app.infra.simulation.types import GetSimulationDraftsApiResponse
+from app.infra.simulation.types import (
+    GetSimulationDraftsApiRequest,
+    GetSimulationDraftsApiResponse,
+)
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetSimulationDraftsApiResponse)
 async def get_simulation_drafts(
+    request: GetSimulationDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetSimulationDraftsApiResponse:
@@ -47,13 +51,18 @@ async def get_simulation_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetSimulationDraftsApiResponse:
-            context = await list_simulation_drafts_impl(
+            return await list_simulation_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetSimulationDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

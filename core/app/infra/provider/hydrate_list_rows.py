@@ -70,7 +70,15 @@ async def hydrate_provider_list_rows(
             flags=True,
             values=True,
             providers=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="provider", artifact_ids=provider_ids,
+            limit=len(provider_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -146,6 +154,7 @@ async def hydrate_provider_list_rows(
             role_permissions=profile.role_permissions,
         )
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListProviderApiProvider(
                 provider_id=a.id,
@@ -161,6 +170,9 @@ async def hydrate_provider_list_rows(
                 can_edit=can_edit,
                 can_delete=can_delete,
                 can_duplicate=can_duplicate,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

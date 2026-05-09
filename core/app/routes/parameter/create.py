@@ -66,7 +66,7 @@ async def create_parameter(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments=request.model_dump(mode="json"),
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateParameterApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

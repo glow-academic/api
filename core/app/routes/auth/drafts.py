@@ -11,7 +11,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.auth.drafts import list_auth_drafts_impl
 from app.infra.auth.group import group_auth_impl
-from app.infra.auth.types import GetAuthDraftsApiResponse
+from app.infra.auth.types import (
+    GetAuthDraftsApiRequest,
+    GetAuthDraftsApiResponse,
+)
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetAuthDraftsApiResponse)
 async def get_auth_drafts(
+    request: GetAuthDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetAuthDraftsApiResponse:
@@ -47,13 +51,18 @@ async def get_auth_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetAuthDraftsApiResponse:
-            context = await list_auth_drafts_impl(
+            return await list_auth_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetAuthDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,

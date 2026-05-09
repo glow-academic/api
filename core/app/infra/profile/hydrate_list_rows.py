@@ -80,7 +80,15 @@ async def hydrate_profile_list_rows(
             profiles=True,
             roles=True,
             primary_departments=True,
+            active=None,
         )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="profile", artifact_ids=profile_ids,
+            limit=len(profile_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -214,6 +222,7 @@ async def hydrate_profile_list_rows(
         )
         is_emulated = a.id in emulated_profile_ids
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListProfilesApiProfile(
                 profile_id=a.id,
@@ -232,6 +241,9 @@ async def hydrate_profile_list_rows(
                 can_emulate=can_emulate,
                 is_emulated=is_emulated,
                 is_inactive=not a.active,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
             )
         )
 

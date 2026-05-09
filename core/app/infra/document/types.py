@@ -14,6 +14,21 @@ from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
 
 
+class GetDocumentDraftsApiRequest(BaseModel):
+    """Request model for the document drafts list endpoint.
+
+    Mirrors ``GenerationsDocumentApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetDocumentDraftsApiResponse(BaseModel):
     """Response model for document drafts list endpoint."""
 
@@ -218,6 +233,11 @@ class GetDocumentApiResponse(BaseModel):
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled")
     group_id: UUID | None = Field(None, description="Associated group UUID")
+    draft_name: str | None = Field(
+        None,
+        description="Immutable draft label from the active draft entry, when a "
+        "``draft_id`` was supplied. ``None`` for non-draft fetches.",
+    )
     show_ai_generate: bool | None = Field(None, description="Whether AI generation is available")
     basic_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for basic step")
     content_show_ai_generate: bool | None = Field(None, description="Whether to show AI generate for content step")
@@ -272,6 +292,11 @@ class ListDocumentApiDocument(BaseModel):
     flag_ids: list[UUID] | None = Field(None, description="Currently selected flag option UUIDs")
     is_inactive: bool | None = Field(None, description="Whether the document is inactive (derived from document_active flag)")
     is_template: bool | None = Field(None, description="Whether the document is a template (derived from document_template flag)")
+    # Soft-call ledger snapshot — set when this document has a pending op
+    # in ``soft_calls_mv``. Client renders ghost/pending styling when set.
+    pending_status: str | None = Field(None, description="Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'")
+    pending_operation: str | None = Field(None, description="Operation type ('create'|'update'|'delete'|'duplicate') of the pending op")
+    pending_call_id: UUID | None = Field(None, description="call_id (idempotency key for ack) of the pending op")
     extension: str | None = Field(None, description="File extension derived from the primary file (e.g. 'pdf', 'docx', 'txt')")
     num_scenarios: int | None = Field(None, description="Total number of scenarios")
     active_scenario_count: int | None = Field(None, description="Number of active scenarios")

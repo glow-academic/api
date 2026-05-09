@@ -64,9 +64,7 @@ async def create_eval(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "evals": [item.model_dump(mode="json") for item in request.evals]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateEvalApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

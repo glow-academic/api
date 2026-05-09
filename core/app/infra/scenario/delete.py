@@ -27,7 +27,12 @@ from app.infra.scenario.types import (
 )
 from app.tools.artifacts.scenario.delete import delete_scenarios
 from app.tools.artifacts.scenario.get import get_scenarios
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "scenario"
 
 
 async def delete_scenario_impl(
@@ -78,18 +83,40 @@ async def delete_scenario_impl(
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending scenario delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             # Confirm deletion: no-op (already deactivated by soft delete)
             pass
         else:
-            # Reject: restore soft-deleted artifacts
+            # Reject: restore soft-deleted artifact
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
                         conn,
                         table="scenario_artifact",
-                        ids=ids or [idempotency_key],
+                        ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
         await refresh_scenario_impl(
             pool,
             redis,
@@ -101,10 +128,9 @@ async def delete_scenario_impl(
             results=[
                 DeleteScenarioResult(
                     success=True,
-                    scenario_id=scenario_id,
+                    scenario_id=target_id,
                     message="Delete confirmed" if accept else "Delete rejected - scenario restored",
                 )
-                for scenario_id in (ids or [idempotency_key])
             ],
             idempotency_key=idempotency_key,
         )
@@ -231,6 +257,21 @@ async def delete_scenario_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_scenarios(conn, ids, soft=soft)
+
+            if soft and idempotency_key is not None:
+                for sid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=sid,
+                    )
+
+    # Refresh soft_calls_mv outside the txn.
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
 

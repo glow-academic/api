@@ -28,9 +28,14 @@ from app.tools.artifacts.field.create import (
     create_field as create_field_artifact,
 )
 from app.tools.artifacts.field.get import get_fields
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "field"
 
 
 async def duplicate_field_impl(
@@ -83,33 +88,44 @@ async def duplicate_field_impl(
 
     # -- ACK short-circuit -----------------------------------------------------
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending field duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    result = await create_field_artifact(
-                        conn,
-                        id=idempotency_key,
-                        soft=False,
-                    )
-            await refresh_field_impl(
-                pool,
-                redis,
-                profile_id=profile_id,
-                session_id=session_id,
-                operation_key=idempotency_key,
-            )
-            return DuplicateFieldApiResponse(
-                success=True,
-                field_id=result.id,
-                idempotency_key=idempotency_key,
-                message="Field duplicate accepted",
-            )
+                    await create_field_artifact(conn, id=target_id, soft=False)
 
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_field_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            operation_key=idempotency_key,
+        )
         return DuplicateFieldApiResponse(
             success=True,
-            field_id=idempotency_key,
+            field_id=target_id,
             idempotency_key=idempotency_key,
-            message="Field duplicate rejected",
+            message="Field duplicate accepted" if accept else "Field duplicate rejected",
         )
 
     # -- Step 3: Fetch original field with all junctions ------------------------
@@ -178,7 +194,21 @@ async def duplicate_field_impl(
                 soft=soft,
             )
 
+            # Pending ledger row tied to this tool call.
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
     # -- Step 7: Refresh via canonical helper ----------------------------------
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     if not soft:
         await refresh_field_impl(

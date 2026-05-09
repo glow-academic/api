@@ -13,7 +13,10 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.parameter.drafts import list_parameter_drafts_impl
 from app.infra.parameter.group import group_parameter_impl
-from app.infra.parameter.types import GetParameterDraftsApiResponse
+from app.infra.parameter.types import (
+    GetParameterDraftsApiRequest,
+    GetParameterDraftsApiResponse,
+)
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -21,6 +24,7 @@ router = APIRouter()
 
 @router.post("/drafts", response_model=GetParameterDraftsApiResponse)
 async def get_parameter_drafts(
+    request: GetParameterDraftsApiRequest,
     http_request: Request,
     response: Response,
 ) -> GetParameterDraftsApiResponse:
@@ -47,13 +51,18 @@ async def get_parameter_drafts(
             group_id = group_result.group_id
 
         async def _runner() -> GetParameterDraftsApiResponse:
-            context = await list_parameter_drafts_impl(
+            return await list_parameter_drafts_impl(
                 pool,
                 redis,
                 profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
                 bypass_cache=bypass_cache,
             )
-            return GetParameterDraftsApiResponse(entries=context.entries.get("drafts"))
 
         result = await run_artifact_operation_with_audit(
             pool,
