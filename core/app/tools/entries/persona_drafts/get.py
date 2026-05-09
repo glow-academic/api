@@ -10,8 +10,15 @@ from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 async def get_persona_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    active: bool | None = True,
 ) -> list[GetPersonaDraftResponse]:
-    """Get persona_drafts entries by IDs with connection data."""
+    """Get persona_drafts entries by IDs with connection data.
+
+    ``active=True`` (default) — only returns committed drafts.
+    ``active=False`` — only dormant pending drafts (rare).
+    ``active=None`` — both. Use when loading a draft for the editor that
+    may still be in pending state (soft_calls_entry ledger has it).
+    """
     if not ids:
         return []
 
@@ -55,12 +62,13 @@ async def get_persona_drafts(
         LEFT JOIN persona_drafts_profiles_connection p ON p.draft_id = d.id
         LEFT JOIN persona_drafts_voices_connection v ON v.draft_id = d.id
         WHERE d.id = ANY($1)
-          AND d.active = true
+          AND ($2::boolean IS NULL OR d.active = $2)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.session_id
         ORDER BY d.created_at DESC
         """,
         ids,
+        active,
     )
 
     return [

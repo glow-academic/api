@@ -147,7 +147,10 @@ async def resolve_persona_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_persona_drafts(conn, [draft_id])
+            # ``active=None`` so dormant drafts (pending soft-write,
+            # tracked in soft_calls_entry) load too — the editor needs
+            # to show what the LLM proposed even before ack.
+            return await get_persona_drafts(conn, [draft_id], active=None)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
 

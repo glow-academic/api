@@ -304,7 +304,9 @@ async def patch_persona_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_persona_drafts(conn, [target_id])
+                # active=None so we find the dormant draft (active=false)
+                # we're about to promote.
+                drafts = await get_persona_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
