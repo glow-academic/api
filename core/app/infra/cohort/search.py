@@ -451,7 +451,6 @@ async def _search_cohort_build(
 
     return ListCohortApiResponse(
         actor_name=actor_name,
-        role_level=user_role_level, role_permissions=profile.role_permissions,
         cohorts=api_cohorts,
         profiles=api_profiles,
         simulations=api_simulations,

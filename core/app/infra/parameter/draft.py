@@ -257,7 +257,6 @@ async def _refresh_parameter_drafts(
             session_id=session_id,
             targets=["parameter_drafts_mv"],
             soft=soft,
-            name=request.name or "",
             operation_key=operation_key,
         )
     except TypeError as exc:

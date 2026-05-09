@@ -292,6 +292,18 @@ async def patch_scenario_draft_impl(
         if idempotency_key and accept is None:
             accept = request.accept
 
+    # ── Profile context (canonical: resolved BEFORE the ack short-circuit
+    # so the ack branch can use ``profile.profiles_id`` without an inline
+    # workaround). Mirrors persona/draft.py.
+    profile = await resolve_profile_identity_context(
+        pool, profile_id, redis, session_id=session_id,
+    )
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
@@ -304,10 +316,7 @@ async def patch_scenario_draft_impl(
         target_id = entry.artifact_id
 
         if accept:
-            # Need profile context to drop owner; resolve before flow promotion.
-            from app.infra.profile_identity_context import resolve_profile_identity_context as _rpic
-            profile_ack = await _rpic(pool, profile_id, redis, session_id=session_id)
-            owner_profile_id = profile_ack.profiles_id if profile_ack else profile_id
+            owner_profile_id = profile.profiles_id
             async with pool.acquire() as conn:
                 drafts = await get_scenario_drafts(conn, [target_id], active=None)
                 async with conn.transaction():
@@ -417,20 +426,7 @@ async def patch_scenario_draft_impl(
             filtered["input_draft_id"] = draft_id
         request = PatchScenarioDraftApiRequest(**filtered)
 
-    # ── Step 1: Profile context ────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
+    # ── Step 1: Profile context — already resolved at top.
 
     # ── Step 2: Permission check ───────────────────────────────────────
 

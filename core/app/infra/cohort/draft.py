@@ -394,22 +394,23 @@ async def patch_cohort_draft_impl(
             accept = request.accept
 
     # ------------------------------------------------------------------
+    # Profile context — resolved BEFORE the ack short-circuit so the ack
+    # branch can use ``profile.profiles_id`` (the canonical pattern that
+    # persona uses; cohort previously had a NameError waiting to happen).
+    # ------------------------------------------------------------------
+    profile = await resolve_profile_identity_context(
+        pool, profile_id, redis, session_id=session_id,
+    )
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    # ------------------------------------------------------------------
     # Ack short-circuit.
     # ------------------------------------------------------------------
     if accept is not None and idempotency_key is not None:
-        # NOTE: pre-existing code in this branch referenced
-        # ``profile.profiles_id`` before ``profile`` was defined
-        # (NameError waiting to happen). We resolve profile here for
-        # the new ledger-pattern path.
-        profile = await resolve_profile_identity_context(
-            pool, profile_id, redis, session_id=session_id,
-        )
-        if profile is None:
-            raise HTTPException(
-                status_code=401,
-                detail="Profile not found. Please sign in again.",
-            )
-
         async with pool.acquire() as conn:
             entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
@@ -510,21 +511,7 @@ async def patch_cohort_draft_impl(
             filtered["accept"] = accept
         request = PatchCohortDraftApiRequest(**filtered)
 
-    # ------------------------------------------------------------------
-    # Step 1: Profile context
-    # ------------------------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
+    # Step 1: Profile context — already resolved at top.
 
     # ------------------------------------------------------------------
     # Step 2: Permission check
