@@ -376,6 +376,14 @@ async def _execute_agent_dispatch(
         api_mode = "responses"
     logger.info(f"EXECUTE_GEN: api_mode={api_mode}, model={llm_config['model']}, tools={len(dispatch.tools or [])}")
 
+    # ── Benchmark replay tape state ───────────────────────────────────
+    # When the run was prepared from a trace (prepared.replay_tape set),
+    # tool calls are served from the historical recording instead of
+    # running the impl. Per-tool consumption counter — calls to tool X
+    # match tape entries with tool_id=X in chronological order.
+    # Divergence (no remaining match) returns a graceful soft error.
+    replay_consumed: dict[str, int] = {}
+
     # Agentic loop state
     chat_messages = list(messages)
     responses_input: list[dict[str, Any]] = [
@@ -625,7 +633,47 @@ async def _execute_agent_dispatch(
                 # downgraded to success=False on the WS emit.
                 td = tool_def_by_name.get(tool_name)
                 call_success: bool
-                if not td:
+
+                # ── Benchmark replay tape substitution ────────────────
+                # When the run is a benchmark replay, every tool call is
+                # served from the historical recording. The impl is
+                # never invoked; no rows are written to calls_entry,
+                # soft_calls_entry, or any artifact table. The model
+                # sees byte-identical historical raw_output regardless
+                # of what args it passed. Divergence (LLM calls a tool
+                # not in the tape, or exhausts entries for that tool)
+                # returns a graceful soft error so the model can adapt.
+                replay_tape = prepared.replay_tape
+                if td and replay_tape is not None:
+                    tool_uuid_str = str(td.get("id") or "")
+                    used = replay_consumed.get(tool_uuid_str, 0)
+                    matches = [
+                        e for e in replay_tape if str(e.tool_id) == tool_uuid_str
+                    ]
+                    if used < len(matches):
+                        entry = matches[used]
+                        replay_consumed[tool_uuid_str] = used + 1
+                        raw_output = entry.raw_output
+                        if isinstance(raw_output, dict):
+                            tool_result_str = json.dumps(raw_output)
+                            call_success = bool(raw_output.get("success", True))
+                        else:
+                            tool_result_str = (
+                                str(raw_output) if raw_output is not None else ""
+                            )
+                            call_success = True
+                    else:
+                        # Divergence — soft error to the LLM. Test can grade
+                        # divergence frequency separately.
+                        tool_result_str = json.dumps({
+                            "success": False,
+                            "message": (
+                                f"Tool '{tool_name}' has no remaining historical "
+                                f"response in the benchmark replay tape."
+                            ),
+                        })
+                        call_success = False
+                elif not td:
                     tool_result_str = json.dumps({
                         "success": False,
                         "message": f"Tool not found: {tool_name}",

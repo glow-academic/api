@@ -43,6 +43,29 @@ class AgentDispatch:
     resource_id: str | None = None
 
 
+@dataclass(frozen=True)
+class ReplayTapeEntry:
+    """One historical tool call in a benchmark replay tape.
+
+    During a trace-driven benchmark run, the LLM dispatches against a
+    pre-loaded tape of historical tool outputs. When the LLM calls
+    tool X, the dispatch loop returns the next unconsumed tape entry
+    matching that tool_id — substituting the historical raw_output
+    bytes verbatim, regardless of what args the LLM passed. The impl
+    is never invoked, no rows are written anywhere, no soft_calls
+    ledger pending entries pollute the user's UI. Pure tape playback.
+
+    Tape consumption is per-tool: calls to tool X consume entries
+    matching tool_id=X in arrival order. Other tools' entries are not
+    affected.
+    """
+
+    tool_id: UUID
+    operation_key: UUID
+    historical_call_id: UUID
+    raw_output: Any  # parsed JSON, typically a dict
+
+
 @dataclass
 class PrepareGenerationResult:
     """Full preparation result — ready to execute on a moment's notice."""
@@ -56,3 +79,8 @@ class PrepareGenerationResult:
     dispatches: list[AgentDispatch] = field(default_factory=list)
     test_id: UUID | None = None
     resource_types: list[str] = field(default_factory=list)
+    # Set when the run was prepared from a benchmark trace (trace_id
+    # → historical_run_id). The execute loop reads this to substitute
+    # tool outputs from the tape instead of running impls. None for
+    # non-replay runs (the standard path).
+    replay_tape: list[ReplayTapeEntry] | None = None

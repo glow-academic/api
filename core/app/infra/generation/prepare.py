@@ -20,7 +20,11 @@ from uuid import UUID
 import asyncpg
 
 from app.infra.generation import convert_tools_to_dict
-from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
+from app.infra.generation.types import (
+    AgentDispatch,
+    PrepareGenerationResult,
+    ReplayTapeEntry,
+)
 from app.infra.types import ArtifactRequest
 from app.infra.websocket.generation_types import GeneratePayload
 from app.infra.websocket.init_run_trackers import init_run_trackers
@@ -232,9 +236,12 @@ async def prepare_generation(
     # See memory/project_test_replay_design.md for the full plan and
     # rationale, including paths considered and rejected.
     trace_dispatch_agent: Any = None
+    replay_tape: list[ReplayTapeEntry] | None = None
     trace_id_param = payload_params.get("trace_id")
     if trace_id_param:
+        from app.infra.generation.chat_history import _load_call_data
         from app.infra.test.trace_context import resolve_trace_context
+        from app.tools.entries.calls.search import search_calls
         from app.tools.entries.test_invocation.get import get_test_invocations
         from app.tools.resources.agents.get import get_agents
         from app.tools.resources.instructions.get import get_instructions
@@ -256,6 +263,47 @@ async def prepare_generation(
                 f"trace replay: parent invocation {trace_ctx.test_invocation_id} not found"
             )
         inv_for_trace = invs[0]
+
+        # ── Replay tape (canned tool outputs from the historical run) ──
+        # Pre-load every historical tool call's persisted raw_output so
+        # the dispatch loop can substitute them at tool-call time. The
+        # impl never runs in replay; nothing is written anywhere; the
+        # LLM sees byte-identical historical responses regardless of
+        # what args it passes. See ReplayTapeEntry docstring.
+        if trace_ctx.historical_run_id is not None:
+            async with pool.acquire() as conn:
+                historical_calls = await search_calls(
+                    conn,
+                    run_ids=[trace_ctx.historical_run_id],
+                    limit=10000,
+                )
+            tape: list[ReplayTapeEntry] = []
+            for c in historical_calls:
+                if c.tool_id is None or c.file_path is None:
+                    continue
+                receipt = await _load_call_data(c.file_path)
+                # Prefer structured raw_output; fall back to the
+                # rendered output string so even calls without a
+                # parsed result still replay something sensible.
+                raw_output: Any = (
+                    receipt.get("raw_output") if receipt else None
+                )
+                if raw_output is None and receipt is not None:
+                    raw_output = {"output": receipt.get("output", "")}
+                if raw_output is None:
+                    continue
+                tape.append(
+                    ReplayTapeEntry(
+                        tool_id=c.tool_id,
+                        operation_key=getattr(c, "operation_key", None) or uuid.uuid4(),
+                        historical_call_id=c.id,
+                        raw_output=raw_output,
+                    )
+                )
+            # search_calls orders DESC by created_at; reverse so the
+            # tape is chronological — first-call-first.
+            tape.reverse()
+            replay_tape = tape if tape else None
 
         if inv_for_trace.agent_ids:
             # Load the canonical agent the test_invocation was set up
@@ -744,4 +792,5 @@ async def prepare_generation(
         dispatches=dispatches,
         test_id=test_id,
         resource_types=resource_types,
+        replay_tape=replay_tape,
     )
