@@ -64,9 +64,7 @@ async def create_persona(
             session_id=session_id,
             operation="create",
             group_id=group_id,
-            arguments={
-                "personas": [item.model_dump(mode="json") for item in request.personas]
-            },
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreatePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
