@@ -21,8 +21,13 @@ async def delete_artifacts(
         return []
 
     if soft:
+        # Bump ``updated_at`` so list views sorted by recency surface
+        # the just-soft-deleted row as a pending action — same UX
+        # treatment pending creates and updates already get from their
+        # own NOW() touches.
         rows = await conn.fetch(
-            f"UPDATE {table} SET active = false WHERE id = ANY($1) RETURNING id",
+            f"UPDATE {table} SET active = false, updated_at = NOW() "
+            f"WHERE id = ANY($1) RETURNING id",
             ids,
         )
     else:
@@ -48,7 +53,8 @@ async def restore_artifacts(
         return []
 
     rows = await conn.fetch(
-        f"UPDATE {table} SET active = true WHERE id = ANY($1) AND active = false RETURNING id",
+        f"UPDATE {table} SET active = true, updated_at = NOW() "
+        f"WHERE id = ANY($1) AND active = false RETURNING id",
         ids,
     )
 
