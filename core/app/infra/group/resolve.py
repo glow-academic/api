@@ -36,6 +36,7 @@ from app.infra.generation.chat_history import (
 from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.calls.search import search_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.groups.get import get_groups
@@ -86,6 +87,17 @@ class GroupCall(BaseModel):
     # bubble. Same shape as the live audit ``.started``/``.completed``
     # events use, so the replay UI matches the streaming UI exactly.
     tool: dict[str, Any] | None = None
+
+    # ── Soft-call ledger snapshot ─────────────────────────────────
+    # Latest ``soft_calls_mv`` row for this call_id. ``None`` when the
+    # call wasn't a soft write (no ledger entry → executed). When set,
+    # the client renders Accept/Reject controls keyed on the call_id;
+    # ``ledger_artifact_id`` + ``ledger_operation`` are echoed so the
+    # client can correlate to the affected row without re-querying.
+    ledger_status: str | None = None       # 'pending' | 'accepted' | 'rejected'
+    ledger_operation: str | None = None    # 'create' | 'update' | 'delete' | 'duplicate'
+    ledger_artifact: str | None = None     # 'persona' | 'scenario' | ...
+    ledger_artifact_id: UUID | None = None
 
 
 class GroupMessage(BaseModel):
@@ -354,15 +366,33 @@ async def _load_history(
     tool_resources = await get_tools(pool, tool_ids, redis) if tool_ids else []
     tool_by_id = {t.id: t for t in tool_resources if t.id}
 
+    # Soft-call ledger snapshot per call_id (latest status from
+    # ``soft_calls_mv``). Calls with no ledger row stay ``None`` —
+    # those weren't soft writes. The chat panel reads these fields to
+    # decide whether to render Accept/Reject controls; the client
+    # doesn't parse ``arguments.soft`` (brittle) any more.
+    call_ids_for_ledger = [c.id for c in call_items]
+    async with pool.acquire() as conn:
+        ledger_entries = (
+            await search_soft_calls(conn, call_ids=call_ids_for_ledger, limit=len(call_ids_for_ledger) or 1)
+            if call_ids_for_ledger else []
+        )
+    ledger_by_call_id = {e.call_id: e for e in ledger_entries}
+
     calls_by_id: dict[UUID, GroupCall] = {}
     for c in call_items:
         tool_resource = tool_by_id.get(c.tool_id) if c.tool_id else None
         tool_name = tool_resource.name if tool_resource else None
+        ledger = ledger_by_call_id.get(c.id)
         calls_by_id[c.id] = GroupCall(
             id=c.id,
             tool_name=tool_name,
             template_name=tool_name,
             tool=tool_resource.model_dump(mode="json") if tool_resource else None,
+            ledger_status=ledger.status if ledger else None,
+            ledger_operation=ledger.operation if ledger else None,
+            ledger_artifact=ledger.artifact if ledger else None,
+            ledger_artifact_id=ledger.artifact_id if ledger else None,
         )
 
     msgs_by_run: dict[UUID, list] = defaultdict(list)

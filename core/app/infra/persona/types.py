@@ -198,6 +198,21 @@ class PersonaDraftEntry(BaseModel):
     voice_ids: list[UUID] | None = None
 
 
+class GetPersonaDraftsApiRequest(BaseModel):
+    """Request model for the persona drafts list endpoint.
+
+    Mirrors ``GenerationsPersonaApiRequest`` — name search +
+    date window + pagination. All fields optional; an empty body
+    returns the caller's most recent drafts.
+    """
+
+    search: str | None = Field(None, description="Name search (ILIKE substring)")
+    date_from: datetime | None = Field(None, description="Start date filter")
+    date_to: datetime | None = Field(None, description="End date filter")
+    page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
+    page_offset: int = Field(0, ge=0, description="Offset for pagination")
+
+
 class GetPersonaDraftsApiResponse(BaseModel):
     """Response model for persona drafts list endpoint."""
 
@@ -378,6 +393,11 @@ class ListPersonaApiPersona(BaseModel):
     scenario_ids: list[UUID] | None = Field(None, description="Scenarios using this persona")
     field_ids: list[UUID] | None = Field(None, description="Associated field UUIDs")
     is_inactive: bool | None = Field(None, description="Whether the persona is marked inactive")
+    # Soft-call ledger snapshot — set when this persona has a pending op
+    # in ``soft_calls_mv``. Client renders ghost/pending styling when set.
+    pending_status: str | None = Field(None, description="Latest soft_calls_mv status: 'pending' / 'accepted' / 'rejected'")
+    pending_operation: str | None = Field(None, description="Operation type ('create'|'update'|'delete'|'duplicate') of the pending op")
+    pending_call_id: UUID | None = Field(None, description="call_id (idempotency key for ack) of the pending op")
     generated: bool | None = Field(None, description="Whether the persona was AI-generated")
     mcp: bool | None = Field(None, description="Whether this persona uses MCP tooling")
     num_scenarios: int | None = Field(None, description="Count of scenarios using this persona")

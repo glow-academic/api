@@ -278,14 +278,52 @@ async def _search_persona_build(
             offset_count=page_offset,
         )
 
-        if not persona_ids:
+        # ── Step 3a: Pending creates/duplicates from the ledger ─────────────
+        # ``soft_calls_mv`` holds the latest status per call. Rows with
+        # ``status='pending'`` and ``operation IN ('create','duplicate')``
+        # are dormant artifacts (active=false) we still want to render —
+        # the client treats them as ghost cards and offers Accept/Reject.
+        # Pending deletes are separately filtered at the end so their
+        # rows disappear from the list.
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_create_entries = await search_soft_calls(
+            conn, artifact="persona", status="pending", limit=1000,
+        )
+        pending_create_ids = [
+            e.artifact_id for e in pending_create_entries
+            if e.operation in ("create", "duplicate")
+        ]
+        pending_delete_ids = {
+            e.artifact_id for e in pending_create_entries
+            if e.operation == "delete"
+        }
+        # Latest ledger row per artifact_id for stamping onto rows.
+        ledger_by_artifact_id = {e.artifact_id: e for e in pending_create_entries}
+
+        # Merge pending-create ids into the result set (de-dup, keep order).
+        merged_ids: list[UUID] = []
+        seen: set[UUID] = set()
+        for pid in [*persona_ids, *pending_create_ids]:
+            if pid in seen or pid in pending_delete_ids:
+                continue
+            seen.add(pid)
+            merged_ids.append(pid)
+        # Recompute total to include pending creates and exclude pending
+        # deletes — total_count from ``search_personas`` only counts
+        # active=true rows.
+        total_count = total_count + len(pending_create_ids) - sum(
+            1 for pid in persona_ids if pid in pending_delete_ids
+        )
+
+        if not merged_ids:
             return _empty_response(actor_name, total_count=0)
 
         # ── Step 4: Get persona artifacts with junction IDs ────────────────
+        # ``active=None`` so dormant pending-create rows come back too.
 
         artifacts = await get_personas(
             conn,
-            persona_ids,
+            merged_ids,
             names=True,
             descriptions=True,
             colors=True,
@@ -294,6 +332,7 @@ async def _search_persona_build(
             flags=True,
             parameter_fields=True,
             personas=True,
+            active=None,
         )
 
     # ── Step 5: Parallel hydration + facets ────────────────────────────
@@ -462,6 +501,7 @@ async def _search_persona_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
+        ledger = ledger_by_artifact_id.get(a.id)
         personas.append(
             ListPersonaApiPersona(
                 persona_id=a.id,
@@ -473,6 +513,9 @@ async def _search_persona_build(
                 scenario_ids=None,
                 field_ids=[str(f) for f in (a.parameter_field_ids or [])],
                 is_inactive=is_inactive,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 generated=a.generated,
                 mcp=a.mcp,
                 num_scenarios=num_scenarios,

@@ -62,6 +62,7 @@ async def hydrate_persona_list_rows(
     user_department_ids = profile.department_ids
 
     async with pool.acquire() as conn:
+        # ``active=None`` so dormant pending creates/duplicates resolve too.
         artifacts = await get_personas(
             conn,
             persona_ids,
@@ -73,7 +74,16 @@ async def hydrate_persona_list_rows(
             flags=True,
             parameter_fields=True,
             personas=True,
+            active=None,
         )
+
+        # Latest ledger row per artifact_id — same black box the search
+        # endpoint uses, so the live ghost cards render with parity.
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        ledger_entries = await search_soft_calls(
+            conn, artifact="persona", artifact_ids=persona_ids, limit=len(persona_ids) or 1,
+        )
+    ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}
 
     if not artifacts:
         return []
@@ -151,6 +161,7 @@ async def hydrate_persona_list_rows(
             role_level=user_role_level, role_permissions=profile.role_permissions,
         )
 
+        ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListPersonaApiPersona(
                 persona_id=a.id,
@@ -162,6 +173,9 @@ async def hydrate_persona_list_rows(
                 scenario_ids=None,
                 field_ids=[str(f) for f in (a.parameter_field_ids or [])],
                 is_inactive=is_inactive,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
                 generated=a.generated,
                 mcp=a.mcp,
                 num_scenarios=num_scenarios,

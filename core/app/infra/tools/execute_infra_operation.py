@@ -506,16 +506,6 @@ async def execute_infra_operation(
                         **kwargs,
                     )
 
-            # Lifecycle flags are system-injected (soft from cfg.dangerous,
-            # accept from ack short-circuit). Stamp them into the recorded
-            # arguments so the chat panel's deriveReceiptState can tell a
-            # pending tool call apart from an executed one.
-            recorded_arguments = dict(kwargs if accepted is None else filtered)
-            if is_write:
-                recorded_arguments["soft"] = soft
-                if accept is not None:
-                    recorded_arguments["accept"] = accept
-
             result = await run_artifact_operation_with_audit(
                 ctx.pool,
                 ctx.redis,
@@ -529,7 +519,12 @@ async def execute_infra_operation(
                 sid=ctx.sid,
                 rooms=[ctx.sid] if ctx.sid else [],
                 runner=_runner,
-                arguments=recorded_arguments,
+                # Recorded arguments are the LLM's own kwargs only.
+                # Lifecycle flags (soft / accept) live in
+                # ``soft_calls_entry`` and are surfaced to the client via
+                # ``GroupCall.ledger_status`` — the call JSON itself stays
+                # a clean record of what the model asked for.
+                arguments=kwargs if accepted is None else filtered,
                 instruction_template=ctx.instruction_template,
                 operation_key=ctx.operation_key,
                 call_id=ctx.call_id,
