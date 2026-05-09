@@ -278,42 +278,38 @@ async def _search_persona_build(
             offset_count=page_offset,
         )
 
-        # ── Step 3a: Pending creates/duplicates from the ledger ─────────────
-        # ``soft_calls_mv`` holds the latest status per call. Rows with
-        # ``status='pending'`` and ``operation IN ('create','duplicate')``
-        # are dormant artifacts (active=false) we still want to render —
-        # the client treats them as ghost cards and offers Accept/Reject.
-        # Pending deletes are separately filtered at the end so their
-        # rows disappear from the list.
+        # ── Step 3a: Pending ledger entries ─────────────────────────────────
+        # ``soft_calls_mv`` holds the latest status per call. Every
+        # ``status='pending'`` row should surface in the list so the
+        # client can render it as a ghost card with Accept/Reject —
+        # creates/duplicates carry dormant artifacts (active=false)
+        # that ``search_personas`` filtered out, and deletes carry
+        # artifacts we just flipped to active=false. Both belong in
+        # the user's "what's pending my attention" view.
         from app.tools.entries.soft_calls.search import search_soft_calls
-        pending_create_entries = await search_soft_calls(
+        pending_entries = await search_soft_calls(
             conn, artifact="persona", status="pending", limit=1000,
         )
-        pending_create_ids = [
-            e.artifact_id for e in pending_create_entries
-            if e.operation in ("create", "duplicate")
-        ]
-        pending_delete_ids = {
-            e.artifact_id for e in pending_create_entries
-            if e.operation == "delete"
-        }
+        pending_ledger_ids = [e.artifact_id for e in pending_entries]
         # Latest ledger row per artifact_id for stamping onto rows.
-        ledger_by_artifact_id = {e.artifact_id: e for e in pending_create_entries}
+        ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
 
-        # Merge pending-create ids into the result set (de-dup, keep order).
+        # Merge pending ids into the result set (de-dup, keep order).
         merged_ids: list[UUID] = []
         seen: set[UUID] = set()
-        for pid in [*persona_ids, *pending_create_ids]:
-            if pid in seen or pid in pending_delete_ids:
+        for pid in [*persona_ids, *pending_ledger_ids]:
+            if pid in seen:
                 continue
             seen.add(pid)
             merged_ids.append(pid)
-        # Recompute total to include pending creates and exclude pending
-        # deletes — total_count from ``search_personas`` only counts
-        # active=true rows.
-        total_count = total_count + len(pending_create_ids) - sum(
-            1 for pid in persona_ids if pid in pending_delete_ids
-        )
+        # Total includes pending entries that weren't already in the
+        # active result set. Pending deletes were already in
+        # ``persona_ids`` if they were active before the soft-delete
+        # flipped active=false — but at this point the artifact is
+        # active=false, so ``search_personas`` already excluded them
+        # from ``persona_ids``. They count as added.
+        added = sum(1 for pid in pending_ledger_ids if pid not in set(persona_ids))
+        total_count = total_count + added
 
         if not merged_ids:
             return _empty_response(actor_name, total_count=0)
