@@ -346,9 +346,18 @@ class CreateAuthItem(ScopedItem):
     id: UUID | None = Field(None, description="Optional preset UUID for the new auth provider")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    # Required pairs (one of each pair must be set on create) — see
+    # ``permissions_context.py::resolve_auth_values`` for the runtime
+    # check. Descriptions flag this so the OpenAPI schema consumed by
+    # LLM tool callers makes the constraint explicit.
+    name_id: UUID | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource.",
+    )
+    name: str | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
+    )
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
@@ -367,11 +376,19 @@ class CreateAuthItem(ScopedItem):
 
 
 class CreateAuthApiRequest(BaseModel):
-    """Request model for bulk create auth endpoint."""
+    """Request model for bulk create auth endpoint.
 
-    auths: list[CreateAuthItem] = Field(..., description="List of auth providers to create")
+    Two body shapes:
+      - First call: ``auths`` required.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant artifact by ``idempotency_key``.
+    """
+
+    auths: list[CreateAuthItem] | None = Field(
+        None, description="List of auth providers to create (required on first call)",
+    )
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateAuthApiResponse(BaseModel):
@@ -379,6 +396,14 @@ class CreateAuthApiResponse(BaseModel):
 
     results: list[AuthResultItem] = Field(..., description="Per-item creation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Full row content for each successfully-created auth — same shape
+    # ``/auth/search`` returns. The audit framework spreads response
+    # fields into the wire payload, so the client's ghost rail can
+    # materialize the new row directly from ``auth.create.completed``
+    # without an SSR refresh round-trip.
+    auths: list["ListAuthApiAuth"] | None = Field(
+        None, description="Hydrated rows for the successfully-created auths (mirrors /auth/search shape)",
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -455,7 +480,7 @@ class UpdateAuthApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateAuthApiResponse(BaseModel):
@@ -463,6 +488,10 @@ class UpdateAuthApiResponse(BaseModel):
 
     results: list[AuthResultItem] = Field(..., description="Per-item update results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateAuthApiResponse.auths — same role here for updates.
+    auths: list["ListAuthApiAuth"] | None = Field(
+        None, description="Hydrated rows for the successfully-updated auths (mirrors /auth/search shape)",
+    )
 
 
 class SaveAuthFieldError(BaseModel):
@@ -504,7 +533,7 @@ class DeleteAuthApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteAuthResult(BaseModel):
@@ -530,7 +559,7 @@ class DuplicateAuthApiRequest(BaseModel):
 
     auth_id: UUID = Field(..., description="UUID of the auth provider to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateAuthApiResponse(BaseModel):
@@ -540,6 +569,12 @@ class DuplicateAuthApiResponse(BaseModel):
     auth_id: UUID = Field(..., description="UUID of the newly created auth provider")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateAuthApiResponse.auths — single-element list here
+    # (duplicate creates exactly one row), but kept as a list for shape
+    # consistency across create/duplicate/update on the wire.
+    auths: list["ListAuthApiAuth"] | None = Field(
+        None, description="Hydrated row for the newly-created duplicate auth (mirrors /auth/search shape)",
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -574,7 +609,7 @@ class PatchAuthDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     idempotency_key: UUID | None = Field(None, description="Stable idempotency key for ack/promote flows")
-    accept: bool = Field(True, description="Whether to accept a pending draft when acknowledging")
+    accept: bool | None = Field(None, description="Whether to accept a pending draft when acknowledging")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Name value to resolve or create")
@@ -712,7 +747,7 @@ class ProblemAuthApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemAuthApiResponse(BaseModel):

@@ -23,6 +23,7 @@ from app.infra.scenario.permissions import compute_can_duplicate
 from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
     DuplicateScenarioApiResponse,
+    ListScenarioApiScenario,
 )
 from app.tools.artifacts.scenario.create import (
     create_scenario as create_scenario_artifact,
@@ -196,9 +197,18 @@ async def duplicate_scenario_impl(
         operation_key=idempotency_key or result.id,
     )
 
+    # Hydrate full row content for the client ghost rail (skip when soft).
+    scenarios: list[ListScenarioApiScenario] | None = None
+    if not soft:
+        from app.infra.scenario.hydrate_list_rows import hydrate_scenario_list_rows
+        scenarios = await hydrate_scenario_list_rows(
+            pool, redis, profile_id=profile_id, scenario_ids=[result.id],
+        )
+
     return DuplicateScenarioApiResponse(
         success=True,
         scenario_id=result.id,
         message="Scenario duplicated (pending acceptance)" if soft else f"Scenario '{original_name}' duplicated successfully",
         idempotency_key=idempotency_key,
+        scenarios=scenarios,
     )

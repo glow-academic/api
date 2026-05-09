@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.setting.hydrate_list_rows import hydrate_setting_list_rows
 from app.infra.setting.permissions import compute_can_duplicate
 from app.infra.setting.refresh import refresh_setting_impl
 from app.infra.setting.types import DuplicateSettingApiResponse
@@ -145,6 +146,16 @@ async def duplicate_setting_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate the new row so the client's ghost rail can materialize
+    # the duplicated card directly. Single-element list keeps the
+    # shape consistent with create/update responses. Skipped under
+    # soft — dormant copy stays in pending state until ack-accept.
+    hydrated_rows = None
+    if not soft:
+        hydrated_rows = await hydrate_setting_list_rows(
+            pool, redis, profile_id=profile_id, setting_ids=[result.id],
+        )
+
     return DuplicateSettingApiResponse(
         success=True,
         setting_id=result.id,
@@ -155,5 +166,6 @@ async def duplicate_setting_impl(
             if soft
             else f"Setting '{original_name}' duplicated successfully"
         ),
+        settings=hydrated_rows,
         idempotency_key=idempotency_key or result.id,
     )

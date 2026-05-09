@@ -19,6 +19,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.parameter.hydrate_list_rows import hydrate_parameter_list_rows
 from app.infra.parameter.permissions import compute_can_duplicate
 from app.infra.parameter.refresh import refresh_parameter_impl
 from app.infra.parameter.types import (
@@ -203,11 +204,22 @@ async def duplicate_parameter_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # -- Step 7: Hydrate list row (skip soft) ----------------------------------
+    # Single-element list for shape consistency with create / update.
+    hydrated_rows = None
+    if not soft and result.id:
+        hydrated_rows = await hydrate_parameter_list_rows(
+            pool, redis,
+            profile_id=profile_id,
+            parameter_ids=[result.id],
+        )
+
     return DuplicateParameterApiResponse(
         success=True,
         parameter_id=result.id,
         message="Parameter duplicated (pending acceptance)"
         if soft
         else f"Parameter '{original_name}' duplicated successfully",
+        parameters=hydrated_rows,
         idempotency_key=idempotency_key,
     )

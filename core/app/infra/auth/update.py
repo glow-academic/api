@@ -14,7 +14,11 @@ from app.infra.auth.permissions_context import (
     resolve_auth_values,
 )
 from app.infra.auth.refresh import refresh_auth_impl
-from app.infra.auth.types import UpdateAuthApiRequest, UpdateAuthApiResponse
+from app.infra.auth.types import (
+    ListAuthApiAuth,
+    UpdateAuthApiRequest,
+    UpdateAuthApiResponse,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.auth.get import get_auths as get_auth_artifacts
 from app.tools.artifacts.auth.update import _UNSET
@@ -306,10 +310,23 @@ async def update_auth_impl(
         except Exception:
             logger.warning("Keycloak sync failed after auth update (non-fatal)")
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_auth_list_rows``. Soft-pending updates skip hydration:
+    # the dormant change isn't visible in the active row yet.
+    auths_hydrated: list[ListAuthApiAuth] | None = None
+    if not soft:
+        from app.infra.auth.hydrate_list_rows import hydrate_auth_list_rows
+        updated_ids = [r.auth_id for r in results if r.success and r.auth_id is not None]
+        if updated_ids:
+            auths_hydrated = await hydrate_auth_list_rows(
+                pool, redis, profile_id=profile_id, auth_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in one
     # toast. Explicit path's ``skipped_results`` is empty.
     return UpdateAuthApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        auths=auths_hydrated,
     )

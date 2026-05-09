@@ -54,6 +54,8 @@ async def create_model(
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                idempotency_key=request.idempotency_key,
+                accept=request.accept if request.idempotency_key else None,
             )
 
         response_data = await run_artifact_operation_with_audit(

@@ -16,6 +16,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.parameter.hydrate_list_rows import hydrate_parameter_list_rows
 from app.infra.parameter.permissions_context import (
     create_denormalized_snapshot,
     resolve_parameter_permissions_context,
@@ -356,10 +357,25 @@ async def update_parameter_impl(
         operation_key=idempotency_key or (results[0].parameter_id if results else None),
     )
 
+    # ── Step 6: Hydrate list rows (skip soft) ─────────────────────────
+    # Returns rows in the same shape as ``/parameter/search`` so the
+    # client's ghost rail can patch in updated rows directly from the
+    # audit ``.completed`` payload — no follow-up search burst.
+    hydrated_rows = None
+    if not soft:
+        updated_ids = [r.parameter_id for r in results if r.success and r.parameter_id]
+        if updated_ids:
+            hydrated_rows = await hydrate_parameter_list_rows(
+                pool, redis,
+                profile_id=profile_id,
+                parameter_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateParameterApiResponse(
         results=results + skipped_results,
+        parameters=hydrated_rows,
         idempotency_key=idempotency_key,
     )

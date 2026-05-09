@@ -168,7 +168,26 @@ async def create_department_impl(
             except Exception:
                 pass
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # See ``hydrate_department_list_rows``: returns the same shape
+    # ``/department/search`` does. Audit framework spreads response
+    # fields into ``department.create.completed``, so the client's
+    # ghost rail materializes the new row directly — no SSR refresh.
+    # Soft-pending creates skip hydration: the dormant row isn't fully
+    # active yet (denormalized snapshot is created on ack-accept).
+    departments_payload = None
+    if not soft:
+        from app.infra.department.hydrate_list_rows import (
+            hydrate_department_list_rows,
+        )
+        new_ids = [r.department_id for r in results if r.success and r.department_id is not None]
+        if new_ids:
+            departments_payload = await hydrate_department_list_rows(
+                pool, redis, profile_id=profile_id, department_ids=new_ids,
+            )
+
     return CreateDepartmentApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        departments=departments_payload,
     )

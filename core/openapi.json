@@ -33033,12 +33033,19 @@
       "CreateAuthApiRequest": {
         "properties": {
           "auths": {
-            "items": {
-              "$ref": "#/components/schemas/CreateAuthItem"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CreateAuthItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Auths",
-            "description": "List of auth providers to create"
+            "description": "List of auth providers to create (required on first call)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -33054,18 +33061,21 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
-        "required": [
-          "auths"
-        ],
         "title": "CreateAuthApiRequest",
-        "description": "Request model for bulk create auth endpoint."
+        "description": "Request model for bulk create auth endpoint.\n\nTwo body shapes:\n  - First call: ``auths`` required.\n  - Ack call: ``{idempotency_key, accept}`` only \u2014 the impl locates\n    the dormant artifact by ``idempotency_key``."
       },
       "CreateAuthApiResponse": {
         "properties": {
@@ -33089,6 +33099,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListAuthApiAuth"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auths",
+            "description": "Hydrated rows for the successfully-created auths (mirrors /auth/search shape)"
           }
         },
         "type": "object",
@@ -33137,7 +33162,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "UUID of the name resource"
+            "description": "REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource."
           },
           "name": {
             "anyOf": [
@@ -33149,7 +33174,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value to resolve or create"
+            "description": "REQUIRED FOR CREATE (or pass ``name_id``). Display name text \u2014 creates a new name resource on the fly."
           },
           "description_id": {
             "anyOf": [
@@ -33669,10 +33694,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -33704,6 +33735,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListDepartmentApiDepartment"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Hydrated rows for the successfully-created departments (mirrors /department/search shape)"
           }
         },
         "type": "object",
@@ -33752,7 +33798,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "UUID of the name resource"
+            "description": "REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource."
           },
           "name": {
             "anyOf": [
@@ -33764,7 +33810,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value to resolve or create"
+            "description": "REQUIRED FOR CREATE (or pass ``name_id``). Display name text \u2014 creates a new name resource on the fly."
           },
           "description_id": {
             "anyOf": [
@@ -34180,10 +34226,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -34215,6 +34267,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "evals": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListEvalApiEval"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evals",
+            "description": "Hydrated list rows for the newly-created evals \u2014 same shape as ``/eval/search`` returns. Used by the client's ghost rail to materialize the new row from the audit ``.completed`` payload without a router refresh. ``None`` for soft-pending creates (dormant artifact, hydration runs on ack-accept)."
           }
         },
         "type": "object",
@@ -34263,7 +34330,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource UUID"
+            "description": "REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource"
           },
           "name": {
             "anyOf": [
@@ -34275,7 +34342,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value for resolution"
+            "description": "REQUIRED FOR CREATE (or pass `name_id`): display name text \u2014 creates a new name resource if `name_id` is not provided"
           },
           "description_id": {
             "anyOf": [
@@ -34946,12 +35013,19 @@
       "CreateModelApiRequest": {
         "properties": {
           "models": {
-            "items": {
-              "$ref": "#/components/schemas/CreateModelItem"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CreateModelItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Models",
-            "description": "List of models to create"
+            "description": "List of models to create (required on first call)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -34967,18 +35041,21 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
-        "required": [
-          "models"
-        ],
         "title": "CreateModelApiRequest",
-        "description": "Request model for bulk create model endpoint."
+        "description": "Request model for bulk create model endpoint.\n\nTwo body shapes:\n  - First call: ``models`` required.\n  - Ack call: ``{idempotency_key, accept}`` only \u2014 the impl locates\n    the dormant artifact by ``idempotency_key``."
       },
       "CreateModelApiResponse": {
         "properties": {
@@ -35002,6 +35079,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListModelApiModel"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "Hydrated rows for the successfully-created models (mirrors /model/search shape)"
           }
         },
         "type": "object",
@@ -35050,7 +35142,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource identifier"
+            "description": "REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource."
           },
           "name": {
             "anyOf": [
@@ -35062,7 +35154,45 @@
               }
             ],
             "title": "Name",
-            "description": "Display name value"
+            "description": "REQUIRED FOR CREATE (or pass ``name_id``). Display name text \u2014 creates a new name resource on the fly."
+          },
+          "value_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Id",
+            "description": "UUID of an existing value resource (the API model identifier)."
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Direct model value/identifier (e.g. the actual API model name like 'gpt-4o'). Strongly recommended on create alongside ``provider_id`` so the model is callable."
+          },
+          "provider_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Id",
+            "description": "UUID of an existing provider resource. Strongly recommended on create alongside ``value`` so the model is callable."
           },
           "description_id": {
             "anyOf": [
@@ -35075,7 +35205,7 @@
               }
             ],
             "title": "Description Id",
-            "description": "Description resource identifier"
+            "description": "UUID of an existing description resource"
           },
           "description": {
             "anyOf": [
@@ -35087,7 +35217,7 @@
               }
             ],
             "title": "Description",
-            "description": "Description text value"
+            "description": "Description text value (creates a new description resource if description_id not provided)"
           },
           "department_ids": {
             "anyOf": [
@@ -35168,19 +35298,6 @@
             "title": "Pricing Ids",
             "description": "Pricing tier identifiers"
           },
-          "provider_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Provider Id",
-            "description": "Provider identifier"
-          },
           "quality_ids": {
             "anyOf": [
               {
@@ -35229,31 +35346,6 @@
             "title": "Temperature Level Ids",
             "description": "Temperature level identifiers"
           },
-          "value_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value Id",
-            "description": "Value resource identifier"
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value",
-            "description": "Direct model value/identifier (e.g. the actual API model name)"
-          },
           "voice_ids": {
             "anyOf": [
               {
@@ -35289,7 +35381,7 @@
         },
         "type": "object",
         "title": "CreateModelItem",
-        "description": "Single model item for create \u2014 no model_id.\n\nRequired fields (name): provide ID or value."
+        "description": "Single model item for create \u2014 no model_id.\n\nRequired pair (name): provide ID or value. Strongly recommended:\npair ``value`` and ``provider_id`` so the resulting model is\nactually callable."
       },
       "CreateParameterApiRequest": {
         "properties": {
@@ -35315,10 +35407,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -35337,6 +35435,21 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListParameterApiParameter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters",
+            "description": "Hydrated list rows for the just-created parameters \u2014 same shape as ``/parameter/search`` returns. Lets the client materialize the new rows directly from the response (or audit ``.completed`` payload) without a follow-up search burst. Omitted on the soft-pending (ack-shaped) paths \u2014 dormant rows aren't fully active until accepted."
           },
           "idempotency_key": {
             "anyOf": [
@@ -35398,7 +35511,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource identifier"
+            "description": "UUID of an existing name resource"
           },
           "name": {
             "anyOf": [
@@ -35410,7 +35523,7 @@
               }
             ],
             "title": "Name",
-            "description": "Display name value"
+            "description": "REQUIRED FOR CREATE (or pass `name_id`) \u2014 display name text (creates new resource if name_id not provided)"
           },
           "description_id": {
             "anyOf": [
@@ -35423,7 +35536,7 @@
               }
             ],
             "title": "Description Id",
-            "description": "Description resource identifier"
+            "description": "UUID of an existing description resource"
           },
           "description": {
             "anyOf": [
@@ -35435,7 +35548,7 @@
               }
             ],
             "title": "Description",
-            "description": "Description text value"
+            "description": "Description text value (creates new resource if description_id not provided)"
           },
           "department_ids": {
             "anyOf": [
@@ -35551,7 +35664,7 @@
         },
         "type": "object",
         "title": "CreateParameterItem",
-        "description": "Single parameter item for create \u2014 no parameter_id."
+        "description": "Single parameter item for create \u2014 no parameter_id.\n\nRequired fields (name): provide ID or value."
       },
       "CreatePersonaApiRequest": {
         "properties": {
@@ -35584,10 +35697,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -35616,6 +35735,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "personas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListPersonaApiPersona"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personas",
+            "description": "Hydrated rows for the successfully-created personas (mirrors /persona/search shape)"
           }
         },
         "type": "object",
@@ -35959,10 +36093,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -35994,6 +36134,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProfilesApiProfile"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "Hydrated rows for the successfully-created profiles (mirrors /profile/search shape)"
           }
         },
         "type": "object",
@@ -36042,7 +36197,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "UUID of the name resource"
+            "description": "REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource."
           },
           "name": {
             "anyOf": [
@@ -36054,7 +36209,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value to resolve or create"
+            "description": "REQUIRED FOR CREATE (or pass ``name_id``). Display name text \u2014 creates a new name resource on the fly."
           },
           "flag_ids": {
             "anyOf": [
@@ -36213,10 +36368,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -36248,6 +36409,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProviderApiProvider"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers",
+            "description": "Hydrated rows for the successfully-created providers (mirrors /provider/search shape)"
           }
         },
         "type": "object",
@@ -36270,7 +36446,7 @@
               }
             ],
             "title": "Id",
-            "description": "Optional pre-assigned identifier"
+            "description": "Client-provided UUID for the new provider"
           },
           "resource_id": {
             "anyOf": [
@@ -36296,7 +36472,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource identifier"
+            "description": "REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource."
           },
           "name": {
             "anyOf": [
@@ -36308,7 +36484,7 @@
               }
             ],
             "title": "Name",
-            "description": "Display name value"
+            "description": "REQUIRED FOR CREATE (or pass ``name_id``). Display name text \u2014 creates a new name resource on the fly."
           },
           "description_id": {
             "anyOf": [
@@ -36478,7 +36654,7 @@
         },
         "type": "object",
         "title": "CreateProviderItem",
-        "description": "Single provider item for create \u2014 no provider_id."
+        "description": "Single provider item for create \u2014 no provider_id.\n\nRequired fields (name): provide ID or value."
       },
       "CreateRubricApiRequest": {
         "properties": {
@@ -36504,10 +36680,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -36526,6 +36708,21 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListRubricApiRubric"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics",
+            "description": "Hydrated rubric rows for the rubrics just created (omitted on soft writes)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -36561,7 +36758,7 @@
               }
             ],
             "title": "Id",
-            "description": "Optional pre-assigned UUID"
+            "description": "Optional pre-assigned UUID for the new rubric"
           },
           "resource_id": {
             "anyOf": [
@@ -36587,7 +36784,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource UUID"
+            "description": "REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource"
           },
           "name": {
             "anyOf": [
@@ -36599,7 +36796,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value for resolution"
+            "description": "REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource if name_id not provided)"
           },
           "description_id": {
             "anyOf": [
@@ -36612,7 +36809,7 @@
               }
             ],
             "title": "Description Id",
-            "description": "Description resource UUID"
+            "description": "UUID of an existing description resource"
           },
           "description": {
             "anyOf": [
@@ -36624,7 +36821,7 @@
               }
             ],
             "title": "Description",
-            "description": "Description value for resolution"
+            "description": "Rubric description text (creates new resource if description_id not provided)"
           },
           "flag_ids": {
             "anyOf": [
@@ -36769,7 +36966,7 @@
         },
         "type": "object",
         "title": "CreateRubricItem",
-        "description": "Single rubric item for create \u2014 no rubric_id."
+        "description": "Single rubric item for create \u2014 no rubric_id.\n\nRequired fields (name): provide ID or value."
       },
       "CreateScenarioApiRequest": {
         "properties": {
@@ -36795,10 +36992,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -36830,6 +37033,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "scenarios": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListScenarioApiScenario"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenarios",
+            "description": "Hydrated rows for the successfully-created scenarios (mirrors /scenario/search shape)"
           }
         },
         "type": "object",
@@ -37282,10 +37500,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -37304,6 +37528,21 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item creation results"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListSettingApiSetting"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings",
+            "description": "Hydrated list rows for the newly-created settings. Mirrors the shape of ``/setting/search`` result rows so the client's ghost rail can materialize the new card directly from the audit ``.completed`` payload \u2014 no follow-up refresh needed."
           },
           "idempotency_key": {
             "anyOf": [
@@ -37365,7 +37604,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "UUID of the name resource"
+            "description": "REQUIRED FOR CREATE (or pass `name`). UUID of an existing name resource"
           },
           "name": {
             "anyOf": [
@@ -37377,7 +37616,7 @@
               }
             ],
             "title": "Name",
-            "description": "Name value to resolve or create"
+            "description": "REQUIRED FOR CREATE (or pass `name_id`). Name value to resolve or create"
           },
           "description_id": {
             "anyOf": [
@@ -37971,10 +38210,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -38006,6 +38251,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListToolApiTool"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools",
+            "description": "Hydrated rows for the created tools (same shape as `/tool/search` returns)"
           }
         },
         "type": "object",
@@ -38054,7 +38314,7 @@
               }
             ],
             "title": "Name Id",
-            "description": "Name resource identifier"
+            "description": "REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource"
           },
           "name": {
             "anyOf": [
@@ -38066,7 +38326,7 @@
               }
             ],
             "title": "Name",
-            "description": "Display name value"
+            "description": "REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource)"
           },
           "description_id": {
             "anyOf": [
@@ -38079,7 +38339,7 @@
               }
             ],
             "title": "Description Id",
-            "description": "Description resource identifier"
+            "description": "UUID of an existing description resource"
           },
           "description": {
             "anyOf": [
@@ -38091,7 +38351,7 @@
               }
             ],
             "title": "Description",
-            "description": "Description text value"
+            "description": "Description text value (creates new resource if description_id not provided)"
           },
           "department_ids": {
             "anyOf": [
@@ -39632,10 +39892,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -40030,10 +40296,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -40462,10 +40734,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -40950,10 +41228,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -41194,10 +41478,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -41474,10 +41764,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -41708,10 +42004,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -41939,10 +42241,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -42155,10 +42463,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -42399,10 +42713,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -42691,10 +43011,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -43160,10 +43486,16 @@
             "description": "Operation key for ack \u2014 confirms or rejects a dormant delete"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (confirm) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45189,10 +45521,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45232,6 +45570,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListAuthApiAuth"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auths",
+            "description": "Hydrated row for the newly-created duplicate auth (mirrors /auth/search shape)"
           }
         },
         "type": "object",
@@ -45341,10 +45694,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45383,6 +45742,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListDepartmentApiDepartment"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Hydrated row for the newly-created duplicate department (mirrors /department/search shape)"
           }
         },
         "type": "object",
@@ -45491,10 +45865,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45534,6 +45914,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "evals": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListEvalApiEval"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evals",
+            "description": "Hydrated list rows for the duplicated eval \u2014 single-element list, kept as a list for shape consistency with create/update. ``None`` for soft-pending duplicates."
           }
         },
         "type": "object",
@@ -45641,10 +46036,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45684,6 +46085,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListModelApiModel"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "Hydrated row for the newly-created duplicate model (mirrors /model/search shape)"
           }
         },
         "type": "object",
@@ -45717,10 +46133,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45746,6 +46168,21 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListParameterApiParameter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters",
+            "description": "Hydrated list row for the just-duplicated parameter \u2014 single-element list for shape consistency with create / update. Same shape as ``/parameter/search`` returns. Omitted on the soft-pending (ack-shaped) path."
           },
           "idempotency_key": {
             "anyOf": [
@@ -45798,10 +46235,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45838,6 +46281,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "personas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListPersonaApiPersona"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personas",
+            "description": "Hydrated row for the newly-created duplicate persona (single-element list)"
           }
         },
         "type": "object",
@@ -45871,10 +46329,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -45913,6 +46377,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProfilesApiProfile"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "Hydrated row for the newly-created duplicate profile (mirrors /profile/search shape)"
           }
         },
         "type": "object",
@@ -45965,10 +46444,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -46005,6 +46490,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProviderApiProvider"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers",
+            "description": "Hydrated row for the newly-created duplicate provider (mirrors /provider/search shape)"
           }
         },
         "type": "object",
@@ -46037,10 +46537,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -46066,6 +46572,21 @@
             "type": "string",
             "title": "Message",
             "description": "Human-readable result message"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListRubricApiRubric"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics",
+            "description": "Hydrated rubric row for the duplicate (single-element list; omitted on soft writes)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -46111,10 +46632,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -46154,6 +46681,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "scenarios": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListScenarioApiScenario"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenarios",
+            "description": "Hydrated row for the newly-created duplicate scenario (single-element list)"
           }
         },
         "type": "object",
@@ -46187,10 +46729,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -46217,6 +46765,21 @@
             "type": "string",
             "title": "Message",
             "description": "Result message"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListSettingApiSetting"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings",
+            "description": "Hydrated list row(s) for the duplicated setting. Single-element list (kept as a list for shape consistency with create/update) so the client's ghost rail can materialize the new card directly."
           },
           "idempotency_key": {
             "anyOf": [
@@ -46339,10 +46902,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant duplicate"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -46381,6 +46950,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListToolApiTool"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools",
+            "description": "Hydrated row for the duplicated tool (same shape as `/tool/search` returns)"
           }
         },
         "type": "object",
@@ -84920,10 +85504,16 @@
             "description": "Stable idempotency key for ack/promote flows"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Whether to accept a pending draft when acknowledging",
-            "default": true
+            "description": "Whether to accept a pending draft when acknowledging"
           },
           "name": {
             "anyOf": [
@@ -86184,10 +86774,16 @@
             "description": "Operation key for ack or retry"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject dormant state",
-            "default": true
+            "description": "Accept or reject dormant state"
           }
         },
         "type": "object",
@@ -86841,10 +87437,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -87606,10 +88208,16 @@
             "description": "Operation key for accept/reject style ack"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject when idempotency_key is supplied",
-            "default": true
+            "description": "Accept or reject when idempotency_key is supplied"
           },
           "name": {
             "anyOf": [
@@ -88287,10 +88895,16 @@
             "description": "Operation key for ack or retry"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject dormant state",
-            "default": true
+            "description": "Accept or reject dormant state"
           }
         },
         "type": "object",
@@ -88665,10 +89279,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -88949,10 +89569,16 @@
             "description": "Idempotency key for draft writes"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Whether to accept the pending draft state",
-            "default": true
+            "description": "Whether to accept the pending draft state"
           }
         },
         "type": "object",
@@ -89309,10 +89935,16 @@
             "description": "Operation key for ack semantics"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject acknowledgement when idempotency_key is supplied",
-            "default": true
+            "description": "Accept or reject acknowledgement when idempotency_key is supplied"
           }
         },
         "type": "object",
@@ -89649,10 +90281,16 @@
             "description": "Operation key for ack or retry"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject dormant state",
-            "default": true
+            "description": "Accept or reject dormant state"
           }
         },
         "type": "object",
@@ -90138,10 +90776,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant draft"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -90230,10 +90874,16 @@
             "description": "Operation key for accept/reject acknowledgement"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject pending draft state when used with idempotency_key",
-            "default": true
+            "description": "Accept or reject pending draft state when used with idempotency_key"
           },
           "name": {
             "anyOf": [
@@ -91381,10 +92031,16 @@
             "description": "Operation key for ack semantics"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept or reject acknowledgement when idempotency_key is supplied",
-            "default": true
+            "description": "Accept or reject acknowledgement when idempotency_key is supplied"
           }
         },
         "type": "object",
@@ -93340,10 +93996,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -93502,10 +94164,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -93664,10 +94332,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -93826,10 +94500,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -93907,10 +94587,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94002,10 +94688,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94079,10 +94771,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94160,10 +94858,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94241,10 +94945,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94322,10 +95032,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94403,10 +95119,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -94695,10 +95417,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant problem"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -113458,10 +114186,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -113490,6 +114224,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "auths": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListAuthApiAuth"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auths",
+            "description": "Hydrated rows for the successfully-updated auths (mirrors /auth/search shape)"
           }
         },
         "type": "object",
@@ -114712,10 +115461,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -114744,6 +115499,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "departments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListDepartmentApiDepartment"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departments",
+            "description": "Hydrated rows for the successfully-updated departments (mirrors /department/search shape)"
           }
         },
         "type": "object",
@@ -115734,10 +116504,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -115766,6 +116542,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "evals": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListEvalApiEval"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evals",
+            "description": "Hydrated list rows for the updated evals \u2014 same shape as ``/eval/search`` returns. Used by the client's ghost rail to materialize the changed row from the audit ``.completed`` payload without a router refresh. ``None`` for soft-pending updates."
           }
         },
         "type": "object",
@@ -116874,10 +117665,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -116906,6 +117703,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListModelApiModel"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "Hydrated rows for the successfully-updated models (mirrors /model/search shape)"
           }
         },
         "type": "object",
@@ -117600,10 +118412,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -117619,6 +118437,21 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListParameterApiParameter"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameters",
+            "description": "Hydrated list rows for the just-updated parameters \u2014 same shape as ``/parameter/search`` returns. Lets the client patch in updated rows directly from the response without a follow-up search. Omitted on the soft-pending (ack-shaped) paths."
           },
           "idempotency_key": {
             "anyOf": [
@@ -118118,10 +118951,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -118150,6 +118989,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "personas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListPersonaApiPersona"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personas",
+            "description": "Hydrated rows for the successfully-updated personas (mirrors /persona/search shape)"
           }
         },
         "type": "object",
@@ -118924,10 +119778,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -118956,6 +119816,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProfilesApiProfile"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "Hydrated rows for the successfully-updated profiles (mirrors /profile/search shape)"
           }
         },
         "type": "object",
@@ -119419,10 +120294,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -119451,6 +120332,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "providers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListProviderApiProvider"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Providers",
+            "description": "Hydrated rows for the successfully-updated providers (mirrors /provider/search shape)"
           }
         },
         "type": "object",
@@ -119955,10 +120851,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -119974,6 +120876,21 @@
             "type": "array",
             "title": "Results",
             "description": "List of operation results"
+          },
+          "rubrics": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListRubricApiRubric"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubrics",
+            "description": "Hydrated rubric rows for the rubrics just updated (omitted on soft writes)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -120591,10 +121508,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -120623,6 +121546,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "scenarios": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListScenarioApiScenario"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenarios",
+            "description": "Hydrated rows for the successfully-updated scenarios (mirrors /scenario/search shape)"
           }
         },
         "type": "object",
@@ -121663,10 +122601,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -121682,6 +122626,21 @@
             "type": "array",
             "title": "Results",
             "description": "Per-item update results"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListSettingApiSetting"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settings",
+            "description": "Hydrated list rows for the updated settings. Mirrors the shape of ``/setting/search`` result rows so the client's ghost rail can swap the live card without a refresh."
           },
           "idempotency_key": {
             "anyOf": [
@@ -123136,10 +124095,16 @@
             "description": "Operation key for ack \u2014 promotes or rejects a dormant update"
           },
           "accept": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Accept",
-            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key",
-            "default": true
+            "description": "Accept (promote) or reject dormant state. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -123168,6 +124133,21 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key echoed back for client correlation"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ListToolApiTool"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools",
+            "description": "Hydrated rows for the updated tools (same shape as `/tool/search` returns)"
           }
         },
         "type": "object",

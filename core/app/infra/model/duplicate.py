@@ -12,6 +12,7 @@ from app.infra.model.permissions import compute_can_duplicate
 from app.infra.model.refresh import refresh_model_impl
 from app.infra.model.types import (
     DuplicateModelApiResponse,
+    ListModelApiModel,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.model.create import (
@@ -146,6 +147,16 @@ async def duplicate_model_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_model_list_rows``. Soft-pending duplicates skip
+    # hydration: the dormant copy isn't fully active yet.
+    models: list[ListModelApiModel] | None = None
+    if not soft:
+        from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
+        models = await hydrate_model_list_rows(
+            pool, redis, profile_id=profile_id, model_ids=[result.id],
+        )
+
     return DuplicateModelApiResponse(
         success=True,
         model_id=result.id,
@@ -157,4 +168,5 @@ async def duplicate_model_impl(
             else f"Model '{original_name}' duplicated successfully"
         ),
         idempotency_key=idempotency_key,
+        models=models,
     )

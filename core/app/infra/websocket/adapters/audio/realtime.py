@@ -792,6 +792,8 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                 tool_result_str = json.dumps(
                     {"success": False, "message": str(exc)}
                 )
+            finally:
+                session.tool_call_states.pop(call_id, None)
 
         # 3. Feed the result back to the provider as function_call_output.
         try:

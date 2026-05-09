@@ -189,9 +189,18 @@ class CreateDepartmentItem(ScopedItem):
     id: UUID | None = Field(None, description="Optional preset UUID for the new department artifact")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the departments_resource snapshot")
 
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    # Required pair (one side must be set on create) — see
+    # ``permissions_context.py::resolve_department_values`` for the
+    # runtime check. Descriptions flag this so the OpenAPI schema
+    # consumed by LLM tool callers makes the constraint explicit.
+    name_id: UUID | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource.",
+    )
+    name: str | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
+    )
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
@@ -208,7 +217,7 @@ class CreateDepartmentApiRequest(BaseModel):
 
     departments: list[CreateDepartmentItem] = Field(..., description="List of departments to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateDepartmentApiResponse(BaseModel):
@@ -216,6 +225,15 @@ class CreateDepartmentApiResponse(BaseModel):
 
     results: list[DepartmentResultItem] = Field(..., description="Per-item creation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Full row content for each successfully-created department — same
+    # shape ``/department/search`` returns. The audit framework spreads
+    # response fields into the wire payload, so the client's ghost rail
+    # can materialize the new row directly from
+    # ``department.create.completed`` without an SSR refresh round-trip.
+    departments: list[ListDepartmentApiDepartment] | None = Field(
+        None,
+        description="Hydrated rows for the successfully-created departments (mirrors /department/search shape)",
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -269,7 +287,7 @@ class UpdateDepartmentApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateDepartmentApiResponse(BaseModel):
@@ -277,6 +295,11 @@ class UpdateDepartmentApiResponse(BaseModel):
 
     results: list[DepartmentResultItem] = Field(..., description="Per-item update results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateDepartmentApiResponse.departments — same role for updates.
+    departments: list[ListDepartmentApiDepartment] | None = Field(
+        None,
+        description="Hydrated rows for the successfully-updated departments (mirrors /department/search shape)",
+    )
 
 
 class SaveDepartmentFieldError(BaseModel):
@@ -316,7 +339,7 @@ class DeleteDepartmentApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteDepartmentResult(BaseModel):
@@ -337,7 +360,7 @@ class DeleteDepartmentApiResponse(BaseModel):
 class DuplicateDepartmentApiRequest(BaseModel):
     department_id: UUID = Field(..., description="UUID of the department to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateDepartmentApiResponse(BaseModel):
@@ -345,6 +368,13 @@ class DuplicateDepartmentApiResponse(BaseModel):
     department_id: UUID = Field(..., description="UUID of the newly created department")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateDepartmentApiResponse.departments — single-element list
+    # here (duplicate creates exactly one row), but kept as a list for
+    # shape consistency across create/duplicate/update on the wire.
+    departments: list[ListDepartmentApiDepartment] | None = Field(
+        None,
+        description="Hydrated row for the newly-created duplicate department (mirrors /department/search shape)",
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -378,7 +408,7 @@ class PatchDepartmentDraftApiRequest(ScopedItem):
     setting_ids: list[UUID] | None = Field(None, description="Setting UUIDs to assign")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
-    accept: bool = Field(True, description="Accept or reject dormant state")
+    accept: bool | None = Field(None, description="Accept or reject dormant state")
 
 
 class DraftFormState(BaseModel):
@@ -493,7 +523,7 @@ class ProblemDepartmentApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemDepartmentApiResponse(BaseModel):

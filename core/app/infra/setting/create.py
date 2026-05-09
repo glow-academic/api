@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.setting.hydrate_list_rows import hydrate_setting_list_rows
 from app.infra.setting.permissions_context import (
     create_denormalized_snapshot,
     resolve_setting_values,
@@ -178,7 +179,21 @@ async def create_setting_impl(
             operation_key=idempotency_key or (results[0].setting_id if results else None),
         )
 
+    # Hydrate the new rows so the client's ghost rail can materialize
+    # the live card directly from the audit ``.completed`` payload.
+    # Skipped under ``soft=True`` — the dormant artifact isn't fully
+    # active until ack-accept, so an empty ``settings`` field is the
+    # right signal for the ghost to stay in pending state.
+    hydrated_rows = None
+    if not soft:
+        hydrated_ids = [r.setting_id for r in results if r.success and r.setting_id]
+        if hydrated_ids:
+            hydrated_rows = await hydrate_setting_list_rows(
+                pool, redis, profile_id=profile_id, setting_ids=hydrated_ids,
+            )
+
     return CreateSettingApiResponse(
         results=results,
+        settings=hydrated_rows,
         idempotency_key=idempotency_key,
     )

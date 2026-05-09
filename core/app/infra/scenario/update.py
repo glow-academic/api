@@ -25,6 +25,7 @@ from app.infra.scenario.permissions_context import (
 )
 from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
+    ListScenarioApiScenario,
     UpdateScenarioApiRequest,
     UpdateScenarioApiResponse,
 )
@@ -375,10 +376,21 @@ async def update_scenario_impl(
         operation_key=idempotency_key or first_id,
     )
 
+    # Hydrate full row content for the client ghost rail (skip when soft).
+    scenarios: list[ListScenarioApiScenario] | None = None
+    if not soft:
+        from app.infra.scenario.hydrate_list_rows import hydrate_scenario_list_rows
+        updated_ids = [r.scenario_id for r in results if r.success and r.scenario_id is not None]
+        if updated_ids:
+            scenarios = await hydrate_scenario_list_rows(
+                pool, redis, profile_id=profile_id, scenario_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateScenarioApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        scenarios=scenarios,
     )

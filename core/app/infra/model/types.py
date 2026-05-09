@@ -266,7 +266,9 @@ class ModelResultItem(BaseModel):
 class CreateModelItem(ScopedItem):
     """Single model item for create — no model_id.
 
-    Required fields (name): provide ID or value.
+    Required pair (name): provide ID or value. Strongly recommended:
+    pair ``value`` and ``provider_id`` so the resulting model is
+    actually callable.
     """
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -291,12 +293,35 @@ class CreateModelItem(ScopedItem):
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
-    # Dual-mode: name
-    name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    # Required pair (one of each pair must be set on create) — see
+    # ``permissions_context.py::resolve_model_values`` for the runtime
+    # check. Descriptions flag this so the OpenAPI schema consumed by
+    # LLM tool callers makes the constraint explicit.
+    name_id: UUID | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource.",
+    )
+    name: str | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
+    )
+    # Strongly recommended for create (model isn't callable without
+    # them); not enforced by the runtime today.
+    value_id: UUID | None = Field(
+        None,
+        description="UUID of an existing value resource (the API model identifier).",
+    )
+    value: str | None = Field(
+        None,
+        description="Direct model value/identifier (e.g. the actual API model name like 'gpt-4o'). Strongly recommended on create alongside ``provider_id`` so the model is callable.",
+    )
+    provider_id: UUID | None = Field(
+        None,
+        description="UUID of an existing provider resource. Strongly recommended on create alongside ``value`` so the model is callable.",
+    )
     # Dual-mode: description
-    description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description_id: UUID | None = Field(None, description="UUID of an existing description resource")
+    description: str | None = Field(None, description="Description text value (creates a new description resource if description_id not provided)")
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -304,22 +329,27 @@ class CreateModelItem(ScopedItem):
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
     modality_ids: list[UUID] | None = Field(None, description="Modality identifiers")
     pricing_ids: list[UUID] | None = Field(None, description="Pricing tier identifiers")
-    provider_id: UUID | None = Field(None, description="Provider identifier")
     quality_ids: list[UUID] | None = Field(None, description="Quality level identifiers")
     reasoning_level_ids: list[UUID] | None = Field(None, description="Reasoning level identifiers")
     temperature_level_ids: list[UUID] | None = Field(None, description="Temperature level identifiers")
-    value_id: UUID | None = Field(None, description="Value resource identifier")
-    value: str | None = Field(None, description="Direct model value/identifier (e.g. the actual API model name)")
     voice_ids: list[UUID] | None = Field(None, description="Voice identifiers")
     model_ids: list[UUID] | None = Field(None, description="Related model identifiers")
 
 
 class CreateModelApiRequest(BaseModel):
-    """Request model for bulk create model endpoint."""
+    """Request model for bulk create model endpoint.
 
-    models: list[CreateModelItem] = Field(..., description="List of models to create")
+    Two body shapes:
+      - First call: ``models`` required.
+      - Ack call: ``{idempotency_key, accept}`` only — the impl locates
+        the dormant artifact by ``idempotency_key``.
+    """
+
+    models: list[CreateModelItem] | None = Field(
+        None, description="List of models to create (required on first call)",
+    )
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateModelApiResponse(BaseModel):
@@ -327,6 +357,14 @@ class CreateModelApiResponse(BaseModel):
 
     results: list[ModelResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Full row content for each successfully-created model — same shape
+    # `/model/search` returns. The audit framework spreads response
+    # fields into the wire payload, so the client's ghost rail can
+    # materialize the new row directly from `model.create.completed`
+    # without an SSR refresh round-trip.
+    models: list[ListModelApiModel] | None = Field(
+        None, description="Hydrated rows for the successfully-created models (mirrors /model/search shape)",
+    )
 
 
 # =============================================================================
@@ -415,7 +453,7 @@ class UpdateModelApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateModelApiResponse(BaseModel):
@@ -423,6 +461,10 @@ class UpdateModelApiResponse(BaseModel):
 
     results: list[ModelResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateModelApiResponse.models — same role here for updates.
+    models: list[ListModelApiModel] | None = Field(
+        None, description="Hydrated rows for the successfully-updated models (mirrors /model/search shape)",
+    )
 
 
 class SaveModelFieldError(BaseModel):
@@ -473,7 +515,7 @@ class DeleteModelApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteModelResult(BaseModel):
@@ -501,7 +543,7 @@ class DuplicateModelApiRequest(BaseModel):
 
     model_id: UUID = Field(..., description="Model identifier to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateModelApiResponse(BaseModel):
@@ -511,6 +553,12 @@ class DuplicateModelApiResponse(BaseModel):
     model_id: UUID = Field(..., description="New duplicated model identifier")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateModelApiResponse.models — single-element list here
+    # (duplicate creates exactly one row), but kept as a list for shape
+    # consistency across create/duplicate/update on the wire.
+    models: list[ListModelApiModel] | None = Field(
+        None, description="Hydrated row for the newly-created duplicate model (mirrors /model/search shape)",
+    )
 
 
 # =============================================================================
@@ -575,7 +623,7 @@ class PatchModelDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft ID to update")
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
     idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject style ack")
-    accept: bool = Field(True, description="Accept or reject when idempotency_key is supplied")
+    accept: bool | None = Field(None, description="Accept or reject when idempotency_key is supplied")
 
     # Creatable single-select — provide value or ID
     name: str | None = Field(None, description="Display name value")
@@ -728,7 +776,7 @@ class ProblemModelApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemModelApiResponse(BaseModel):

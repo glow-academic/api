@@ -54,6 +54,8 @@ async def create_rubric(
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -64,9 +66,11 @@ async def create_rubric(
             session_id=session_id,
             group_id=group_id,
             operation="create",
-            arguments={
-                "rubrics": [item.model_dump(mode="json") for item in request.rubrics]
-            },
+            # Audit ``arguments`` carry the full request body verbatim
+            # (rubrics array + ack fields all serialize cleanly). Mode
+            # ``json`` so UUIDs/datetimes serialize via Pydantic's JSON
+            # encoder; ``exclude_none`` keeps the receipt compact.
+            arguments=request.model_dump(mode="json", exclude_none=True),
             response_model=CreateRubricApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),

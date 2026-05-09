@@ -22,6 +22,7 @@ from app.infra.persona.permissions import compute_can_duplicate
 from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import (
     DuplicatePersonaApiResponse,
+    ListPersonaApiPersona,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.create import (
@@ -196,8 +197,17 @@ async def duplicate_persona_impl(
         operation_key=idempotency_key or result.id,
     )
 
+    # ── Step 8: Hydrate full row content for the client ──────────────
+    personas: list[ListPersonaApiPersona] | None = None
+    if not soft:
+        from app.infra.persona.hydrate_list_rows import hydrate_persona_list_rows
+        personas = await hydrate_persona_list_rows(
+            pool, redis, profile_id=profile_id, persona_ids=[result.id],
+        )
+
     return DuplicatePersonaApiResponse(
         success=True,
         id=result.id,
         message="Persona duplicated (pending acceptance)" if soft else f"Persona '{original_name}' duplicated successfully",
+        personas=personas,
     )

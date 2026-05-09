@@ -19,6 +19,7 @@ from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
     CreateProfileApiRequest,
     CreateProfileApiResponse,
+    ListProfilesApiProfile,
     ProfileResultItem,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -178,7 +179,27 @@ async def create_profile_impl(
             operation_key=idempotency_key or (results[0].profile_id if results else None),
         )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    # See ``hydrate_profile_list_rows``: returns the same shape
+    # ``/profile/search`` does. Audit framework spreads response fields
+    # into ``profile.create.completed``, so the client's ghost rail
+    # materializes the new row directly — no SSR refresh round-trip.
+    # Soft-pending creates skip hydration: the dormant row isn't fully
+    # active yet (denormalized snapshot is created on ack-accept).
+    profiles_rows: list[ListProfilesApiProfile] | None = None
+    if not soft:
+        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+        new_ids = [
+            r.profile_id for r in results
+            if r.success and r.profile_id is not None
+        ]
+        if new_ids:
+            profiles_rows = await hydrate_profile_list_rows(
+                pool, redis, profile_id=profile_id, profile_ids=new_ids,
+            )
+
     return CreateProfileApiResponse(
         results=results,
+        profiles=profiles_rows,
         idempotency_key=idempotency_key,
     )

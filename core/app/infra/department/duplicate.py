@@ -131,6 +131,18 @@ async def duplicate_department_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # Single-element list — duplicate creates exactly one row, but the
+    # wire shape stays a list for consistency with create/update.
+    departments_payload = None
+    if not soft:
+        from app.infra.department.hydrate_list_rows import (
+            hydrate_department_list_rows,
+        )
+        departments_payload = await hydrate_department_list_rows(
+            pool, redis, profile_id=profile_id, department_ids=[result.id],
+        )
+
     return DuplicateDepartmentApiResponse(
         success=True,
         department_id=result.id,
@@ -142,4 +154,5 @@ async def duplicate_department_impl(
             else f"Department '{original_name}' duplicated successfully"
         ),
         idempotency_key=idempotency_key,
+        departments=departments_payload,
     )

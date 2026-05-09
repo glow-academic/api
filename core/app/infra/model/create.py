@@ -16,6 +16,7 @@ from app.infra.model.refresh import refresh_model_impl
 from app.infra.model.types import (
     CreateModelApiRequest,
     CreateModelApiResponse,
+    ListModelApiModel,
     ModelResultItem,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -44,7 +45,7 @@ async def create_model_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    items = request.models
+    items = request.models or []
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
@@ -179,7 +180,24 @@ async def create_model_impl(
             operation_key=idempotency_key or (results[0].model_id if results else None),
         )
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_model_list_rows``: returns the same shape
+    # ``/model/search`` does. Audit framework spreads response fields
+    # into ``model.create.completed``, so the client's ghost rail
+    # materializes the new row directly — no SSR refresh round-trip.
+    # Soft-pending creates skip hydration: the dormant row isn't fully
+    # active yet (denormalized snapshot is created on ack-accept).
+    models: list[ListModelApiModel] | None = None
+    if not soft:
+        from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
+        new_ids = [r.model_id for r in results if r.success and r.model_id is not None]
+        if new_ids:
+            models = await hydrate_model_list_rows(
+                pool, redis, profile_id=profile_id, model_ids=new_ids,
+            )
+
     return CreateModelApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        models=models,
     )

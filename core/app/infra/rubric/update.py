@@ -91,6 +91,15 @@ async def update_rubric_impl(
             session_id=session_id,
             operation_key=idempotency_key,
         )
+
+        # Hydrate the now-promoted rows so the client's ghost rail can
+        # finalize the cards without a ``router.refresh()``.
+        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+
+        ack_ids = [it.id for it in items if it.id] or [idempotency_key]
+        hydrated_rows = await hydrate_rubric_list_rows(
+            pool, redis, profile_id=profile_id, rubric_ids=ack_ids,
+        )
         return UpdateRubricApiResponse(
             results=[
                 RubricResultItem(
@@ -106,6 +115,7 @@ async def update_rubric_impl(
                     message="Update accepted",
                 )
             ],
+            rubrics=hydrated_rows,
             idempotency_key=idempotency_key,
         )
 
@@ -336,10 +346,24 @@ async def update_rubric_impl(
             operation_key=idempotency_key or (results[0].rubric_id if results else None),
         )
 
+    # Hydrate the updated rows so the client's ghost rail can refresh
+    # the changed cards without a ``router.refresh()``. Skipped on soft
+    # writes (the change isn't promoted until ack-accept).
+    hydrated_rows = None
+    if not soft:
+        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+
+        updated_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
+        if updated_ids:
+            hydrated_rows = await hydrate_rubric_list_rows(
+                pool, redis, profile_id=profile_id, rubric_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateRubricApiResponse(
         results=results + skipped_results,
+        rubrics=hydrated_rows,
         idempotency_key=idempotency_key,
     )

@@ -19,6 +19,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.tool.hydrate_list_rows import hydrate_tool_list_rows
 from app.infra.tool.permissions import compute_can_duplicate
 from app.infra.tool.refresh import refresh_tool_impl
 from app.infra.tool.types import (
@@ -176,6 +177,14 @@ async def duplicate_tool_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate the new row for the client's ghost rail. Skip on soft —
+    # the dormant duplicate isn't visible until ack-accept promotes it.
+    hydrated_tools: list | None = None
+    if not soft and result.id is not None:
+        hydrated_tools = await hydrate_tool_list_rows(
+            pool, redis, profile_id=profile_id, tool_ids=[result.id],
+        )
+
     return DuplicateToolApiResponse(
         success=True,
         tool_id=result.id,
@@ -188,4 +197,5 @@ async def duplicate_tool_impl(
             else f"Tool '{original_name}' duplicated successfully"
         ),
         idempotency_key=idempotency_key,
+        tools=hydrated_tools,
     )

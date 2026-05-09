@@ -13,6 +13,7 @@ from app.infra.provider.permissions import compute_can_duplicate
 from app.infra.provider.refresh import refresh_provider_impl
 from app.infra.provider.types import (
     DuplicateProviderApiResponse,
+    ListProviderApiProvider,
 )
 from app.tools.artifacts.provider.create import (
     create_provider as create_provider_artifact,
@@ -156,9 +157,21 @@ async def duplicate_provider_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    # See ``hydrate_provider_list_rows``. Soft-pending duplicates skip
+    # hydration: the dormant copy isn't fully active yet (denormalized
+    # snapshot is created on ack-accept).
+    providers: list[ListProviderApiProvider] | None = None
+    if not soft:
+        from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
+        providers = await hydrate_provider_list_rows(
+            pool, redis, profile_id=profile_id, provider_ids=[result.id],
+        )
+
     return DuplicateProviderApiResponse(
         success=True,
         provider_id=result.id,
         message="Provider duplicated (pending acceptance)" if soft else f"Provider '{original_name}' duplicated successfully",
         idempotency_key=idempotency_key,
+        providers=providers,
     )

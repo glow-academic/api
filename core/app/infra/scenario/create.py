@@ -26,6 +26,7 @@ from app.infra.scenario.types import (
     CreateScenarioApiRequest,
     CreateScenarioApiResponse,
     CreateScenarioItem,
+    ListScenarioApiScenario,
     ScenarioResultItem,
 )
 from app.tools.artifacts.scenario.create import (
@@ -303,4 +304,14 @@ async def _create_scenarios(
         operation_key=operation_key or first_id,
     )
 
-    return CreateScenarioApiResponse(results=results)
+    # Hydrate full row content for the client ghost rail (skip when soft).
+    scenarios: list[ListScenarioApiScenario] | None = None
+    if not soft:
+        from app.infra.scenario.hydrate_list_rows import hydrate_scenario_list_rows
+        new_ids = [r.scenario_id for r in results if r.success and r.scenario_id is not None]
+        if new_ids:
+            scenarios = await hydrate_scenario_list_rows(
+                pool, redis, profile_id=profile_id, scenario_ids=new_ids,
+            )
+
+    return CreateScenarioApiResponse(results=results, scenarios=scenarios)

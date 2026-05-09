@@ -17,6 +17,7 @@ from app.infra.provider.refresh import refresh_provider_impl
 from app.infra.provider.types import (
     CreateProviderApiRequest,
     CreateProviderApiResponse,
+    ListProviderApiProvider,
     ProviderResultItem,
 )
 from app.tools.artifacts.provider.create import (
@@ -177,7 +178,25 @@ async def create_provider_impl(
             operation_key=idempotency_key or (results[0].provider_id if results else None),
         )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    # See ``hydrate_provider_list_rows``: returns the same shape
+    # ``/provider/search`` does. Audit framework spreads response
+    # fields into ``provider.create.completed``, so the client's
+    # ghost rail materializes the new row directly — no SSR refresh
+    # round-trip. Soft-pending creates skip hydration: the dormant
+    # row isn't fully active yet (denormalized snapshot is created
+    # on ack-accept).
+    providers: list[ListProviderApiProvider] | None = None
+    if not soft:
+        from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
+        new_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
+        if new_ids:
+            providers = await hydrate_provider_list_rows(
+                pool, redis, profile_id=profile_id, provider_ids=new_ids,
+            )
+
     return CreateProviderApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        providers=providers,
     )

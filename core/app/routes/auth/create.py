@@ -65,7 +65,7 @@ async def create_auth(
             group_id=group_id,
             operation="create",
             arguments={
-                "auths": [item.model_dump(mode="json") for item in request.auths]
+                "auths": [item.model_dump(mode="json") for item in (request.auths or [])]
             },
             response_model=CreateAuthApiResponse,
             runner=_runner,

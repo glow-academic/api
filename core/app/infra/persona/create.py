@@ -25,6 +25,7 @@ from app.infra.persona.types import (
     CreatePersonaApiRequest,
     CreatePersonaApiResponse,
     CreatePersonaItem,
+    ListPersonaApiPersona,
     PersonaFieldError,
     PersonaResultItem,
 )
@@ -252,4 +253,20 @@ async def create_persona_impl(
         operation_key=idempotency_key or first_id,
     )
 
-    return CreatePersonaApiResponse(results=results)
+    # ── Step 7: Hydrate full row content for the client ────────────────
+    # See ``hydrate_persona_list_rows``: returns the same shape
+    # ``/persona/search`` does. Audit framework spreads response fields
+    # into ``persona.create.completed``, so the client's ghost rail can
+    # materialize the new row directly without a refresh round-trip.
+    # Soft-pending creates skip hydration: the dormant row isn't fully
+    # active yet (denormalized snapshot is created on ack-accept).
+    personas: list[ListPersonaApiPersona] | None = None
+    if not soft:
+        from app.infra.persona.hydrate_list_rows import hydrate_persona_list_rows
+        new_ids = [r.id for r in results if r.success and r.id is not None]
+        if new_ids:
+            personas = await hydrate_persona_list_rows(
+                pool, redis, profile_id=profile_id, persona_ids=new_ids,
+            )
+
+    return CreatePersonaApiResponse(results=results, personas=personas)

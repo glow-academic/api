@@ -20,7 +20,7 @@ from app.tools.entries.uploads.get import get_upload
 
 
 @sio.on("attempt.chat.message")  # type: ignore
-async def attempt_message(sid: str, data: dict[str, Any]) -> None:
+async def attempt_message(sid: str, data: dict[str, Any]) -> dict[str, Any] | None:
     identity = await resolve_socket_identity(sid)
     if not identity:
         return
@@ -52,13 +52,13 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
 
     voice_session = get_session_by_chat_id(str(chat_id))
 
-    # Voice session active: route through voice pipeline
+    # Voice session active: only raw audio belongs on the live voice path.
+    # Text sent to /attempt/chat/message is persistence, including post-STT
+    # voice transcripts. Live text injection must go through
+    # /attempt/chat/speak with the realtime conversation_id.
     if voice_session:
         if audio_bytes:
             attempt_audio_frame_internal_impl(chat_id=str(chat_id), audio=audio_bytes)
-            return
-        if text:
-            await voice_session.inbound_queue.put({"type": "text", "content": text})
             return
 
     # No voice session: standard text pipeline
@@ -97,7 +97,7 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
         )
         return result.model_dump(mode="json")
 
-    await run_artifact_operation_with_audit(
+    result = await run_artifact_operation_with_audit(
         pool,
         redis,
         artifact="attempt",
@@ -109,3 +109,4 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> None:
         runner=_runner,
         arguments={"chat_id": chat_id, "text": text, "persona_id": data.get("persona_id")},
     )
+    return result

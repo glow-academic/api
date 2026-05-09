@@ -93,6 +93,9 @@ async def attempt_message_internal_impl(
     # Create entries using black boxes
     from app.tools.entries.attempt_content.create import create_attempt_content
     from app.tools.entries.attempt_message.create import create_attempt_message
+    from app.tools.entries.attempt_message_completion.create import (
+        create_attempt_message_completion,
+    )
     from app.tools.entries.attempt_message.search import search_attempt_messages
     from app.tools.entries.attempt_message_tree.create import (
         create_attempt_message_tree,
@@ -154,12 +157,22 @@ async def attempt_message_internal_impl(
                 session_id=effective_session_id,
             )
 
+        await create_attempt_message_completion(
+            conn,
+            attempt_message_id=message_result.id,
+            session_id=effective_session_id,
+        )
+
     # Refresh MVs so messages appear in the UI
     from app.tools.entries.attempt_content.refresh import refresh_attempt_content
     from app.tools.entries.attempt_message.refresh import refresh_attempt_message
+    from app.tools.entries.attempt_message_completion.refresh import (
+        refresh_attempt_message_completion,
+    )
     async with pool.acquire() as conn:
-        await refresh_attempt_message(conn)
         await refresh_attempt_content(conn)
+        await refresh_attempt_message_completion(conn)
+        await refresh_attempt_message(conn)
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

@@ -186,14 +186,26 @@ class ProviderResultItem(BaseModel):
 
 
 class CreateProviderItem(ScopedItem):
-    """Single provider item for create — no provider_id."""
+    """Single provider item for create — no provider_id.
 
-    id: UUID | None = Field(None, description="Optional pre-assigned identifier")
+    Required fields (name): provide ID or value.
+    """
+
+    id: UUID | None = Field(None, description="Client-provided UUID for the new provider")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    # Required pair (one side must be set on create) — see
+    # ``permissions_context.py::resolve_provider_values`` for the
+    # runtime check. Descriptions flag this so the OpenAPI schema
+    # consumed by LLM tool callers makes the constraint explicit.
+    name_id: UUID | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource.",
+    )
+    name: str | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
+    )
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource identifier")
     description: str | None = Field(None, description="Description text value")
@@ -231,7 +243,7 @@ class CreateProviderApiRequest(BaseModel):
 
     providers: list[CreateProviderItem] = Field(..., description="List of providers to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateProviderApiResponse(BaseModel):
@@ -239,6 +251,14 @@ class CreateProviderApiResponse(BaseModel):
 
     results: list[ProviderResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Full row content for each successfully-created provider — same
+    # shape ``/provider/search`` returns. The audit framework spreads
+    # response fields into the wire payload, so the client's ghost
+    # rail can materialize the new row directly from
+    # ``provider.create.completed`` without an SSR refresh round-trip.
+    providers: list[ListProviderApiProvider] | None = Field(
+        None, description="Hydrated rows for the successfully-created providers (mirrors /provider/search shape)",
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -316,7 +336,7 @@ class UpdateProviderApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateProviderApiResponse(BaseModel):
@@ -324,6 +344,10 @@ class UpdateProviderApiResponse(BaseModel):
 
     results: list[ProviderResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateProviderApiResponse.providers — same role here for updates.
+    providers: list[ListProviderApiProvider] | None = Field(
+        None, description="Hydrated rows for the successfully-updated providers (mirrors /provider/search shape)",
+    )
 
 
 class SaveProviderFieldError(BaseModel):
@@ -368,7 +392,7 @@ class DeleteProviderApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteProviderResult(BaseModel):
@@ -397,7 +421,7 @@ class DuplicateProviderApiRequest(BaseModel):
     id: UUID | None = Field(None, description="UUID of the provider to duplicate")
     provider_id: UUID | None = Field(None, description="Legacy alias for id — prefer id")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateProviderApiResponse(BaseModel):
@@ -405,6 +429,12 @@ class DuplicateProviderApiResponse(BaseModel):
     provider_id: UUID = Field(..., description="New duplicated provider identifier")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See CreateProviderApiResponse.providers — single-element list
+    # here (duplicate creates exactly one row), but kept as a list for
+    # shape consistency across create/duplicate/update on the wire.
+    providers: list[ListProviderApiProvider] | None = Field(
+        None, description="Hydrated row for the newly-created duplicate provider (mirrors /provider/search shape)",
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -447,7 +477,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
     value_id: UUID | None = Field(None, description="Value resource identifier")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
-    accept: bool = Field(True, description="Accept or reject acknowledgement when idempotency_key is supplied")
+    accept: bool | None = Field(None, description="Accept or reject acknowledgement when idempotency_key is supplied")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -592,7 +622,7 @@ class ProblemProviderApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemProviderApiResponse(BaseModel):

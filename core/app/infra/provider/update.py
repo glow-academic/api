@@ -16,6 +16,7 @@ from app.infra.provider.permissions_context import (
 )
 from app.infra.provider.refresh import refresh_provider_impl
 from app.infra.provider.types import (
+    ListProviderApiProvider,
     UpdateProviderApiRequest,
     UpdateProviderApiResponse,
 )
@@ -284,10 +285,24 @@ async def update_provider_impl(
             operation_key=idempotency_key or (results[0].provider_id if results else None),
         )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    # See ``hydrate_provider_list_rows``. Soft-pending updates skip
+    # hydration: the dormant change isn't visible in the active row
+    # yet (artifact is deactivated until ack-accept promotes it).
+    providers: list[ListProviderApiProvider] | None = None
+    if not soft:
+        from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
+        updated_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
+        if updated_ids:
+            providers = await hydrate_provider_list_rows(
+                pool, redis, profile_id=profile_id, provider_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateProviderApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        providers=providers,
     )

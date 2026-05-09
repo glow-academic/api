@@ -462,8 +462,8 @@ class CreateSettingItem(ScopedItem):
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the settings_resource snapshot")
 
     # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`). UUID of an existing name resource")
+    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`). Name value to resolve or create")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     description: str | None = Field(None, description="Description value to resolve or create")
@@ -518,13 +518,22 @@ class CreateSettingApiRequest(BaseModel):
 
     settings: list[CreateSettingItem] = Field(..., description="List of settings to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateSettingApiResponse(BaseModel):
     """Response model for bulk create setting endpoint."""
 
     results: list[SettingResultItem] = Field(..., description="Per-item creation results")
+    settings: list["ListSettingApiSetting"] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the newly-created settings. Mirrors the shape "
+            "of ``/setting/search`` result rows so the client's ghost rail can "
+            "materialize the new card directly from the audit ``.completed`` "
+            "payload — no follow-up refresh needed."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -621,13 +630,21 @@ class UpdateSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateSettingApiResponse(BaseModel):
     """Response model for bulk update setting endpoint."""
 
     results: list[SettingResultItem] = Field(..., description="Per-item update results")
+    settings: list["ListSettingApiSetting"] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the updated settings. Mirrors the shape "
+            "of ``/setting/search`` result rows so the client's ghost rail can "
+            "swap the live card without a refresh."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -647,7 +664,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Legacy draft UUID alias")
     idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject acknowledgement")
-    accept: bool = Field(True, description="Accept or reject pending draft state when used with idempotency_key")
+    accept: bool | None = Field(None, description="Accept or reject pending draft state when used with idempotency_key")
 
     name: str | None = Field(None, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
@@ -831,7 +848,7 @@ class DeleteSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteSettingResult(BaseModel):
@@ -857,7 +874,7 @@ class DuplicateSettingApiRequest(BaseModel):
 
     setting_id: UUID = Field(..., description="UUID of the setting to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateSettingApiResponse(BaseModel):
@@ -866,6 +883,14 @@ class DuplicateSettingApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     setting_id: UUID = Field(..., description="UUID of the newly created setting")
     message: str = Field(..., description="Result message")
+    settings: list["ListSettingApiSetting"] | None = Field(
+        None,
+        description=(
+            "Hydrated list row(s) for the duplicated setting. Single-element "
+            "list (kept as a list for shape consistency with create/update) so "
+            "the client's ghost rail can materialize the new card directly."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -944,7 +969,7 @@ class ProblemSettingApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemSettingApiResponse(BaseModel):

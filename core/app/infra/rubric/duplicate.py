@@ -136,6 +136,18 @@ async def duplicate_rubric_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate the freshly-duplicated row so the client's ghost rail can
+    # materialize it without a ``router.refresh()``. Single-element list
+    # for shape consistency with create/update responses. Skipped on
+    # soft writes.
+    hydrated_rows = None
+    if not soft:
+        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+
+        hydrated_rows = await hydrate_rubric_list_rows(
+            pool, redis, profile_id=profile_id, rubric_ids=[result.id],
+        )
+
     return DuplicateRubricApiResponse(
         success=True,
         rubric_id=result.id,
@@ -146,5 +158,6 @@ async def duplicate_rubric_impl(
             if soft
             else f"Rubric '{original_name}' duplicated successfully"
         ),
+        rubrics=hydrated_rows,
         idempotency_key=idempotency_key,
     )

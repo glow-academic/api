@@ -290,8 +290,8 @@ class CreateEvalItem(ScopedItem):
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
+    name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource")
+    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`): display name text — creates a new name resource if `name_id` is not provided")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
     description: str | None = Field(None, description="Description value for resolution")
@@ -312,7 +312,7 @@ class CreateEvalApiRequest(BaseModel):
 
     evals: list[CreateEvalItem] = Field(..., description="List of evals to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateEvalApiResponse(BaseModel):
@@ -320,6 +320,16 @@ class CreateEvalApiResponse(BaseModel):
 
     results: list[EvalResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    evals: list[ListEvalApiEval] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the newly-created evals — same shape "
+            "as ``/eval/search`` returns. Used by the client's ghost rail "
+            "to materialize the new row from the audit ``.completed`` "
+            "payload without a router refresh. ``None`` for soft-pending "
+            "creates (dormant artifact, hydration runs on ack-accept)."
+        ),
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -397,7 +407,7 @@ class UpdateEvalApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateEvalApiResponse(BaseModel):
@@ -405,6 +415,16 @@ class UpdateEvalApiResponse(BaseModel):
 
     results: list[EvalResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    evals: list[ListEvalApiEval] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the updated evals — same shape as "
+            "``/eval/search`` returns. Used by the client's ghost rail "
+            "to materialize the changed row from the audit ``.completed`` "
+            "payload without a router refresh. ``None`` for soft-pending "
+            "updates."
+        ),
+    )
 
 
 class SaveEvalFieldError(BaseModel):
@@ -449,7 +469,7 @@ class DeleteEvalApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteEvalResult(BaseModel):
@@ -478,7 +498,7 @@ class DuplicateEvalApiRequest(BaseModel):
 
     eval_id: UUID = Field(..., description="Eval UUID to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateEvalApiResponse(BaseModel):
@@ -488,6 +508,14 @@ class DuplicateEvalApiResponse(BaseModel):
     eval_id: UUID = Field(..., description="Newly created eval UUID")
     message: str = Field(..., description="Human-readable result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    evals: list[ListEvalApiEval] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the duplicated eval — single-element "
+            "list, kept as a list for shape consistency with create/update. "
+            "``None`` for soft-pending duplicates."
+        ),
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -557,7 +585,7 @@ class PatchEvalDraftApiRequest(ScopedItem):
     model_rubric_ids: list[UUID] | None = Field(None, description="Model rubric UUIDs")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep inactive on the draft")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
-    accept: bool = Field(True, description="Accept or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DraftFormState(BaseModel):
@@ -646,7 +674,7 @@ class ProblemEvalApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemEvalApiResponse(BaseModel):

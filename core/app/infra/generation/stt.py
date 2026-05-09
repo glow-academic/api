@@ -180,6 +180,7 @@ async def execute_stt_dispatch(
             "event_type": "text_complete",
             "text": text,
             "metadata": dispatch.metadata or None,
+            "rooms": [str(prepared.profile_id)],
         },
         artifact_type=artifact_type,
     )

@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.tool.hydrate_list_rows import hydrate_tool_list_rows
 from app.infra.tool.permissions_context import (
     create_denormalized_snapshot,
     resolve_tool_permissions_context,
@@ -314,10 +315,22 @@ async def update_tool_impl(
             operation_key=idempotency_key or (results[0].tool_id if results else None),
         )
 
+    # ── Step 6: Hydrate updated rows for the client's ghost rail ───────
+    # Skip on soft writes — the dormant update isn't visible until the
+    # ack-accept path promotes it.
+    hydrated_tools: list | None = None
+    if not soft:
+        updated_ids = [r.tool_id for r in results if r.tool_id is not None]
+        if updated_ids:
+            hydrated_tools = await hydrate_tool_list_rows(
+                pool, redis, profile_id=profile_id, tool_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in one
     # toast. Explicit path's ``skipped_results`` is empty.
     return UpdateToolApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        tools=hydrated_tools,
     )

@@ -376,7 +376,6 @@ class InternalBusAudioEmitter:
             resolved_fields = resolve_output_fields(
                 arguments_dict, name, session.tool_output_schemas
             )
-            session.tool_call_states.pop(call_id, None)
         internal_call_id = st.get("call_id") or (
             str(uuid.uuid7()) if hasattr(uuid, "uuid7") else str(uuid.uuid4())
         )
@@ -432,18 +431,19 @@ class InternalBusAudioEmitter:
     async def on_user_speech_start(self, group_id: str, item_id: str) -> None:
         """VAD detected user started speaking."""
         ctx = self._session_context(group_id)
+        session = get_session_by_group_id(group_id)
         await self._emit(
             [
                 internal_event(
                     "attempt.chat.user_start",
                     {
                         "sid": ctx.get("sid", ""),
-                        "chat_id": (
-                            get_session_by_group_id(group_id).chat_id
-                            if get_session_by_group_id(group_id)
-                            else ""
-                        ),
+                        "chat_id": session.chat_id if session else "",
+                        "group_id": group_id,
                         "item_id": item_id,
+                        "rooms": [session.profile_id]
+                        if session and session.profile_id
+                        else None,
                     },
                 )
             ]
@@ -463,6 +463,7 @@ class InternalBusAudioEmitter:
         session = get_session_by_group_id(group_id)
         chat_id = session.chat_id if session else ""
         sid = session.sid if session else ""
+        rooms = [session.profile_id] if session and session.profile_id else None
         await self._emit(
             [
                 internal_event(
@@ -473,6 +474,7 @@ class InternalBusAudioEmitter:
                         "group_id": group_id,
                         "audios_id": audios_id,
                         "duration_ms": duration_ms,
+                        "rooms": rooms,
                     },
                 )
             ]
@@ -494,6 +496,7 @@ class InternalBusAudioEmitter:
         session = get_session_by_group_id(group_id)
         chat_id = session.chat_id if session else ""
         sid = session.sid if session else ""
+        rooms = [session.profile_id] if session and session.profile_id else None
         await self._emit(
             [
                 internal_event(
@@ -504,6 +507,7 @@ class InternalBusAudioEmitter:
                         "group_id": group_id,
                         "audios_id": audios_id,
                         "duration_ms": duration_ms,
+                        "rooms": rooms,
                     },
                 )
             ]

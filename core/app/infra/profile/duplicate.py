@@ -12,6 +12,7 @@ from app.infra.profile.permissions import compute_can_duplicate
 from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
     DuplicateProfileApiResponse,
+    ListProfilesApiProfile,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.profile.create import (
@@ -82,10 +83,17 @@ async def duplicate_profile_impl(
             operation_key=idempotency_key,
         )
 
+        # Hydrate the promoted row for the client ghost rail (only on accept).
+        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+        profiles_rows_ack = await hydrate_profile_list_rows(
+            pool, redis, profile_id=profile_id, profile_ids=[result.id],
+        )
+
         return DuplicateProfileApiResponse(
             success=True,
             profile_id=result.id,
             message="Profile duplicate accepted",
+            profiles=profiles_rows_ack,
             idempotency_key=idempotency_key,
         )
 
@@ -152,9 +160,19 @@ async def duplicate_profile_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate the duplicated row for the client ghost rail.
+    # Soft-pending duplicates skip hydration (dormant artifact).
+    profiles_rows: list[ListProfilesApiProfile] | None = None
+    if not soft:
+        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+        profiles_rows = await hydrate_profile_list_rows(
+            pool, redis, profile_id=profile_id, profile_ids=[result.id],
+        )
+
     return DuplicateProfileApiResponse(
         success=True,
         profile_id=result.id,
         message="Profile duplicated (pending acceptance)" if soft else f"Profile '{original_name}' duplicated successfully",
+        profiles=profiles_rows,
         idempotency_key=idempotency_key,
     )

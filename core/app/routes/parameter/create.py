@@ -54,6 +54,8 @@ async def create_parameter(
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
             )
 
         response_data = await run_artifact_operation_with_audit(

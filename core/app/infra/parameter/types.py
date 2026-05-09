@@ -212,17 +212,20 @@ class ParameterResultItem(BaseModel):
 
 
 class CreateParameterItem(ScopedItem):
-    """Single parameter item for create — no parameter_id."""
+    """Single parameter item for create — no parameter_id.
+
+    Required fields (name): provide ID or value.
+    """
 
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
     # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    name_id: UUID | None = Field(None, description="UUID of an existing name resource")
+    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`) — display name text (creates new resource if name_id not provided)")
     # Optional single-select — provide ID or value
-    description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description_id: UUID | None = Field(None, description="UUID of an existing description resource")
+    description: str | None = Field(None, description="Description text value (creates new resource if description_id not provided)")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -250,13 +253,23 @@ class CreateParameterApiRequest(BaseModel):
 
     parameters: list[CreateParameterItem] = Field(..., description="List of parameters to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateParameterApiResponse(BaseModel):
     """Response model for bulk create parameter endpoint."""
 
     results: list[ParameterResultItem] = Field(..., description="List of operation results")
+    parameters: list[ListParameterApiParameter] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the just-created parameters — same shape as "
+            "``/parameter/search`` returns. Lets the client materialize the new "
+            "rows directly from the response (or audit ``.completed`` payload) "
+            "without a follow-up search burst. Omitted on the soft-pending "
+            "(ack-shaped) paths — dormant rows aren't fully active until accepted."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -332,13 +345,22 @@ class UpdateParameterApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateParameterApiResponse(BaseModel):
     """Response model for bulk update parameter endpoint."""
 
     results: list[ParameterResultItem] = Field(..., description="List of operation results")
+    parameters: list[ListParameterApiParameter] | None = Field(
+        None,
+        description=(
+            "Hydrated list rows for the just-updated parameters — same shape as "
+            "``/parameter/search`` returns. Lets the client patch in updated "
+            "rows directly from the response without a follow-up search. Omitted "
+            "on the soft-pending (ack-shaped) paths."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -380,7 +402,7 @@ class PatchParameterDraftApiRequest(ScopedItem):
     parameter_fields: list[str] | None = Field(None, description="Parameter field names to resolve")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
-    accept: bool = Field(True, description="Accept or reject dormant state")
+    accept: bool | None = Field(None, description="Accept or reject dormant state")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -461,7 +483,7 @@ class DeleteParameterApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteParameterResult(BaseModel):
@@ -489,13 +511,22 @@ class DeleteParameterApiResponse(BaseModel):
 class DuplicateParameterApiRequest(BaseModel):
     parameter_id: UUID = Field(..., description="Parameter identifier to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateParameterApiResponse(BaseModel):
     success: bool = Field(..., description="Whether the duplication succeeded")
     parameter_id: UUID = Field(..., description="New duplicated parameter identifier")
     message: str = Field(..., description="Result message")
+    parameters: list[ListParameterApiParameter] | None = Field(
+        None,
+        description=(
+            "Hydrated list row for the just-duplicated parameter — single-element "
+            "list for shape consistency with create / update. Same shape as "
+            "``/parameter/search`` returns. Omitted on the soft-pending "
+            "(ack-shaped) path."
+        ),
+    )
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
 
 
@@ -560,7 +591,7 @@ class ProblemParameterApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemParameterApiResponse(BaseModel):

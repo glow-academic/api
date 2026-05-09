@@ -10,7 +10,7 @@ from redis.asyncio import Redis
 
 from app.infra.auth.permissions import compute_can_duplicate
 from app.infra.auth.refresh import refresh_auth_impl
-from app.infra.auth.types import DuplicateAuthApiResponse
+from app.infra.auth.types import DuplicateAuthApiResponse, ListAuthApiAuth
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.auth.create import create_auth as create_auth_artifact
 from app.tools.artifacts.auth.get import get_auths
@@ -133,6 +133,16 @@ async def duplicate_auth_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_auth_list_rows``. Soft-pending duplicates skip
+    # hydration: the dormant copy isn't fully active yet.
+    auths_hydrated: list[ListAuthApiAuth] | None = None
+    if not soft:
+        from app.infra.auth.hydrate_list_rows import hydrate_auth_list_rows
+        auths_hydrated = await hydrate_auth_list_rows(
+            pool, redis, profile_id=profile_id, auth_ids=[result.id],
+        )
+
     return DuplicateAuthApiResponse(
         success=True,
         auth_id=result.id,
@@ -144,4 +154,5 @@ async def duplicate_auth_impl(
             else f"Auth '{original_name}' duplicated successfully"
         ),
         idempotency_key=idempotency_key or result.id,
+        auths=auths_hydrated,
     )

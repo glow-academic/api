@@ -526,7 +526,7 @@ class CreateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateScenarioApiResponse(BaseModel):
@@ -534,6 +534,9 @@ class CreateScenarioApiResponse(BaseModel):
 
     results: list[ScenarioResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    scenarios: list[ListScenarioApiScenario] | None = Field(
+        None, description="Hydrated rows for the successfully-created scenarios (mirrors /scenario/search shape)",
+    )
 
 
 # =============================================================================
@@ -633,7 +636,7 @@ class UpdateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateScenarioApiResponse(BaseModel):
@@ -641,6 +644,9 @@ class UpdateScenarioApiResponse(BaseModel):
 
     results: list[ScenarioResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    scenarios: list[ListScenarioApiScenario] | None = Field(
+        None, description="Hydrated rows for the successfully-updated scenarios (mirrors /scenario/search shape)",
+    )
 
 
 class SaveScenarioFieldError(BaseModel):
@@ -717,7 +723,7 @@ class DeleteScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteScenarioResult(BaseModel):
@@ -747,7 +753,7 @@ class DuplicateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateScenarioApiResponse(BaseModel):
@@ -757,6 +763,9 @@ class DuplicateScenarioApiResponse(BaseModel):
     scenario_id: UUID = Field(..., description="UUID of the duplicated scenario")
     message: str = Field(..., description="Human-readable result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    scenarios: list[ListScenarioApiScenario] | None = Field(
+        None, description="Hydrated row for the newly-created duplicate scenario (single-element list)",
+    )
 
 
 # =============================================================================
@@ -893,7 +902,7 @@ class PatchScenarioDraftApiRequest(ScopedItem):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ScenarioDraftFormState(BaseModel):
@@ -1385,7 +1394,7 @@ class ProblemScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemScenarioApiResponse(BaseModel):

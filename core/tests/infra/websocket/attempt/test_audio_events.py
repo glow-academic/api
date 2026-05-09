@@ -184,7 +184,7 @@ class TestToolCalls:
         # Accumulated arguments should be parseable
         assert session.tool_call_states["call1"]["arguments"] == '{"name": "test"}'
 
-    async def test_on_tool_call_complete_clears_state(self):
+    async def test_on_tool_call_complete_keeps_state_for_execution(self):
         session = _create_audio_session()
         session.tool_call_states["call1"] = {
             "call_id": "call1",
@@ -202,7 +202,7 @@ class TestToolCalls:
         assert events[0].event == "chat.generate.call.complete"
         assert events[0].data["tool_name"] == "my_tool"
         assert events[0].data["arguments"] == {"name": "test"}
-        assert "call1" not in session.tool_call_states
+        assert session.tool_call_states["call1"]["arguments"] == '{"name": "test"}'
 
     async def test_on_tool_call_complete_no_session(self):
         emit, events = recording_emit()

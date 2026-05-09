@@ -15,6 +15,7 @@ from app.infra.model.permissions_context import (
 )
 from app.infra.model.refresh import refresh_model_impl
 from app.infra.model.types import (
+    ListModelApiModel,
     ModelResultItem,
     UpdateModelApiRequest,
     UpdateModelApiResponse,
@@ -299,10 +300,24 @@ async def update_model_impl(
             operation_key=idempotency_key or (results[0].model_id if results else None),
         )
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_model_list_rows``. Soft-pending updates skip hydration:
+    # the dormant change isn't visible in the active row yet (artifact
+    # is deactivated until ack-accept promotes it).
+    models: list[ListModelApiModel] | None = None
+    if not soft:
+        from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
+        updated_ids = [r.model_id for r in results if r.success and r.model_id is not None]
+        if updated_ids:
+            models = await hydrate_model_list_rows(
+                pool, redis, profile_id=profile_id, model_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateModelApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        models=models,
     )

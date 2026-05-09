@@ -310,10 +310,31 @@ async def update_department_impl(
             except Exception:
                 pass
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # See ``hydrate_department_list_rows``: returns the same shape
+    # ``/department/search`` does. Audit framework spreads response
+    # fields into ``department.update.completed``, so the client's
+    # ghost rail materializes the changed row directly — no SSR refresh.
+    # Soft-pending updates skip hydration (dormant artifact stays).
+    departments_payload = None
+    if not soft:
+        from app.infra.department.hydrate_list_rows import (
+            hydrate_department_list_rows,
+        )
+        updated_ids = [
+            r.department_id for r in results
+            if r.success and r.department_id is not None
+        ]
+        if updated_ids:
+            departments_payload = await hydrate_department_list_rows(
+                pool, redis, profile_id=profile_id, department_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateDepartmentApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        departments=departments_payload,
     )

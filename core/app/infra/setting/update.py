@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.setting.hydrate_list_rows import hydrate_setting_list_rows
 from app.infra.setting.permissions_context import (
     create_denormalized_snapshot,
     resolve_setting_permissions_context,
@@ -365,10 +366,22 @@ async def update_setting_impl(
             operation_key=idempotency_key or (results[0].setting_id if results else None),
         )
 
+    # Hydrate the updated rows so the client's ghost rail can swap the
+    # live card without ``router.refresh()``. Skipped under soft —
+    # dormant updates stay in pending state until ack-accept.
+    hydrated_rows = None
+    if not soft:
+        hydrated_ids = [r.setting_id for r in results if r.success and r.setting_id]
+        if hydrated_ids:
+            hydrated_rows = await hydrate_setting_list_rows(
+                pool, redis, profile_id=profile_id, setting_ids=hydrated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateSettingApiResponse(
         results=results + skipped_results,
+        settings=hydrated_rows,
         idempotency_key=idempotency_key,
     )

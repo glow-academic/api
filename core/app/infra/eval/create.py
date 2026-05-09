@@ -188,7 +188,26 @@ async def create_eval_impl(
             except Exception as sync_err:
                 logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # See ``hydrate_eval_list_rows``: returns the same shape ``/eval/search``
+    # does. Audit framework spreads response fields into the
+    # ``eval.create.completed`` payload, so the client's ghost rail
+    # materializes the new row directly — no SSR refresh.
+    # Soft-pending creates skip hydration (dormant artifact stays).
+    evals_payload = None
+    if not soft:
+        from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
+
+        new_ids = [
+            r.eval_id for r in results if r.success and r.eval_id is not None
+        ]
+        if new_ids:
+            evals_payload = await hydrate_eval_list_rows(
+                pool, redis, profile_id=profile_id, eval_ids=new_ids,
+            )
+
     return CreateEvalApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        evals=evals_payload,
     )

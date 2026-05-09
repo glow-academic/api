@@ -18,6 +18,7 @@ from app.infra.profile.primary_department import (
 )
 from app.infra.profile.refresh import refresh_profile_impl
 from app.infra.profile.types import (
+    ListProfilesApiProfile,
     UpdateProfileApiRequest,
     UpdateProfileApiResponse,
 )
@@ -324,10 +325,30 @@ async def update_profile_impl(
             operation_key=idempotency_key or (results[0].profile_id if results else None),
         )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    # See ``hydrate_profile_list_rows``: returns the same shape
+    # ``/profile/search`` does. Audit framework spreads response fields
+    # into ``profile.update.completed``, so the client's ghost rail
+    # materializes the changed row directly — no SSR refresh round-trip.
+    # Soft-pending updates skip hydration (the dormant patch isn't fully
+    # active until ack-accept).
+    profiles_rows: list[ListProfilesApiProfile] | None = None
+    if not soft:
+        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+        updated_ids = [
+            r.profile_id for r in results
+            if r.success and r.profile_id is not None
+        ]
+        if updated_ids:
+            profiles_rows = await hydrate_profile_list_rows(
+                pool, redis, profile_id=profile_id, profile_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateProfileApiResponse(
         results=results + skipped_results,
+        profiles=profiles_rows,
         idempotency_key=idempotency_key,
     )

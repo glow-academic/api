@@ -35,9 +35,13 @@ async def execute_audio_dispatch(
     duration of the call. On failure emits ``attempt.generate.audio.error``
     and removes the session.
     """
-    from app.infra.websocket.audio_lifecycle import get_audio_adapter
+    from app.infra.websocket.audio_lifecycle import (
+        cleanup_audio_session,
+        get_audio_adapter,
+    )
     from app.infra.websocket.session_store import (
         create_session,
+        get_session_by_chat_id,
         get_session_by_conversation_id,
         remove_session,
     )
@@ -91,6 +95,10 @@ async def execute_audio_dispatch(
         if metadata:
             session.metadata.update(metadata)
     else:
+        existing_for_chat = get_session_by_chat_id(str(chat_id))
+        if existing_for_chat is not None:
+            await cleanup_audio_session(existing_for_chat)
+
         session = create_session(
             sid=sid,
             chat_id=str(chat_id),
@@ -190,8 +198,10 @@ async def execute_audio_dispatch(
                 AttemptAudioReadyData(
                     sid=sid,
                     chat_id=chat_id,
+                    group_id=group_id,
                     success=True,
                     message="Voice session ready",
+                    rooms=[str(prepared.profile_id)],
                 ).model_dump(mode="json"),
             ),
         ]

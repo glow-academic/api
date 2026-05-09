@@ -135,6 +135,17 @@ async def duplicate_eval_impl(
             operation_key=idempotency_key or result.id,
         )
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # Single-element list — duplicate creates exactly one row, but the
+    # wire shape stays a list for consistency with create/update.
+    evals_payload = None
+    if not soft:
+        from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
+
+        evals_payload = await hydrate_eval_list_rows(
+            pool, redis, profile_id=profile_id, eval_ids=[result.id],
+        )
+
     return DuplicateEvalApiResponse(
         success=True,
         eval_id=result.id,
@@ -146,4 +157,5 @@ async def duplicate_eval_impl(
             else f"Eval '{original_name}' duplicated successfully"
         ),
         idempotency_key=idempotency_key or result.id,
+        evals=evals_payload,
     )

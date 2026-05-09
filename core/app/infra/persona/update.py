@@ -23,6 +23,7 @@ from app.infra.persona.permissions_context import (
 )
 from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import (
+    ListPersonaApiPersona,
     UpdatePersonaApiRequest,
     UpdatePersonaApiResponse,
 )
@@ -327,7 +328,20 @@ async def update_persona_impl(
         operation_key=idempotency_key or first_id,
     )
 
+    # ── Hydrate full row content for the client ──────────────────────
+    personas: list[ListPersonaApiPersona] | None = None
+    if not soft:
+        from app.infra.persona.hydrate_list_rows import hydrate_persona_list_rows
+        updated_ids = [r.id for r in results if r.success and r.id is not None]
+        if updated_ids:
+            personas = await hydrate_persona_list_rows(
+                pool, redis, profile_id=profile_id, persona_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
-    return UpdatePersonaApiResponse(results=results + skipped_results)
+    return UpdatePersonaApiResponse(
+        results=results + skipped_results,
+        personas=personas,
+    )

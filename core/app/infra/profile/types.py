@@ -253,9 +253,18 @@ class CreateProfileItem(ScopedItem):
     id: UUID | None = Field(None, description="Optional preset UUID for the new profile")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
-    # Required single-select — provide ID or value
-    name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    # Required pair (one of the pair must be set on create) — see
+    # ``permissions_context.py::resolve_profile_values`` for the runtime
+    # check. Descriptions flag this so the OpenAPI schema consumed by
+    # LLM tool callers makes the constraint explicit.
+    name_id: UUID | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name``). UUID of an existing name resource.",
+    )
+    name: str | None = Field(
+        None,
+        description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
+    )
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized profile_active flag state")
@@ -273,7 +282,7 @@ class CreateProfileApiRequest(BaseModel):
 
     profiles: list[CreateProfileItem] = Field(..., description="List of profiles to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateProfileApiResponse(BaseModel):
@@ -281,6 +290,15 @@ class CreateProfileApiResponse(BaseModel):
 
     results: list[ProfileResultItem] = Field(..., description="Per-item creation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Full row content for each successfully-created profile — same shape
+    # `/profile/search` returns. The audit framework spreads response
+    # fields into the wire payload, so the client's ghost rail can
+    # materialize the new row directly from `profile.create.completed`
+    # without an SSR refresh round-trip.
+    profiles: list[ListProfilesApiProfile] | None = Field(
+        None,
+        description="Hydrated rows for the successfully-created profiles (mirrors /profile/search shape)",
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -357,7 +375,7 @@ class UpdateProfileApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateProfileApiResponse(BaseModel):
@@ -365,6 +383,11 @@ class UpdateProfileApiResponse(BaseModel):
 
     results: list[ProfileResultItem] = Field(..., description="Per-item update results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See ``CreateProfileApiResponse.profiles`` — same role here for updates.
+    profiles: list[ListProfilesApiProfile] | None = Field(
+        None,
+        description="Hydrated rows for the successfully-updated profiles (mirrors /profile/search shape)",
+    )
 
 
 class SaveProfileFieldError(BaseModel):
@@ -410,7 +433,7 @@ class DeleteProfileApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteProfileResult(BaseModel):
@@ -434,7 +457,7 @@ class DeleteProfileApiResponse(BaseModel):
 class DuplicateProfileApiRequest(BaseModel):
     target_profile_id: UUID = Field(..., description="UUID of the profile to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateProfileApiResponse(BaseModel):
@@ -442,6 +465,13 @@ class DuplicateProfileApiResponse(BaseModel):
     profile_id: UUID = Field(..., description="UUID of the newly created profile")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # See ``CreateProfileApiResponse.profiles`` — single-element list here
+    # (duplicate creates exactly one row), but kept as a list for shape
+    # consistency across create/duplicate/update on the wire.
+    profiles: list[ListProfilesApiProfile] | None = Field(
+        None,
+        description="Hydrated row for the newly-created duplicate profile (mirrors /profile/search shape)",
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -493,7 +523,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
     pending_ids: list[UUID] | None = Field(None, description="Resources to keep dormant")
     idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
-    accept: bool = Field(True, description="Whether to accept the pending draft state")
+    accept: bool | None = Field(None, description="Whether to accept the pending draft state")
 
 
 class DraftFormState(BaseModel):
@@ -721,7 +751,7 @@ class ProblemProfileApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemProfileApiResponse(BaseModel):
@@ -775,3 +805,15 @@ class CallDownloadProfileApiResult(BaseModel):
     content_type: str = Field(..., description="MIME type of the file")
     filename: str = Field(..., description="Original filename for Content-Disposition")
     size: int = Field(..., description="File size in bytes")
+
+
+# ----------------------------------------------------------------------
+# Resolve forward references for response models that mention
+# ``ListProfilesApiProfile`` (defined later in this module). With
+# ``from __future__ import annotations`` Pydantic reads the field
+# annotations as strings and only resolves them on rebuild.
+# ----------------------------------------------------------------------
+
+CreateProfileApiResponse.model_rebuild()
+UpdateProfileApiResponse.model_rebuild()
+DuplicateProfileApiResponse.model_rebuild()

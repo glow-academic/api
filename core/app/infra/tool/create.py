@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.tool.hydrate_list_rows import hydrate_tool_list_rows
 from app.infra.tool.permissions_context import (
     create_denormalized_snapshot,
     resolve_tool_values,
@@ -251,7 +252,19 @@ async def create_tool_impl(
             operation_key=idempotency_key or (results[0].tool_id if results else None),
         )
 
+    # ── Step 6: Hydrate created rows for the client's ghost rail ───────
+    # Skip on soft writes — the dormant artifact isn't fully active until
+    # the ack-accept path promotes it (which has its own flow).
+    hydrated_tools: list | None = None
+    if not soft:
+        created_ids = [r.tool_id for r in results if r.tool_id is not None]
+        if created_ids:
+            hydrated_tools = await hydrate_tool_list_rows(
+                pool, redis, profile_id=profile_id, tool_ids=created_ids,
+            )
+
     return CreateToolApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        tools=hydrated_tools,
     )

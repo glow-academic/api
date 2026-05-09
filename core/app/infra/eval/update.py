@@ -318,10 +318,29 @@ async def update_eval_impl(
             except Exception as sync_err:
                 logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
 
+    # ── Hydrate full row content for the client ───────────────────────
+    # See ``hydrate_eval_list_rows``: returns the same shape ``/eval/search``
+    # does. Audit framework spreads response fields into the
+    # ``eval.update.completed`` payload, so the client's ghost rail
+    # materializes the changed row directly — no SSR refresh.
+    # Soft-pending updates skip hydration (dormant artifact stays).
+    evals_payload = None
+    if not soft:
+        from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
+
+        updated_ids = [
+            r.eval_id for r in results if r.success and r.eval_id is not None
+        ]
+        if updated_ids:
+            evals_payload = await hydrate_eval_list_rows(
+                pool, redis, profile_id=profile_id, eval_ids=updated_ids,
+            )
+
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in
     # one toast. Explicit path's ``skipped_results`` is empty.
     return UpdateEvalApiResponse(
         results=results + skipped_results,
         idempotency_key=idempotency_key,
+        evals=evals_payload,
     )

@@ -504,7 +504,7 @@ class CreatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreatePersonaApiResponse(BaseModel):
@@ -512,6 +512,9 @@ class CreatePersonaApiResponse(BaseModel):
 
     results: list[PersonaResultItem] = Field(..., description="Per-persona creation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    personas: list[ListPersonaApiPersona] | None = Field(
+        None, description="Hydrated rows for the successfully-created personas (mirrors /persona/search shape)",
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -607,7 +610,7 @@ class UpdatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdatePersonaApiResponse(BaseModel):
@@ -615,6 +618,9 @@ class UpdatePersonaApiResponse(BaseModel):
 
     results: list[PersonaResultItem] = Field(..., description="Per-persona update results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    personas: list[ListPersonaApiPersona] | None = Field(
+        None, description="Hydrated rows for the successfully-updated personas (mirrors /persona/search shape)",
+    )
 
 
 class SavePersonaFieldError(BaseModel):
@@ -668,7 +674,7 @@ class DeletePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeletePersonaResult(BaseModel):
@@ -704,7 +710,7 @@ class DuplicatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicatePersonaApiResponse(BaseModel):
@@ -714,6 +720,9 @@ class DuplicatePersonaApiResponse(BaseModel):
     id: UUID = Field(..., description="UUID of the newly created duplicate persona")
     message: str = Field(..., description="Human-readable result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    personas: list[ListPersonaApiPersona] | None = Field(
+        None, description="Hydrated row for the newly-created duplicate persona (single-element list)",
+    )
 
 
 # ========== Draft Endpoint Types (composable infra) ==========
@@ -758,7 +767,7 @@ class PatchPersonaDraftApiRequest(ScopedItem):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -900,7 +909,7 @@ class ProblemPersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemPersonaApiResponse(BaseModel):

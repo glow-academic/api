@@ -220,15 +220,19 @@ class AttemptStoppedData(BaseModel):
 class AttemptAudioReadyData(BaseModel):
     sid: str
     chat_id: str
+    group_id: str | None = None
     success: bool = True
     message: str | None = None
+    rooms: list[str] | None = None
 
 
 class AttemptAudioEndedData(BaseModel):
     sid: str
     chat_id: str
+    group_id: str | None = None
     success: bool = True
     message: str | None = None
+    rooms: list[str] | None = None
 
 
 # --- Response ---

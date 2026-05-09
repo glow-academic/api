@@ -17,6 +17,7 @@ from app.infra.auth.types import (
     AuthResultItem,
     CreateAuthApiRequest,
     CreateAuthApiResponse,
+    ListAuthApiAuth,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.auth.create import create_auth as create_auth_artifact
@@ -46,7 +47,7 @@ async def create_auth_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    items = request.auths
+    items = request.auths or []
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
@@ -171,7 +172,23 @@ async def create_auth_impl(
         except Exception:
             logger.warning("Keycloak sync failed after auth create (non-fatal)")
 
+    # Hydrate full row content for the client. See
+    # ``hydrate_auth_list_rows``: returns the same shape /auth/search
+    # does. Audit framework spreads response fields into
+    # ``auth.create.completed``, so the client's ghost rail materializes
+    # the new row directly — no SSR refresh round-trip. Soft-pending
+    # creates skip hydration: the dormant row isn't fully active yet.
+    auths_hydrated: list[ListAuthApiAuth] | None = None
+    if not soft:
+        from app.infra.auth.hydrate_list_rows import hydrate_auth_list_rows
+        new_ids = [r.auth_id for r in results if r.success and r.auth_id is not None]
+        if new_ids:
+            auths_hydrated = await hydrate_auth_list_rows(
+                pool, redis, profile_id=profile_id, auth_ids=new_ids,
+            )
+
     return CreateAuthApiResponse(
         results=results,
         idempotency_key=idempotency_key,
+        auths=auths_hydrated,
     )

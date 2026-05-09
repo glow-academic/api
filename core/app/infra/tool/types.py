@@ -218,12 +218,12 @@ class CreateToolItem(ScopedItem):
     id: UUID | None = Field(None, description="Optional pre-assigned identifier")
     resource_id: UUID | None = Field(None, description="Optional preset UUID for the resource snapshot")
 
-    # Dual-mode: name
-    name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    # Dual-mode: name — REQUIRED FOR CREATE (or pass `tool_id`)
+    name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource")
+    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource)")
     # Dual-mode: description
-    description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description_id: UUID | None = Field(None, description="UUID of an existing description resource")
+    description: str | None = Field(None, description="Description text value (creates new resource if description_id not provided)")
     # ID-only fields
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
@@ -255,7 +255,7 @@ class CreateToolApiRequest(BaseModel):
 
     tools: list[CreateToolItem] = Field(..., description="List of tools to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateToolApiResponse(BaseModel):
@@ -263,6 +263,12 @@ class CreateToolApiResponse(BaseModel):
 
     results: list[ToolResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Hydrated rows for the created tools — same shape as ``/tool/search``
+    # returns. Lets the client's ghost rail materialize the new row from
+    # the audit ``.completed`` payload without a ``router.refresh()``.
+    tools: list[ListToolApiTool] | None = Field(
+        None, description="Hydrated rows for the created tools (same shape as `/tool/search` returns)"
+    )
 
 
 # ========== Update Endpoint Types ==========
@@ -344,7 +350,7 @@ class UpdateToolApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateToolApiResponse(BaseModel):
@@ -352,6 +358,12 @@ class UpdateToolApiResponse(BaseModel):
 
     results: list[ToolResultItem] = Field(..., description="List of operation results")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Hydrated rows for the updated tools — same shape as ``/tool/search``
+    # returns. Lets the client's ghost rail update the live card from the
+    # audit ``.completed`` payload without a ``router.refresh()``.
+    tools: list[ListToolApiTool] | None = Field(
+        None, description="Hydrated rows for the updated tools (same shape as `/tool/search` returns)"
+    )
 
 
 class SaveToolFieldError(BaseModel):
@@ -397,7 +409,7 @@ class DeleteToolApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DeleteToolResult(BaseModel):
@@ -422,7 +434,7 @@ class DeleteToolApiResponse(BaseModel):
 class DuplicateToolApiRequest(BaseModel):
     tool_id: UUID = Field(..., description="Tool identifier to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateToolApiResponse(BaseModel):
@@ -430,6 +442,12 @@ class DuplicateToolApiResponse(BaseModel):
     tool_id: UUID = Field(..., description="New duplicated tool identifier")
     message: str = Field(..., description="Result message")
     idempotency_key: UUID | None = Field(None, description="Idempotency key echoed back for client correlation")
+    # Single-element list — kept as list for shape consistency with
+    # create/update so the client's ghost rail can read
+    # ``output.tools`` uniformly.
+    tools: list[ListToolApiTool] | None = Field(
+        None, description="Hydrated row for the duplicated tool (same shape as `/tool/search` returns)"
+    )
 
 
 class CreateArgInput(BaseModel):
@@ -515,7 +533,7 @@ class PatchToolDraftApiRequest(ScopedItem):
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
-    accept: bool = Field(True, description="Accept or reject acknowledgement when idempotency_key is supplied")
+    accept: bool | None = Field(None, description="Accept or reject acknowledgement when idempotency_key is supplied")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name": "names",
@@ -635,7 +653,7 @@ class ProblemToolApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemToolApiResponse(BaseModel):

@@ -90,8 +90,10 @@ async def attempt_chat_silence_internal_impl(
         AttemptAudioEndedData(
             sid=sid,
             chat_id=str(chat_id),
+            group_id=group_id,
             success=True,
             message="Voice session stopped",
+            rooms=[session.profile_id] if session.profile_id else None,
         ).model_dump(mode="json"),
     )
 

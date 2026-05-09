@@ -214,7 +214,21 @@ async def create_rubric_impl(
             operation_key=idempotency_key or (results[0].rubric_id if results else None),
         )
 
+    # Hydrate the freshly-created rows so the client's ghost rail can
+    # materialize them without a ``router.refresh()``. Skipped on soft
+    # writes (the dormant artifact isn't fully active until ack-accept).
+    hydrated_rows = None
+    if not soft:
+        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+
+        new_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
+        if new_ids:
+            hydrated_rows = await hydrate_rubric_list_rows(
+                pool, redis, profile_id=profile_id, rubric_ids=new_ids,
+            )
+
     return CreateRubricApiResponse(
         results=results,
+        rubrics=hydrated_rows,
         idempotency_key=idempotency_key,
     )
