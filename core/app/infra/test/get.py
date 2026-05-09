@@ -426,6 +426,10 @@ async def get_test_impl(
 
         if on_page_expanded:
             async with pool.acquire() as conn:
+                # Two-pass: collect ALL config rows first so we can
+                # hydrate their referenced agents in bulk before the
+                # per-cfg projection loop reads from agent_map.
+                rows_by_group: dict[UUID, list[Any]] = {}
                 for g in on_page_expanded:
                     rows, _total = await search_runs(
                         conn,
@@ -435,6 +439,60 @@ async def get_test_impl(
                         limit=configs_expanded_page_size,
                         offset=0,
                     )
+                    rows_by_group[g.id] = rows
+                # Hydrate any agents referenced by config rows but not
+                # already in agent_map. Without this, configs whose
+                # historical run was fired by a different agent than
+                # the test_invocation's target (e.g. picking a Persona
+                # run on an Activity test) end up with empty tool_ids /
+                # prompt_ids / instruction_ids on the picker — which
+                # /test/trace then stores as empty, and prepare.py
+                # silently falls back to the test_invocation's agent
+                # for the replay (using its tools, not the historical
+                # run's). The bundle the LLM ends up dispatching against
+                # has nothing to do with what the trace tape recorded.
+                cfg_agent_ids: set[UUID] = set()
+                for rows in rows_by_group.values():
+                    for cfg in rows:
+                        if cfg.agent_ids:
+                            cfg_agent_ids.add(cfg.agent_ids[0])
+                missing_cfg_agent_ids = [
+                    aid for aid in cfg_agent_ids if aid not in agent_map
+                ]
+                if missing_cfg_agent_ids:
+                    from app.tools.resources.agents.get import (
+                        get_agents as _get_agents_for_cfg,
+                    )
+                    extra_cfg_agents = await _get_agents_for_cfg(
+                        conn,
+                        missing_cfg_agent_ids,
+                        redis or get_redis_client(),
+                        bypass_cache=True,
+                    )
+                    for a in extra_cfg_agents:
+                        agent_map[a.id] = a
+                # Hydrate any models referenced by those agents.
+                missing_cfg_model_ids = {
+                    a.model_id
+                    for aid in missing_cfg_agent_ids
+                    if (a := agent_map.get(aid)) is not None and a.model_id is not None
+                    and a.model_id not in model_map
+                }
+                if missing_cfg_model_ids:
+                    from app.tools.resources.models.get import (
+                        get_models as _get_models_for_cfg,
+                    )
+                    extra_cfg_models = await _get_models_for_cfg(
+                        conn,
+                        list(missing_cfg_model_ids),
+                        redis or get_redis_client(),
+                        bypass_cache=True,
+                    )
+                    for m in extra_cfg_models:
+                        model_map[m.id] = m
+
+                for g in on_page_expanded:
+                    rows = rows_by_group[g.id]
                     if rows:
                         # Pull all calls for these runs in one batch.
                         run_ids_for_perms = [r.run_id for r in rows if r.run_id]
