@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict IeYJ8RhuO1b0XWkS5dcIM0NrkH8oOpJMHcnnrJoXOmSUiCiieEOchq1o9TsudL6
+\restrict 4AeuTOKsdIuUSemnH9TxGCYO11T0Hs626Hi9pUwfGy9Fmk6T8P4rX6iKHVj5KaG
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -539,19 +539,6 @@ CREATE TABLE public.agent_voices_junction (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
-);
-
-
---
--- Name: agents_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.agents_calls_connection (
-    agents_id uuid CONSTRAINT agents_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -2693,19 +2680,6 @@ CREATE TABLE public.auth_flags_junction (
 
 
 --
--- Name: auth_item_keys_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.auth_item_keys_calls_connection (
-    auth_item_keys_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: auth_item_keys_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2791,19 +2765,6 @@ CREATE TABLE public.auth_slugs_junction (
     generated boolean DEFAULT false CONSTRAINT auth_slugs_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT auth_slugs_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT auth_slugs_active_not_null NOT NULL
-);
-
-
---
--- Name: auths_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.auths_calls_connection (
-    auths_id uuid CONSTRAINT auths_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -4170,19 +4131,6 @@ CREATE TABLE public.cohort_simulations_junction (
 
 
 --
--- Name: cohorts_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.cohorts_calls_connection (
-    cohorts_id uuid CONSTRAINT cohorts_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: cohorts_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4204,19 +4152,6 @@ CREATE TABLE public.cohorts_resource (
 
 
 --
--- Name: colors_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.colors_calls_connection (
-    colors_id uuid CONSTRAINT colors_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: colors_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4230,19 +4165,6 @@ CREATE TABLE public.colors_resource (
     generated boolean DEFAULT false CONSTRAINT colors_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT colors_mcp_not_null NOT NULL,
     type text DEFAULT 'primary'::text NOT NULL
-);
-
-
---
--- Name: conditional_parameters_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.conditional_parameters_calls_connection (
-    conditional_parameters_id uuid CONSTRAINT conditional_parameters_calls_conditional_parameters_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -4448,19 +4370,6 @@ CREATE TABLE public.department_settings_junction (
 
 
 --
--- Name: departments_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.departments_calls_connection (
-    departments_id uuid CONSTRAINT departments_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: departments_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4474,19 +4383,6 @@ CREATE TABLE public.departments_resource (
     description text,
     department_ids uuid[] DEFAULT ARRAY[]::uuid[],
     setting_ids uuid[] DEFAULT ARRAY[]::uuid[]
-);
-
-
---
--- Name: descriptions_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.descriptions_calls_connection (
-    descriptions_id uuid CONSTRAINT descriptions_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -4817,19 +4713,6 @@ CREATE TABLE public.document_texts_junction (
 
 
 --
--- Name: documents_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.documents_calls_connection (
-    documents_id uuid CONSTRAINT documents_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: documents_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4847,19 +4730,6 @@ CREATE TABLE public.documents_resource (
     image_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     template boolean DEFAULT false NOT NULL,
     parameter_field_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
-);
-
-
---
--- Name: emails_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.emails_calls_connection (
-    emails_id uuid CONSTRAINT emails_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -4924,19 +4794,6 @@ CREATE MATERIALIZED VIEW public.emulations_mv AS
      LEFT JOIN public.profiles_emulations_connection pec ON (((pec.emulation_id = e.id) AND (pec.active = true))))
   WHERE (e.active = true)
   WITH NO DATA;
-
-
---
--- Name: endpoints_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.endpoints_calls_connection (
-    endpoints_id uuid CONSTRAINT endpoints_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -5267,19 +5124,6 @@ CREATE TABLE public.eval_names_junction (
 
 
 --
--- Name: evals_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.evals_calls_connection (
-    evals_id uuid CONSTRAINT evals_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: evals_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5296,19 +5140,6 @@ CREATE TABLE public.evals_resource (
     model_rubric_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL,
     model_flag_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL,
     model_position_ids uuid[] DEFAULT ARRAY[]::uuid[] NOT NULL
-);
-
-
---
--- Name: examples_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.examples_calls_connection (
-    examples_id uuid CONSTRAINT examples_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -5541,19 +5372,6 @@ CREATE TABLE public.field_names_junction (
 
 
 --
--- Name: fields_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.fields_calls_connection (
-    fields_id uuid CONSTRAINT fields_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: fields_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5658,19 +5476,6 @@ CREATE MATERIALIZED VIEW public.file_uploads_mv AS
 
 
 --
--- Name: files_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.files_calls_connection (
-    files_id uuid CONSTRAINT uploads_calls_connection_id_not_null NOT NULL,
-    call_id uuid CONSTRAINT uploads_calls_connection_call_id_not_null NOT NULL,
-    active boolean DEFAULT true CONSTRAINT uploads_calls_connection_active_not_null NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT uploads_calls_connection_created_at_not_null NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() CONSTRAINT uploads_calls_connection_updated_at_not_null NOT NULL
-);
-
-
---
 -- Name: files_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -5716,19 +5521,6 @@ CREATE MATERIALIZED VIEW public.files_mv AS
      JOIN public.uploads_entry ue ON (((ue.id = fue.upload_id) AND (ue.active = true))))
   WHERE (fe.active = true)
   WITH NO DATA;
-
-
---
--- Name: flags_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.flags_calls_connection (
-    flags_id uuid CONSTRAINT flags_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -6074,19 +5866,6 @@ CREATE TABLE public.home_simulation_positions_connection (
 
 
 --
--- Name: icons_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.icons_calls_connection (
-    icons_id uuid CONSTRAINT icons_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: icons_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6175,19 +5954,6 @@ CREATE MATERIALIZED VIEW public.image_uploads_mv AS
 
 
 --
--- Name: images_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.images_calls_connection (
-    images_id uuid CONSTRAINT images_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: images_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6264,19 +6030,6 @@ CREATE MATERIALIZED VIEW public.images_mv AS
      LEFT JOIN public.images_qualities_connection iqc ON (((iqc.image_id = ie.id) AND (iqc.active = true))))
   WHERE (ie.active = true)
   WITH NO DATA;
-
-
---
--- Name: instructions_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.instructions_calls_connection (
-    instructions_id uuid CONSTRAINT instructions_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -6871,19 +6624,6 @@ CREATE TABLE public.invocation_qualities_connection (
 
 
 --
--- Name: items_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.items_calls_connection (
-    items_id uuid CONSTRAINT items_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: items_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6897,19 +6637,6 @@ CREATE TABLE public.items_resource (
     created_at timestamp with time zone DEFAULT now() CONSTRAINT items_created_at_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT items_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT items_mcp_not_null NOT NULL
-);
-
-
---
--- Name: keys_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.keys_calls_connection (
-    keys_id uuid CONSTRAINT keys_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -7184,19 +6911,6 @@ CREATE MATERIALIZED VIEW public.metrics_mv AS
    FROM public.metrics_entry m
   GROUP BY (date_trunc('hour'::text, ts))
   WITH NO DATA;
-
-
---
--- Name: modalities_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.modalities_calls_connection (
-    modalities_id uuid CONSTRAINT modalities_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -7670,19 +7384,6 @@ CREATE TABLE public.model_voices_junction (
 
 
 --
--- Name: models_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.models_calls_connection (
-    models_id uuid CONSTRAINT models_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: models_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7706,19 +7407,6 @@ CREATE TABLE public.models_resource (
 
 
 --
--- Name: names_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.names_calls_connection (
-    names_id uuid CONSTRAINT names_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: names_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7733,19 +7421,6 @@ CREATE TABLE public.names_resource (
 
 
 --
--- Name: objectives_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.objectives_calls_connection (
-    objectives_id uuid CONSTRAINT objectives_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: objectives_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -7756,19 +7431,6 @@ CREATE TABLE public.objectives_resource (
     active boolean DEFAULT true CONSTRAINT objectives_active_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT objectives_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT objectives_mcp_not_null NOT NULL
-);
-
-
---
--- Name: options_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.options_calls_connection (
-    options_id uuid CONSTRAINT options_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -7947,19 +7609,6 @@ CREATE TABLE public.parameter_drafts_profiles_connection (
 
 
 --
--- Name: parameter_fields_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.parameter_fields_calls_connection (
-    parameter_fields_id uuid CONSTRAINT parameter_fields_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: parameter_fields_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8028,19 +7677,6 @@ CREATE TABLE public.parameter_parameters_junction (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
-);
-
-
---
--- Name: parameters_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.parameters_calls_connection (
-    parameters_id uuid CONSTRAINT parameters_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -8438,19 +8074,6 @@ CREATE TABLE public.persona_voices_junction (
 
 
 --
--- Name: personas_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.personas_calls_connection (
-    personas_id uuid CONSTRAINT personas_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: personas_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8498,19 +8121,6 @@ CREATE TABLE public.personas_resource (
     instructions text DEFAULT ''::text NOT NULL,
     examples text[] DEFAULT ARRAY[]::text[] NOT NULL,
     parameter_field_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL
-);
-
-
---
--- Name: points_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.points_calls_connection (
-    points_id uuid CONSTRAINT points_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -8687,19 +8297,6 @@ CREATE TABLE public.practice_simulation_positions_connection (
 
 
 --
--- Name: pricing_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.pricing_calls_connection (
-    pricing_id uuid CONSTRAINT pricing_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: pricing_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8729,19 +8326,6 @@ CREATE TABLE public.primary_departments_resource (
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
-);
-
-
---
--- Name: problem_statements_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.problem_statements_calls_connection (
-    problem_statements_id uuid CONSTRAINT problem_statements_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -9035,19 +8619,6 @@ CREATE TABLE public.profile_names_junction (
 
 
 --
--- Name: profile_personas_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_personas_calls_connection (
-    profile_personas_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: profile_personas_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9105,19 +8676,6 @@ CREATE TABLE public.profile_roles_junction (
 
 
 --
--- Name: profiles_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles_calls_connection (
-    profiles_id uuid CONSTRAINT profiles_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: profiles_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9152,19 +8710,6 @@ CREATE TABLE public.profiles_sessions_connection (
 
 
 --
--- Name: prompts_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.prompts_calls_connection (
-    prompts_id uuid CONSTRAINT prompts_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: prompts_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9177,19 +8722,6 @@ CREATE TABLE public.prompts_resource (
     id uuid DEFAULT uuidv7() CONSTRAINT prompts_id_v7_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT prompts_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT prompts_mcp_not_null NOT NULL
-);
-
-
---
--- Name: protocols_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.protocols_calls_connection (
-    protocols_id uuid CONSTRAINT protocols_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -9422,19 +8954,6 @@ CREATE TABLE public.provider_flags_junction (
 
 
 --
--- Name: provider_keys_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.provider_keys_calls_connection (
-    provider_keys_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: provider_keys_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9509,19 +9028,6 @@ CREATE TABLE public.provider_values_junction (
 
 
 --
--- Name: providers_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.providers_calls_connection (
-    providers_id uuid CONSTRAINT providers_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: providers_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9541,19 +9047,6 @@ CREATE TABLE public.providers_resource (
 
 
 --
--- Name: qualities_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.qualities_calls_connection (
-    qualities_id uuid CONSTRAINT qualities_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: qualities_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9564,19 +9057,6 @@ CREATE TABLE public.qualities_resource (
     active boolean DEFAULT true NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL
-);
-
-
---
--- Name: questions_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.questions_calls_connection (
-    questions_id uuid CONSTRAINT questions_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -9593,19 +9073,6 @@ CREATE TABLE public.questions_resource (
     "time" integer CONSTRAINT questions_time_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT questions_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT questions_mcp_not_null NOT NULL
-);
-
-
---
--- Name: reasoning_levels_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.reasoning_levels_calls_connection (
-    reasoning_levels_id uuid CONSTRAINT reasoning_levels_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -9696,19 +9163,6 @@ CREATE MATERIALIZED VIEW public.refreshes_mv AS
 
 
 --
--- Name: request_limits_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.request_limits_calls_connection (
-    request_limits_id uuid CONSTRAINT request_limits_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: request_limits_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -9740,19 +9194,6 @@ CREATE MATERIALIZED VIEW public.resolves_mv AS
    FROM public.resolves_entry
   WHERE (active = true)
   WITH NO DATA;
-
-
---
--- Name: roles_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.roles_calls_connection (
-    roles_id uuid CONSTRAINT roles_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -10042,19 +9483,6 @@ CREATE TABLE public.rubric_standards_junction (
     generated boolean DEFAULT false CONSTRAINT rubric_standards_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT rubric_standards_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT rubric_standards_active_not_null NOT NULL
-);
-
-
---
--- Name: rubrics_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.rubrics_calls_connection (
-    rubrics_id uuid CONSTRAINT rubrics_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -10537,19 +9965,6 @@ CREATE TABLE public.scenario_drafts_videos_connection (
 
 
 --
--- Name: scenario_flags_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.scenario_flags_calls_connection (
-    scenario_flags_id uuid CONSTRAINT scenario_flags_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: scenario_flags_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10649,19 +10064,6 @@ CREATE TABLE public.scenario_personas_junction (
 
 
 --
--- Name: scenario_positions_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.scenario_positions_calls_connection (
-    scenario_positions_id uuid CONSTRAINT scenario_positions_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: scenario_positions_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10705,19 +10107,6 @@ CREATE TABLE public.scenario_questions_junction (
 
 
 --
--- Name: scenario_rubrics_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.scenario_rubrics_calls_connection (
-    scenario_rubrics_id uuid CONSTRAINT scenario_rubrics_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: scenario_rubrics_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10733,19 +10122,6 @@ CREATE TABLE public.scenario_rubrics_resource (
 
 
 --
--- Name: scenario_time_limits_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.scenario_time_limits_calls_connection (
-    scenario_time_limits_id uuid CONSTRAINT scenario_time_limits_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: scenario_videos_junction; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -10756,19 +10132,6 @@ CREATE TABLE public.scenario_videos_junction (
     videos_id uuid CONSTRAINT scenario_videos_video_id_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT scenario_videos_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT scenario_videos_mcp_not_null NOT NULL
-);
-
-
---
--- Name: scenarios_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.scenarios_calls_connection (
-    scenarios_id uuid CONSTRAINT scenarios_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -11279,19 +10642,6 @@ CREATE TABLE public.setting_thresholds_junction (
 
 
 --
--- Name: settings_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.settings_calls_connection (
-    settings_id uuid CONSTRAINT settings_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: settings_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11322,19 +10672,6 @@ CREATE TABLE public.simulation_artifact (
     generated boolean DEFAULT false CONSTRAINT simulations_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT simulations_mcp_not_null NOT NULL,
     active boolean DEFAULT true NOT NULL
-);
-
-
---
--- Name: simulation_availability_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.simulation_availability_calls_connection (
-    simulation_availability_id uuid CONSTRAINT simulation_availability_cal_simulation_availability_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -11584,19 +10921,6 @@ CREATE TABLE public.simulation_names_junction (
 
 
 --
--- Name: simulation_positions_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.simulation_positions_calls_connection (
-    simulation_positions_id uuid CONSTRAINT simulation_positions_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: simulation_positions_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11696,19 +11020,6 @@ CREATE TABLE public.simulation_simulations_junction (
 
 
 --
--- Name: simulations_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.simulations_calls_connection (
-    simulations_id uuid CONSTRAINT simulations_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: simulations_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11727,19 +11038,6 @@ CREATE TABLE public.simulations_resource (
     scenario_position_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     scenario_flag_ids uuid[] DEFAULT '{}'::uuid[] NOT NULL,
     practice boolean DEFAULT false NOT NULL
-);
-
-
---
--- Name: slugs_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.slugs_calls_connection (
-    slugs_id uuid CONSTRAINT slugs_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -11797,19 +11095,6 @@ CREATE MATERIALIZED VIEW public.soft_calls_mv AS
 
 
 --
--- Name: standard_groups_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.standard_groups_calls_connection (
-    standard_groups_id uuid CONSTRAINT standard_groups_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: standard_groups_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -11824,19 +11109,6 @@ CREATE TABLE public.standard_groups_resource (
     id uuid DEFAULT uuidv7() CONSTRAINT standard_groups_id_v7_not_null NOT NULL,
     generated boolean DEFAULT false CONSTRAINT standard_groups_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT standard_groups_mcp_not_null NOT NULL
-);
-
-
---
--- Name: standards_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.standards_calls_connection (
-    standards_id uuid CONSTRAINT standards_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -11872,19 +11144,6 @@ CREATE TABLE public.systems_resource (
     agent_ids uuid[] DEFAULT ARRAY[]::uuid[],
     resolution_strategy text,
     resolution_threshold numeric
-);
-
-
---
--- Name: temperature_levels_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.temperature_levels_calls_connection (
-    temperature_levels_id uuid CONSTRAINT temperature_levels_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -12790,19 +12049,6 @@ CREATE MATERIALIZED VIEW public.text_uploads_mv AS
 
 
 --
--- Name: texts_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.texts_calls_connection (
-    texts_id uuid CONSTRAINT texts_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: texts_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -12860,19 +12106,6 @@ CREATE MATERIALIZED VIEW public.texts_mv AS
      LEFT JOIN public.uploads_entry ue ON (((ue.id = tue.upload_id) AND (ue.active = true))))
   WHERE (tr.active = true)
   WITH NO DATA;
-
-
---
--- Name: thresholds_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.thresholds_calls_connection (
-    thresholds_id uuid CONSTRAINT thresholds_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -13339,19 +12572,6 @@ CREATE MATERIALIZED VIEW public.uploads_mv AS
 
 
 --
--- Name: values_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.values_calls_connection (
-    values_id uuid CONSTRAINT values_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: values_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13423,19 +12643,6 @@ CREATE MATERIALIZED VIEW public.video_uploads_mv AS
 
 
 --
--- Name: videos_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.videos_calls_connection (
-    videos_id uuid CONSTRAINT videos_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: videos_entry; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -13499,19 +12706,6 @@ CREATE MATERIALIZED VIEW public.videos_mv AS
      JOIN public.uploads_entry ue ON (((ue.id = vue.upload_id) AND (ue.active = true))))
   WHERE (ve.active = true)
   WITH NO DATA;
-
-
---
--- Name: voices_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.voices_calls_connection (
-    voices_id uuid CONSTRAINT voices_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
 
 
 --
@@ -13758,14 +12952,6 @@ ALTER TABLE ONLY public.agent_tools_junction
 
 ALTER TABLE ONLY public.agent_voices_junction
     ADD CONSTRAINT agent_voices_junction_pkey PRIMARY KEY (agent_id, voices_id);
-
-
---
--- Name: agents_calls_connection agents_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agents_calls_connection
-    ADD CONSTRAINT agents_calls_connection_pkey PRIMARY KEY (agents_id, call_id);
 
 
 --
@@ -14241,14 +13427,6 @@ ALTER TABLE ONLY public.auth_flags_junction
 
 
 --
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_pkey PRIMARY KEY (auth_item_keys_id, call_id);
-
-
---
 -- Name: auth_item_keys_resource auth_item_keys_resource_auth_id_item_id_key_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14310,14 +13488,6 @@ ALTER TABLE ONLY public.auth_protocols_junction
 
 ALTER TABLE ONLY public.auth_slugs_junction
     ADD CONSTRAINT auth_slugs_pkey PRIMARY KEY (auth_id, slugs_id);
-
-
---
--- Name: auths_calls_connection auths_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auths_calls_connection
-    ADD CONSTRAINT auths_calls_connection_pkey PRIMARY KEY (auths_id, call_id);
 
 
 --
@@ -14793,14 +13963,6 @@ ALTER TABLE ONLY public.cohort_simulations_junction
 
 
 --
--- Name: cohorts_calls_connection cohorts_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cohorts_calls_connection
-    ADD CONSTRAINT cohorts_calls_connection_pkey PRIMARY KEY (cohorts_id, call_id);
-
-
---
 -- Name: cohort_artifact cohorts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14817,27 +13979,11 @@ ALTER TABLE ONLY public.cohorts_resource
 
 
 --
--- Name: colors_calls_connection colors_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.colors_calls_connection
-    ADD CONSTRAINT colors_calls_connection_pkey PRIMARY KEY (colors_id, call_id);
-
-
---
 -- Name: colors_resource colors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.colors_resource
     ADD CONSTRAINT colors_pkey PRIMARY KEY (id);
-
-
---
--- Name: conditional_parameters_calls_connection conditional_parameters_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conditional_parameters_calls_connection
-    ADD CONSTRAINT conditional_parameters_calls_connection_pkey PRIMARY KEY (conditional_parameters_id, call_id);
 
 
 --
@@ -14945,14 +14091,6 @@ ALTER TABLE ONLY public.department_settings_junction
 
 
 --
--- Name: departments_calls_connection departments_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.departments_calls_connection
-    ADD CONSTRAINT departments_calls_connection_pkey PRIMARY KEY (departments_id, call_id);
-
-
---
 -- Name: departments_resource departments_id_primary_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -14966,14 +14104,6 @@ ALTER TABLE ONLY public.departments_resource
 
 ALTER TABLE ONLY public.department_artifact
     ADD CONSTRAINT departments_pkey PRIMARY KEY (id);
-
-
---
--- Name: descriptions_calls_connection descriptions_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.descriptions_calls_connection
-    ADD CONSTRAINT descriptions_calls_connection_pkey PRIMARY KEY (descriptions_id, call_id);
 
 
 --
@@ -15153,14 +14283,6 @@ ALTER TABLE ONLY public.document_texts_junction
 
 
 --
--- Name: documents_calls_connection documents_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.documents_calls_connection
-    ADD CONSTRAINT documents_calls_connection_pkey PRIMARY KEY (documents_id, call_id);
-
-
---
 -- Name: document_artifact documents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15174,14 +14296,6 @@ ALTER TABLE ONLY public.document_artifact
 
 ALTER TABLE ONLY public.documents_resource
     ADD CONSTRAINT documents_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: emails_calls_connection emails_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.emails_calls_connection
-    ADD CONSTRAINT emails_calls_connection_pkey PRIMARY KEY (emails_id, call_id);
 
 
 --
@@ -15206,14 +14320,6 @@ ALTER TABLE ONLY public.emails_resource
 
 ALTER TABLE ONLY public.emulations_entry
     ADD CONSTRAINT emulations_entry_pkey PRIMARY KEY (id);
-
-
---
--- Name: endpoints_calls_connection endpoints_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.endpoints_calls_connection
-    ADD CONSTRAINT endpoints_calls_connection_pkey PRIMARY KEY (endpoints_id, call_id);
 
 
 --
@@ -15385,14 +14491,6 @@ ALTER TABLE ONLY public.eval_names_junction
 
 
 --
--- Name: evals_calls_connection evals_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.evals_calls_connection
-    ADD CONSTRAINT evals_calls_connection_pkey PRIMARY KEY (evals_id, call_id);
-
-
---
 -- Name: eval_artifact evals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15406,14 +14504,6 @@ ALTER TABLE ONLY public.eval_artifact
 
 ALTER TABLE ONLY public.evals_resource
     ADD CONSTRAINT evals_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: examples_calls_connection examples_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.examples_calls_connection
-    ADD CONSTRAINT examples_calls_connection_pkey PRIMARY KEY (examples_id, call_id);
 
 
 --
@@ -15545,14 +14635,6 @@ ALTER TABLE ONLY public.field_names_junction
 
 
 --
--- Name: fields_calls_connection fields_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.fields_calls_connection
-    ADD CONSTRAINT fields_calls_connection_pkey PRIMARY KEY (fields_id, call_id);
-
-
---
 -- Name: fields_resource fields_id_primary_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15601,14 +14683,6 @@ ALTER TABLE ONLY public.file_uploads_entry
 
 
 --
--- Name: files_calls_connection files_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.files_calls_connection
-    ADD CONSTRAINT files_calls_connection_pkey PRIMARY KEY (files_id, call_id);
-
-
---
 -- Name: files_entry files_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15622,14 +14696,6 @@ ALTER TABLE ONLY public.files_entry
 
 ALTER TABLE ONLY public.files_resource
     ADD CONSTRAINT files_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: flags_calls_connection flags_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.flags_calls_connection
-    ADD CONSTRAINT flags_calls_connection_pkey PRIMARY KEY (flags_id, call_id);
 
 
 --
@@ -15761,14 +14827,6 @@ ALTER TABLE ONLY public.home_chat_entry
 
 
 --
--- Name: icons_calls_connection icons_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.icons_calls_connection
-    ADD CONSTRAINT icons_calls_connection_pkey PRIMARY KEY (icons_id, call_id);
-
-
---
 -- Name: icons_resource icons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15801,14 +14859,6 @@ ALTER TABLE ONLY public.image_uploads_entry
 
 
 --
--- Name: images_calls_connection images_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.images_calls_connection
-    ADD CONSTRAINT images_calls_connection_pkey PRIMARY KEY (images_id, call_id);
-
-
---
 -- Name: images_entry images_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -15838,14 +14888,6 @@ ALTER TABLE ONLY public.images_resource
 
 ALTER TABLE ONLY public.images_qualities_connection
     ADD CONSTRAINT images_qualities_connection_pkey PRIMARY KEY (image_id, quality_id);
-
-
---
--- Name: instructions_calls_connection instructions_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.instructions_calls_connection
-    ADD CONSTRAINT instructions_calls_connection_pkey PRIMARY KEY (instructions_id, call_id);
 
 
 --
@@ -15985,27 +15027,11 @@ ALTER TABLE ONLY public.test_invocation_voices_connection
 
 
 --
--- Name: items_calls_connection items_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.items_calls_connection
-    ADD CONSTRAINT items_calls_connection_pkey PRIMARY KEY (items_id, call_id);
-
-
---
 -- Name: items_resource items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.items_resource
     ADD CONSTRAINT items_pkey PRIMARY KEY (id);
-
-
---
--- Name: keys_calls_connection keys_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keys_calls_connection
-    ADD CONSTRAINT keys_calls_connection_pkey PRIMARY KEY (keys_id, call_id);
 
 
 --
@@ -16078,14 +15104,6 @@ ALTER TABLE ONLY public.messages_entry
 
 ALTER TABLE ONLY public.metrics_entry
     ADD CONSTRAINT metrics_entry_pkey PRIMARY KEY (id);
-
-
---
--- Name: modalities_calls_connection modalities_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.modalities_calls_connection
-    ADD CONSTRAINT modalities_calls_connection_pkey PRIMARY KEY (modalities_id, call_id);
 
 
 --
@@ -16337,14 +15355,6 @@ ALTER TABLE ONLY public.model_voices_junction
 
 
 --
--- Name: models_calls_connection models_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.models_calls_connection
-    ADD CONSTRAINT models_calls_connection_pkey PRIMARY KEY (models_id, call_id);
-
-
---
 -- Name: model_artifact models_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16361,14 +15371,6 @@ ALTER TABLE ONLY public.models_resource
 
 
 --
--- Name: names_calls_connection names_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.names_calls_connection
-    ADD CONSTRAINT names_calls_connection_pkey PRIMARY KEY (names_id, call_id);
-
-
---
 -- Name: names_resource names_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16377,27 +15379,11 @@ ALTER TABLE ONLY public.names_resource
 
 
 --
--- Name: objectives_calls_connection objectives_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.objectives_calls_connection
-    ADD CONSTRAINT objectives_calls_connection_pkey PRIMARY KEY (objectives_id, call_id);
-
-
---
 -- Name: objectives_resource objectives_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.objectives_resource
     ADD CONSTRAINT objectives_pkey PRIMARY KEY (id);
-
-
---
--- Name: options_calls_connection options_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.options_calls_connection
-    ADD CONSTRAINT options_calls_connection_pkey PRIMARY KEY (options_id, call_id);
 
 
 --
@@ -16481,14 +15467,6 @@ ALTER TABLE ONLY public.parameter_drafts_profiles_connection
 
 
 --
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_pkey PRIMARY KEY (parameter_fields_id, call_id);
-
-
---
 -- Name: parameter_fields_junction parameter_fields_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16526,14 +15504,6 @@ ALTER TABLE ONLY public.parameter_names_junction
 
 ALTER TABLE ONLY public.parameter_parameters_junction
     ADD CONSTRAINT parameter_parameters_junction_pkey PRIMARY KEY (parameter_id, parameters_id);
-
-
---
--- Name: parameters_calls_connection parameters_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameters_calls_connection
-    ADD CONSTRAINT parameters_calls_connection_pkey PRIMARY KEY (parameters_id, call_id);
 
 
 --
@@ -16753,14 +15723,6 @@ ALTER TABLE ONLY public.persona_voices_junction
 
 
 --
--- Name: personas_calls_connection personas_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.personas_calls_connection
-    ADD CONSTRAINT personas_calls_connection_pkey PRIMARY KEY (personas_id, call_id);
-
-
---
 -- Name: personas_entry personas_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16790,14 +15752,6 @@ ALTER TABLE ONLY public.persona_artifact
 
 ALTER TABLE ONLY public.personas_resource
     ADD CONSTRAINT personas_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: points_calls_connection points_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.points_calls_connection
-    ADD CONSTRAINT points_calls_connection_pkey PRIMARY KEY (points_id, call_id);
 
 
 --
@@ -16889,14 +15843,6 @@ ALTER TABLE ONLY public.practice_chat_entry
 
 
 --
--- Name: pricing_calls_connection pricing_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pricing_calls_connection
-    ADD CONSTRAINT pricing_calls_connection_pkey PRIMARY KEY (pricing_id, call_id);
-
-
---
 -- Name: pricing_resource pricing_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16918,14 +15864,6 @@ ALTER TABLE ONLY public.primary_departments_resource
 
 ALTER TABLE ONLY public.primary_departments_resource
     ADD CONSTRAINT primary_departments_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: problem_statements_calls_connection problem_statements_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.problem_statements_calls_connection
-    ADD CONSTRAINT problem_statements_calls_connection_pkey PRIMARY KEY (problem_statements_id, call_id);
 
 
 --
@@ -17041,14 +15979,6 @@ ALTER TABLE ONLY public.profile_names_junction
 
 
 --
--- Name: profile_personas_calls_connection profile_personas_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_pkey PRIMARY KEY (profile_personas_id, call_id);
-
-
---
 -- Name: profile_personas_resource profile_personas_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17094,14 +16024,6 @@ ALTER TABLE ONLY public.profile_roles_junction
 
 ALTER TABLE ONLY public.profiles_activity_connection
     ADD CONSTRAINT profiles_activity_connection_pkey PRIMARY KEY (profiles_id, activity_id);
-
-
---
--- Name: profiles_calls_connection profiles_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_pkey PRIMARY KEY (profiles_id, call_id);
 
 
 --
@@ -17161,27 +16083,11 @@ ALTER TABLE ONLY public.profiles_sessions_connection
 
 
 --
--- Name: prompts_calls_connection prompts_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.prompts_calls_connection
-    ADD CONSTRAINT prompts_calls_connection_pkey PRIMARY KEY (prompts_id, call_id);
-
-
---
 -- Name: prompts_resource prompts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.prompts_resource
     ADD CONSTRAINT prompts_pkey PRIMARY KEY (id);
-
-
---
--- Name: protocols_calls_connection protocols_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.protocols_calls_connection
-    ADD CONSTRAINT protocols_calls_connection_pkey PRIMARY KEY (protocols_id, call_id);
 
 
 --
@@ -17305,14 +16211,6 @@ ALTER TABLE ONLY public.provider_flags_junction
 
 
 --
--- Name: provider_keys_calls_connection provider_keys_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_pkey PRIMARY KEY (provider_keys_id, call_id);
-
-
---
 -- Name: provider_keys_junction provider_keys_junction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17361,27 +16259,11 @@ ALTER TABLE ONLY public.provider_values_junction
 
 
 --
--- Name: providers_calls_connection providers_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.providers_calls_connection
-    ADD CONSTRAINT providers_calls_connection_pkey PRIMARY KEY (providers_id, call_id);
-
-
---
 -- Name: providers_resource providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.providers_resource
     ADD CONSTRAINT providers_pkey PRIMARY KEY (id);
-
-
---
--- Name: qualities_calls_connection qualities_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.qualities_calls_connection
-    ADD CONSTRAINT qualities_calls_connection_pkey PRIMARY KEY (qualities_id, call_id);
 
 
 --
@@ -17393,27 +16275,11 @@ ALTER TABLE ONLY public.qualities_resource
 
 
 --
--- Name: questions_calls_connection questions_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.questions_calls_connection
-    ADD CONSTRAINT questions_calls_connection_pkey PRIMARY KEY (questions_id, call_id);
-
-
---
 -- Name: questions_resource questions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.questions_resource
     ADD CONSTRAINT questions_pkey PRIMARY KEY (id);
-
-
---
--- Name: reasoning_levels_calls_connection reasoning_levels_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.reasoning_levels_calls_connection
-    ADD CONSTRAINT reasoning_levels_calls_connection_pkey PRIMARY KEY (reasoning_levels_id, call_id);
 
 
 --
@@ -17441,14 +16307,6 @@ ALTER TABLE ONLY public.refreshes_entry
 
 
 --
--- Name: request_limits_calls_connection request_limits_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.request_limits_calls_connection
-    ADD CONSTRAINT request_limits_calls_connection_pkey PRIMARY KEY (request_limits_id, call_id);
-
-
---
 -- Name: request_limits_resource request_limits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17462,14 +16320,6 @@ ALTER TABLE ONLY public.request_limits_resource
 
 ALTER TABLE ONLY public.resolves_entry
     ADD CONSTRAINT resolves_entry_pkey PRIMARY KEY (id);
-
-
---
--- Name: roles_calls_connection roles_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.roles_calls_connection
-    ADD CONSTRAINT roles_calls_connection_pkey PRIMARY KEY (roles_id, call_id);
 
 
 --
@@ -17622,14 +16472,6 @@ ALTER TABLE ONLY public.rubric_standard_groups_junction
 
 ALTER TABLE ONLY public.rubric_standards_junction
     ADD CONSTRAINT rubric_standards_pkey PRIMARY KEY (rubric_id, standards_id);
-
-
---
--- Name: rubrics_calls_connection rubrics_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.rubrics_calls_connection
-    ADD CONSTRAINT rubrics_calls_connection_pkey PRIMARY KEY (rubrics_id, call_id);
 
 
 --
@@ -17841,14 +16683,6 @@ ALTER TABLE ONLY public.scenario_drafts_videos_connection
 
 
 --
--- Name: scenario_flags_calls_connection scenario_flags_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_flags_calls_connection
-    ADD CONSTRAINT scenario_flags_calls_connection_pkey PRIMARY KEY (scenario_flags_id, call_id);
-
-
---
 -- Name: scenario_flags_junction scenario_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17913,14 +16747,6 @@ ALTER TABLE ONLY public.scenario_personas_junction
 
 
 --
--- Name: scenario_positions_calls_connection scenario_positions_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_positions_calls_connection
-    ADD CONSTRAINT scenario_positions_calls_connection_pkey PRIMARY KEY (scenario_positions_id, call_id);
-
-
---
 -- Name: scenario_positions_resource scenario_positions_resource_new_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17945,14 +16771,6 @@ ALTER TABLE ONLY public.scenario_questions_junction
 
 
 --
--- Name: scenario_rubrics_calls_connection scenario_rubrics_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_rubrics_calls_connection
-    ADD CONSTRAINT scenario_rubrics_calls_connection_pkey PRIMARY KEY (scenario_rubrics_id, call_id);
-
-
---
 -- Name: scenario_rubrics_resource scenario_rubrics_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17969,14 +16787,6 @@ ALTER TABLE ONLY public.scenario_scenarios_junction
 
 
 --
--- Name: scenario_time_limits_calls_connection scenario_time_limits_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_time_limits_calls_connection
-    ADD CONSTRAINT scenario_time_limits_calls_connection_pkey PRIMARY KEY (scenario_time_limits_id, call_id);
-
-
---
 -- Name: scenario_time_limits_resource scenario_time_limits_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -17990,14 +16800,6 @@ ALTER TABLE ONLY public.scenario_time_limits_resource
 
 ALTER TABLE ONLY public.scenario_videos_junction
     ADD CONSTRAINT scenario_videos_pkey PRIMARY KEY (scenario_id, videos_id);
-
-
---
--- Name: scenarios_calls_connection scenarios_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenarios_calls_connection
-    ADD CONSTRAINT scenarios_calls_connection_pkey PRIMARY KEY (scenarios_id, call_id);
 
 
 --
@@ -18265,14 +17067,6 @@ ALTER TABLE ONLY public.setting_thresholds_junction
 
 
 --
--- Name: settings_calls_connection settings_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.settings_calls_connection
-    ADD CONSTRAINT settings_calls_connection_pkey PRIMARY KEY (settings_id, call_id);
-
-
---
 -- Name: setting_artifact settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18302,14 +17096,6 @@ ALTER TABLE ONLY public.attempt_analysis_entry
 
 ALTER TABLE ONLY public.attempt_archive_entry
     ADD CONSTRAINT simulation_archives_entry_pkey PRIMARY KEY (id);
-
-
---
--- Name: simulation_availability_calls_connection simulation_availability_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_availability_calls_connection
-    ADD CONSTRAINT simulation_availability_calls_connection_pkey PRIMARY KEY (simulation_availability_id, call_id);
 
 
 --
@@ -18521,14 +17307,6 @@ ALTER TABLE ONLY public.simulation_names_junction
 
 
 --
--- Name: simulation_positions_calls_connection simulation_positions_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_positions_calls_connection
-    ADD CONSTRAINT simulation_positions_calls_connection_pkey PRIMARY KEY (simulation_positions_id, call_id);
-
-
---
 -- Name: simulation_positions_resource simulation_positions_resource_v2_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18601,14 +17379,6 @@ ALTER TABLE ONLY public.attempt_strength_entry
 
 
 --
--- Name: simulations_calls_connection simulations_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulations_calls_connection
-    ADD CONSTRAINT simulations_calls_connection_pkey PRIMARY KEY (simulations_id, call_id);
-
-
---
 -- Name: simulation_artifact simulations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18622,14 +17392,6 @@ ALTER TABLE ONLY public.simulation_artifact
 
 ALTER TABLE ONLY public.simulations_resource
     ADD CONSTRAINT simulations_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: slugs_calls_connection slugs_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.slugs_calls_connection
-    ADD CONSTRAINT slugs_calls_connection_pkey PRIMARY KEY (slugs_id, call_id);
 
 
 --
@@ -18657,27 +17419,11 @@ ALTER TABLE ONLY public.soft_calls_entry
 
 
 --
--- Name: standard_groups_calls_connection standard_groups_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standard_groups_calls_connection
-    ADD CONSTRAINT standard_groups_calls_connection_pkey PRIMARY KEY (standard_groups_id, call_id);
-
-
---
 -- Name: standard_groups_resource standard_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.standard_groups_resource
     ADD CONSTRAINT standard_groups_pkey PRIMARY KEY (id);
-
-
---
--- Name: standards_calls_connection standards_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standards_calls_connection
-    ADD CONSTRAINT standards_calls_connection_pkey PRIMARY KEY (standards_id, call_id);
 
 
 --
@@ -18766,14 +17512,6 @@ ALTER TABLE ONLY public.invocation_drafts_voices_connection
 
 ALTER TABLE ONLY public.systems_resource
     ADD CONSTRAINT systems_resource_pkey PRIMARY KEY (id);
-
-
---
--- Name: temperature_levels_calls_connection temperature_levels_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.temperature_levels_calls_connection
-    ADD CONSTRAINT temperature_levels_calls_connection_pkey PRIMARY KEY (temperature_levels_id, call_id);
 
 
 --
@@ -18961,14 +17699,6 @@ ALTER TABLE ONLY public.text_uploads_entry
 
 
 --
--- Name: texts_calls_connection texts_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.texts_calls_connection
-    ADD CONSTRAINT texts_calls_connection_pkey PRIMARY KEY (texts_id, call_id);
-
-
---
 -- Name: texts_entry texts_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -18990,14 +17720,6 @@ ALTER TABLE ONLY public.texts_resource
 
 ALTER TABLE ONLY public.texts_texts_connection
     ADD CONSTRAINT texts_texts_connection_pkey PRIMARY KEY (texts_id, text_id);
-
-
---
--- Name: thresholds_calls_connection thresholds_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.thresholds_calls_connection
-    ADD CONSTRAINT thresholds_calls_connection_pkey PRIMARY KEY (thresholds_id, call_id);
 
 
 --
@@ -19481,14 +18203,6 @@ ALTER TABLE ONLY public.uploads_entry
 
 
 --
--- Name: values_calls_connection values_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.values_calls_connection
-    ADD CONSTRAINT values_calls_connection_pkey PRIMARY KEY (values_id, call_id);
-
-
---
 -- Name: values_resource values_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19521,14 +18235,6 @@ ALTER TABLE ONLY public.video_uploads_entry
 
 
 --
--- Name: videos_calls_connection videos_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.videos_calls_connection
-    ADD CONSTRAINT videos_calls_connection_pkey PRIMARY KEY (videos_id, call_id);
-
-
---
 -- Name: videos_entry videos_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -19550,14 +18256,6 @@ ALTER TABLE ONLY public.videos_resource
 
 ALTER TABLE ONLY public.videos_videos_connection
     ADD CONSTRAINT videos_videos_connection_pkey PRIMARY KEY (video_id, videos_id);
-
-
---
--- Name: voices_calls_connection voices_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.voices_calls_connection
-    ADD CONSTRAINT voices_calls_connection_pkey PRIMARY KEY (voices_id, call_id);
 
 
 --
@@ -19804,20 +18502,6 @@ CREATE INDEX agent_voices_agent_id_idx ON public.agent_voices_junction USING btr
 --
 
 CREATE INDEX agent_voices_resource_id_idx ON public.agent_voices_junction USING btree (voices_id);
-
-
---
--- Name: agents_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX agents_calls_connection_call_id_idx ON public.agents_calls_connection USING btree (call_id);
-
-
---
--- Name: agents_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX agents_calls_connection_id_idx ON public.agents_calls_connection USING btree (agents_id);
 
 
 --
@@ -20108,20 +18792,6 @@ CREATE INDEX auth_flags_flag_id_idx ON public.auth_flags_junction USING btree (f
 
 
 --
--- Name: auth_item_keys_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX auth_item_keys_calls_connection_call_id_idx ON public.auth_item_keys_calls_connection USING btree (call_id);
-
-
---
--- Name: auth_item_keys_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX auth_item_keys_calls_connection_id_idx ON public.auth_item_keys_calls_connection USING btree (auth_item_keys_id);
-
-
---
 -- Name: auth_items_auth_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -20175,20 +18845,6 @@ CREATE INDEX auth_slugs_auth_id_idx ON public.auth_slugs_junction USING btree (a
 --
 
 CREATE INDEX auth_slugs_slug_id_idx ON public.auth_slugs_junction USING btree (slugs_id);
-
-
---
--- Name: auths_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX auths_calls_connection_call_id_idx ON public.auths_calls_connection USING btree (call_id);
-
-
---
--- Name: auths_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX auths_calls_connection_id_idx ON public.auths_calls_connection USING btree (auths_id);
 
 
 --
@@ -20423,52 +19079,10 @@ CREATE INDEX cohort_simulations_simulation_id_v7_idx ON public.cohort_simulation
 
 
 --
--- Name: cohorts_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX cohorts_calls_connection_call_id_idx ON public.cohorts_calls_connection USING btree (call_id);
-
-
---
--- Name: cohorts_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX cohorts_calls_connection_id_idx ON public.cohorts_calls_connection USING btree (cohorts_id);
-
-
---
--- Name: colors_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX colors_calls_connection_call_id_idx ON public.colors_calls_connection USING btree (call_id);
-
-
---
--- Name: colors_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX colors_calls_connection_id_idx ON public.colors_calls_connection USING btree (colors_id);
-
-
---
 -- Name: colors_hex_code_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX colors_hex_code_idx ON public.colors_resource USING btree (hex_code);
-
-
---
--- Name: conditional_parameters_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX conditional_parameters_calls_connection_call_id_idx ON public.conditional_parameters_calls_connection USING btree (call_id);
-
-
---
--- Name: conditional_parameters_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX conditional_parameters_calls_connection_id_idx ON public.conditional_parameters_calls_connection USING btree (conditional_parameters_id);
 
 
 --
@@ -20560,34 +19174,6 @@ CREATE INDEX department_settings_department_id_v7_idx ON public.department_setti
 --
 
 CREATE INDEX department_settings_settings_id_v7_idx ON public.department_settings_junction USING btree (settings_id);
-
-
---
--- Name: departments_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX departments_calls_connection_call_id_idx ON public.departments_calls_connection USING btree (call_id);
-
-
---
--- Name: departments_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX departments_calls_connection_id_idx ON public.departments_calls_connection USING btree (departments_id);
-
-
---
--- Name: descriptions_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX descriptions_calls_connection_call_id_idx ON public.descriptions_calls_connection USING btree (call_id);
-
-
---
--- Name: descriptions_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX descriptions_calls_connection_id_idx ON public.descriptions_calls_connection USING btree (descriptions_id);
 
 
 --
@@ -20689,38 +19275,10 @@ CREATE INDEX document_uploads_junction_uploads_id_idx ON public.document_files_j
 
 
 --
--- Name: documents_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX documents_calls_connection_call_id_idx ON public.documents_calls_connection USING btree (call_id);
-
-
---
--- Name: documents_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX documents_calls_connection_id_idx ON public.documents_calls_connection USING btree (documents_id);
-
-
---
 -- Name: documents_resource_file_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX documents_resource_file_id_idx ON public.documents_resource USING btree (file_id) WHERE (file_id IS NOT NULL);
-
-
---
--- Name: emails_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX emails_calls_connection_call_id_idx ON public.emails_calls_connection USING btree (call_id);
-
-
---
--- Name: emails_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX emails_calls_connection_id_idx ON public.emails_calls_connection USING btree (emails_id);
 
 
 --
@@ -20763,20 +19321,6 @@ CREATE INDEX endpoints_active_idx ON public.endpoints_resource USING btree (acti
 --
 
 CREATE UNIQUE INDEX endpoints_base_url_unique ON public.endpoints_resource USING btree (base_url) WHERE (active = true);
-
-
---
--- Name: endpoints_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX endpoints_calls_connection_call_id_idx ON public.endpoints_calls_connection USING btree (call_id);
-
-
---
--- Name: endpoints_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX endpoints_calls_connection_id_idx ON public.endpoints_calls_connection USING btree (endpoints_id);
 
 
 --
@@ -20868,34 +19412,6 @@ CREATE INDEX eval_names_eval_id_idx ON public.eval_names_junction USING btree (e
 --
 
 CREATE INDEX eval_names_name_id_idx ON public.eval_names_junction USING btree (names_id);
-
-
---
--- Name: evals_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX evals_calls_connection_call_id_idx ON public.evals_calls_connection USING btree (call_id);
-
-
---
--- Name: evals_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX evals_calls_connection_id_idx ON public.evals_calls_connection USING btree (evals_id);
-
-
---
--- Name: examples_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX examples_calls_connection_call_id_idx ON public.examples_calls_connection USING btree (call_id);
-
-
---
--- Name: examples_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX examples_calls_connection_id_idx ON public.examples_calls_connection USING btree (examples_id);
 
 
 --
@@ -21018,20 +19534,6 @@ CREATE INDEX field_names_name_id_idx ON public.field_names_junction USING btree 
 
 
 --
--- Name: fields_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX fields_calls_connection_call_id_idx ON public.fields_calls_connection USING btree (call_id);
-
-
---
--- Name: fields_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX fields_calls_connection_id_idx ON public.fields_calls_connection USING btree (fields_id);
-
-
---
 -- Name: fields_id_unique_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21071,20 +19573,6 @@ CREATE INDEX files_entry_session_id_idx ON public.files_entry USING btree (sessi
 --
 
 CREATE UNIQUE INDEX files_mv_file_id_idx ON public.files_mv USING btree (file_id);
-
-
---
--- Name: flags_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX flags_calls_connection_call_id_idx ON public.flags_calls_connection USING btree (call_id);
-
-
---
--- Name: flags_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX flags_calls_connection_id_idx ON public.flags_calls_connection USING btree (flags_id);
 
 
 --
@@ -21190,20 +19678,6 @@ CREATE UNIQUE INDEX health_mv_date_hour_service_idx ON public.health_mv USING bt
 --
 
 CREATE INDEX health_service_ts_idx ON public.health_entry USING btree (service, ts);
-
-
---
--- Name: icons_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX icons_calls_connection_call_id_idx ON public.icons_calls_connection USING btree (call_id);
-
-
---
--- Name: icons_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX icons_calls_connection_id_idx ON public.icons_calls_connection USING btree (icons_id);
 
 
 --
@@ -26933,20 +25407,6 @@ CREATE INDEX images_active_idx ON public.images_resource USING btree (active);
 
 
 --
--- Name: images_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX images_calls_connection_call_id_idx ON public.images_calls_connection USING btree (call_id);
-
-
---
--- Name: images_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX images_calls_connection_id_idx ON public.images_calls_connection USING btree (images_id);
-
-
---
 -- Name: images_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27010,20 +25470,6 @@ CREATE INDEX instructions_active_idx ON public.instructions_resource USING btree
 
 
 --
--- Name: instructions_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX instructions_calls_connection_call_id_idx ON public.instructions_calls_connection USING btree (call_id);
-
-
---
--- Name: instructions_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX instructions_calls_connection_id_idx ON public.instructions_calls_connection USING btree (instructions_id);
-
-
---
 -- Name: invocation_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27045,20 +25491,6 @@ CREATE INDEX items_active_idx ON public.items_resource USING btree (active);
 
 
 --
--- Name: items_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX items_calls_connection_call_id_idx ON public.items_calls_connection USING btree (call_id);
-
-
---
--- Name: items_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX items_calls_connection_id_idx ON public.items_calls_connection USING btree (items_id);
-
-
---
 -- Name: items_encrypted_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27070,20 +25502,6 @@ CREATE INDEX items_encrypted_idx ON public.items_resource USING btree (encrypted
 --
 
 CREATE INDEX items_name_idx ON public.items_resource USING btree (name);
-
-
---
--- Name: keys_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX keys_calls_connection_call_id_idx ON public.keys_calls_connection USING btree (call_id);
-
-
---
--- Name: keys_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX keys_calls_connection_id_idx ON public.keys_calls_connection USING btree (keys_id);
 
 
 --
@@ -27133,20 +25551,6 @@ CREATE UNIQUE INDEX metrics_mv_date_hour_idx ON public.metrics_mv USING btree (d
 --
 
 CREATE INDEX metrics_ts_idx ON public.metrics_entry USING btree (ts);
-
-
---
--- Name: modalities_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX modalities_calls_connection_call_id_idx ON public.modalities_calls_connection USING btree (call_id);
-
-
---
--- Name: modalities_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX modalities_calls_connection_id_idx ON public.modalities_calls_connection USING btree (modalities_id);
 
 
 --
@@ -27374,34 +25778,6 @@ CREATE INDEX model_voices_voice_id_idx ON public.model_voices_junction USING btr
 
 
 --
--- Name: models_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX models_calls_connection_call_id_idx ON public.models_calls_connection USING btree (call_id);
-
-
---
--- Name: models_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX models_calls_connection_id_idx ON public.models_calls_connection USING btree (models_id);
-
-
---
--- Name: names_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX names_calls_connection_call_id_idx ON public.names_calls_connection USING btree (call_id);
-
-
---
--- Name: names_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX names_calls_connection_id_idx ON public.names_calls_connection USING btree (names_id);
-
-
---
 -- Name: names_name_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27416,20 +25792,6 @@ CREATE UNIQUE INDEX names_name_unique ON public.names_resource USING btree (name
 
 
 --
--- Name: objectives_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX objectives_calls_connection_call_id_idx ON public.objectives_calls_connection USING btree (call_id);
-
-
---
--- Name: objectives_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX objectives_calls_connection_id_idx ON public.objectives_calls_connection USING btree (objectives_id);
-
-
---
 -- Name: objectives_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27441,20 +25803,6 @@ CREATE INDEX objectives_created_at_idx ON public.objectives_resource USING btree
 --
 
 CREATE INDEX options_active_idx ON public.options_resource USING btree (active);
-
-
---
--- Name: options_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX options_calls_connection_call_id_idx ON public.options_calls_connection USING btree (call_id);
-
-
---
--- Name: options_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX options_calls_connection_id_idx ON public.options_calls_connection USING btree (options_id);
 
 
 --
@@ -27497,20 +25845,6 @@ CREATE UNIQUE INDEX parameter_drafts_mv_id_idx ON public.parameter_drafts_mv USI
 --
 
 CREATE INDEX parameter_drafts_mv_name_idx ON public.parameter_drafts_mv USING btree (lower(name) text_pattern_ops);
-
-
---
--- Name: parameter_fields_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameter_fields_calls_connection_call_id_idx ON public.parameter_fields_calls_connection USING btree (call_id);
-
-
---
--- Name: parameter_fields_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameter_fields_calls_connection_id_idx ON public.parameter_fields_calls_connection USING btree (parameter_fields_id);
 
 
 --
@@ -27567,20 +25901,6 @@ CREATE INDEX parameter_parameters_parameter_id_idx ON public.parameter_parameter
 --
 
 CREATE INDEX parameter_parameters_parameters_id_idx ON public.parameter_parameters_junction USING btree (parameters_id);
-
-
---
--- Name: parameters_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameters_calls_connection_call_id_idx ON public.parameters_calls_connection USING btree (call_id);
-
-
---
--- Name: parameters_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameters_calls_connection_id_idx ON public.parameters_calls_connection USING btree (parameters_id);
 
 
 --
@@ -27745,38 +26065,10 @@ CREATE INDEX persona_voices_junction_voice_id_idx ON public.persona_voices_junct
 
 
 --
--- Name: personas_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX personas_calls_connection_call_id_idx ON public.personas_calls_connection USING btree (call_id);
-
-
---
--- Name: personas_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX personas_calls_connection_id_idx ON public.personas_calls_connection USING btree (personas_id);
-
-
---
 -- Name: personas_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX personas_id_idx ON public.personas_resource USING btree (id);
-
-
---
--- Name: points_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX points_calls_connection_call_id_idx ON public.points_calls_connection USING btree (call_id);
-
-
---
--- Name: points_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX points_calls_connection_id_idx ON public.points_calls_connection USING btree (points_id);
 
 
 --
@@ -27787,38 +26079,10 @@ CREATE INDEX points_value_idx ON public.points_resource USING btree (value);
 
 
 --
--- Name: pricing_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX pricing_calls_connection_call_id_idx ON public.pricing_calls_connection USING btree (call_id);
-
-
---
--- Name: pricing_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX pricing_calls_connection_id_idx ON public.pricing_calls_connection USING btree (pricing_id);
-
-
---
 -- Name: pricing_resource_pricing_type_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX pricing_resource_pricing_type_idx ON public.pricing_resource USING btree (pricing_type);
-
-
---
--- Name: problem_statements_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX problem_statements_calls_connection_call_id_idx ON public.problem_statements_calls_connection USING btree (call_id);
-
-
---
--- Name: problem_statements_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX problem_statements_calls_connection_id_idx ON public.problem_statements_calls_connection USING btree (problem_statements_id);
 
 
 --
@@ -27927,20 +26191,6 @@ CREATE INDEX profile_names_profile_id_idx ON public.profile_names_junction USING
 
 
 --
--- Name: profile_personas_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_personas_calls_connection_call_id_idx ON public.profile_personas_calls_connection USING btree (call_id);
-
-
---
--- Name: profile_personas_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_personas_calls_connection_id_idx ON public.profile_personas_calls_connection USING btree (profile_personas_id);
-
-
---
 -- Name: profile_profiles_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27969,20 +26219,6 @@ CREATE INDEX profile_roles_role_id_idx ON public.profile_roles_junction USING bt
 
 
 --
--- Name: profiles_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profiles_calls_connection_call_id_idx ON public.profiles_calls_connection USING btree (call_id);
-
-
---
--- Name: profiles_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profiles_calls_connection_id_idx ON public.profiles_calls_connection USING btree (profiles_id);
-
-
---
 -- Name: profiles_sessions_connection_profiles_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27997,38 +26233,10 @@ CREATE INDEX profiles_sessions_connection_session_id_idx ON public.profiles_sess
 
 
 --
--- Name: prompts_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX prompts_calls_connection_call_id_idx ON public.prompts_calls_connection USING btree (call_id);
-
-
---
--- Name: prompts_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX prompts_calls_connection_id_idx ON public.prompts_calls_connection USING btree (prompts_id);
-
-
---
 -- Name: prompts_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX prompts_created_at_idx ON public.prompts_resource USING btree (created_at);
-
-
---
--- Name: protocols_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX protocols_calls_connection_call_id_idx ON public.protocols_calls_connection USING btree (call_id);
-
-
---
--- Name: protocols_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX protocols_calls_connection_id_idx ON public.protocols_calls_connection USING btree (protocols_id);
 
 
 --
@@ -28109,20 +26317,6 @@ CREATE INDEX provider_id_idx ON public.provider_artifact USING btree (id);
 
 
 --
--- Name: provider_keys_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX provider_keys_calls_connection_call_id_idx ON public.provider_keys_calls_connection USING btree (call_id);
-
-
---
--- Name: provider_keys_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX provider_keys_calls_connection_id_idx ON public.provider_keys_calls_connection USING btree (provider_keys_id);
-
-
---
 -- Name: provider_names_name_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28165,34 +26359,6 @@ CREATE INDEX provider_values_values_id_idx ON public.provider_values_junction US
 
 
 --
--- Name: providers_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX providers_calls_connection_call_id_idx ON public.providers_calls_connection USING btree (call_id);
-
-
---
--- Name: providers_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX providers_calls_connection_id_idx ON public.providers_calls_connection USING btree (providers_id);
-
-
---
--- Name: qualities_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX qualities_calls_connection_call_id_idx ON public.qualities_calls_connection USING btree (call_id);
-
-
---
--- Name: qualities_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX qualities_calls_connection_id_idx ON public.qualities_calls_connection USING btree (qualities_id);
-
-
---
 -- Name: qualities_resource_quality_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28207,38 +26373,10 @@ CREATE INDEX questions_active_idx ON public.questions_resource USING btree (acti
 
 
 --
--- Name: questions_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX questions_calls_connection_call_id_idx ON public.questions_calls_connection USING btree (call_id);
-
-
---
--- Name: questions_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX questions_calls_connection_id_idx ON public.questions_calls_connection USING btree (questions_id);
-
-
---
 -- Name: questions_time_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX questions_time_idx ON public.questions_resource USING btree ("time");
-
-
---
--- Name: reasoning_levels_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX reasoning_levels_calls_connection_call_id_idx ON public.reasoning_levels_calls_connection USING btree (call_id);
-
-
---
--- Name: reasoning_levels_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX reasoning_levels_calls_connection_id_idx ON public.reasoning_levels_calls_connection USING btree (reasoning_levels_id);
 
 
 --
@@ -28253,20 +26391,6 @@ CREATE UNIQUE INDEX refresh_mv_id_idx ON public.refresh_mv USING btree (id);
 --
 
 CREATE UNIQUE INDEX refreshes_mv_id_idx ON public.refreshes_mv USING btree (id);
-
-
---
--- Name: request_limits_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX request_limits_calls_connection_call_id_idx ON public.request_limits_calls_connection USING btree (call_id);
-
-
---
--- Name: request_limits_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX request_limits_calls_connection_id_idx ON public.request_limits_calls_connection USING btree (request_limits_id);
 
 
 --
@@ -28302,20 +26426,6 @@ CREATE INDEX resolves_entry_problem_id_idx ON public.resolves_entry USING btree 
 --
 
 CREATE UNIQUE INDEX resolves_mv_id_idx ON public.resolves_mv USING btree (id);
-
-
---
--- Name: roles_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX roles_calls_connection_call_id_idx ON public.roles_calls_connection USING btree (call_id);
-
-
---
--- Name: roles_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX roles_calls_connection_id_idx ON public.roles_calls_connection USING btree (roles_id);
 
 
 --
@@ -28480,20 +26590,6 @@ CREATE INDEX rubric_standards_standard_id_idx ON public.rubric_standards_junctio
 
 
 --
--- Name: rubrics_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX rubrics_calls_connection_call_id_idx ON public.rubrics_calls_connection USING btree (call_id);
-
-
---
--- Name: rubrics_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX rubrics_calls_connection_id_idx ON public.rubrics_calls_connection USING btree (rubrics_id);
-
-
---
 -- Name: rubrics_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28603,20 +26699,6 @@ CREATE UNIQUE INDEX scenario_drafts_mv_id_idx ON public.scenario_drafts_mv USING
 --
 
 CREATE INDEX scenario_drafts_mv_name_idx ON public.scenario_drafts_mv USING btree (lower(name) text_pattern_ops);
-
-
---
--- Name: scenario_flags_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_flags_calls_connection_call_id_idx ON public.scenario_flags_calls_connection USING btree (call_id);
-
-
---
--- Name: scenario_flags_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_flags_calls_connection_id_idx ON public.scenario_flags_calls_connection USING btree (scenario_flags_id);
 
 
 --
@@ -28732,20 +26814,6 @@ CREATE INDEX scenario_personas_scenario_id_v7_idx ON public.scenario_personas_ju
 
 
 --
--- Name: scenario_positions_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_positions_calls_connection_call_id_idx ON public.scenario_positions_calls_connection USING btree (call_id);
-
-
---
--- Name: scenario_positions_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_positions_calls_connection_id_idx ON public.scenario_positions_calls_connection USING btree (scenario_positions_id);
-
-
---
 -- Name: scenario_positions_resource_scenario_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28802,20 +26870,6 @@ CREATE INDEX scenario_questions_scenario_id_v7_idx ON public.scenario_questions_
 
 
 --
--- Name: scenario_rubrics_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_rubrics_calls_connection_call_id_idx ON public.scenario_rubrics_calls_connection USING btree (call_id);
-
-
---
--- Name: scenario_rubrics_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_rubrics_calls_connection_id_idx ON public.scenario_rubrics_calls_connection USING btree (scenario_rubrics_id);
-
-
---
 -- Name: scenario_rubrics_resource_rubric_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28844,20 +26898,6 @@ CREATE INDEX scenario_scenarios_scenarios_id_idx ON public.scenario_scenarios_ju
 
 
 --
--- Name: scenario_time_limits_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_time_limits_calls_connection_call_id_idx ON public.scenario_time_limits_calls_connection USING btree (call_id);
-
-
---
--- Name: scenario_time_limits_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenario_time_limits_calls_connection_id_idx ON public.scenario_time_limits_calls_connection USING btree (scenario_time_limits_id);
-
-
---
 -- Name: scenario_time_limits_resource_scenario_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -28876,20 +26916,6 @@ CREATE INDEX scenario_videos_scenario_id_v7_idx ON public.scenario_videos_juncti
 --
 
 CREATE INDEX scenario_videos_video_id_v7_idx ON public.scenario_videos_junction USING btree (videos_id);
-
-
---
--- Name: scenarios_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenarios_calls_connection_call_id_idx ON public.scenarios_calls_connection USING btree (call_id);
-
-
---
--- Name: scenarios_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX scenarios_calls_connection_id_idx ON public.scenarios_calls_connection USING btree (scenarios_id);
 
 
 --
@@ -29068,20 +27094,6 @@ CREATE INDEX setting_thresholds_threshold_id_idx ON public.setting_thresholds_ju
 
 
 --
--- Name: settings_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX settings_calls_connection_call_id_idx ON public.settings_calls_connection USING btree (call_id);
-
-
---
--- Name: settings_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX settings_calls_connection_id_idx ON public.settings_calls_connection USING btree (settings_id);
-
-
---
 -- Name: settings_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29114,20 +27126,6 @@ CREATE INDEX simulation_archives_entry_attempt_id_idx ON public.attempt_archive_
 --
 
 CREATE INDEX simulation_archives_entry_created_at_idx ON public.attempt_archive_entry USING btree (created_at);
-
-
---
--- Name: simulation_availability_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_availability_calls_connection_call_id_idx ON public.simulation_availability_calls_connection USING btree (call_id);
-
-
---
--- Name: simulation_availability_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_availability_calls_connection_id_idx ON public.simulation_availability_calls_connection USING btree (simulation_availability_id);
 
 
 --
@@ -29205,20 +27203,6 @@ CREATE INDEX simulation_names_name_id_idx ON public.simulation_names_junction US
 --
 
 CREATE INDEX simulation_names_simulation_id_idx ON public.simulation_names_junction USING btree (simulation_id);
-
-
---
--- Name: simulation_positions_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_positions_calls_connection_call_id_idx ON public.simulation_positions_calls_connection USING btree (call_id);
-
-
---
--- Name: simulation_positions_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulation_positions_calls_connection_id_idx ON public.simulation_positions_calls_connection USING btree (simulation_positions_id);
 
 
 --
@@ -29320,38 +27304,10 @@ CREATE INDEX simulation_simulations_simulations_id_idx ON public.simulation_simu
 
 
 --
--- Name: simulations_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulations_calls_connection_call_id_idx ON public.simulations_calls_connection USING btree (call_id);
-
-
---
--- Name: simulations_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX simulations_calls_connection_id_idx ON public.simulations_calls_connection USING btree (simulations_id);
-
-
---
 -- Name: simulations_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX simulations_id_idx ON public.simulations_resource USING btree (id);
-
-
---
--- Name: slugs_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX slugs_calls_connection_call_id_idx ON public.slugs_calls_connection USING btree (call_id);
-
-
---
--- Name: slugs_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX slugs_calls_connection_id_idx ON public.slugs_calls_connection USING btree (slugs_id);
 
 
 --
@@ -29362,52 +27318,10 @@ CREATE INDEX slugs_value_idx ON public.slugs_resource USING btree (value);
 
 
 --
--- Name: standard_groups_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX standard_groups_calls_connection_call_id_idx ON public.standard_groups_calls_connection USING btree (call_id);
-
-
---
--- Name: standard_groups_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX standard_groups_calls_connection_id_idx ON public.standard_groups_calls_connection USING btree (standard_groups_id);
-
-
---
--- Name: standards_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX standards_calls_connection_call_id_idx ON public.standards_calls_connection USING btree (call_id);
-
-
---
--- Name: standards_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX standards_calls_connection_id_idx ON public.standards_calls_connection USING btree (standards_id);
-
-
---
 -- Name: standards_resource_standard_group_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX standards_resource_standard_group_id_idx ON public.standards_resource USING btree (standard_group_id);
-
-
---
--- Name: temperature_levels_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX temperature_levels_calls_connection_call_id_idx ON public.temperature_levels_calls_connection USING btree (call_id);
-
-
---
--- Name: temperature_levels_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX temperature_levels_calls_connection_id_idx ON public.temperature_levels_calls_connection USING btree (temperature_levels_id);
 
 
 --
@@ -29439,20 +27353,6 @@ CREATE INDEX texts_active_idx ON public.texts_resource USING btree (active);
 
 
 --
--- Name: texts_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX texts_calls_connection_call_id_idx ON public.texts_calls_connection USING btree (call_id);
-
-
---
--- Name: texts_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX texts_calls_connection_id_idx ON public.texts_calls_connection USING btree (texts_id);
-
-
---
 -- Name: texts_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29464,20 +27364,6 @@ CREATE INDEX texts_created_at_idx ON public.texts_resource USING btree (created_
 --
 
 CREATE UNIQUE INDEX texts_mv_text_id_idx ON public.texts_mv USING btree (text_id);
-
-
---
--- Name: thresholds_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX thresholds_calls_connection_call_id_idx ON public.thresholds_calls_connection USING btree (call_id);
-
-
---
--- Name: thresholds_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX thresholds_calls_connection_id_idx ON public.thresholds_calls_connection USING btree (thresholds_id);
 
 
 --
@@ -29663,20 +27549,6 @@ CREATE INDEX tools_calls_connection_id_idx ON public.tools_calls_connection USIN
 
 
 --
--- Name: uploads_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX uploads_calls_connection_call_id_idx ON public.files_calls_connection USING btree (call_id);
-
-
---
--- Name: uploads_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX uploads_calls_connection_id_idx ON public.files_calls_connection USING btree (files_id);
-
-
---
 -- Name: uploads_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -29698,38 +27570,10 @@ CREATE UNIQUE INDEX uploads_mv_upload_id_idx ON public.uploads_mv USING btree (u
 
 
 --
--- Name: values_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX values_calls_connection_call_id_idx ON public.values_calls_connection USING btree (call_id);
-
-
---
--- Name: values_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX values_calls_connection_id_idx ON public.values_calls_connection USING btree (values_id);
-
-
---
 -- Name: values_resource_value_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX values_resource_value_idx ON public.values_resource USING btree (value);
-
-
---
--- Name: videos_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX videos_calls_connection_call_id_idx ON public.videos_calls_connection USING btree (call_id);
-
-
---
--- Name: videos_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX videos_calls_connection_id_idx ON public.videos_calls_connection USING btree (videos_id);
 
 
 --
@@ -29765,20 +27609,6 @@ CREATE INDEX videos_videos_connection_video_id_idx ON public.videos_videos_conne
 --
 
 CREATE INDEX videos_videos_connection_videos_id_idx ON public.videos_videos_connection USING btree (videos_id);
-
-
---
--- Name: voices_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX voices_calls_connection_call_id_idx ON public.voices_calls_connection USING btree (call_id);
-
-
---
--- Name: voices_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX voices_calls_connection_id_idx ON public.voices_calls_connection USING btree (voices_id);
 
 
 --
@@ -30187,22 +28017,6 @@ ALTER TABLE ONLY public.agent_voices_junction
 
 ALTER TABLE ONLY public.agent_voices_junction
     ADD CONSTRAINT agent_voices_junction_voice_id_fkey FOREIGN KEY (voices_id) REFERENCES public.voices_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: agents_calls_connection agents_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agents_calls_connection
-    ADD CONSTRAINT agents_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: agents_calls_connection agents_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.agents_calls_connection
-    ADD CONSTRAINT agents_calls_connection_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -30966,22 +28780,6 @@ ALTER TABLE ONLY public.auth_flags_junction
 
 
 --
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_auth_item_keys_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_auth_item_keys_id_fkey FOREIGN KEY (auth_item_keys_id) REFERENCES public.auth_item_keys_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
 -- Name: auth_item_keys_resource auth_item_keys_resource_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -31067,22 +28865,6 @@ ALTER TABLE ONLY public.auth_slugs_junction
 
 ALTER TABLE ONLY public.auth_slugs_junction
     ADD CONSTRAINT auth_slugs_slug_id_fkey FOREIGN KEY (slugs_id) REFERENCES public.slugs_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: auths_calls_connection auths_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auths_calls_connection
-    ADD CONSTRAINT auths_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: auths_calls_connection auths_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auths_calls_connection
-    ADD CONSTRAINT auths_calls_connection_id_fkey FOREIGN KEY (auths_id) REFERENCES public.auths_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -31934,54 +29716,6 @@ ALTER TABLE ONLY public.cohort_simulations_junction
 
 
 --
--- Name: cohorts_calls_connection cohorts_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cohorts_calls_connection
-    ADD CONSTRAINT cohorts_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: cohorts_calls_connection cohorts_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.cohorts_calls_connection
-    ADD CONSTRAINT cohorts_calls_connection_id_fkey FOREIGN KEY (cohorts_id) REFERENCES public.cohorts_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: colors_calls_connection colors_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.colors_calls_connection
-    ADD CONSTRAINT colors_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: colors_calls_connection colors_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.colors_calls_connection
-    ADD CONSTRAINT colors_calls_connection_id_fkey FOREIGN KEY (colors_id) REFERENCES public.colors_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: conditional_parameters_calls_connection conditional_parameters_calls_con_conditional_parameters_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conditional_parameters_calls_connection
-    ADD CONSTRAINT conditional_parameters_calls_con_conditional_parameters_id_fkey FOREIGN KEY (conditional_parameters_id) REFERENCES public.conditional_parameters_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: conditional_parameters_calls_connection conditional_parameters_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conditional_parameters_calls_connection
-    ADD CONSTRAINT conditional_parameters_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
 -- Name: conditional_parameters_resource conditional_parameters_resource_parameter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32147,38 +29881,6 @@ ALTER TABLE ONLY public.department_settings_junction
 
 ALTER TABLE ONLY public.department_settings_junction
     ADD CONSTRAINT department_settings_settings_id_fkey FOREIGN KEY (settings_id) REFERENCES public.settings_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: departments_calls_connection departments_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.departments_calls_connection
-    ADD CONSTRAINT departments_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: departments_calls_connection departments_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.departments_calls_connection
-    ADD CONSTRAINT departments_calls_connection_id_fkey FOREIGN KEY (departments_id) REFERENCES public.departments_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: descriptions_calls_connection descriptions_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.descriptions_calls_connection
-    ADD CONSTRAINT descriptions_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: descriptions_calls_connection descriptions_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.descriptions_calls_connection
-    ADD CONSTRAINT descriptions_calls_connection_id_fkey FOREIGN KEY (descriptions_id) REFERENCES public.descriptions_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -32486,22 +30188,6 @@ ALTER TABLE ONLY public.document_texts_junction
 
 
 --
--- Name: documents_calls_connection documents_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.documents_calls_connection
-    ADD CONSTRAINT documents_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: documents_calls_connection documents_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.documents_calls_connection
-    ADD CONSTRAINT documents_calls_connection_id_fkey FOREIGN KEY (documents_id) REFERENCES public.documents_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: documents_resource documents_resource_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32518,22 +30204,6 @@ ALTER TABLE ONLY public.documents_resource
 
 
 --
--- Name: emails_calls_connection emails_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.emails_calls_connection
-    ADD CONSTRAINT emails_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: emails_calls_connection emails_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.emails_calls_connection
-    ADD CONSTRAINT emails_calls_connection_id_fkey FOREIGN KEY (emails_id) REFERENCES public.emails_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: emulations_entry emulations_entry_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -32547,22 +30217,6 @@ ALTER TABLE ONLY public.emulations_entry
 
 ALTER TABLE ONLY public.emulations_entry
     ADD CONSTRAINT emulations_grant_id_fkey FOREIGN KEY (grant_id) REFERENCES public.grants_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: endpoints_calls_connection endpoints_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.endpoints_calls_connection
-    ADD CONSTRAINT endpoints_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: endpoints_calls_connection endpoints_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.endpoints_calls_connection
-    ADD CONSTRAINT endpoints_calls_connection_id_fkey FOREIGN KEY (endpoints_id) REFERENCES public.endpoints_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -32822,38 +30476,6 @@ ALTER TABLE ONLY public.eval_names_junction
 
 
 --
--- Name: evals_calls_connection evals_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.evals_calls_connection
-    ADD CONSTRAINT evals_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: evals_calls_connection evals_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.evals_calls_connection
-    ADD CONSTRAINT evals_calls_connection_id_fkey FOREIGN KEY (evals_id) REFERENCES public.evals_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: examples_calls_connection examples_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.examples_calls_connection
-    ADD CONSTRAINT examples_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: examples_calls_connection examples_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.examples_calls_connection
-    ADD CONSTRAINT examples_calls_connection_id_fkey FOREIGN KEY (examples_id) REFERENCES public.examples_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: feedbacks_standards_connection feedbacks_standards_connection_standard_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33054,22 +30676,6 @@ ALTER TABLE ONLY public.field_names_junction
 
 
 --
--- Name: fields_calls_connection fields_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.fields_calls_connection
-    ADD CONSTRAINT fields_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: fields_calls_connection fields_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.fields_calls_connection
-    ADD CONSTRAINT fields_calls_connection_id_fkey FOREIGN KEY (fields_id) REFERENCES public.fields_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: file_completion_entry file_completion_entry_file_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33115,38 +30721,6 @@ ALTER TABLE ONLY public.file_uploads_entry
 
 ALTER TABLE ONLY public.file_uploads_entry
     ADD CONSTRAINT file_uploads_entry_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES public.uploads_entry(id);
-
-
---
--- Name: files_calls_connection files_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.files_calls_connection
-    ADD CONSTRAINT files_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: files_calls_connection files_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.files_calls_connection
-    ADD CONSTRAINT files_calls_connection_id_fkey FOREIGN KEY (files_id) REFERENCES public.files_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: flags_calls_connection flags_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.flags_calls_connection
-    ADD CONSTRAINT flags_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: flags_calls_connection flags_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.flags_calls_connection
-    ADD CONSTRAINT flags_calls_connection_id_fkey FOREIGN KEY (flags_id) REFERENCES public.flags_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -33302,22 +30876,6 @@ ALTER TABLE ONLY public.home_chat_entry
 
 
 --
--- Name: icons_calls_connection icons_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.icons_calls_connection
-    ADD CONSTRAINT icons_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: icons_calls_connection icons_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.icons_calls_connection
-    ADD CONSTRAINT icons_calls_connection_id_fkey FOREIGN KEY (icons_id) REFERENCES public.icons_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: image_completion_entry image_completion_entry_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33350,22 +30908,6 @@ ALTER TABLE ONLY public.image_uploads_entry
 
 
 --
--- Name: images_calls_connection images_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.images_calls_connection
-    ADD CONSTRAINT images_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: images_calls_connection images_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.images_calls_connection
-    ADD CONSTRAINT images_calls_connection_id_fkey FOREIGN KEY (images_id) REFERENCES public.images_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: images_images_connection images_images_connection_image_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33395,22 +30937,6 @@ ALTER TABLE ONLY public.images_qualities_connection
 
 ALTER TABLE ONLY public.images_qualities_connection
     ADD CONSTRAINT images_qualities_connection_quality_id_fkey FOREIGN KEY (quality_id) REFERENCES public.qualities_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: instructions_calls_connection instructions_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.instructions_calls_connection
-    ADD CONSTRAINT instructions_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: instructions_calls_connection instructions_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.instructions_calls_connection
-    ADD CONSTRAINT instructions_calls_connection_id_fkey FOREIGN KEY (instructions_id) REFERENCES public.instructions_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -33622,38 +31148,6 @@ ALTER TABLE ONLY public.test_invocation_voices_connection
 
 
 --
--- Name: items_calls_connection items_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.items_calls_connection
-    ADD CONSTRAINT items_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: items_calls_connection items_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.items_calls_connection
-    ADD CONSTRAINT items_calls_connection_id_fkey FOREIGN KEY (items_id) REFERENCES public.items_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: keys_calls_connection keys_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keys_calls_connection
-    ADD CONSTRAINT keys_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: keys_calls_connection keys_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.keys_calls_connection
-    ADD CONSTRAINT keys_calls_connection_id_fkey FOREIGN KEY (keys_id) REFERENCES public.keys_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: logins_entry logins_entry_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -33699,22 +31193,6 @@ ALTER TABLE ONLY public.messages_agents_connection
 
 ALTER TABLE ONLY public.messages_entry
     ADD CONSTRAINT messages_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.runs_entry(id);
-
-
---
--- Name: modalities_calls_connection modalities_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.modalities_calls_connection
-    ADD CONSTRAINT modalities_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: modalities_calls_connection modalities_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.modalities_calls_connection
-    ADD CONSTRAINT modalities_calls_connection_id_fkey FOREIGN KEY (modalities_id) REFERENCES public.modalities_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -34166,70 +31644,6 @@ ALTER TABLE ONLY public.model_voices_junction
 
 
 --
--- Name: models_calls_connection models_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.models_calls_connection
-    ADD CONSTRAINT models_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: models_calls_connection models_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.models_calls_connection
-    ADD CONSTRAINT models_calls_connection_id_fkey FOREIGN KEY (models_id) REFERENCES public.models_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: names_calls_connection names_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.names_calls_connection
-    ADD CONSTRAINT names_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: names_calls_connection names_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.names_calls_connection
-    ADD CONSTRAINT names_calls_connection_id_fkey FOREIGN KEY (names_id) REFERENCES public.names_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: objectives_calls_connection objectives_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.objectives_calls_connection
-    ADD CONSTRAINT objectives_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: objectives_calls_connection objectives_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.objectives_calls_connection
-    ADD CONSTRAINT objectives_calls_connection_id_fkey FOREIGN KEY (objectives_id) REFERENCES public.objectives_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: options_calls_connection options_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.options_calls_connection
-    ADD CONSTRAINT options_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: options_calls_connection options_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.options_calls_connection
-    ADD CONSTRAINT options_calls_connection_id_fkey FOREIGN KEY (options_id) REFERENCES public.options_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: options_resource options_resource_question_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -34366,22 +31780,6 @@ ALTER TABLE ONLY public.parameter_drafts_profiles_connection
 
 
 --
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_id_fkey FOREIGN KEY (parameter_fields_id) REFERENCES public.parameter_fields_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: parameter_fields_junction parameter_fields_field_resource_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -34459,22 +31857,6 @@ ALTER TABLE ONLY public.parameter_parameters_junction
 
 ALTER TABLE ONLY public.parameter_parameters_junction
     ADD CONSTRAINT parameter_parameters_parameters_id_fkey FOREIGN KEY (parameters_id) REFERENCES public.parameters_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: parameters_calls_connection parameters_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameters_calls_connection
-    ADD CONSTRAINT parameters_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: parameters_calls_connection parameters_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameters_calls_connection
-    ADD CONSTRAINT parameters_calls_connection_id_fkey FOREIGN KEY (parameters_id) REFERENCES public.parameters_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -34830,22 +32212,6 @@ ALTER TABLE ONLY public.persona_voices_junction
 
 
 --
--- Name: personas_calls_connection personas_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.personas_calls_connection
-    ADD CONSTRAINT personas_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: personas_calls_connection personas_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.personas_calls_connection
-    ADD CONSTRAINT personas_calls_connection_id_fkey FOREIGN KEY (personas_id) REFERENCES public.personas_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: personas_personas_connection personas_personas_conn_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -34859,22 +32225,6 @@ ALTER TABLE ONLY public.personas_personas_connection
 
 ALTER TABLE ONLY public.personas_personas_connection
     ADD CONSTRAINT personas_personas_conn_personas_id_fkey FOREIGN KEY (personas_id) REFERENCES public.personas_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: points_calls_connection points_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.points_calls_connection
-    ADD CONSTRAINT points_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: points_calls_connection points_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.points_calls_connection
-    ADD CONSTRAINT points_calls_connection_id_fkey FOREIGN KEY (points_id) REFERENCES public.points_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -35006,43 +32356,11 @@ ALTER TABLE ONLY public.practice_chat_entry
 
 
 --
--- Name: pricing_calls_connection pricing_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pricing_calls_connection
-    ADD CONSTRAINT pricing_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: pricing_calls_connection pricing_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pricing_calls_connection
-    ADD CONSTRAINT pricing_calls_connection_id_fkey FOREIGN KEY (pricing_id) REFERENCES public.pricing_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: primary_departments_resource primary_departments_resource_departments_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.primary_departments_resource
     ADD CONSTRAINT primary_departments_resource_departments_id_fkey FOREIGN KEY (departments_id) REFERENCES public.departments_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: problem_statements_calls_connection problem_statements_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.problem_statements_calls_connection
-    ADD CONSTRAINT problem_statements_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: problem_statements_calls_connection problem_statements_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.problem_statements_calls_connection
-    ADD CONSTRAINT problem_statements_calls_connection_id_fkey FOREIGN KEY (problem_statements_id) REFERENCES public.problem_statements_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -35230,22 +32548,6 @@ ALTER TABLE ONLY public.profile_names_junction
 
 
 --
--- Name: profile_personas_calls_connection profile_personas_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: profile_personas_calls_connection profile_personas_calls_connection_profile_personas_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_profile_personas_id_fkey FOREIGN KEY (profile_personas_id) REFERENCES public.profile_personas_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: profile_personas_resource profile_personas_resource_persona_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35315,22 +32617,6 @@ ALTER TABLE ONLY public.profile_roles_junction
 
 ALTER TABLE ONLY public.profiles_activity_connection
     ADD CONSTRAINT profiles_activity_connection_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.activity_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: profiles_calls_connection profiles_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: profiles_calls_connection profiles_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -35419,38 +32705,6 @@ ALTER TABLE ONLY public.profiles_sessions_connection
 
 ALTER TABLE ONLY public.profiles_sessions_connection
     ADD CONSTRAINT profiles_sessions_connection_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: prompts_calls_connection prompts_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.prompts_calls_connection
-    ADD CONSTRAINT prompts_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: prompts_calls_connection prompts_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.prompts_calls_connection
-    ADD CONSTRAINT prompts_calls_connection_id_fkey FOREIGN KEY (prompts_id) REFERENCES public.prompts_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: protocols_calls_connection protocols_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.protocols_calls_connection
-    ADD CONSTRAINT protocols_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: protocols_calls_connection protocols_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.protocols_calls_connection
-    ADD CONSTRAINT protocols_calls_connection_id_fkey FOREIGN KEY (protocols_id) REFERENCES public.protocols_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -35646,22 +32900,6 @@ ALTER TABLE ONLY public.provider_flags_junction
 
 
 --
--- Name: provider_keys_calls_connection provider_keys_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: provider_keys_calls_connection provider_keys_calls_connection_provider_keys_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_provider_keys_id_fkey FOREIGN KEY (provider_keys_id) REFERENCES public.provider_keys_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: provider_keys_junction provider_keys_junction_key_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35734,86 +32972,6 @@ ALTER TABLE ONLY public.provider_values_junction
 
 
 --
--- Name: providers_calls_connection providers_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.providers_calls_connection
-    ADD CONSTRAINT providers_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: providers_calls_connection providers_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.providers_calls_connection
-    ADD CONSTRAINT providers_calls_connection_id_fkey FOREIGN KEY (providers_id) REFERENCES public.providers_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: qualities_calls_connection qualities_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.qualities_calls_connection
-    ADD CONSTRAINT qualities_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: qualities_calls_connection qualities_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.qualities_calls_connection
-    ADD CONSTRAINT qualities_calls_connection_id_fkey FOREIGN KEY (qualities_id) REFERENCES public.qualities_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: questions_calls_connection questions_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.questions_calls_connection
-    ADD CONSTRAINT questions_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: questions_calls_connection questions_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.questions_calls_connection
-    ADD CONSTRAINT questions_calls_connection_id_fkey FOREIGN KEY (questions_id) REFERENCES public.questions_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: reasoning_levels_calls_connection reasoning_levels_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.reasoning_levels_calls_connection
-    ADD CONSTRAINT reasoning_levels_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: reasoning_levels_calls_connection reasoning_levels_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.reasoning_levels_calls_connection
-    ADD CONSTRAINT reasoning_levels_calls_connection_id_fkey FOREIGN KEY (reasoning_levels_id) REFERENCES public.reasoning_levels_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: request_limits_calls_connection request_limits_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.request_limits_calls_connection
-    ADD CONSTRAINT request_limits_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: request_limits_calls_connection request_limits_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.request_limits_calls_connection
-    ADD CONSTRAINT request_limits_calls_connection_id_fkey FOREIGN KEY (request_limits_id) REFERENCES public.request_limits_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: resolves_entry resolves_entry_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -35827,22 +32985,6 @@ ALTER TABLE ONLY public.resolves_entry
 
 ALTER TABLE ONLY public.resolves_entry
     ADD CONSTRAINT resolves_entry_problem_id_fkey FOREIGN KEY (problem_id) REFERENCES public.problems_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: roles_calls_connection roles_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.roles_calls_connection
-    ADD CONSTRAINT roles_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: roles_calls_connection roles_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.roles_calls_connection
-    ADD CONSTRAINT roles_calls_connection_id_fkey FOREIGN KEY (roles_id) REFERENCES public.roles_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -36115,22 +33257,6 @@ ALTER TABLE ONLY public.rubric_standards_junction
 
 ALTER TABLE ONLY public.rubric_standards_junction
     ADD CONSTRAINT rubric_standards_standard_id_fkey FOREIGN KEY (standards_id) REFERENCES public.standards_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: rubrics_calls_connection rubrics_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.rubrics_calls_connection
-    ADD CONSTRAINT rubrics_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: rubrics_calls_connection rubrics_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.rubrics_calls_connection
-    ADD CONSTRAINT rubrics_calls_connection_id_fkey FOREIGN KEY (rubrics_id) REFERENCES public.rubrics_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -36486,22 +33612,6 @@ ALTER TABLE ONLY public.scenario_drafts_videos_connection
 
 
 --
--- Name: scenario_flags_calls_connection scenario_flags_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_flags_calls_connection
-    ADD CONSTRAINT scenario_flags_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenario_flags_calls_connection scenario_flags_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_flags_calls_connection
-    ADD CONSTRAINT scenario_flags_calls_connection_id_fkey FOREIGN KEY (scenario_flags_id) REFERENCES public.scenario_flags_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: scenario_flags_junction scenario_flags_flag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36630,22 +33740,6 @@ ALTER TABLE ONLY public.scenario_personas_junction
 
 
 --
--- Name: scenario_positions_calls_connection scenario_positions_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_positions_calls_connection
-    ADD CONSTRAINT scenario_positions_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenario_positions_calls_connection scenario_positions_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_positions_calls_connection
-    ADD CONSTRAINT scenario_positions_calls_connection_id_fkey FOREIGN KEY (scenario_positions_id) REFERENCES public.scenario_positions_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: scenario_positions_resource scenario_positions_resource_scenario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36686,22 +33780,6 @@ ALTER TABLE ONLY public.scenario_questions_junction
 
 
 --
--- Name: scenario_rubrics_calls_connection scenario_rubrics_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_rubrics_calls_connection
-    ADD CONSTRAINT scenario_rubrics_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenario_rubrics_calls_connection scenario_rubrics_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_rubrics_calls_connection
-    ADD CONSTRAINT scenario_rubrics_calls_connection_id_fkey FOREIGN KEY (scenario_rubrics_id) REFERENCES public.scenario_rubrics_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: scenario_rubrics_resource scenario_rubrics_resource_rubric_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36734,22 +33812,6 @@ ALTER TABLE ONLY public.scenario_scenarios_junction
 
 
 --
--- Name: scenario_time_limits_calls_connection scenario_time_limits_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_time_limits_calls_connection
-    ADD CONSTRAINT scenario_time_limits_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenario_time_limits_calls_connection scenario_time_limits_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenario_time_limits_calls_connection
-    ADD CONSTRAINT scenario_time_limits_calls_connection_id_fkey FOREIGN KEY (scenario_time_limits_id) REFERENCES public.scenario_time_limits_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: scenario_time_limits_resource scenario_time_limits_resource_scenario_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -36771,22 +33833,6 @@ ALTER TABLE ONLY public.scenario_videos_junction
 
 ALTER TABLE ONLY public.scenario_videos_junction
     ADD CONSTRAINT scenario_videos_video_id_fkey FOREIGN KEY (videos_id) REFERENCES public.videos_resource(id);
-
-
---
--- Name: scenarios_calls_connection scenarios_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenarios_calls_connection
-    ADD CONSTRAINT scenarios_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: scenarios_calls_connection scenarios_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.scenarios_calls_connection
-    ADD CONSTRAINT scenarios_calls_connection_id_fkey FOREIGN KEY (scenarios_id) REFERENCES public.scenarios_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -37222,38 +34268,6 @@ ALTER TABLE ONLY public.setting_thresholds_junction
 
 
 --
--- Name: settings_calls_connection settings_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.settings_calls_connection
-    ADD CONSTRAINT settings_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: settings_calls_connection settings_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.settings_calls_connection
-    ADD CONSTRAINT settings_calls_connection_id_fkey FOREIGN KEY (settings_id) REFERENCES public.settings_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: simulation_availability_calls_connection simulation_availability_calls_c_simulation_availability_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_availability_calls_connection
-    ADD CONSTRAINT simulation_availability_calls_c_simulation_availability_id_fkey FOREIGN KEY (simulation_availability_id) REFERENCES public.simulation_availability_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: simulation_availability_calls_connection simulation_availability_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_availability_calls_connection
-    ADD CONSTRAINT simulation_availability_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
 -- Name: simulation_availability_resource simulation_availability_resource_simulation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -37486,22 +34500,6 @@ ALTER TABLE ONLY public.simulation_names_junction
 
 
 --
--- Name: simulation_positions_calls_connection simulation_positions_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_positions_calls_connection
-    ADD CONSTRAINT simulation_positions_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: simulation_positions_calls_connection simulation_positions_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulation_positions_calls_connection
-    ADD CONSTRAINT simulation_positions_calls_connection_id_fkey FOREIGN KEY (simulation_positions_id) REFERENCES public.simulation_positions_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: simulation_positions_resource simulation_positions_resource_simulation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -37606,75 +34604,11 @@ ALTER TABLE ONLY public.simulation_simulations_junction
 
 
 --
--- Name: simulations_calls_connection simulations_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulations_calls_connection
-    ADD CONSTRAINT simulations_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: simulations_calls_connection simulations_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.simulations_calls_connection
-    ADD CONSTRAINT simulations_calls_connection_id_fkey FOREIGN KEY (simulations_id) REFERENCES public.simulations_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: slugs_calls_connection slugs_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.slugs_calls_connection
-    ADD CONSTRAINT slugs_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: slugs_calls_connection slugs_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.slugs_calls_connection
-    ADD CONSTRAINT slugs_calls_connection_id_fkey FOREIGN KEY (slugs_id) REFERENCES public.slugs_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: soft_calls_entry soft_calls_entry_call_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.soft_calls_entry
     ADD CONSTRAINT soft_calls_entry_call_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: standard_groups_calls_connection standard_groups_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standard_groups_calls_connection
-    ADD CONSTRAINT standard_groups_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: standard_groups_calls_connection standard_groups_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standard_groups_calls_connection
-    ADD CONSTRAINT standard_groups_calls_connection_id_fkey FOREIGN KEY (standard_groups_id) REFERENCES public.standard_groups_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: standards_calls_connection standards_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standards_calls_connection
-    ADD CONSTRAINT standards_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: standards_calls_connection standards_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.standards_calls_connection
-    ADD CONSTRAINT standards_calls_connection_id_fkey FOREIGN KEY (standards_id) REFERENCES public.standards_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -37811,22 +34745,6 @@ ALTER TABLE ONLY public.invocation_drafts_voices_connection
 
 ALTER TABLE ONLY public.invocation_drafts_voices_connection
     ADD CONSTRAINT suite_drafts_voices_connection_voices_id_fkey FOREIGN KEY (voices_id) REFERENCES public.voices_resource(id);
-
-
---
--- Name: temperature_levels_calls_connection temperature_levels_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.temperature_levels_calls_connection
-    ADD CONSTRAINT temperature_levels_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: temperature_levels_calls_connection temperature_levels_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.temperature_levels_calls_connection
-    ADD CONSTRAINT temperature_levels_calls_connection_id_fkey FOREIGN KEY (temperature_levels_id) REFERENCES public.temperature_levels_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -38214,22 +35132,6 @@ ALTER TABLE ONLY public.text_uploads_entry
 
 
 --
--- Name: texts_calls_connection texts_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.texts_calls_connection
-    ADD CONSTRAINT texts_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: texts_calls_connection texts_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.texts_calls_connection
-    ADD CONSTRAINT texts_calls_connection_id_fkey FOREIGN KEY (texts_id) REFERENCES public.texts_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: texts_texts_connection texts_texts_connection_text_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -38243,22 +35145,6 @@ ALTER TABLE ONLY public.texts_texts_connection
 
 ALTER TABLE ONLY public.texts_texts_connection
     ADD CONSTRAINT texts_texts_connection_texts_id_fkey FOREIGN KEY (texts_id) REFERENCES public.texts_resource(id) ON DELETE CASCADE;
-
-
---
--- Name: thresholds_calls_connection thresholds_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.thresholds_calls_connection
-    ADD CONSTRAINT thresholds_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: thresholds_calls_connection thresholds_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.thresholds_calls_connection
-    ADD CONSTRAINT thresholds_calls_connection_id_fkey FOREIGN KEY (thresholds_id) REFERENCES public.thresholds_resource(id) ON DELETE CASCADE;
 
 
 --
@@ -39094,22 +35980,6 @@ ALTER TABLE ONLY public.upload_completion_entry
 
 
 --
--- Name: values_calls_connection values_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.values_calls_connection
-    ADD CONSTRAINT values_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: values_calls_connection values_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.values_calls_connection
-    ADD CONSTRAINT values_calls_connection_id_fkey FOREIGN KEY (values_id) REFERENCES public.values_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: video_completion_entry video_completion_entry_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39142,22 +36012,6 @@ ALTER TABLE ONLY public.video_uploads_entry
 
 
 --
--- Name: videos_calls_connection videos_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.videos_calls_connection
-    ADD CONSTRAINT videos_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: videos_calls_connection videos_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.videos_calls_connection
-    ADD CONSTRAINT videos_calls_connection_id_fkey FOREIGN KEY (videos_id) REFERENCES public.videos_resource(id) ON DELETE CASCADE;
-
-
---
 -- Name: videos_videos_connection videos_videos_connection_video_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -39174,24 +36028,8 @@ ALTER TABLE ONLY public.videos_videos_connection
 
 
 --
--- Name: voices_calls_connection voices_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.voices_calls_connection
-    ADD CONSTRAINT voices_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
--- Name: voices_calls_connection voices_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.voices_calls_connection
-    ADD CONSTRAINT voices_calls_connection_id_fkey FOREIGN KEY (voices_id) REFERENCES public.voices_resource(id) ON DELETE CASCADE;
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict IeYJ8RhuO1b0XWkS5dcIM0NrkH8oOpJMHcnnrJoXOmSUiCiieEOchq1o9TsudL6
+\unrestrict 4AeuTOKsdIuUSemnH9TxGCYO11T0Hs626Hi9pUwfGy9Fmk6T8P4rX6iKHVj5KaG
 

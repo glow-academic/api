@@ -145,21 +145,3 @@ ALTER TABLE ONLY public.auth_drafts_slugs_connection
 
 
 --
-
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_auth_item_keys_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_auth_item_keys_id_fkey FOREIGN KEY (auth_item_keys_id) REFERENCES public.auth_item_keys_resource(id) ON DELETE CASCADE;
-
-
---
-
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---

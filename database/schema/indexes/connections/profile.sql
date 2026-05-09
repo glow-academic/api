@@ -49,19 +49,3 @@ CREATE INDEX idx_profile_drafts_roles_resource_id ON public.profile_drafts_roles
 
 
 --
-
--- Name: profile_personas_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_personas_calls_connection_call_id_idx ON public.profile_personas_calls_connection USING btree (call_id);
-
-
---
-
--- Name: profile_personas_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX profile_personas_calls_connection_id_idx ON public.profile_personas_calls_connection USING btree (profile_personas_id);
-
-
---

@@ -77,20 +77,6 @@ CREATE TABLE public.profiles_problems_connection (
 
 --
 
--- Name: profiles_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles_calls_connection (
-    profiles_id uuid CONSTRAINT profiles_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
 -- Name: profiles_sessions_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -111,15 +97,6 @@ CREATE TABLE public.profiles_sessions_connection (
 
 ALTER TABLE ONLY public.profiles_activity_connection
     ADD CONSTRAINT profiles_activity_connection_pkey PRIMARY KEY (profiles_id, activity_id);
-
-
---
-
--- Name: profiles_calls_connection profiles_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_pkey PRIMARY KEY (profiles_id, call_id);
 
 
 --

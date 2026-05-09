@@ -122,20 +122,6 @@ CREATE TABLE public.provider_drafts_values_connection (
 
 --
 
--- Name: provider_keys_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.provider_keys_calls_connection (
-    provider_keys_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
 -- Name: provider_drafts_departments_connection provider_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -204,15 +190,6 @@ ALTER TABLE ONLY public.provider_drafts_profiles_connection
 
 ALTER TABLE ONLY public.provider_drafts_values_connection
     ADD CONSTRAINT provider_drafts_values_connection_pkey PRIMARY KEY (draft_id, values_id);
-
-
---
-
--- Name: provider_keys_calls_connection provider_keys_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_pkey PRIMARY KEY (provider_keys_id, call_id);
 
 
 --

@@ -11,24 +11,6 @@ ALTER TABLE ONLY public.profiles_activity_connection
 
 --
 
--- Name: profiles_calls_connection profiles_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profiles_calls_connection profiles_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profiles_calls_connection
-    ADD CONSTRAINT profiles_calls_connection_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles_resource(id) ON DELETE CASCADE;
-
-
---
-
 -- Name: profiles_emulations_connection profiles_emulations_connection_emulation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 

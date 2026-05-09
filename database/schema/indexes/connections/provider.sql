@@ -65,19 +65,3 @@ CREATE INDEX idx_provider_drafts_values_resource_id ON public.provider_drafts_va
 
 
 --
-
--- Name: provider_keys_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX provider_keys_calls_connection_call_id_idx ON public.provider_keys_calls_connection USING btree (call_id);
-
-
---
-
--- Name: provider_keys_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX provider_keys_calls_connection_id_idx ON public.provider_keys_calls_connection USING btree (provider_keys_id);
-
-
---

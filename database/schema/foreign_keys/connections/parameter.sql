@@ -109,21 +109,3 @@ ALTER TABLE ONLY public.parameter_drafts_profiles_connection
 
 
 --
-
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_id_fkey FOREIGN KEY (parameter_fields_id) REFERENCES public.parameter_fields_resource(id) ON DELETE CASCADE;
-
-
---

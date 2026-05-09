@@ -107,20 +107,6 @@ CREATE TABLE public.profile_drafts_roles_connection (
 
 --
 
--- Name: profile_personas_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profile_personas_calls_connection (
-    profile_personas_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
 -- Name: profile_drafts_departments_connection profile_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -180,15 +166,6 @@ ALTER TABLE ONLY public.profile_drafts_profiles_connection
 
 ALTER TABLE ONLY public.profile_drafts_roles_connection
     ADD CONSTRAINT profile_drafts_roles_connection_pkey PRIMARY KEY (draft_id, roles_id);
-
-
---
-
--- Name: profile_personas_calls_connection profile_personas_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_pkey PRIMARY KEY (profile_personas_id, call_id);
 
 
 --

@@ -127,21 +127,3 @@ ALTER TABLE ONLY public.profile_drafts_roles_connection
 
 
 --
-
--- Name: profile_personas_calls_connection profile_personas_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: profile_personas_calls_connection profile_personas_calls_connection_profile_personas_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.profile_personas_calls_connection
-    ADD CONSTRAINT profile_personas_calls_connection_profile_personas_id_fkey FOREIGN KEY (profile_personas_id) REFERENCES public.profile_personas_resource(id) ON DELETE CASCADE;
-
-
---

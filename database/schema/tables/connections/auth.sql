@@ -122,20 +122,6 @@ CREATE TABLE public.auth_drafts_slugs_connection (
 
 --
 
--- Name: auth_item_keys_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.auth_item_keys_calls_connection (
-    auth_item_keys_id uuid NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
 -- Name: auth_drafts_departments_connection auth_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -204,15 +190,6 @@ ALTER TABLE ONLY public.auth_drafts_protocols_connection
 
 ALTER TABLE ONLY public.auth_drafts_slugs_connection
     ADD CONSTRAINT auth_drafts_slugs_connection_pkey PRIMARY KEY (draft_id, slugs_id);
-
-
---
-
--- Name: auth_item_keys_calls_connection auth_item_keys_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.auth_item_keys_calls_connection
-    ADD CONSTRAINT auth_item_keys_calls_connection_pkey PRIMARY KEY (auth_item_keys_id, call_id);
 
 
 --

@@ -17,19 +17,3 @@ CREATE INDEX idx_texts_texts_connection_texts_id ON public.texts_texts_connectio
 
 
 --
-
--- Name: texts_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX texts_calls_connection_call_id_idx ON public.texts_calls_connection USING btree (call_id);
-
-
---
-
--- Name: texts_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX texts_calls_connection_id_idx ON public.texts_calls_connection USING btree (texts_id);
-
-
---

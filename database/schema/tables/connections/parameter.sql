@@ -92,20 +92,6 @@ CREATE TABLE public.parameter_drafts_profiles_connection (
 
 --
 
--- Name: parameter_fields_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.parameter_fields_calls_connection (
-    parameter_fields_id uuid CONSTRAINT parameter_fields_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
 -- Name: parameter_drafts_departments_connection parameter_drafts_departments_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -156,15 +142,6 @@ ALTER TABLE ONLY public.parameter_drafts_names_connection
 
 ALTER TABLE ONLY public.parameter_drafts_profiles_connection
     ADD CONSTRAINT parameter_drafts_profiles_connection_pkey PRIMARY KEY (draft_id, profiles_id);
-
-
---
-
--- Name: parameter_fields_calls_connection parameter_fields_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.parameter_fields_calls_connection
-    ADD CONSTRAINT parameter_fields_calls_connection_pkey PRIMARY KEY (parameter_fields_id, call_id);
 
 
 --

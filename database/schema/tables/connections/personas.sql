@@ -17,29 +17,6 @@ CREATE TABLE public.personas_personas_connection (
 
 --
 
--- Name: personas_calls_connection; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.personas_calls_connection (
-    personas_id uuid CONSTRAINT personas_calls_connection_id_not_null NOT NULL,
-    call_id uuid NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
-
--- Name: personas_calls_connection personas_calls_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.personas_calls_connection
-    ADD CONSTRAINT personas_calls_connection_pkey PRIMARY KEY (personas_id, call_id);
-
-
---
-
 -- Name: personas_personas_connection personas_personas_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

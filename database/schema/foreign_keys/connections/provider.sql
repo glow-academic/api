@@ -145,21 +145,3 @@ ALTER TABLE ONLY public.provider_drafts_values_connection
 
 
 --
-
--- Name: provider_keys_calls_connection provider_keys_calls_connection_call_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_call_id_fkey FOREIGN KEY (call_id) REFERENCES public.calls_entry(id) ON DELETE CASCADE;
-
-
---
-
--- Name: provider_keys_calls_connection provider_keys_calls_connection_provider_keys_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.provider_keys_calls_connection
-    ADD CONSTRAINT provider_keys_calls_connection_provider_keys_id_fkey FOREIGN KEY (provider_keys_id) REFERENCES public.provider_keys_resource(id) ON DELETE CASCADE;
-
-
---

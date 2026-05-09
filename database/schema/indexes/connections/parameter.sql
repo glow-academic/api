@@ -49,19 +49,3 @@ CREATE INDEX idx_parameter_drafts_profiles_resource_id ON public.parameter_draft
 
 
 --
-
--- Name: parameter_fields_calls_connection_call_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameter_fields_calls_connection_call_id_idx ON public.parameter_fields_calls_connection USING btree (call_id);
-
-
---
-
--- Name: parameter_fields_calls_connection_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX parameter_fields_calls_connection_id_idx ON public.parameter_fields_calls_connection USING btree (parameter_fields_id);
-
-
---
