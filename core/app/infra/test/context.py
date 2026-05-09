@@ -37,6 +37,7 @@ from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.modalities.get import get_modalities
 from app.tools.resources.modalities.search import search_modalities
 from app.tools.resources.models.get import get_models
+from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.prompts.get import get_prompts
 from app.tools.resources.qualities.get import get_qualities
 from app.tools.resources.qualities.search import search_qualities
@@ -320,6 +321,50 @@ async def resolve_test_context(
         _search_all(search_voices),
         _search_all(search_temperature_levels),
     )
+
+    # ── Phase 5d: Historical-permission filter for the tools picker ────
+    # When the test is bound to a historical run, the tools picker is
+    # narrowed to tools whose permissions intersect with the operations
+    # the historical run actually executed. Same canned outputs are
+    # served either way (replay tape is keyed by (artifact, operation),
+    # not tool_id), so a tool only makes sense if it grants one of the
+    # historical permissions. See project_test_replay_design memory.
+    from app.infra.generation.chat_history import _load_call_data
+
+    historical_perms: set[tuple[str, str]] = set()
+    for call in original_calls:
+        if call.file_path is None:
+            continue
+        receipt = await _load_call_data(call.file_path)
+        if receipt is None:
+            continue
+        for evt in receipt.get("events", []):
+            name = evt.get("event", "")
+            parts = name.split(".") if isinstance(name, str) else []
+            if len(parts) >= 3 and parts[-1] == "completed":
+                historical_perms.add((parts[0], parts[1]))
+
+    if historical_perms:
+        # Bulk-fetch the permissions referenced by tools_all so we can
+        # filter without an N+1 lookup.
+        all_perm_ids: set[UUID] = set()
+        for t in tools_all:
+            for pid in (t.permission_ids or []):
+                all_perm_ids.add(pid)
+        async with pool.acquire() as c:
+            perms = await get_permissions(
+                c, list(all_perm_ids), redis, bypass_cache=bypass_cache,
+            ) if all_perm_ids else []
+        perm_pair_by_id = {
+            p.id: (p.artifact, p.operation) for p in perms
+        }
+        def _tool_matches(t: Any) -> bool:
+            for pid in (t.permission_ids or []):
+                pair = perm_pair_by_id.get(pid)
+                if pair is not None and pair in historical_perms:
+                    return True
+            return False
+        tools_all = [t for t in tools_all if _tool_matches(t)]
 
     # ── Phase 6: Sort messages by role priority then created_at ────────
     _ROLE_ORDER = {"system": 0, "developer": 1, "user": 2, "assistant": 3}

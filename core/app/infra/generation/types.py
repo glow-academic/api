@@ -48,21 +48,31 @@ class ReplayTapeEntry:
     """One historical tool call in a benchmark replay tape.
 
     During a trace-driven benchmark run, the LLM dispatches against a
-    pre-loaded tape of historical tool outputs. When the LLM calls
-    tool X, the dispatch loop returns the next unconsumed tape entry
-    matching that tool_id — substituting the historical raw_output
-    bytes verbatim, regardless of what args the LLM passed. The impl
-    is never invoked, no rows are written anywhere, no soft_calls
-    ledger pending entries pollute the user's UI. Pure tape playback.
+    pre-loaded tape of historical tool outputs. When the LLM calls a
+    tool resolving to ``(artifact, operation)``, the dispatch loop
+    returns the next unconsumed entry matching that pair —
+    substituting the historical raw_output bytes verbatim, regardless
+    of args or which specific tool the LLM picked. The impl is never
+    invoked, no rows are written anywhere, no soft_calls ledger
+    pending entries pollute the user's UI. Pure tape playback.
 
-    Tape consumption is per-tool: calls to tool X consume entries
-    matching tool_id=X in arrival order. Other tools' entries are not
-    affected.
+    Permission-keyed (not tool_id-keyed) so the user can swap a
+    historical tool for a different one granting the same
+    (artifact, operation). Same canned output is served either way,
+    keeping benchmarks reproducible while still letting users vary
+    tool definitions to test how naming/description affects model
+    behavior.
+
+    Consumption is per-permission: calls resolving to (persona, search)
+    consume entries with that pair in chronological order; other
+    permissions' entries are independent.
     """
 
-    tool_id: UUID
+    artifact: str  # canonical permission artifact ("persona", "scenario", ...)
+    operation: str  # canonical permission operation ("create", "search", ...)
     operation_key: UUID
     historical_call_id: UUID
+    historical_tool_id: UUID  # for traceability / debugging
     raw_output: Any  # parsed JSON, typically a dict
 
 

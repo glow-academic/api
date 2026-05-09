@@ -266,10 +266,14 @@ async def prepare_generation(
 
         # ── Replay tape (canned tool outputs from the historical run) ──
         # Pre-load every historical tool call's persisted raw_output so
-        # the dispatch loop can substitute them at tool-call time. The
-        # impl never runs in replay; nothing is written anywhere; the
-        # LLM sees byte-identical historical responses regardless of
-        # what args it passes. See ReplayTapeEntry docstring.
+        # the dispatch loop can substitute them at tool-call time.
+        # Tape entries are keyed by ``(artifact, operation)`` (not
+        # tool_id) so the user can swap a historical tool for any
+        # other tool granting the same permission and still get the
+        # canned output. Permission is parsed from the persisted
+        # receipt's ``events`` array — the canonical
+        # ``<artifact>.<operation>.completed`` event records what
+        # actually ran.
         if trace_ctx.historical_run_id is not None:
             async with pool.acquire() as conn:
                 historical_calls = await search_calls(
@@ -282,21 +286,33 @@ async def prepare_generation(
                 if c.tool_id is None or c.file_path is None:
                     continue
                 receipt = await _load_call_data(c.file_path)
+                if receipt is None:
+                    continue
+                # Resolve (artifact, operation) from the events log —
+                # the source-of-truth signal for what actually ran.
+                artifact_name: str | None = None
+                operation_name: str | None = None
+                for evt in receipt.get("events", []):
+                    name = evt.get("event", "")
+                    parts = name.split(".") if isinstance(name, str) else []
+                    if len(parts) >= 3 and parts[-1] == "completed":
+                        artifact_name, operation_name = parts[0], parts[1]
+                        break
+                if artifact_name is None or operation_name is None:
+                    continue
                 # Prefer structured raw_output; fall back to the
                 # rendered output string so even calls without a
                 # parsed result still replay something sensible.
-                raw_output: Any = (
-                    receipt.get("raw_output") if receipt else None
-                )
-                if raw_output is None and receipt is not None:
-                    raw_output = {"output": receipt.get("output", "")}
+                raw_output: Any = receipt.get("raw_output")
                 if raw_output is None:
-                    continue
+                    raw_output = {"output": receipt.get("output", "")}
                 tape.append(
                     ReplayTapeEntry(
-                        tool_id=c.tool_id,
+                        artifact=artifact_name,
+                        operation=operation_name,
                         operation_key=getattr(c, "operation_key", None) or uuid.uuid4(),
                         historical_call_id=c.id,
+                        historical_tool_id=c.tool_id,
                         raw_output=raw_output,
                     )
                 )
