@@ -34,7 +34,11 @@ from app.tools.artifacts.persona.create import (
     create_persona as create_persona_artifact,
 )
 from app.tools.artifacts.persona.get import get_personas
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
+
+ARTIFACT = "persona"
 
 
 def _batch_department_scope(items: list[CreatePersonaItem]) -> list[str] | None:
@@ -87,17 +91,29 @@ async def create_persona_impl(
             accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id)
+    # we need to act on; without that lookup the impl can't tell what op
+    # is pending or which row to promote. See project_soft_calls_entry_pattern.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "create":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending persona create for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Promote: re-call create with soft=False → ON CONFLICT activates
+            # Promote: flip dormant artifact to active and create snapshot.
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await create_persona_artifact(conn, id=idempotency_key, soft=False)
+                    await create_persona_artifact(conn, id=target_id, soft=False)
 
-            # Read back junction IDs to create denormalized snapshot
             async with pool.acquire() as conn:
                 artifacts = await get_personas(
-                    conn, [idempotency_key],
+                    conn, [target_id],
                     names=True, descriptions=True, colors=True, icons=True,
                     instructions=True, departments=True, examples=True,
                     parameter_fields=True,
@@ -115,19 +131,36 @@ async def create_persona_impl(
                     example_ids=a.example_ids or None,
                     parameter_field_ids=a.parameter_field_ids or None,
                 )
+        # accept=False: dormant row stays (active=false). The 'rejected'
+        # ledger row appended below is the canonical record; search keeps
+        # filtering it out via active=false.
 
-            await refresh_persona_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id,
-                targets=["personas_mv"], operation_key=idempotency_key,
+        # Append the ack ledger row + refresh.
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="create",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-        # accept=False: no-op (dormant artifact stays for reference)
-        return CreatePersonaApiResponse(results=[
-            PersonaResultItem(
-                success=True,
-                id=idempotency_key,
-                message="Persona accepted" if accept else "Persona rejected",
-            )
-        ])
+
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
+        )
+
+        return CreatePersonaApiResponse(
+            results=[
+                PersonaResultItem(
+                    success=True,
+                    id=target_id,
+                    message="Persona accepted" if accept else "Persona rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── First-call requirements ───────────────────────────────────────
     if request is None or not request.personas:
@@ -236,6 +269,19 @@ async def create_persona_impl(
                     soft=soft,
                 )
 
+                # Soft writes append a pending ledger row tied to the
+                # originating tool call so ack lookups can resolve
+                # (artifact, operation, artifact_id). idempotency_key here
+                # is the calls_entry.id (see execute_infra_operation).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="create",
+                        artifact_id=result.id,
+                    )
+
                 results.append(
                     PersonaResultItem(
                         success=True,
@@ -269,4 +315,8 @@ async def create_persona_impl(
                 pool, redis, profile_id=profile_id, persona_ids=new_ids,
             )
 
-    return CreatePersonaApiResponse(results=results, personas=personas)
+    return CreatePersonaApiResponse(
+        results=results,
+        personas=personas,
+        idempotency_key=idempotency_key,
+    )

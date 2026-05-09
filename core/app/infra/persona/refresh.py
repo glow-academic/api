@@ -23,6 +23,7 @@ ARTIFACT_TYPE = "persona"
 ALL_TARGETS = [
     "personas_mv", "persona_drafts_mv",
     "runs_mv", "messages_mv", "calls_mv", "groups_mv", "group_names_mv",
+    "soft_calls_mv",
 ]
 
 # Tags to invalidate

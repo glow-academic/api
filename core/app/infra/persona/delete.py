@@ -27,8 +27,12 @@ from app.infra.persona.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.delete import delete_personas
 from app.tools.artifacts.persona.get import get_personas
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.resources.names.get import get_names
 from app.utils.cache.invalidate_tags import invalidate_tags
+
+ARTIFACT = "persona"
 
 
 async def delete_persona_impl(
@@ -81,25 +85,47 @@ async def delete_persona_impl(
     """
 
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # Look up the ledger to resolve which persona was soft-deleted.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "delete":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending persona delete for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Confirm deletion: no-op (already deactivated by soft delete)
+            # Confirm deletion: no-op (already deactivated by soft delete).
             pass
         else:
-            # Reject: restore soft-deleted artifact
+            # Reject: restore the soft-deleted artifact.
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await restore_artifacts(
-                        conn, table="persona_artifact", ids=[idempotency_key],
+                        conn, table="persona_artifact", ids=[target_id],
                     )
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="delete",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
+            )
+
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv"], operation_key=idempotency_key,
+            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
         )
         return DeletePersonaApiResponse(results=[
             DeletePersonaResult(
                 success=True,
-                id=idempotency_key,
+                id=target_id,
                 message="Delete confirmed" if accept else "Delete rejected — persona restored",
             )
         ])
@@ -230,6 +256,18 @@ async def delete_persona_impl(
     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_personas(conn, ids, soft=soft)
+
+            # Soft delete: append a pending ledger row per id so ack
+            # lookups can resolve which persona to restore on reject.
+            if soft and idempotency_key is not None:
+                for pid in result.deleted_ids:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="delete",
+                        artifact_id=pid,
+                    )
 
     # Refresh + invalidate (via canonical refresh)
     first_id = result.deleted_ids[0] if result.deleted_ids else None

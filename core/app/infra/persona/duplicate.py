@@ -29,9 +29,13 @@ from app.tools.artifacts.persona.create import (
     create_persona as create_persona_artifact,
 )
 from app.tools.artifacts.persona.get import get_personas
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+
+ARTIFACT = "persona"
 
 
 async def duplicate_persona_impl(
@@ -63,21 +67,45 @@ async def duplicate_persona_impl(
       7. invalidate_tags
     """
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # Look up the ledger to resolve the dormant copy's artifact_id.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "duplicate":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending persona duplicate for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Promote: re-call create with soft=False → ON CONFLICT activates
+            # Promote: flip dormant copy to active.
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await create_persona_artifact(conn, id=idempotency_key, soft=False)
-            await refresh_persona_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id,
-                targets=["personas_mv"], operation_key=idempotency_key,
+                    await create_persona_artifact(conn, id=target_id, soft=False)
+        # accept=False: dormant copy stays (active=false). The 'rejected'
+        # ledger row is the canonical record.
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="duplicate",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-        # accept=False: no-op
+
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
+        )
         return DuplicatePersonaApiResponse(
             success=True,
-            id=idempotency_key,
+            id=target_id,
             message="Duplicate accepted" if accept else "Duplicate rejected",
+            idempotency_key=idempotency_key,
         )
 
     # ── First-call requirements ───────────────────────────────────────
@@ -189,6 +217,17 @@ async def duplicate_persona_impl(
                 soft=soft,
             )
 
+            # Pending ledger row tied to this tool call so ack lookups
+            # can resolve which dormant copy to promote.
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="duplicate",
+                    artifact_id=result.id,
+                )
+
     # ── Step 7: Refresh + invalidate (via canonical refresh) ────────────
 
     await refresh_persona_impl(
@@ -210,4 +249,5 @@ async def duplicate_persona_impl(
         id=result.id,
         message="Persona duplicated (pending acceptance)" if soft else f"Persona '{original_name}' duplicated successfully",
         personas=personas,
+        idempotency_key=idempotency_key or result.id,
     )

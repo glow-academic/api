@@ -108,6 +108,7 @@ MV_REGISTRY: dict[str, tuple[str, str, float]] = {
     "sessions_mv": ("sessions", "refresh_sessions", _GLACIAL_S),
     "setting_drafts_mv": ("setting_drafts", "refresh_setting_drafts", _COOL_S),
     "simulation_drafts_mv": ("simulation_drafts", "refresh_simulation_drafts", _COOL_S),
+    "soft_calls_mv": ("soft_calls", "refresh_soft_calls", _HOT_S),
     "test_archive_mv": ("test_archive", "refresh_test_archive", _COOL_S),
     "test_completion_mv": ("test_completion", "refresh_test_completion", _COOL_S),
     "test_feedback_mv": ("test_feedback", "refresh_test_feedback", _COOL_S),

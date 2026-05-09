@@ -452,7 +452,12 @@ async def execute_infra_operation(
                         group_id=ctx.group_id,
                         soft=soft,
                         accept=accept,
-                        idempotency_key=ctx.operation_key,
+                        # Canonical ack key: the calls_entry row id of this
+                        # tool call. The impl uses it to look up its
+                        # ``soft_calls_entry`` ledger row at ack time. Was
+                        # ``operation_key`` before — see soft_calls_entry
+                        # pattern memory entry.
+                        idempotency_key=ctx.call_id,
                     )
             else:
                 # Kwargs path: pass rendered args as kwargs directly
@@ -479,7 +484,8 @@ async def execute_infra_operation(
                     "run_id": ctx.run_id,
                     "soft": soft,
                     "accept": accept,
-                    "idempotency_key": ctx.operation_key,
+                    # Canonical ack key — see structured-path comment above.
+                    "idempotency_key": ctx.call_id,
                 }
                 # Only pass context kwargs the handler's signature actually
                 # declares. Handlers vary in which context they take — some
@@ -500,6 +506,16 @@ async def execute_infra_operation(
                         **kwargs,
                     )
 
+            # Lifecycle flags are system-injected (soft from cfg.dangerous,
+            # accept from ack short-circuit). Stamp them into the recorded
+            # arguments so the chat panel's deriveReceiptState can tell a
+            # pending tool call apart from an executed one.
+            recorded_arguments = dict(kwargs if accepted is None else filtered)
+            if is_write:
+                recorded_arguments["soft"] = soft
+                if accept is not None:
+                    recorded_arguments["accept"] = accept
+
             result = await run_artifact_operation_with_audit(
                 ctx.pool,
                 ctx.redis,
@@ -513,7 +529,7 @@ async def execute_infra_operation(
                 sid=ctx.sid,
                 rooms=[ctx.sid] if ctx.sid else [],
                 runner=_runner,
-                arguments=kwargs if accepted is None else filtered,
+                arguments=recorded_arguments,
                 instruction_template=ctx.instruction_template,
                 operation_key=ctx.operation_key,
                 call_id=ctx.call_id,

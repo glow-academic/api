@@ -35,7 +35,11 @@ from app.tools.artifacts.persona.update import (
 from app.tools.artifacts.persona.update import (
     update_persona as update_persona_artifact,
 )
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
+
+ARTIFACT = "persona"
 
 
 async def update_persona_impl(
@@ -77,19 +81,29 @@ async def update_persona_impl(
             accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
+    # Look up the ledger row to resolve the dormant update's artifact_id.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != "update":
+            raise HTTPException(
+                status_code=404,
+                detail="No pending persona update for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
-            # Promote: re-call update with soft=False → activates artifact + junctions
+            # Promote: re-call update with soft=False → activates artifact + junctions.
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     await update_persona_artifact(
-                        conn, idempotency_key, soft=False,
+                        conn, target_id, soft=False,
                     )
 
-            # Read back junction IDs to create denormalized snapshot
             async with pool.acquire() as conn:
                 artifacts = await get_personas(
-                    conn, [idempotency_key],
+                    conn, [target_id],
                     names=True, descriptions=True, colors=True, icons=True,
                     instructions=True, departments=True, examples=True,
                     parameter_fields=True,
@@ -107,19 +121,34 @@ async def update_persona_impl(
                     example_ids=a.example_ids or None,
                     parameter_field_ids=a.parameter_field_ids or None,
                 )
+        # accept=False: dormant junction changes stay in place; the
+        # 'rejected' ledger row appended below is the canonical record.
 
-            await refresh_persona_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id,
-                targets=["personas_mv"], operation_key=idempotency_key,
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation="update",
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-        # accept=False: no-op (pending junction changes stay)
-        return UpdatePersonaApiResponse(results=[
-            PersonaResultItem(
-                success=True,
-                id=idempotency_key,
-                message="Update accepted" if accept else "Update rejected",
-            )
-        ])
+
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
+        )
+
+        return UpdatePersonaApiResponse(
+            results=[
+                PersonaResultItem(
+                    success=True,
+                    id=target_id,
+                    message="Update accepted" if accept else "Update rejected",
+                )
+            ],
+            idempotency_key=idempotency_key,
+        )
 
     # ── All-matching path: resolve ids + synthesize per-row items ─────
     # Past the ack short-circuit and ``all=true`` ⇒ enumerate every
@@ -311,6 +340,17 @@ async def update_persona_impl(
                     soft=soft,
                 )
 
+                # Pending ledger row tied to this tool call (see create.py
+                # for the full pattern + reasoning).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="update",
+                        artifact_id=item.id,
+                    )
+
                 results.append(
                     PersonaResultItem(
                         success=True,
@@ -344,4 +384,5 @@ async def update_persona_impl(
     return UpdatePersonaApiResponse(
         results=results + skipped_results,
         personas=personas,
+        idempotency_key=idempotency_key,
     )
