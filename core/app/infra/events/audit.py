@@ -412,13 +412,7 @@ async def run_artifact_operation_with_audit(
     try:
         from app.tools.entries.soft_calls.get import get_soft_call
         async with pool.acquire() as ledger_conn:
-            # ``bypass_mv=True`` reads the inline DISTINCT ON definition
-            # against the base table — soft_calls_mv refreshes on a HOT
-            # cadence but the row was just inserted, so we'd miss the
-            # window. resolve_mv_source handles this transparently.
-            entry = await get_soft_call(
-                ledger_conn, emit_call_id, artifact=artifact, bypass_mv=True,
-            )
+            entry = await get_soft_call(ledger_conn, emit_call_id, artifact=artifact)
         if entry is not None:
             ledger_status = entry.status
             ledger_operation = entry.operation

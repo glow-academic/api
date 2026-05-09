@@ -29,6 +29,7 @@ from app.tools.artifacts.persona.delete import delete_personas
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
 from app.utils.cache.invalidate_tags import invalidate_tags
 
@@ -117,10 +118,12 @@ async def delete_persona_impl(
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
+            targets=["personas_mv"], operation_key=idempotency_key,
         )
         return DeletePersonaApiResponse(results=[
             DeletePersonaResult(
@@ -270,6 +273,10 @@ async def delete_persona_impl(
                     )
 
     # Refresh + invalidate (via canonical refresh)
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
     first_id = result.deleted_ids[0] if result.deleted_ids else None
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,

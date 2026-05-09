@@ -374,7 +374,10 @@ async def _load_history(
     call_ids_for_ledger = [c.id for c in call_items]
     async with pool.acquire() as conn:
         ledger_entries = (
-            await search_soft_calls(conn, call_ids=call_ids_for_ledger, limit=len(call_ids_for_ledger) or 1)
+            await search_soft_calls(
+                conn, call_ids=call_ids_for_ledger,
+                limit=len(call_ids_for_ledger) or 1,
+            )
             if call_ids_for_ledger else []
         )
     ledger_by_call_id = {e.call_id: e for e in ledger_entries}

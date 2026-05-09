@@ -31,6 +31,7 @@ from app.tools.artifacts.persona.create import (
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
@@ -96,10 +97,12 @@ async def duplicate_persona_impl(
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv", "soft_calls_mv"], operation_key=idempotency_key,
+            targets=["personas_mv"], operation_key=idempotency_key,
         )
         return DuplicatePersonaApiResponse(
             success=True,
@@ -229,6 +232,10 @@ async def duplicate_persona_impl(
                 )
 
     # ── Step 7: Refresh + invalidate (via canonical refresh) ────────────
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,

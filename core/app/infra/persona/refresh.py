@@ -19,11 +19,13 @@ from app.infra.refresh.types import RefreshResponse
 
 ARTIFACT_TYPE = "persona"
 
-# All persona MV targets (persona-specific + shared infrastructure)
+# All persona MV targets (persona-specific + shared infrastructure).
+# soft_calls_mv is NOT here — soft-write / ack paths refresh it
+# synchronously via the black-box refresh_soft_calls() helper because
+# read-after-write freshness matters for the user-facing ack flow.
 ALL_TARGETS = [
     "personas_mv", "persona_drafts_mv",
     "runs_mv", "messages_mv", "calls_mv", "groups_mv", "group_names_mv",
-    "soft_calls_mv",
 ]
 
 # Tags to invalidate
