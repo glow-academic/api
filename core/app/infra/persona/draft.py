@@ -32,9 +32,104 @@ from app.tools.entries.persona_drafts.get import get_persona_drafts
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.search import search_soft_calls
 
 ARTIFACT = "persona"
 OPERATION = "draft"
+
+
+async def _maybe_auto_accept_draft(
+    pool: asyncpg.Pool,
+    *,
+    draft_id: UUID,
+    session_id: UUID,
+    profile_ids: list[UUID],
+) -> bool:
+    """Merge step — auto-accept the draft when no pending fields remain.
+
+    Runs after every patch on a draft. The rule (see project_*_ack
+    discussion):
+
+      - pending_*_ids non-empty on the draft → no-op (still resolving)
+      - pending_*_ids all empty AND a pending soft_calls_entry exists
+        for this draft → append 'accepted' ledger row + flip draft
+        active=true. Whether each individual field was accepted or
+        rejected per-field doesn't matter; the user processed them.
+
+    There's no implicit reject — that path is only taken via explicit
+    wholesale ✗ on the chat panel (handled in the ack short-circuit).
+
+    Returns True if auto-accept fired. Black-box throughout.
+    """
+    # 1. Locate the pending ledger entry, if any.
+    async with pool.acquire() as conn:
+        ledger_entries = await search_soft_calls(
+            conn,
+            artifact=ARTIFACT,
+            operation=OPERATION,
+            artifact_ids=[draft_id],
+            status="pending",
+            limit=1,
+        )
+    if not ledger_entries:
+        return False
+    call_id = ledger_entries[0].call_id
+
+    # 2. Read current draft state via the canonical get and check
+    #    every pending_*_ids list. Any non-empty list means the user
+    #    still has decisions to make.
+    async with pool.acquire() as conn:
+        drafts = await get_persona_drafts(conn, [draft_id], active=None)
+    if not drafts:
+        return False
+    draft = drafts[0]
+    if (
+        draft.pending_color_ids
+        or draft.pending_department_ids
+        or draft.pending_description_ids
+        or draft.pending_example_ids
+        or draft.pending_flag_ids
+        or draft.pending_icon_ids
+        or draft.pending_instruction_ids
+        or draft.pending_name_ids
+        or draft.pending_parameter_field_ids
+        or draft.pending_voice_ids
+    ):
+        return False
+
+    # 3. All decisions in. Promote the draft (active=true) and append
+    #    the 'accepted' ledger row.
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await create_persona_draft(
+                conn,
+                session_id=session_id,
+                id=draft_id,
+                soft=False,
+                name_ids=draft.name_ids,
+                description_ids=draft.description_ids,
+                color_ids=draft.color_ids,
+                icon_ids=draft.icon_ids,
+                instruction_ids=draft.instruction_ids,
+                flag_ids=draft.flag_ids,
+                department_ids=draft.department_ids,
+                parameter_field_ids=draft.parameter_field_ids,
+                example_ids=draft.example_ids,
+                voice_ids=draft.voice_ids,
+                profile_ids=draft.profile_ids or profile_ids,
+                pending_ids=set(),
+            )
+            await create_soft_call(
+                conn,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=draft_id,
+                status="accepted",
+            )
+    async with pool.acquire() as conn:
+        await refresh_soft_calls(conn)
+    return True
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
@@ -504,11 +599,29 @@ async def patch_persona_draft_impl(
         voice_ids=request.voice_ids or [],
     )
 
-    # ── Step 6+7: Refresh MV + invalidate cache (via canonical refresh) ─
+    # ── Step 6: Refresh soft_calls_mv when a pending ledger row was just appended
 
     if soft and idempotency_key is not None:
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
+
+    # ── Step 7: Merge step — auto-accept the draft if every pending
+    # field is now resolved. Idempotent: the helper short-circuits when
+    # any pending_*_ids list is non-empty or no pending ledger exists
+    # for this draft. Runs on every patch (including soft creates) so
+    # the moment a user clears the last pending field via per-field
+    # accept/reject, the draft transitions to 'accepted' without an
+    # explicit wholesale ✓.
+    auto_accepted = False
+    if not soft:
+        auto_accepted = await _maybe_auto_accept_draft(
+            pool,
+            draft_id=result.id,
+            session_id=session_id,
+            profile_ids=[profile.profiles_id],
+        )
+
+    # ── Step 8: Refresh persona_drafts MV + invalidate cache ─────────
 
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,
@@ -516,10 +629,17 @@ async def patch_persona_draft_impl(
         operation_key=idempotency_key or result.id,
     )
 
+    if auto_accepted:
+        message = "Draft accepted (all fields resolved)"
+    elif soft:
+        message = "Draft created (pending acceptance)"
+    else:
+        message = "Draft created successfully"
+
     return PatchPersonaDraftApiResponse(
         success=True,
         draft_id=result.id,
         idempotency_key=result.id,
-        message="Draft created (pending acceptance)" if soft else "Draft created successfully",
+        message=message,
         form_state=form_state,
     )
