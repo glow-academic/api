@@ -399,6 +399,36 @@ async def run_artifact_operation_with_audit(
         else {}
     )
 
+    # Latest soft_calls_mv row for this call — the runner just inserted
+    # one (or didn't, for non-soft writes). The black-box lookup is the
+    # canonical place to surface ledger state to live consumers; the
+    # persisted call JSON receipt picks the same fields up via the
+    # standard ``append_call_event`` pipe. Read errors don't block the
+    # event — ``ledger_status: None`` simply means "no entry found".
+    ledger_status: str | None = None
+    ledger_operation: str | None = None
+    ledger_artifact: str | None = None
+    ledger_artifact_id: str | None = None
+    try:
+        from app.tools.entries.soft_calls.get import get_soft_call
+        async with pool.acquire() as ledger_conn:
+            # ``bypass_mv=True`` reads the inline DISTINCT ON definition
+            # against the base table — soft_calls_mv refreshes on a HOT
+            # cadence but the row was just inserted, so we'd miss the
+            # window. resolve_mv_source handles this transparently.
+            entry = await get_soft_call(
+                ledger_conn, emit_call_id, artifact=artifact, bypass_mv=True,
+            )
+        if entry is not None:
+            ledger_status = entry.status
+            ledger_operation = entry.operation
+            ledger_artifact = entry.artifact
+            ledger_artifact_id = str(entry.artifact_id)
+    except Exception:
+        # Best-effort lookup — never block the .completed emit on a
+        # ledger fetch failure.
+        pass
+
     # See ``.started`` emit above for the ordering rationale — framework
     # identity fields trail the response spread so a runner that returns
     # ``call_id`` / ``group_id`` in its payload (e.g. group resolve) can't
@@ -414,6 +444,10 @@ async def run_artifact_operation_with_audit(
         "group_id": str(effective_group_id) if effective_group_id else None,
         "operation_key": str(operation_key) if operation_key else None,
         "tool": tool_payload,
+        "ledger_status": ledger_status,
+        "ledger_operation": ledger_operation,
+        "ledger_artifact": ledger_artifact,
+        "ledger_artifact_id": ledger_artifact_id,
     })
 
     if response_model is not None:
