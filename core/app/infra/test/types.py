@@ -94,6 +94,17 @@ class TestConfigItem(BaseModel):
     tool_ids: list[str] = Field(default_factory=list, description="Tool resource ids from the historical agent")
     instruction_ids: list[str] = Field(default_factory=list, description="Instruction resource ids from the historical agent")
 
+    # Historical permissions: ``(artifact, operation)`` pairs the
+    # historical run actually executed, parsed from each call's
+    # persisted ``events`` log. The client filters the tools picker by
+    # the union of the currently-selected runs' permissions — so the
+    # user only sees tools that grant operations the replay tape can
+    # serve. See project_test_replay_design memory.
+    permissions: list[tuple[str, str]] = Field(
+        default_factory=list,
+        description="Historical (artifact, operation) pairs this run executed",
+    )
+
 
 class TestConfigGroup(BaseModel):
     """A group bucket for the picker — used as the section header.

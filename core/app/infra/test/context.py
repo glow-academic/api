@@ -37,7 +37,6 @@ from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.modalities.get import get_modalities
 from app.tools.resources.modalities.search import search_modalities
 from app.tools.resources.models.get import get_models
-from app.tools.resources.permissions.get import get_permissions
 from app.tools.resources.prompts.get import get_prompts
 from app.tools.resources.qualities.get import get_qualities
 from app.tools.resources.qualities.search import search_qualities
@@ -322,63 +321,12 @@ async def resolve_test_context(
         _search_all(search_temperature_levels),
     )
 
-    # ── Phase 5d: Historical-permission filter for the tools picker ────
-    # When the test has traces bound to historical runs, the tools picker
-    # is narrowed to tools whose permissions intersect with the
-    # operations any of those historical runs actually executed. Same
-    # canned outputs are served either way (replay tape is keyed by
-    # (artifact, operation), not tool_id), so a tool only makes sense
-    # if it grants one of the historical permissions. See
-    # project_test_replay_design memory.
-    #
-    # Source of truth: each trace (``groups[*]``) carries the
-    # historical run_id it was bound to via /test/trace. Union the
-    # calls across every trace's run; parse the (artifact, operation)
-    # from each call's persisted ``events`` log.
-    from app.infra.generation.chat_history import _load_call_data
-
-    trace_run_ids: list[UUID] = [
-        g.run_id for g in groups if getattr(g, "run_id", None) is not None
-    ]
-    historical_perms: set[tuple[str, str]] = set()
-    if trace_run_ids:
-        async with pool.acquire() as c:
-            historical_calls = await search_calls(
-                c, run_ids=trace_run_ids, limit=10000,
-            )
-        for call in historical_calls:
-            if call.file_path is None:
-                continue
-            receipt = await _load_call_data(call.file_path)
-            if receipt is None:
-                continue
-            for evt in receipt.get("events", []):
-                name = evt.get("event", "")
-                parts = name.split(".") if isinstance(name, str) else []
-                if len(parts) >= 3 and parts[-1] == "completed":
-                    historical_perms.add((parts[0], parts[1]))
-
-    if historical_perms:
-        # Bulk-fetch the permissions referenced by tools_all so we can
-        # filter without an N+1 lookup.
-        all_perm_ids: set[UUID] = set()
-        for t in tools_all:
-            for pid in (t.permission_ids or []):
-                all_perm_ids.add(pid)
-        async with pool.acquire() as c:
-            perms = await get_permissions(
-                c, list(all_perm_ids), redis, bypass_cache=bypass_cache,
-            ) if all_perm_ids else []
-        perm_pair_by_id = {
-            p.id: (p.artifact, p.operation) for p in perms
-        }
-        def _tool_matches(t: Any) -> bool:
-            for pid in (t.permission_ids or []):
-                pair = perm_pair_by_id.get(pid)
-                if pair is not None and pair in historical_perms:
-                    return True
-            return False
-        tools_all = [t for t in tools_all if _tool_matches(t)]
+    # NOTE: tools picker filtering is per-run, not test-wide. Each
+    # TestConfigItem in /test/get carries ``permissions`` (the
+    # historical (artifact, operation) pairs that run executed). The
+    # client filters ``tools.suggestions`` by the union of currently-
+    # selected runs' permissions. We return the full tool catalog
+    # here so the client has every tool available for filtering.
 
     # ── Phase 6: Sort messages by role priority then created_at ────────
     _ROLE_ORDER = {"system": 0, "developer": 1, "user": 2, "assistant": 3}

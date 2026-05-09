@@ -413,6 +413,17 @@ async def get_test_impl(
         # configs_expanded_page_size, ordered by recency.
         config_items: list[TestConfigItem] = []
         on_page_expanded = [g for g in group_summaries if g.id in expanded_set]
+
+        # Pre-load each visible run's historical permissions so the
+        # client can filter the tools picker per selection. Read once
+        # here for every run we're about to surface; parse the
+        # ``<artifact>.<operation>.completed`` event from each call's
+        # persisted JSON. Black-box: search_calls + _load_call_data.
+        from app.infra.generation.chat_history import _load_call_data
+        from app.tools.entries.calls.search import search_calls as _search_calls
+
+        permissions_by_run_id: dict[UUID, list[tuple[str, str]]] = {}
+
         if on_page_expanded:
             async with pool.acquire() as conn:
                 for g in on_page_expanded:
@@ -424,6 +435,26 @@ async def get_test_impl(
                         limit=configs_expanded_page_size,
                         offset=0,
                     )
+                    if rows:
+                        # Pull all calls for these runs in one batch.
+                        run_ids_for_perms = [r.run_id for r in rows if r.run_id]
+                        all_calls = await _search_calls(
+                            conn, run_ids=run_ids_for_perms, limit=10000,
+                        )
+                        for call in all_calls:
+                            if call.file_path is None or call.run_id is None:
+                                continue
+                            receipt = await _load_call_data(call.file_path)
+                            if receipt is None:
+                                continue
+                            for evt in receipt.get("events", []):
+                                name = evt.get("event", "")
+                                parts = name.split(".") if isinstance(name, str) else []
+                                if len(parts) >= 3 and parts[-1] == "completed":
+                                    permissions_by_run_id.setdefault(
+                                        call.run_id, []
+                                    ).append((parts[0], parts[1]))
+                                    break  # one perm per call
                     for cfg in rows:
                         cfg_agent_name: str | None = None
                         cfg_model_name: str | None = None
@@ -461,6 +492,9 @@ async def get_test_impl(
                             str(cfg.run_id)[-6:],
                         ]
                         label = " · ".join(p for p in label_parts if p)
+                        # Dedupe permissions for this run.
+                        run_perms_raw = permissions_by_run_id.get(cfg.run_id, [])
+                        run_perms = list({p for p in run_perms_raw})
                         config_items.append(
                             TestConfigItem(
                                 run_id=str(cfg.run_id),
@@ -472,6 +506,7 @@ async def get_test_impl(
                                 prompt_ids=cfg_prompt_ids,
                                 tool_ids=cfg_tool_ids,
                                 instruction_ids=cfg_instruction_ids,
+                                permissions=run_perms,
                             )
                         )
 
@@ -481,6 +516,40 @@ async def get_test_impl(
             result: dict[str, dict] = {}
             for item in items:
                 result[str(item.id)] = item.model_dump(mode="json")
+            return result or None
+
+        # Resolve each tool's permission_ids to (artifact, operation)
+        # pairs and stamp onto the tool dict. Lets the client filter
+        # the tools picker by the union of currently-selected runs'
+        # historical permissions without an extra fetch. Bulk
+        # permission lookup so this stays O(1) round-trip.
+        from app.tools.resources.permissions.get import get_permissions
+        tools_list_for_payload = _res_all("tools")
+        all_tool_perm_ids: set[UUID] = set()
+        for t in tools_list_for_payload:
+            for pid in (getattr(t, "permission_ids", None) or []):
+                all_tool_perm_ids.add(pid)
+        if all_tool_perm_ids:
+            async with pool.acquire() as conn:
+                tool_perms = await get_permissions(
+                    conn, list(all_tool_perm_ids), redis, bypass_cache=False,
+                )
+        else:
+            tool_perms = []
+        perm_pair_by_id = {
+            p.id: [p.artifact, p.operation] for p in tool_perms
+        }
+
+        def _to_tool_dict_map(items: list) -> dict[str, dict] | None:
+            result: dict[str, dict] = {}
+            for t in items:
+                d = t.model_dump(mode="json")
+                d["permissions"] = [
+                    perm_pair_by_id[pid]
+                    for pid in (getattr(t, "permission_ids", None) or [])
+                    if pid in perm_pair_by_id
+                ]
+                result[str(t.id)] = d
             return result or None
 
         # Panel pickers need the full catalog of pickable options
@@ -496,7 +565,7 @@ async def get_test_impl(
             modalities=_to_dict_map(_res_all("modalities")),
             prompts=_to_dict_map(_res("prompts")),
             instructions=_to_dict_map(_res("instructions")),
-            tools=_to_dict_map(_res_all("tools")),
+            tools=_to_tool_dict_map(tools_list_for_payload),
             qualities=_to_dict_map(_res_all("qualities")),
             standard_groups=_to_dict_map(_res("standard_groups")),
         )
