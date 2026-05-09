@@ -29,6 +29,12 @@ from app.infra.persona.types import (
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.persona_drafts.create import create_persona_draft
 from app.tools.entries.persona_drafts.get import get_persona_drafts
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+
+ARTIFACT = "persona"
+OPERATION = "draft"
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
@@ -283,17 +289,29 @@ async def patch_persona_draft_impl(
             accept = request.accept
 
     # ── Short-circuit: ack path ───────────────────────────────────────
+    # idempotency_key here is the originating tool call's
+    # ``calls_entry.id``. The ledger holds (operation='draft',
+    # artifact_id=<draft_id>). Resolve draft_id then promote/reject.
     if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404,
+                detail="No pending persona draft for this call.",
+            )
+        target_id = entry.artifact_id
+
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_persona_drafts(conn, [idempotency_key])
+                drafts = await get_persona_drafts(conn, [target_id])
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_persona_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
                             description_ids=draft.description_ids,
@@ -312,18 +330,32 @@ async def patch_persona_draft_impl(
                         await create_persona_draft(
                             conn,
                             session_id=session_id,
-                            id=idempotency_key,
+                            id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
                         )
-            await refresh_persona_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id,
-                targets=["persona_drafts_mv"], operation_key=idempotency_key,
+        # accept=False: dormant draft connections stay; the 'rejected'
+        # ledger row is the canonical record.
+
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=target_id,
+                status="accepted" if accept else "rejected",
             )
-        # accept=False: no-op (dormant connections stay for reference)
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
+
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["persona_drafts_mv"], operation_key=idempotency_key,
+        )
         return PatchPersonaDraftApiResponse(
             success=True,
-            draft_id=idempotency_key,
+            draft_id=target_id,
             idempotency_key=idempotency_key,
             message="Draft accepted" if accept else "Draft rejected",
             form_state=DraftFormState(),
@@ -414,6 +446,19 @@ async def patch_persona_draft_impl(
                 profile_ids=[profile.profiles_id],
             )
 
+            # Soft-write: append the pending ledger row in the same txn
+            # so ack lookups can resolve (artifact, operation, draft_id).
+            # idempotency_key here is the calls_entry.id (see
+            # execute_infra_operation).
+            if soft and idempotency_key is not None:
+                await create_soft_call(
+                    conn,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation=OPERATION,
+                    artifact_id=result.id,
+                )
+
     # ── Step 5: Build form state (server is source of truth) ──────────
 
     # Re-derive denormalized active bool from the final flag_ids so the client
@@ -458,6 +503,10 @@ async def patch_persona_draft_impl(
     )
 
     # ── Step 6+7: Refresh MV + invalidate cache (via canonical refresh) ─
+
+    if soft and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            await refresh_soft_calls(conn)
 
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,
