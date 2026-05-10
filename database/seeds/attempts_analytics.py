@@ -129,7 +129,12 @@ async def _wrap_personas_resource(
     mapping: dict[UUID, UUID] = {}
     for idx, rid in enumerate(resource_ids):
         entry_id = sid(f"attempts-analytics/persona-entry/{idx}")
-        await create_personas(conn, id=entry_id, persona_ids=[rid])
+        try:
+            await create_personas(conn, id=entry_id, persona_ids=[rid])
+        except asyncpg.UniqueViolationError:
+            # A prior interrupted seed run may have already created
+            # the deterministic wrapper. Reuse that known ID.
+            pass
         mapping[rid] = entry_id
     return mapping
 
@@ -397,6 +402,10 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         practices = await search_practices(conn, limit=10000, bypass_mv=True)
         home_ids = {h.id for h in homes if h.id}
         practice_ids = {p.id for p in practices if p.id}
+        parent_profile_ids = {
+            **{h.id: set(h.profile_ids or []) for h in homes if h.id},
+            **{p.id: set(p.profile_ids or []) for p in practices if p.id},
+        }
         chat_templates = await get_chats(
             conn,
             [chat["chat_entry_id"] for chat in chats if chat.get("chat_entry_id")],
@@ -466,37 +475,44 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         output_pricing_id = output_pricings[0].id if output_pricings else None
         video_id = videos[0].id if videos else None
 
-        async with conn.transaction():
-            for idx in range(ATTEMPT_COUNT):
-                pp = profile_personas[idx % len(profile_personas)]
-                chat_row = eligible_chats[idx % len(eligible_chats)]
-                # search_chat_entries_internal returns list[dict] from
-                # chat_mv (the MV column is `chat_entry_id`).
-                chat_id = chat_row["chat_entry_id"]
-                chat_template = chat_template_map[chat_id]
-                parent_id = chat_row["parent_id"]
-                is_practice = parent_id in practice_ids
-                rubric_id = (chat_template.rubric_ids or [None])[0]
-                rubric = rubric_map.get(rubric_id) if rubric_id else None
+        for idx in range(ATTEMPT_COUNT):
+            chat_row = eligible_chats[idx % len(eligible_chats)]
+            # search_chat_entries_internal returns list[dict] from
+            # chat_mv (the MV column is `chat_entry_id`).
+            chat_id = chat_row["chat_entry_id"]
+            chat_template = chat_template_map[chat_id]
+            parent_id = chat_row["parent_id"]
+            is_practice = parent_id in practice_ids
+            rubric_id = (chat_template.rubric_ids or [None])[0]
+            rubric = rubric_map.get(rubric_id) if rubric_id else None
+            parent_profiles = parent_profile_ids.get(parent_id, set())
+            candidate_profile_personas = [
+                pp for pp in profile_personas if pp.profile_id in parent_profiles
+            ]
+            if not candidate_profile_personas:
+                print(f"  (attempt #{idx} skipped: parent has no profile persona)")
+                continue
+            pp = candidate_profile_personas[idx % len(candidate_profile_personas)]
 
-                user_persona_entry = persona_resource_to_entry.get(pp.persona_id)
-                if user_persona_entry is None:
-                    print(f"  (attempt #{idx} skipped: persona entry not wrapped)")
-                    continue
+            user_persona_entry = persona_resource_to_entry.get(pp.persona_id)
+            if user_persona_entry is None:
+                print(f"  (attempt #{idx} skipped: persona entry not wrapped)")
+                continue
 
-                # The "voice" persona for assistant turns is the same
-                # persona_entry as the user persona for now — the
-                # canonical chat_personas_connection lookup would give
-                # the scenario-specific persona, but doing that here
-                # would re-introduce a SELECT we'd have to query
-                # outside a black-box. Acceptable simplification: both
-                # voices share a personas_entry; persona_id field on
-                # attempt_content still resolves correctly, just to a
-                # less-distinct voice. Future enhancement: add
-                # search_chat_personas to the canonical surface.
-                voice_persona_entry = user_persona_entry
+            # The "voice" persona for assistant turns is the same
+            # persona_entry as the user persona for now — the
+            # canonical chat_personas_connection lookup would give
+            # the scenario-specific persona, but doing that here
+            # would re-introduce a SELECT we'd have to query
+            # outside a black-box. Acceptable simplification: both
+            # voices share a personas_entry; persona_id field on
+            # attempt_content still resolves correctly, just to a
+            # less-distinct voice. Future enhancement: add
+            # search_chat_personas to the canonical surface.
+            voice_persona_entry = user_persona_entry
 
-                try:
+            try:
+                async with conn.transaction():
                     await _seed_one_attempt(
                         conn,
                         idx=idx,
@@ -513,9 +529,9 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                         video_id=video_id,
                         is_practice=is_practice,
                     )
-                    inserted += 1
-                except Exception as e:
-                    print(f"  (attempt #{idx} skipped: {e})")
-                    continue
+                inserted += 1
+            except Exception as e:
+                print(f"  (attempt #{idx} skipped: {e})")
+                continue
 
     print(f"  OK: {inserted}/{ATTEMPT_COUNT} attempts seeded")
