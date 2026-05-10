@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
-import io
 import base64
+import io
 import zipfile
 
 import pytest
 import pytest_asyncio
+
 from tests.infra.route_helpers import create_admin_route_actor
 
 
 async def _seed_pricing_route_graph(pool, redis_client, actor):
     from app.infra.globals import UPLOAD_FOLDER
+    from app.tools.entries.group_names.create import create_group_name
     from app.tools.entries.groups.create import create_group
     from app.tools.entries.run_pricing.create import (
         create_run_pricing_entry_internal,
@@ -26,7 +28,13 @@ async def _seed_pricing_route_graph(pool, redis_client, actor):
     async with pool.acquire() as conn:
         session = await create_session(conn, profile_id=actor.profiles_id)
         group = await create_group(
-            conn, session_id=session.id, name="Pricing Route Group"
+            conn, session_id=session.id, artifact_type="system"
+        )
+        await create_group_name(
+            conn,
+            group_id=group.id,
+            name="Pricing Route Group",
+            session_id=session.id,
         )
         model = await create_model(
             conn,
@@ -64,7 +72,6 @@ async def _seed_pricing_route_graph(pool, redis_client, actor):
             conn,
             group_id=group.id,
             session_id=session.id,
-            profiles_id=actor.profiles_id,
             agent_ids=[agent.id],
         )
         await create_run_pricing_entry_internal(
@@ -123,7 +130,10 @@ class TestPricingRoute:
 
         response = await pricing_route_client.client.post(
             "/pricing/get",
-            json={},
+            json={
+                "history_page": 0,
+                "history_page_size": 10,
+            },
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -137,6 +147,9 @@ class TestPricingRoute:
         assert payload["resources"]["agents"]
         assert payload["resources"]["models"]
         assert payload["analytics"] is not None
+        assert payload["history"]["page"] == 0
+        assert payload["history"]["page_size"] == 10
+        assert isinstance(payload["history"]["items"], list)
 
     async def test_search_pricing_route_returns_group_history(
         self,

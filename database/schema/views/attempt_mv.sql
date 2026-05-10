@@ -19,6 +19,7 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
  SELECT a.id AS attempt_id,
     COALESCE(home_sim.simulations_id, prac_sim.simulations_id) AS simulation_id,
     apc.profiles_id AS profile_id,
+    pr.role_id,
     a.user_persona_id,
     apper.personas_id,
     COALESCE(home_coh.cohorts_id, prac_coh.cohorts_id) AS cohort_id,
@@ -32,8 +33,9 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
     COALESCE(ascn.scenario_ids, ARRAY[]::uuid[]) AS scenario_ids,
     training_ctx.chat_entry_id,
     training_ctx.attempt_chat_id
-   FROM ((((((((((((((public.attempt_entry a
+   FROM (((((((((((((((public.attempt_entry a
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))
+     LEFT JOIN public.profiles_resource pr ON (((pr.id = apc.profiles_id) AND (pr.active = true))))
      LEFT JOIN public.personas_personas_connection apper ON (((apper.personas_entry_id = a.user_persona_id) AND (apper.active = true))))
      LEFT JOIN public.attempt_home_entry ahe ON (((ahe.attempt_id = a.id) AND (ahe.active = true))))
      LEFT JOIN public.attempt_practice_entry ape ON (((ape.attempt_id = a.id) AND (ape.active = true))))

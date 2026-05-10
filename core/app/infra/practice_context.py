@@ -159,6 +159,7 @@ async def resolve_practice_context(
                 conn,
                 redis,
                 standard_group_ids=list(all_standard_group_ids),
+                limit_count=10000,
                 bypass_cache=bypass_cache,
             )
 

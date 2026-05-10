@@ -98,6 +98,7 @@ async def search_record(
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
+            role_ids=request.role_ids,
             practice=request.practice,
             scenario_ids=request.scenario_ids,
             infinite_mode=request.infinite_mode,

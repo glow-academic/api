@@ -17,6 +17,7 @@ async def search_attempt_chats(
     group_ids: list[UUID] | None = None,
     attempt_chat_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
@@ -43,7 +44,7 @@ async def search_attempt_chats(
     rows = await conn.fetch(
         f"""
         SELECT chat_id, attempt_id, chat_entry_id,
-               profile_id, cohort_id, department_id, simulation_id,
+               profile_id, role_id, cohort_id, department_id, simulation_id,
                scenario_id, persona_ids, assistant_persona_ids, rubric_id,
                grade_score, grade_total_points, grade_pass_points,
                grade_passed, grade_time_taken,
@@ -65,23 +66,25 @@ async def search_attempt_chats(
           AND ($2::uuid[] IS NULL OR TRUE)
           AND ($3::uuid[] IS NULL OR chat_id = ANY($3))
           AND ($4::uuid[] IS NULL OR profile_id = ANY($4))
-          AND ($5::uuid[] IS NULL OR cohort_id = ANY($5))
-          AND ($6::uuid[] IS NULL OR department_id = ANY($6))
-          AND ($7::uuid[] IS NULL OR simulation_id = ANY($7))
-          AND ($8::uuid[] IS NULL OR scenario_id = ANY($8))
-          AND ($9::uuid[] IS NULL OR persona_ids && $9)
-          AND ($10::uuid[] IS NULL OR rubric_id = ANY($10))
-          AND ($11::text IS NULL OR attempt_type = $11)
-          AND ($12::bool IS NULL OR is_archived = $12)
-          AND ($13::date IS NULL OR attempt_date >= $13)
-          AND ($14::date IS NULL OR attempt_date <= $14)
+          AND ($5::uuid[] IS NULL OR role_id = ANY($5))
+          AND ($6::uuid[] IS NULL OR cohort_id = ANY($6))
+          AND ($7::uuid[] IS NULL OR department_id = ANY($7))
+          AND ($8::uuid[] IS NULL OR simulation_id = ANY($8))
+          AND ($9::uuid[] IS NULL OR scenario_id = ANY($9))
+          AND ($10::uuid[] IS NULL OR persona_ids && $10)
+          AND ($11::uuid[] IS NULL OR rubric_id = ANY($11))
+          AND ($12::text IS NULL OR attempt_type = $12)
+          AND ($13::bool IS NULL OR is_archived = $13)
+          AND ($14::date IS NULL OR attempt_date >= $14)
+          AND ($15::date IS NULL OR attempt_date <= $15)
         ORDER BY chat_created_at {order}
-        LIMIT $15 OFFSET $16
+        LIMIT $16 OFFSET $17
         """,
         attempt_ids,
         group_ids,
         attempt_chat_ids,
         profile_ids,
+        role_ids,
         cohort_ids,
         department_ids,
         simulation_ids,

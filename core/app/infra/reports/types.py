@@ -18,7 +18,7 @@ class ReportsRequest(BaseModel):
     cohort_ids: list[UUID] | None = Field(None, description="Cohort IDs to filter by")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation IDs to filter by")
     department_ids: list[UUID] | None = Field(None, description="Department IDs to filter by")
-    roles: list[str] | None = Field(None, description="Roles to filter by")
+    role_ids: list[UUID] | None = Field(None, description="Role resource IDs to filter profiles by")
     simulation_filters: list[str] | None = Field(None, description="Simulation filter strings")
     actor_profile_id: UUID | None = Field(None, description="Acting user profile ID")
     target_profile_id: UUID | None = Field(None, description="Target profile ID to scope data")
@@ -230,9 +230,19 @@ class ReportsSimulationResource(BaseModel):
 class ReportsProfileResource(BaseModel):
     profile_id: str | None = Field(None, description="Profile identifier")
     name: str | None = Field(None, description="Profile display name")
+    role_id: str | None = Field(None, description="Assigned role resource UUID")
     role: str | None = Field(None, description="Profile role")
     emails: list[str] = Field(default_factory=list, description="Profile email addresses")
     primary_email: str | None = Field(None, description="Primary email address")
+
+
+class ReportsRoleResource(BaseModel):
+    role_id: str | None = Field(None, description="Role resource identifier")
+    name: str | None = Field(None, description="Role display name")
+    description: str | None = Field(None, description="Role description")
+    icon_id: str | None = Field(None, description="Icon resource UUID")
+    color_id: str | None = Field(None, description="Color resource UUID")
+    level: int | None = Field(None, description="Role privilege level")
 
 
 class ReportsScenarioResource(BaseModel):
@@ -264,6 +274,7 @@ class ReportsResources(BaseModel):
 
     simulations: dict[str, ReportsSimulationResource] = Field(default_factory=dict, description="Simulation resources keyed by ID")
     profiles: dict[str, ReportsProfileResource] = Field(default_factory=dict, description="Profile resources keyed by ID")
+    roles: dict[str, ReportsRoleResource] = Field(default_factory=dict, description="Role resources keyed by ID")
     scenarios: dict[str, ReportsScenarioResource] = Field(default_factory=dict, description="Scenario resources keyed by ID")
     cohorts: dict[str, ReportsCohortResource] = Field(default_factory=dict, description="Cohort resources keyed by ID")
     personas: dict[str, ReportsPersonaResource] = Field(default_factory=dict, description="Persona resources keyed by ID")

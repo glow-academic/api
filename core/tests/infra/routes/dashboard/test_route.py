@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 import pytest_asyncio
+
 from tests.infra.route_helpers import create_admin_route_actor
 
 
@@ -32,7 +33,7 @@ class TestDashboardRoute:
 
         response = await dashboard_route_client.client.post(
             "/dashboard/get",
-            json={},
+            json={"role_ids": [str(dashboard_route_actor.role_id)]},
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -46,6 +47,12 @@ class TestDashboardRoute:
         assert payload["secondary_metrics"]
         assert payload["history"]
         assert payload["analytics"] is not None
+        role_options = payload["analytics"]["role_options"]
+        assert any(
+            option["id"] == str(dashboard_route_actor.role_id)
+            and option["value"] == str(dashboard_route_actor.role_id)
+            for option in role_options
+        )
 
     async def test_search_dashboard_route_returns_history(
         self,
@@ -60,6 +67,7 @@ class TestDashboardRoute:
         response = await dashboard_route_client.client.post(
             "/dashboard/search",
             json={
+                "role_ids": [str(dashboard_route_actor.role_id)],
                 "page": 0,
                 "page_size": 20,
             },

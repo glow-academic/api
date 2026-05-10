@@ -5,12 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from tests.helpers import unique_tag
-
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.sessions.refresh import refresh_sessions
+from tests.helpers import unique_tag
 
 
 @dataclass(frozen=True)
@@ -21,6 +20,7 @@ class RouteActor:
     profiles_id: UUID
     session_id: UUID
     department_id: UUID
+    role_id: UUID
     name: str
 
 
@@ -73,5 +73,6 @@ async def create_admin_route_actor(
         profiles_id=graph.profile_resource_id,
         session_id=session.id,
         department_id=graph.department_id,
+        role_id=admin_role.id,
         name=identity.name,
     )

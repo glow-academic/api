@@ -226,7 +226,10 @@ async def sync_home_practice_entries(
 
     # scenario_rubric_id → rubrics_resource.id (resolved)
     rubric_map: dict[UUID, UUID] = {}
+    scenario_rubric_by_id: dict[UUID, GetScenarioRubricResponse] = {}
     for r in scenario_rubrics:
+        if r.id:
+            scenario_rubric_by_id[r.id] = r
         if r.id and r.rubric_id:
             rubric_map[r.id] = r.rubric_id
 
@@ -336,6 +339,9 @@ async def sync_home_practice_entries(
             # Resolve rubric IDs (scenario_rubric_id → rubrics_resource.id)
             resolved_rubric_ids: list[UUID] = []
             for sr_id in scenario_rubric_ids_for_sim:
+                scenario_rubric = scenario_rubric_by_id.get(sr_id)
+                if scenario_rubric and scenario_rubric.scenario_id != scenario_id:
+                    continue
                 resolved = rubric_map.get(sr_id)
                 if resolved:
                     resolved_rubric_ids.append(resolved)

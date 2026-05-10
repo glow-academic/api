@@ -16,6 +16,7 @@ async def search_attempts(
     attempt_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     scenario_ids: list[UUID] | None = None,
@@ -39,7 +40,7 @@ async def search_attempts(
     order = "ASC" if sort_order == "asc" else "DESC"
     rows = await conn.fetch(
         f"""
-        SELECT attempt_id, simulation_id, profile_id, user_persona_id,
+        SELECT attempt_id, simulation_id, profile_id, role_id, user_persona_id,
                personas_id, cohort_id, department_id, practice,
                attempt_created_at, infinite_mode, num_chats, is_archived,
                is_completed, scenario_ids, chat_entry_id, attempt_chat_id,
@@ -48,21 +49,23 @@ async def search_attempts(
         WHERE ($1::uuid[] IS NULL OR attempt_id = ANY($1))
           AND ($2::uuid[] IS NULL OR simulation_id = ANY($2))
           AND ($3::uuid[] IS NULL OR profile_id = ANY($3))
-          AND ($4::uuid[] IS NULL OR cohort_id = ANY($4))
-          AND ($5::uuid[] IS NULL OR department_id = ANY($5))
-          AND ($6::uuid[] IS NULL OR scenario_ids && $6)
-          AND ($7::boolean IS NULL OR practice = $7)
-          AND ($8::boolean IS NULL OR is_archived = $8)
-          AND ($9::boolean IS NULL OR is_completed = $9)
-          AND ($10::boolean IS NULL OR infinite_mode = $10)
-          AND ($11::timestamptz IS NULL OR attempt_created_at >= $11)
-          AND ($12::timestamptz IS NULL OR attempt_created_at <= $12)
+          AND ($4::uuid[] IS NULL OR role_id = ANY($4))
+          AND ($5::uuid[] IS NULL OR cohort_id = ANY($5))
+          AND ($6::uuid[] IS NULL OR department_id = ANY($6))
+          AND ($7::uuid[] IS NULL OR scenario_ids && $7)
+          AND ($8::boolean IS NULL OR practice = $8)
+          AND ($9::boolean IS NULL OR is_archived = $9)
+          AND ($10::boolean IS NULL OR is_completed = $10)
+          AND ($11::boolean IS NULL OR infinite_mode = $11)
+          AND ($12::timestamptz IS NULL OR attempt_created_at >= $12)
+          AND ($13::timestamptz IS NULL OR attempt_created_at <= $13)
         ORDER BY attempt_created_at {order}
-        LIMIT $13 OFFSET $14
+        LIMIT $14 OFFSET $15
         """,
         attempt_ids,
         simulation_ids,
         profile_ids,
+        role_ids,
         cohort_ids,
         department_ids,
         scenario_ids,

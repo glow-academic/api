@@ -20,7 +20,7 @@ async def get_attempt_chats(
     rows = await conn.fetch(
         f"""
         SELECT chat_id, attempt_id, chat_entry_id,
-               profile_id, cohort_id, department_id, simulation_id,
+               profile_id, role_id, cohort_id, department_id, simulation_id,
                scenario_id, persona_ids, assistant_persona_ids, rubric_id,
                grade_score, grade_total_points, grade_pass_points,
                grade_passed, grade_time_taken,
@@ -49,6 +49,7 @@ async def get_attempt_chats(
             chat_entry_id=r["chat_entry_id"],
             group_id=None,
             profile_id=r["profile_id"],
+            role_id=r["role_id"],
             cohort_id=r["cohort_id"],
             department_id=r["department_id"],
             simulation_id=r["simulation_id"],

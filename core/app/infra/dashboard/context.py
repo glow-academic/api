@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, time
 from uuid import UUID
 
 import asyncpg
@@ -142,6 +142,7 @@ def _to_chat_item(r: GetAttemptChatResponse) -> ChatItem:
         group_id=r.group_id,
         attempt_chat_id=r.chat_entry_id,  # attempt_chat_id = chat_entry_id
         profile_id=r.profile_id,
+        role_id=r.role_id,
         cohort_id=r.cohort_id,
         department_id=r.department_id,
         simulation_id=r.simulation_id,
@@ -397,6 +398,7 @@ async def resolve_dashboard_context(
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     attempt_type: str | None = None,
     is_archived: bool = False,
     date_from: date | None = None,
@@ -423,6 +425,7 @@ async def resolve_dashboard_context(
             raw, _total_count = await search_attempt_chats(
                 c,
                 profile_ids=[target_profile_id] if target_profile_id else None,
+                role_ids=role_ids,
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
                 simulation_ids=simulation_ids,
@@ -659,6 +662,7 @@ async def resolve_dashboard_search_context(
     target_profile_id: UUID | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     practice: bool = False,
     scenario_ids: list[UUID] | None = None,
     infinite_mode: bool | None = None,
@@ -693,22 +697,50 @@ async def resolve_dashboard_search_context(
     query_profile_id = target_profile_id or profile_resource_id
     page_offset = page * page_size
 
+    date_from_ts = datetime.combine(date_from, time.min) if date_from else None
+    date_to_ts = datetime.combine(date_to, time.max) if date_to else None
+
     # Step 1: Paginated attempts via search_attempts
-    # TODO: search_attempts does not support date_from/date_to filters yet
     async with pool.acquire() as c:
         items, total_count = await search_attempts(
             conn=c,
             profile_ids=[query_profile_id],
+            role_ids=role_ids,
             practice=practice,
             is_archived=(show_archived if practice else False),
             cohort_ids=cohort_ids,
             department_ids=department_ids,
             scenario_ids=scenario_ids,
             infinite_mode=infinite_mode,
+            date_from=date_from_ts,
+            date_to=date_to_ts,
             sort_order=sort_order,
             limit=page_size,
             offset=page_offset,
         )
+
+    # Fetch the matching attempt ID/resource surface for filter options. This
+    # mirrors the home/practice context pattern without changing the paged rows.
+    if total_count and (page_offset != 0 or len(items) < total_count):
+        async with pool.acquire() as c:
+            option_items, _option_count = await search_attempts(
+                conn=c,
+                profile_ids=[query_profile_id],
+                role_ids=role_ids,
+                practice=practice,
+                is_archived=(show_archived if practice else False),
+                cohort_ids=cohort_ids,
+                department_ids=department_ids,
+                scenario_ids=scenario_ids,
+                infinite_mode=infinite_mode,
+                date_from=date_from_ts,
+                date_to=date_to_ts,
+                sort_order=sort_order,
+                limit=100000,
+                offset=0,
+            )
+    else:
+        option_items = items
 
     # Step 2: Batch-fetch chats for paginated attempt_ids
     paginated_ids = [item.attempt_id for item in items]
@@ -730,6 +762,14 @@ async def resolve_dashboard_search_context(
     for chat in chats:
         if chat.attempt_id:
             chats_by_attempt.setdefault(chat.attempt_id, []).append(chat)
+
+    for item in option_items:
+        if item.simulation_id:
+            h_sim_ids.add(item.simulation_id)
+        if item.profile_id:
+            h_profile_ids.add(item.profile_id)
+        if item.scenario_ids:
+            h_scenario_ids.update(item.scenario_ids)
 
     for item in items:
         if item.simulation_id:

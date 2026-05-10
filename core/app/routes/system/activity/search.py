@@ -70,7 +70,7 @@ async def search_activity(
             pool,
             redis,
             department_ids=request.department_ids or None,
-            roles=request.roles or None,
+            role_ids=request.role_ids or None,
             date_from=request.date_from,
             date_to=request.date_to,
             active=request.active,

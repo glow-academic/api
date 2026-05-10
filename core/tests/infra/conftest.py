@@ -41,16 +41,23 @@ def _build_artifact_router_for_tests(
     prefix: str,
     tags: list[str],
     module_names: list[str],
+    route_package: str | None = None,
 ) -> APIRouter:
     main_dir = Path(__file__).resolve().parents[2] / "app" / "routes"
-    artifact_dir = main_dir / artifact_name
+    package_name = route_package or artifact_name
+    package_parts = package_name.split(".")
     _ensure_package_stub("app.routes", main_dir)
-    _ensure_package_stub(f"app.routes.{artifact_name}", artifact_dir)
+    for index, _part in enumerate(package_parts, start=1):
+        package_dir = main_dir.joinpath(*package_parts[:index])
+        _ensure_package_stub(
+            f"app.routes.{'.'.join(package_parts[:index])}",
+            package_dir,
+        )
 
     router = APIRouter(prefix=prefix, tags=tags)
     for module_name in module_names:
         module = importlib.import_module(
-            f"app.routes.{artifact_name}.{module_name}"
+            f"app.routes.{package_name}.{module_name}"
         )
         router.include_router(module.router)
     return router
@@ -657,6 +664,7 @@ async def pricing_route_client(
 
     pricing_router = _build_artifact_router_for_tests(
         artifact_name="pricing",
+        route_package="system.pricing",
         prefix="/pricing",
         tags=["pricing"],
         module_names=["get", "search", "refresh", "export"],
@@ -694,6 +702,7 @@ async def reports_route_client(
 
     reports_router = _build_artifact_router_for_tests(
         artifact_name="reports",
+        route_package="attempt.report",
         prefix="/report",
         tags=["report"],
         module_names=["search", "refresh", "export"],
@@ -768,6 +777,7 @@ async def dashboard_route_client(
 
     dashboard_router = _build_artifact_router_for_tests(
         artifact_name="dashboard",
+        route_package="attempt.dashboard",
         prefix="/dashboard",
         tags=["dashboard"],
         module_names=["get", "search", "refresh", "export"],
@@ -916,12 +926,12 @@ async def activity_route_client(
 
     activity_router = _build_artifact_router_for_tests(
         artifact_name="activity",
+        route_package="system.activity",
         prefix="/activity",
         tags=["activity"],
         module_names=[
             "get",
             "search",
-            "problem",
             "resolve",
             "refresh",
             "export",

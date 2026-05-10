@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4AeuTOKsdIuUSemnH9TxGCYO11T0Hs626Hi9pUwfGy9Fmk6T8P4rX6iKHVj5KaG
+\restrict qfQ8w7iLG0EqFie7hJLJzhNXTznfqfgVIkBFhPgbqsHZsfAzegAM7Kvas7Arynw
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -1231,6 +1231,26 @@ CREATE TABLE public.practice_simulations_connection (
 
 
 --
+-- Name: profiles_resource; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profiles_resource (
+    last_login timestamp with time zone DEFAULT now() CONSTRAINT profiles_last_login_not_null1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() CONSTRAINT profiles_created_at_not_null1 NOT NULL,
+    active boolean DEFAULT true CONSTRAINT profiles_active_not_null1 NOT NULL,
+    generated boolean DEFAULT false CONSTRAINT profiles_generated_not_null1 NOT NULL,
+    mcp boolean DEFAULT false CONSTRAINT profiles_mcp_not_null1 NOT NULL,
+    id uuid DEFAULT uuidv7() CONSTRAINT profiles_id_new_not_null NOT NULL,
+    name text,
+    description text,
+    department_ids uuid[] DEFAULT ARRAY[]::uuid[],
+    role_id uuid,
+    emails text[] DEFAULT ARRAY[]::text[],
+    primary_email text
+);
+
+
+--
 -- Name: rubrics_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1373,6 +1393,7 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     ac.attempt_id,
     c.chat_id AS chat_entry_id,
     apc.profiles_id AS profile_id,
+    pr.role_id,
     COALESCE(home_coh.cohorts_id, prac_coh.cohorts_id) AS cohort_id,
     COALESCE(home_dep.departments_id, prac_dep.departments_id) AS department_id,
     COALESCE(home_sim.simulations_id, prac_sim.simulations_id) AS simulation_id,
@@ -1423,10 +1444,11 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     cvid.video_ids,
     csg.standard_group_ids,
     cstd.standard_ids
-   FROM (((((((((((((((((((((((((((public.attempt_chat_entry c
+   FROM ((((((((((((((((((((((((((((public.attempt_chat_entry c
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))
+     LEFT JOIN public.profiles_resource pr ON (((pr.id = apc.profiles_id) AND (pr.active = true))))
      LEFT JOIN public.attempt_home_entry ahe ON (((ahe.attempt_id = a.id) AND (ahe.active = true))))
      LEFT JOIN public.attempt_practice_entry ape ON (((ape.attempt_id = a.id) AND (ape.active = true))))
      LEFT JOIN public.home_simulations_connection home_sim ON (((home_sim.home_id = ahe.home_id) AND (home_sim.active = true))))
@@ -2115,6 +2137,7 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
  SELECT a.id AS attempt_id,
     COALESCE(home_sim.simulations_id, prac_sim.simulations_id) AS simulation_id,
     apc.profiles_id AS profile_id,
+    pr.role_id,
     a.user_persona_id,
     apper.personas_id,
     COALESCE(home_coh.cohorts_id, prac_coh.cohorts_id) AS cohort_id,
@@ -2128,8 +2151,9 @@ CREATE MATERIALIZED VIEW public.attempt_mv AS
     COALESCE(ascn.scenario_ids, ARRAY[]::uuid[]) AS scenario_ids,
     training_ctx.chat_entry_id,
     training_ctx.attempt_chat_id
-   FROM ((((((((((((((public.attempt_entry a
+   FROM (((((((((((((((public.attempt_entry a
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))
+     LEFT JOIN public.profiles_resource pr ON (((pr.id = apc.profiles_id) AND (pr.active = true))))
      LEFT JOIN public.personas_personas_connection apper ON (((apper.personas_entry_id = a.user_persona_id) AND (apper.active = true))))
      LEFT JOIN public.attempt_home_entry ahe ON (((ahe.attempt_id = a.id) AND (ahe.active = true))))
      LEFT JOIN public.attempt_practice_entry ape ON (((ape.attempt_id = a.id) AND (ape.active = true))))
@@ -8672,26 +8696,6 @@ CREATE TABLE public.profile_roles_junction (
     generated boolean DEFAULT false CONSTRAINT profile_roles_generated_not_null NOT NULL,
     mcp boolean DEFAULT false CONSTRAINT profile_roles_mcp_not_null NOT NULL,
     active boolean DEFAULT true CONSTRAINT profile_roles_active_not_null NOT NULL
-);
-
-
---
--- Name: profiles_resource; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.profiles_resource (
-    last_login timestamp with time zone DEFAULT now() CONSTRAINT profiles_last_login_not_null1 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() CONSTRAINT profiles_created_at_not_null1 NOT NULL,
-    active boolean DEFAULT true CONSTRAINT profiles_active_not_null1 NOT NULL,
-    generated boolean DEFAULT false CONSTRAINT profiles_generated_not_null1 NOT NULL,
-    mcp boolean DEFAULT false CONSTRAINT profiles_mcp_not_null1 NOT NULL,
-    id uuid DEFAULT uuidv7() CONSTRAINT profiles_id_new_not_null NOT NULL,
-    name text,
-    description text,
-    department_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    role_id uuid,
-    emails text[] DEFAULT ARRAY[]::text[],
-    primary_email text
 );
 
 
@@ -18568,6 +18572,13 @@ CREATE UNIQUE INDEX attempt_chat_mv_chat_id_idx ON public.attempt_chat_mv USING 
 
 
 --
+-- Name: attempt_chat_mv_role_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attempt_chat_mv_role_id_idx ON public.attempt_chat_mv USING btree (role_id);
+
+
+--
 -- Name: attempt_conversations_entry_chat_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -18614,6 +18625,13 @@ CREATE UNIQUE INDEX attempt_improvement_mv_improvement_id_idx ON public.attempt_
 --
 
 CREATE UNIQUE INDEX attempt_mv_attempt_id_idx ON public.attempt_mv USING btree (attempt_id);
+
+
+--
+-- Name: attempt_mv_role_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attempt_mv_role_id_idx ON public.attempt_mv USING btree (role_id);
 
 
 --
@@ -36031,5 +36049,5 @@ ALTER TABLE ONLY public.videos_videos_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4AeuTOKsdIuUSemnH9TxGCYO11T0Hs626Hi9pUwfGy9Fmk6T8P4rX6iKHVj5KaG
+\unrestrict qfQ8w7iLG0EqFie7hJLJzhNXTznfqfgVIkBFhPgbqsHZsfAzegAM7Kvas7Arynw
 

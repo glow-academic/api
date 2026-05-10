@@ -6,6 +6,7 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.infra.route_helpers import create_admin_route_actor
 
 
@@ -34,7 +35,11 @@ class TestActivityRoute:
 
         response = await activity_route_client.client.post(
             "/activity/get",
-            json={},
+            json={
+                "role_ids": [str(activity_route_actor.role_id)],
+                "history_page": 0,
+                "history_page_size": 10,
+            },
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -48,6 +53,9 @@ class TestActivityRoute:
         assert payload["profile_summary"] is not None
         assert payload["resources"]["profiles"] is not None
         assert payload["analytics"] is not None
+        assert payload["history"]["page"] == 0
+        assert payload["history"]["page_size"] == 10
+        assert isinstance(payload["history"]["items"], list)
 
     async def test_search_activity_route_returns_sessions(
         self,
@@ -61,7 +69,11 @@ class TestActivityRoute:
 
         response = await activity_route_client.client.post(
             "/activity/search",
-            json={"page": 0, "page_size": 50},
+            json={
+                "role_ids": [str(activity_route_actor.role_id)],
+                "page": 0,
+                "page_size": 50,
+            },
             headers={"X-Bypass-Cache": "1"},
         )
 

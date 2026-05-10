@@ -24,6 +24,7 @@ from app.infra.reports.types import (
     ReportsRequest,
     ReportsResources,
     ReportsResponse,
+    ReportsRoleResource,
     ReportsScenarioResource,
     ReportsSections,
     ReportsSimulationResource,
@@ -99,6 +100,7 @@ async def get_reports_impl(
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
             simulation_ids=request.simulation_ids,
+            role_ids=request.role_ids,
             attempt_type=attempt_type,
             is_archived=is_archived,
             date_from=parsed_start_day,
@@ -135,10 +137,13 @@ async def get_reports_impl(
     profiles = ctx.resources.get("profiles")
     scenarios = ctx.resources.get("scenarios")
     cohorts = ctx.resources.get("cohorts")
+    roles = ctx.resources.get("roles")
     sim_selected = simulations.selected if simulations else []
     prof_selected = profiles.selected if profiles else []
     scen_selected = scenarios.selected if scenarios else []
     cohort_selected = cohorts.selected if cohorts else []
+    role_selected = roles.selected if roles else []
+    role_map = {item.id: item for item in role_selected if item.id}
 
     resources = ReportsResources(
         simulations={
@@ -153,11 +158,26 @@ async def get_reports_impl(
             str(item.id): ReportsProfileResource(
                 profile_id=str(item.id),
                 name=item.name,
-                role=None,
+                role_id=str(item.role_id) if item.role_id else None,
+                role=role_map[item.role_id].name
+                if item.role_id and item.role_id in role_map
+                else None,
                 emails=item.emails or [],
                 primary_email=item.primary_email,
             )
             for item in prof_selected
+        },
+        roles={
+            str(item.id): ReportsRoleResource(
+                role_id=str(item.id),
+                name=item.name,
+                description=item.description,
+                icon_id=str(item.icon_id) if item.icon_id else None,
+                color_id=str(item.color_id) if item.color_id else None,
+                level=item.level,
+            )
+            for item in role_selected
+            if item.id
         },
         scenarios={
             str(item.id): ReportsScenarioResource(

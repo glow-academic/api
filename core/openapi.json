@@ -18978,12 +18978,34 @@
         ],
         "summary": "Get Dashboard",
         "operationId": "get_dashboard_attempt_dashboard_get_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardBundleResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -23702,6 +23724,45 @@
   },
   "components": {
     "schemas": {
+      "ActivityHistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionListItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Session history items"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "Total number of matching records",
+            "default": 0
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Current page number",
+            "default": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "Items per page",
+            "default": 50
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "Total number of pages",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ActivityHistoryResponse",
+        "description": "Embedded activity session history for the activity bundle endpoint."
+      },
       "ActivityRequest": {
         "properties": {
           "date_from": {
@@ -23732,19 +23793,76 @@
           },
           "department_ids": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "type": "array",
             "title": "Department Ids",
             "description": "Department IDs to filter by"
           },
-          "roles": {
+          "role_ids": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "type": "array",
-            "title": "Roles",
-            "description": "Roles to filter by"
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Max summary items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Summary pagination offset",
+            "default": 0
+          },
+          "summary_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Profile Id",
+            "description": "Profile ID to focus the summary card"
+          },
+          "history_page": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "History Page",
+            "description": "Embedded history page number",
+            "default": 0
+          },
+          "history_page_size": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "History Page Size",
+            "description": "Embedded history items per page",
+            "default": 50
+          },
+          "history_sort_by": {
+            "type": "string",
+            "title": "History Sort By",
+            "description": "Embedded history sort field",
+            "default": "date"
+          },
+          "history_sort_order": {
+            "type": "string",
+            "title": "History Sort Order",
+            "description": "Embedded history sort direction",
+            "default": "desc"
           }
         },
         "type": "object",
@@ -23815,6 +23933,17 @@
               }
             ],
             "description": "Inline analytics facets for SSR"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityHistoryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Embedded session history"
           }
         },
         "type": "object",
@@ -25231,11 +25360,11 @@
           },
           "role_options": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AnalyticsRoleOption"
             },
             "type": "array",
             "title": "Role Options",
-            "description": "Available role options"
+            "description": "Available role resource options"
           },
           "attempt_options": {
             "items": {
@@ -25343,6 +25472,81 @@
         ],
         "title": "AnalyticsFilterOption",
         "description": "A single filter option for dropdown selectors."
+      },
+      "AnalyticsRoleOption": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Option value for the filter"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Human-readable option label"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Role resource UUID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Role resource name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Role description"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon resource UUID"
+          },
+          "color_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Id",
+            "description": "Color resource UUID"
+          },
+          "level": {
+            "type": "integer",
+            "title": "Level",
+            "description": "Role privilege level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "id",
+          "name",
+          "level"
+        ],
+        "title": "AnalyticsRoleOption",
+        "description": "Hydrated role resource option for analytics role filters."
       },
       "ArchiveAttemptsRequest": {
         "properties": {
@@ -39481,6 +39685,383 @@
         },
         "type": "object",
         "title": "DashboardPrimaryMetrics"
+      },
+      "DashboardRequest": {
+        "properties": {
+          "start_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Date",
+            "description": "Filter start date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Date",
+            "description": "Filter end date"
+          },
+          "cohort_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort Ids",
+            "description": "Cohort IDs to filter by"
+          },
+          "simulation_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Ids",
+            "description": "Simulation IDs to filter by"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids",
+            "description": "Department IDs to filter by"
+          },
+          "role_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
+          },
+          "simulation_filters": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Filters",
+            "description": "Simulation filter strings"
+          },
+          "actor_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Profile Id",
+            "description": "Acting user profile ID"
+          },
+          "target_profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Profile Id",
+            "description": "Target profile ID to scope data"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Max items per page",
+            "default": 50
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Pagination offset",
+            "default": 0
+          },
+          "rubric_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Ids",
+            "description": "Rubric IDs for section picker"
+          },
+          "rubric_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Search",
+            "description": "Search string for rubrics"
+          },
+          "simulation_picker_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Picker Ids",
+            "description": "Simulation picker IDs"
+          },
+          "simulation_picker_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Picker Search",
+            "description": "Search string for simulations"
+          },
+          "parameter_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Ids",
+            "description": "Parameter IDs for section picker"
+          },
+          "parameter_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parameter Search",
+            "description": "Search string for parameters"
+          },
+          "scenario_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Ids",
+            "description": "Scenario IDs for section picker"
+          },
+          "scenario_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenario Search",
+            "description": "Search string for scenarios"
+          },
+          "history_practice": {
+            "type": "boolean",
+            "title": "History Practice",
+            "description": "Filter to practice attempts only",
+            "default": false
+          },
+          "history_scenario_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Scenario Ids",
+            "description": "Scenario IDs for history filter"
+          },
+          "history_infinite_mode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Infinite Mode",
+            "description": "Filter by infinite mode status"
+          },
+          "history_show_archived": {
+            "type": "boolean",
+            "title": "History Show Archived",
+            "description": "Include archived attempts",
+            "default": false
+          },
+          "history_sort_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Sort By",
+            "description": "History sort field",
+            "default": "date"
+          },
+          "history_sort_order": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Sort Order",
+            "description": "History sort direction",
+            "default": "desc"
+          },
+          "history_page": {
+            "type": "integer",
+            "title": "History Page",
+            "description": "History pagination page number",
+            "default": 0
+          },
+          "history_page_size": {
+            "type": "integer",
+            "title": "History Page Size",
+            "description": "History items per page",
+            "default": 20
+          },
+          "history_simulation_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Simulation Search",
+            "description": "Search string for history simulations"
+          },
+          "history_scenario_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Scenario Search",
+            "description": "Search string for history scenarios"
+          },
+          "history_profile_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Profile Search",
+            "description": "Search string for history profiles"
+          }
+        },
+        "type": "object",
+        "title": "DashboardRequest",
+        "description": "Request for getting dashboard data (get.py scope only)."
       },
       "DashboardRubricMeta": {
         "properties": {
@@ -55821,6 +56402,18 @@
             ],
             "title": "Profile Id"
           },
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id"
+          },
           "user_persona_id": {
             "anyOf": [
               {
@@ -70065,6 +70658,15 @@
             ],
             "title": "Configs Search",
             "description": "Free-text filter on group name"
+          },
+          "configs_selected": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Configs Selected",
+            "description": "Run IDs currently selected in the picker; messages preloaded for preview"
           }
         },
         "type": "object",
@@ -77278,19 +77880,21 @@
           },
           "department_ids": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "type": "array",
             "title": "Department Ids",
             "description": "Department IDs to filter by"
           },
-          "roles": {
+          "role_ids": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "type": "array",
-            "title": "Roles",
-            "description": "Roles to filter by"
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
           },
           "active": {
             "anyOf": [
@@ -78576,6 +79180,22 @@
             ],
             "title": "Department Ids",
             "description": "Department IDs to filter by"
+          },
+          "role_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
           },
           "target_profile_id": {
             "anyOf": [
@@ -82474,6 +83094,22 @@
             ],
             "title": "Department Ids",
             "description": "Department IDs to filter by"
+          },
+          "role_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
           },
           "practice": {
             "type": "boolean",
@@ -96070,6 +96706,45 @@
         "title": "PricingGroupItem",
         "description": "A single group row in the pricing list."
       },
+      "PricingHistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PricingGroupItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Pricing group rows"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count",
+            "description": "Total number of matching records",
+            "default": 0
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "Current page number",
+            "default": 0
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size",
+            "description": "Items per page",
+            "default": 50
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages",
+            "description": "Total number of pages",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PricingHistoryResponse",
+        "description": "Embedded pricing group history for the pricing bundle endpoint."
+      },
       "PricingRequest": {
         "properties": {
           "start_date": {
@@ -96123,6 +96798,70 @@
             ],
             "title": "Date To",
             "description": "Alias for end date"
+          },
+          "department_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Department Ids",
+            "description": "Department IDs to filter by"
+          },
+          "page_limit": {
+            "type": "integer",
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Page Limit",
+            "description": "Max chart items per page",
+            "default": 100
+          },
+          "page_offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Offset",
+            "description": "Chart pagination offset",
+            "default": 0
+          },
+          "history_page": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "History Page",
+            "description": "Embedded history page number",
+            "default": 0
+          },
+          "history_page_size": {
+            "type": "integer",
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "History Page Size",
+            "description": "Embedded history items per page",
+            "default": 50
+          },
+          "history_sort_by": {
+            "type": "string",
+            "title": "History Sort By",
+            "description": "Embedded history sort field",
+            "default": "date"
+          },
+          "history_sort_order": {
+            "type": "string",
+            "title": "History Sort Order",
+            "description": "Embedded history sort direction",
+            "default": "desc"
+          },
+          "history_model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Model Id",
+            "description": "Model UUID to filter embedded history by"
           }
         },
         "type": "object",
@@ -96200,6 +96939,17 @@
               }
             ],
             "description": "Inline analytics facets for SSR"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PricingHistoryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Embedded pricing group history"
           }
         },
         "type": "object",
@@ -99899,6 +100649,22 @@
             "title": "Department Ids",
             "description": "Department IDs to filter by"
           },
+          "role_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
+          },
           "simulation_filters": {
             "anyOf": [
               {
@@ -101827,6 +102593,18 @@
             "title": "Name",
             "description": "Profile display name"
           },
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id",
+            "description": "Assigned role resource UUID"
+          },
           "role": {
             "anyOf": [
               {
@@ -101937,11 +102715,12 @@
             "title": "Department Ids",
             "description": "Department IDs to filter by"
           },
-          "roles": {
+          "role_ids": {
             "anyOf": [
               {
                 "items": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "uuid"
                 },
                 "type": "array"
               },
@@ -101949,8 +102728,8 @@
                 "type": "null"
               }
             ],
-            "title": "Roles",
-            "description": "Roles to filter by"
+            "title": "Role Ids",
+            "description": "Role resource IDs to filter profiles by"
           },
           "simulation_filters": {
             "anyOf": [
@@ -102087,6 +102866,14 @@
             "title": "Profiles",
             "description": "Profile resources keyed by ID"
           },
+          "roles": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReportsRoleResource"
+            },
+            "type": "object",
+            "title": "Roles",
+            "description": "Role resources keyed by ID"
+          },
           "scenarios": {
             "additionalProperties": {
               "$ref": "#/components/schemas/ReportsScenarioResource"
@@ -102183,6 +102970,84 @@
         "type": "object",
         "title": "ReportsResponse",
         "description": "Target reports artifact bundle shape."
+      },
+      "ReportsRoleResource": {
+        "properties": {
+          "role_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Id",
+            "description": "Role resource identifier"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Role display name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Role description"
+          },
+          "icon_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Id",
+            "description": "Icon resource UUID"
+          },
+          "color_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color Id",
+            "description": "Color resource UUID"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level",
+            "description": "Role privilege level"
+          }
+        },
+        "type": "object",
+        "title": "ReportsRoleResource"
       },
       "ReportsRubricResource": {
         "properties": {
@@ -113373,6 +114238,72 @@
             "type": "array",
             "title": "Instruction Ids",
             "description": "Instruction resource ids from the historical agent"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "Model id from the historical agent"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature",
+            "description": "Temperature value from the historical agent"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning",
+            "description": "Reasoning level value from the historical agent"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality",
+            "description": "Quality value from the historical agent"
+          },
+          "permissions": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Permissions",
+            "description": "Historical (artifact, operation) pairs this run executed"
           }
         },
         "type": "object",

@@ -272,13 +272,30 @@ def _build_history_response(
         for item in attempts
     ]
 
-    # TODO: Filter options (simulation_options, scenario_options, profile_options)
-    # were previously provided by get_attempt_list_internal but are not available
-    # from search_attempts. These need to be rebuilt as a separate query or
-    # computed from the hydrated resources.
-    simulation_options: list[FilterOption] | None = None
-    scenario_options: list[FilterOption] | None = None
-    profile_options: list[FilterOption] | None = None
+    simulation_options = sorted(
+        [
+            FilterOption(value=str(s.id), label=s.name)
+            for s in h_sims
+            if s.id and s.name
+        ],
+        key=lambda option: option.label.lower(),
+    )
+    scenario_options = sorted(
+        [
+            FilterOption(value=str(s.id), label=s.name)
+            for s in h_scens
+            if s.id and s.name
+        ],
+        key=lambda option: option.label.lower(),
+    )
+    profile_options = sorted(
+        [
+            FilterOption(value=str(p.id), label=p.name)
+            for p in h_profs
+            if p.id and p.name
+        ],
+        key=lambda option: option.label.lower(),
+    )
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
 
     return HistoryResponse(
@@ -372,6 +389,7 @@ async def search_dashboard(
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
+            role_ids=request.role_ids,
             practice=request.practice,
             scenario_ids=request.scenario_ids,
             infinite_mode=request.infinite_mode,

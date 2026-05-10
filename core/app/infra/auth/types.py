@@ -132,6 +132,17 @@ class AnalyticsFilterOption(BaseModel):
     label: str = Field(..., description="Human-readable option label")
 
 
+class AnalyticsRoleOption(AnalyticsFilterOption):
+    """Hydrated role resource option for analytics role filters."""
+
+    id: str = Field(..., description="Role resource UUID")
+    name: str = Field(..., description="Role resource name")
+    description: str | None = Field(None, description="Role description")
+    icon_id: str | None = Field(None, description="Icon resource UUID")
+    color_id: str | None = Field(None, description="Color resource UUID")
+    level: int = Field(..., description="Role privilege level")
+
+
 class AnalyticsFacets(BaseModel):
     """Resolved analytics facets — embeddable in any artifact response.
 
@@ -143,7 +154,7 @@ class AnalyticsFacets(BaseModel):
     fields: AnalyticsFilterFields = Field(..., description="Filter field visibility configuration")
     department_options: list[AnalyticsFilterOption] = Field(default_factory=list, description="Department dropdown options")
     cohort_options: list[AnalyticsFilterOption] = Field(default_factory=list, description="Cohort dropdown options")
-    role_options: list[str] = Field(default_factory=list, description="Available role options")
+    role_options: list[AnalyticsRoleOption] = Field(default_factory=list, description="Available role resource options")
     attempt_options: list[str] = Field(default_factory=list, description="Available attempt options")
     date_range_earliest: str | None = Field(None, description="Earliest available date for filtering")
     date_range_latest: str | None = Field(None, description="Latest available date for filtering")

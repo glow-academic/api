@@ -70,6 +70,7 @@ async def get_pricing(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
                 request=request,
                 bypass_cache=bypass_cache,
             )

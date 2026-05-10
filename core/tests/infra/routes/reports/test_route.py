@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 import pytest_asyncio
+
 from tests.infra.route_helpers import create_admin_route_actor
 
 
@@ -35,6 +36,7 @@ class TestReportsRoute:
             json={
                 "target_profile_id": str(reports_route_actor.profiles_id),
                 "actor_profile_id": str(reports_route_actor.profile_id),
+                "role_ids": [str(reports_route_actor.role_id)],
                 "page_limit": 50,
                 "page_offset": 0,
             },
@@ -51,6 +53,12 @@ class TestReportsRoute:
         assert payload["sections"]["trends"]
         assert payload["sections"]["history"]
         assert payload["analytics"] is not None
+        role_options = payload["analytics"]["role_options"]
+        assert any(
+            option["id"] == str(reports_route_actor.role_id)
+            and option["value"] == str(reports_route_actor.role_id)
+            for option in role_options
+        )
         assert payload["total_count"] >= 0
 
     async def test_reports_docs_route_returns_composed_docs(

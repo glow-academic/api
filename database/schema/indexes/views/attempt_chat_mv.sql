@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX attempt_chat_mv_chat_id_idx ON public.attempt_chat_mv USING 
 
 
 --
+
+-- Name: attempt_chat_mv_role_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attempt_chat_mv_role_id_idx ON public.attempt_chat_mv USING btree (role_id);
+
+
+--

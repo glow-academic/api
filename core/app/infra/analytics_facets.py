@@ -23,6 +23,7 @@ from app.infra.auth.types import (
     AnalyticsFilterField,
     AnalyticsFilterFields,
     AnalyticsFilterOption,
+    AnalyticsRoleOption,
 )
 from app.infra.identity.analytics import (
     AnalyticsFiltersResult,
@@ -31,10 +32,10 @@ from app.infra.identity.analytics import (
     resolve_pricing_filters,
     resolve_profile_facts_filters,
 )
-from app.infra.identity.simulatable import SIMULATABLE_ROLES
 from app.infra.profile_identity_context import ProfileIdentityContext
 from app.tools.artifacts.cohort.get import get_cohorts as get_cohort_artifacts
 from app.tools.artifacts.cohort.search import search_cohorts
+from app.tools.resources.roles.get import get_roles
 
 # ---------------------------------------------------------------------------
 # Convenience constants (re-export for artifact configs)
@@ -158,9 +159,24 @@ async def resolve_analytics_facets(
         for o in result.cohort_options
     ]
 
-    # Scoped roles based on user's role
-    scoped_roles = list(SIMULATABLE_ROLES.get(profile.role, set()))
-    role_options = scoped_roles if fields.roles.visible else []
+    if fields.roles.visible:
+        all_roles = await get_roles(pool, None, redis, bypass_cache=bypass_cache)
+        role_options = [
+            AnalyticsRoleOption(
+                value=str(role.id),
+                label=role.name,
+                id=str(role.id),
+                name=role.name,
+                description=role.description,
+                icon_id=str(role.icon_id) if role.icon_id else None,
+                color_id=str(role.color_id) if role.color_id else None,
+                level=role.level,
+            )
+            for role in sorted(all_roles, key=lambda role: role.name or "")
+            if role.active and role.level >= profile.role_level
+        ]
+    else:
+        role_options = []
 
     return AnalyticsFacets(
         fields=fields,

@@ -34,6 +34,7 @@ from app.infra.dashboard.permissions import (
 from app.infra.dashboard.types import DashboardBundleResponse
 from app.infra.globals import get_redis_client
 from app.infra.record.types import RecordRequest
+from app.tools.resources.roles.get import get_roles
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -97,10 +98,11 @@ async def get_record_impl_cached(
         pool,
         redis,
         target_profile_id=request.target_profile_id,
-        actor_profile_id=request.actor_profile_id,
+        actor_profile_id=request.actor_profile_id or common.profile.profiles_id,
         cohort_ids=request.cohort_ids,
         department_ids=request.department_ids,
         simulation_ids=request.simulation_ids,
+        role_ids=request.role_ids,
         attempt_type=attempt_type,
         is_archived=is_archived,
         date_from=parsed_start_date.date() if parsed_start_date else None,
@@ -147,7 +149,7 @@ async def get_record_impl_cached(
         str(r["simulation_id"]): r["scenario_count"] for r in scenario_count_rows
     }
     persona_name_map: dict[str, str] = {
-        str(p.persona_id): p.name for p in personas if p.persona_id and p.name
+        str(p.id): p.name for p in personas if p.id and p.name
     }
     cohort_name_map: dict[str, str] = {
         str(r["id"]): r["name"]
@@ -155,19 +157,19 @@ async def get_record_impl_cached(
         if r["id"] and r["name"]
     }
     simulation_name_map: dict[str, str] = {
-        str(s.simulation_id): s.name
+        str(s.id): s.name
         for s in simulations
-        if s.simulation_id and s.name
+        if s.id and s.name
     }
     scenario_name_map: dict[str, str] = {
-        str(s.scenario_id): s.name
+        str(s.id): s.name
         for s in scenarios_list
-        if s.scenario_id and s.name
+        if s.id and s.name
     }
     standard_group_name_map: dict[str, str] = {
-        str(getattr(sg, "standard_group_id", None)): getattr(sg, "name", "")
+        str(sg.id): sg.name
         for sg in standard_groups
-        if getattr(sg, "standard_group_id", None) and getattr(sg, "name", None)
+        if sg.id and sg.name
     }
     field_parameter_map: dict[UUID, UUID] = {}
     for pf in parameter_fields:
@@ -313,11 +315,11 @@ async def get_record_impl_cached(
 
     simulation_options = [
         FilterOption(
-            value=str(item.simulation_id) if item.simulation_id else "",
+            value=str(item.id),
             label=item.name,
         )
         for item in simulations
-        if item.simulation_id
+        if item.id and item.name
     ]
 
     bundle = DashboardBundleResponse(
@@ -339,6 +341,10 @@ async def get_record_impl_cached(
         bundle.profile_name = tp.name
         bundle.profile_emails = tp.emails
         bundle.profile_primary_email = tp.primary_email
+        if tp.role_id:
+            roles = await get_roles(pool, [tp.role_id], redis, bypass_cache)
+            if roles:
+                bundle.profile_role = roles[0].name
 
     # --- Phase 7: Inline history (backward compat) ---
     if request.history_page_size and request.history_page_size > 0:
@@ -366,6 +372,7 @@ async def get_record_impl_cached(
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
+            role_ids=request.role_ids,
             practice=request.history_practice,
             scenario_ids=request.history_scenario_ids,
             infinite_mode=request.history_infinite_mode,
@@ -384,6 +391,7 @@ async def get_record_impl_cached(
             practice=request.history_practice,
             simulation_search=request.history_simulation_search,
             scenario_search=request.history_scenario_search,
+            profile_search=request.history_profile_search,
             page=request.history_page,
             page_size=request.history_page_size,
         )

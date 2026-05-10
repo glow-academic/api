@@ -315,6 +315,72 @@ def test_compute_footer_metrics_v2_builds_scenario_composition_and_stats():
     ]
 
 
+def test_compute_footer_metrics_v2_accepts_canonical_resource_ids() -> None:
+    scenario_id = uuid4()
+    simulation_id = uuid4()
+    persona_id = uuid4()
+    document_id = uuid4()
+    pf_scenario = uuid4()
+    pf_persona = uuid4()
+    pf_document = uuid4()
+    parameter_regular = uuid4()
+    parameter_persona = uuid4()
+    field_regular = uuid4()
+    field_persona = uuid4()
+
+    metrics = compute_footer_metrics_v2(
+        [
+            _ns(
+                scenario_id=scenario_id,
+                simulation_id=simulation_id,
+                completed=True,
+                passed=True,
+                grade_percent=90,
+                attempt_date=date(2026, 1, 1),
+                document_ids=[document_id],
+            )
+        ],
+        scenarios=[
+            _ns(
+                id=scenario_id,
+                persona_ids=[persona_id],
+                parameter_field_ids=[pf_scenario],
+            )
+        ],
+        personas=[_ns(id=persona_id, parameter_field_ids=[pf_persona])],
+        documents=[_ns(id=document_id, parameter_field_ids=[pf_document])],
+        parameter_fields=[
+            _ns(id=pf_scenario, parameter_id=parameter_regular, field_id=field_regular),
+            _ns(id=pf_persona, parameter_id=parameter_persona, field_id=field_persona),
+            _ns(id=pf_document, parameter_id=parameter_persona, field_id=field_persona),
+        ],
+        parameters=[
+            _ns(
+                parameter_id=parameter_regular,
+                document_parameter=False,
+                persona_parameter=False,
+            ),
+            _ns(
+                parameter_id=parameter_persona,
+                document_parameter=True,
+                persona_parameter=False,
+            ),
+        ],
+        fields=[
+            _ns(id=field_regular, name="Difficulty"),
+            _ns(id=field_persona, name="Tone"),
+        ],
+        simulation_name_map={str(simulation_id): "Simulation A"},
+        scenario_name_map={str(scenario_id): "Scenario A"},
+        thresholds={"success": 85, "warning": 70, "danger": 55},
+    )
+
+    assert metrics.scenario_performance.valid_parameter_ids == [str(parameter_regular)]
+    assert metrics.scenario_stats.valid_numeric_parameter_ids == [
+        str(parameter_persona)
+    ]
+
+
 def test_build_dashboard_bundle_returns_empty_sections_without_data():
     bundle = build_dashboard_bundle(
         attempts=[],

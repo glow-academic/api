@@ -1,13 +1,13 @@
 """Input: activity.search"""
 
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.routes.system.activity.search import search_activity as search_activity_route
 
 internal_sio = get_internal_sio()
 
@@ -28,8 +28,8 @@ class ActivitySearchPayload(BaseModel):
 
     date_from: str | None = Field(None)
     date_to: str | None = Field(None)
-    department_ids: list[str] | None = Field(None)
-    roles: list[str] | None = Field(None)
+    department_ids: list[UUID] | None = Field(None)
+    role_ids: list[UUID] | None = Field(None)
     active: bool | None = Field(None)
     page: int = Field(0)
     page_size: int = Field(50)
@@ -60,7 +60,7 @@ async def activity_search(sid: str, data: dict[str, Any]) -> None:
         date_from=payload.date_from,
         date_to=payload.date_to,
         department_ids=payload.department_ids or [],
-        roles=payload.roles or [],
+        role_ids=payload.role_ids or [],
         active=payload.active,
         page=payload.page,
         page_size=payload.page_size,
@@ -95,7 +95,7 @@ async def _run_search(pool, redis, profile_id, request: ListActivityRequest):
         pool,
         redis,
         department_ids=request.department_ids or None,
-        roles=request.roles or None,
+        role_ids=request.role_ids or None,
         date_from=request.date_from,
         date_to=request.date_to,
         active=request.active,

@@ -106,6 +106,7 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     ac.attempt_id,
     c.chat_id AS chat_entry_id,
     apc.profiles_id AS profile_id,
+    pr.role_id,
     COALESCE(home_coh.cohorts_id, prac_coh.cohorts_id) AS cohort_id,
     COALESCE(home_dep.departments_id, prac_dep.departments_id) AS department_id,
     COALESCE(home_sim.simulations_id, prac_sim.simulations_id) AS simulation_id,
@@ -156,10 +157,11 @@ CREATE MATERIALIZED VIEW public.attempt_chat_mv AS
     cvid.video_ids,
     csg.standard_group_ids,
     cstd.standard_ids
-   FROM (((((((((((((((((((((((((((public.attempt_chat_entry c
+   FROM ((((((((((((((((((((((((((((public.attempt_chat_entry c
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
      JOIN public.attempt_profiles_connection apc ON (((apc.attempt_id = a.id) AND (apc.active = true))))
+     LEFT JOIN public.profiles_resource pr ON (((pr.id = apc.profiles_id) AND (pr.active = true))))
      LEFT JOIN public.attempt_home_entry ahe ON (((ahe.attempt_id = a.id) AND (ahe.active = true))))
      LEFT JOIN public.attempt_practice_entry ape ON (((ape.attempt_id = a.id) AND (ape.active = true))))
      LEFT JOIN public.home_simulations_connection home_sim ON (((home_sim.home_id = ahe.home_id) AND (home_sim.active = true))))

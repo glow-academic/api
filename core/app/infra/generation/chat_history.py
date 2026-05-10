@@ -284,6 +284,7 @@ async def fetch_group_history(
     *,
     group_id: UUID,
     exclude_run_id: UUID | None = None,
+    agent_id: UUID | None = None,
     limit: int = DEFAULT_HISTORY_LIMIT,
 ) -> list[HistoryMessage]:
     """Return up to ``limit`` recent messages in ``group_id``, oldest-first.
@@ -291,6 +292,14 @@ async def fetch_group_history(
     The current generation's own run (when known) is excluded so that
     a freshly-persisted "user instruction" doesn't get double-counted
     once it's also appended via ``payload.instructions``.
+
+    When ``agent_id`` is supplied, only runs whose ``agent_ids`` include
+    that agent contribute history. Each agent in a multi-agent group
+    has its own role, framing, and tool surface — feeding another
+    agent's system/developer prompts and tool calls back as assistant
+    text confuses the model and can flip its persona mid-stream. Scope
+    history per dispatching agent so each LLM call sees only its own
+    prior turns.
     """
     async with pool.acquire() as conn:
         # 1. Runs in the group, oldest-first. Cap the run window so we
@@ -302,7 +311,12 @@ async def fetch_group_history(
             sort_order="asc",
             limit=50,
         )
-        run_ids = [r.run_id for r in runs if r.run_id != exclude_run_id]
+        run_ids = [
+            r.run_id
+            for r in runs
+            if r.run_id != exclude_run_id
+            and (agent_id is None or (r.agent_ids and agent_id in r.agent_ids))
+        ]
         if not run_ids:
             return []
 

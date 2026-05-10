@@ -52,6 +52,7 @@ async def get_test_artifact(
                 configs_expanded=list(request.configs_expanded),
                 configs_expanded_page_size=request.configs_expanded_page_size,
                 configs_search=request.configs_search,
+                configs_selected=list(request.configs_selected),
             )
             cache_hit_holder["value"] = cache_hit
             return response_data

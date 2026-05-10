@@ -11,8 +11,8 @@ from app.infra.analytics_facets import (
     AnalyticsFacetsConfig,
     resolve_analytics_facets,
 )
-from app.infra.profile_identity_context import ProfileIdentityContext
 from app.infra.auth.types import AnalyticsFilterFields
+from app.infra.profile_identity_context import ProfileIdentityContext
 from app.tools.artifacts.cohort.create import (
     create_cohort as create_cohort_artifact,
 )
@@ -26,6 +26,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.resources.cohorts.create import create_cohort
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.profiles.create import create_profile
+from app.tools.resources.roles.create import create_role
 
 pytestmark = pytest.mark.asyncio
 
@@ -61,6 +62,12 @@ async def test_profile_facts_facets_resolve_department_cohort_and_roles(
             conn, name="Fall 2025", redis=redis_client
         )
         profile = await create_profile(conn, redis_client)
+        role = await create_role(
+            conn,
+            redis_client,
+            name=f"Analytics Role {uuid4()}",
+            level=99,
+        )
         await create_cohort_artifact(
             conn,
             profile_ids=[profile.id],
@@ -89,7 +96,14 @@ async def test_profile_facts_facets_resolve_department_cohort_and_roles(
 
     assert facets.department_options[0].label == "Science"
     assert facets.cohort_options[0].label == "Fall 2025"
-    assert "Administrator" in facets.role_options
+    assert any(
+        option.value == str(role.id)
+        and option.label == role.name
+        and option.id == str(role.id)
+        and option.name == role.name
+        and option.level == role.level
+        for option in facets.role_options
+    )
     assert facets.attempt_options == ["first_attempt", "latest_attempt"]
 
 
@@ -106,9 +120,7 @@ async def test_pricing_facets_resolve_departments_and_date_range(pool, redis_cli
         )
         session = await create_session(conn, profile_id=profile.id)
         group = await create_group(conn, session_id=session.id, artifact_type="persona")
-        run = await create_run(
-            conn, group_id=group.id, session_id=session.id, profiles_id=profile.id
-        )
+        run = await create_run(conn, group_id=group.id, session_id=session.id)
         await conn.execute(
             "UPDATE runs_entry SET created_at = $2 WHERE id = $1",
             run.id,

@@ -2149,6 +2149,9 @@ def compute_footer_metrics_v2(
     fields = fields or []
 
     # --- Build lookups (same as v1) ---
+    def _resource_id(item: object, legacy_attr: str) -> object | None:
+        return getattr(item, "id", None) or getattr(item, legacy_attr, None)
+
     pf_lookup: dict[str, tuple[str, str]] = {}
     for pf in parameter_fields:
         pf_id = getattr(pf, "id", None)
@@ -2159,7 +2162,7 @@ def compute_footer_metrics_v2(
 
     field_name_by_id: dict[str, str] = {}
     for f in fields:
-        field_id = getattr(f, "field_id", None)
+        field_id = _resource_id(f, "field_id")
         name = getattr(f, "name", None)
         if field_id and name:
             field_name_by_id[str(field_id)] = str(name)
@@ -2178,7 +2181,10 @@ def compute_footer_metrics_v2(
     # Scenario → persona mapping from scenario resources
     scenario_persona_map: dict[str, set[str]] = {}
     for s in scenarios:
-        sid = str(getattr(s, "scenario_id", None))
+        scenario_id = _resource_id(s, "scenario_id")
+        if not scenario_id:
+            continue
+        sid = str(scenario_id)
         p_ids = getattr(s, "persona_ids", None) or []
         scenario_persona_map[sid] = {str(pid) for pid in p_ids}
 
@@ -2193,7 +2199,10 @@ def compute_footer_metrics_v2(
 
     # From scenario resource parameter_field_ids
     for s in scenarios:
-        sid = str(getattr(s, "scenario_id", None))
+        scenario_id = _resource_id(s, "scenario_id")
+        if not scenario_id:
+            continue
+        sid = str(scenario_id)
         for pfid in getattr(s, "parameter_field_ids", None) or []:
             pair = pf_lookup.get(str(pfid))
             if pair:
@@ -2201,7 +2210,10 @@ def compute_footer_metrics_v2(
 
     # From persona resource parameter_field_ids → add to scenarios that use this persona
     for p in personas:
-        pid = str(getattr(p, "persona_id", None))
+        persona_id = _resource_id(p, "persona_id")
+        if not persona_id:
+            continue
+        pid = str(persona_id)
         pf_ids = getattr(p, "parameter_field_ids", None) or []
         if not pf_ids:
             continue
@@ -2214,7 +2226,10 @@ def compute_footer_metrics_v2(
 
     # From document resource parameter_field_ids → add to scenarios that use this document
     for d in documents:
-        did = str(getattr(d, "document_id", None))
+        document_id = _resource_id(d, "document_id")
+        if not document_id:
+            continue
+        did = str(document_id)
         pf_ids = getattr(d, "parameter_field_ids", None) or []
         if not pf_ids:
             continue

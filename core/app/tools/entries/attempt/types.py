@@ -14,6 +14,7 @@ class GetAttemptResponse(BaseModel):
     attempt_id: UUID
     simulation_id: UUID | None
     profile_id: UUID | None
+    role_id: UUID | None = None
     user_persona_id: UUID | None
     personas_id: UUID | None
     cohort_id: UUID | None

@@ -16,6 +16,7 @@ class GetAttemptChatResponse(BaseModel):
     chat_entry_id: UUID | None
     group_id: UUID | None = None
     profile_id: UUID | None
+    role_id: UUID | None = None
     cohort_id: UUID | None
     department_id: UUID | None
     simulation_id: UUID | None
@@ -82,6 +83,7 @@ class ChatItem(BaseModel):
 
     # Resource IDs
     profile_id: UUID
+    role_id: UUID | None = None
     cohort_id: UUID | None = None
     department_id: UUID | None = None
     simulation_id: UUID | None = None

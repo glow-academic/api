@@ -14,8 +14,15 @@ class ActivityRequest(BaseModel):
 
     date_from: datetime | None = Field(default=None, description="Filter start date")
     date_to: datetime | None = Field(default=None, description="Filter end date")
-    department_ids: list[str] = Field(default_factory=list, description="Department IDs to filter by")
-    roles: list[str] = Field(default_factory=list, description="Roles to filter by")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department IDs to filter by")
+    role_ids: list[UUID] = Field(default_factory=list, description="Role resource IDs to filter profiles by")
+    page_limit: int = Field(50, ge=1, le=200, description="Max summary items per page")
+    page_offset: int = Field(0, ge=0, description="Summary pagination offset")
+    summary_profile_id: UUID | None = Field(None, description="Profile ID to focus the summary card")
+    history_page: int = Field(0, ge=0, description="Embedded history page number")
+    history_page_size: int = Field(50, ge=1, le=200, description="Embedded history items per page")
+    history_sort_by: str = Field("date", description="Embedded history sort field")
+    history_sort_order: str = Field("desc", description="Embedded history sort direction")
 
 
 class ListActivityRequest(BaseModel):
@@ -23,8 +30,8 @@ class ListActivityRequest(BaseModel):
 
     date_from: datetime | None = Field(default=None, description="Filter start date")
     date_to: datetime | None = Field(default=None, description="Filter end date")
-    department_ids: list[str] = Field(default_factory=list, description="Department IDs to filter by")
-    roles: list[str] = Field(default_factory=list, description="Roles to filter by")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department IDs to filter by")
+    role_ids: list[UUID] = Field(default_factory=list, description="Role resource IDs to filter profiles by")
 
     active: bool | None = Field(default=None, description="Filter by active status")
     page: int = Field(0, description="Pagination page number")
@@ -50,6 +57,16 @@ class ActivityResources(BaseModel):
     profiles: dict[str, dict] = Field(default_factory=dict, description="Profile resources keyed by ID")
 
 
+class ActivityHistoryResponse(BaseModel):
+    """Embedded activity session history for the activity bundle endpoint."""
+
+    items: list[SessionListItem] = Field(default_factory=list, description="Session history items")
+    total_count: int = Field(default=0, description="Total number of matching records")
+    page: int = Field(0, description="Current page number")
+    page_size: int = Field(50, description="Items per page")
+    total_pages: int = Field(0, description="Total number of pages")
+
+
 class ActivityResponse(BaseModel):
     """Response with activity data (top cards)."""
 
@@ -64,6 +81,8 @@ class ActivityResponse(BaseModel):
     resources: ActivityResources = Field(default_factory=ActivityResources, description="Activity resource metadata")
     # Inline analytics facets
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
+    # Embedded history
+    history: ActivityHistoryResponse | None = Field(None, description="Embedded session history")
 
 
 class ListActivityResponse(BaseModel):

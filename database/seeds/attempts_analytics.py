@@ -37,9 +37,10 @@ UUID short-circuit at the DB layer).
 
 from __future__ import annotations
 
+from uuid import UUID
+
 import asyncpg
 from redis.asyncio import Redis
-from uuid import UUID
 
 from app.tools.entries.attempt.create import create_attempt
 from app.tools.entries.attempt_chat.create import create_attempt_chat
@@ -50,31 +51,30 @@ from app.tools.entries.attempt_chat_completion.create import (
 from app.tools.entries.attempt_completion.create import create_attempt_completion
 from app.tools.entries.attempt_content.create import create_attempt_content
 from app.tools.entries.attempt_grade.create import create_attempt_grade
+from app.tools.entries.attempt_home.create import create_attempt_home
 from app.tools.entries.attempt_message.create import create_attempt_message
+from app.tools.entries.attempt_practice.create import create_attempt_practice
+from app.tools.entries.chat.get import GetChatResponse, get_chats
 from app.tools.entries.chat.search import search_chat_entries_internal
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
+from app.tools.entries.home.search import search_homes
 from app.tools.entries.personas.create import create_personas
+from app.tools.entries.practice.search import search_practices
 from app.tools.entries.run_pricing.create import create_run_pricing_entry_internal
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.tokens.create import create_token
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.pricing.search import search_pricing
 from app.tools.resources.profile_personas.search import search_profile_personas
-from app.tools.resources.rubrics.search import search_rubrics
+from app.tools.resources.rubrics.get import get_rubrics
 from app.tools.resources.videos.search import search_videos
-
 from database.seeds.ids import sid
-
 
 ATTEMPT_COUNT = 12
 TURNS_PER_ATTEMPT = 6
 COMPLETED_RATIO = 0.7
 RUNS_PER_ATTEMPT = 3
-# Half the seeded attempts are practice (freeform, no video) and half
-# are home (video-based). Mirroring the two real attempt entry points
-# so the dashboard's per-type aggregations have data for both buckets.
-PRACTICE_RATIO = 0.5
 
 
 _USER_LINES = [
@@ -96,9 +96,22 @@ _PERSONA_LINES = [
 ]
 
 
-_SCORES = [88, 76, 92, 65, 81, 73, 95, 58, 84, 32, 71, 89]
+_SCORE_PCTS = [88, 76, 92, 65, 81, 73, 95, 58, 84, 32, 71, 89]
 _TIME_TAKEN_SECONDS = [780, 1240, 540, 980, 1430, 720, 460, 1820, 690, 920, 1350, 600]
 _TOKEN_ENVELOPES = [(1850, 720), (1200, 1100), (640, 380)]
+
+
+def _score_from_percent(total_points: int | None, percent: int) -> int:
+    """Convert demo percentages into the raw rubric points grades store."""
+    if not total_points or total_points <= 0:
+        return percent
+    return max(0, min(total_points, round(total_points * percent / 100)))
+
+
+def _bool_attr(obj: object, name: str, default: bool) -> bool:
+    """Read optional template flags from helpers that expose different shapes."""
+    value = getattr(obj, name, default)
+    return default if value is None else bool(value)
 
 
 async def _wrap_personas_resource(
@@ -126,13 +139,15 @@ async def _seed_one_attempt(
     *,
     idx: int,
     user_persona_entry_id: UUID,
-    chat_id: UUID,
+    chat: GetChatResponse,
+    parent_id: UUID,
     profile_id: UUID,
     voice_persona_entry_id: UUID,
     agent_id: UUID | None,
     input_pricing_id: UUID | None,
     output_pricing_id: UUID | None,
-    rubric_id: UUID | None,
+    rubric_total_points: int | None,
+    rubric_pass_points: int | None,
     video_id: UUID | None,
     is_practice: bool,
 ) -> None:
@@ -147,6 +162,7 @@ async def _seed_one_attempt(
     group_id = sid(f"{slug}/group")
     group_name_id = sid(f"{slug}/group-name")
     session_id = profile_id
+    chat_id = chat.id
 
     # 1. Group + group_name (the agent-dispatch context).
     await create_group(
@@ -181,6 +197,20 @@ async def _seed_one_attempt(
         practice=is_practice,
         num_chats=1,
     )
+    if is_practice:
+        await create_attempt_practice(
+            conn,
+            attempt_id=attempt_id,
+            practice_id=parent_id,
+            session_id=session_id,
+        )
+    else:
+        await create_attempt_home(
+            conn,
+            attempt_id=attempt_id,
+            home_id=parent_id,
+            session_id=session_id,
+        )
 
     # 3. attempt_chat_entry pointing at the simulation's pre-seeded
     # chat. We populate `rubrics_ids` so attempt_chat_mv can compute
@@ -189,11 +219,12 @@ async def _seed_one_attempt(
     # (Average Score, Highest Score) actually have values to aggregate
     # over instead of NULLs collapsing to 0%.
     #
-    # Home attempts also wire `videos_ids` and flip `video_enabled`
-    # so the chat presents the video-based experience; practice
-    # attempts leave both off for the freeform flow.
-    rubrics_ids = [rubric_id] if rubric_id else None
-    videos_ids = [video_id] if (not is_practice) and video_id else None
+    # Mirror the template's resolved resource bundle instead of
+    # attaching an arbitrary global rubric/video. This keeps attempt
+    # history aligned with the same home/practice parent and rubric
+    # scope a real started attempt would have.
+    rubrics_ids = chat.rubric_ids or None
+    videos_ids = chat.video_ids or ([video_id] if (not is_practice) and video_id else None)
     await create_attempt_chat(
         conn,
         session_id=session_id,
@@ -204,10 +235,30 @@ async def _seed_one_attempt(
         text_enabled=True,
         audio_enabled=False,
         hints_enabled=True,
-        show_objectives=True,
-        video_enabled=(not is_practice),
+        show_objectives=_bool_attr(chat, "show_objectives", True),
+        show_problem_statement=_bool_attr(chat, "show_problem_statement", True),
+        video_enabled=_bool_attr(chat, "video_enabled", False),
+        problem_statement_enabled=_bool_attr(
+            chat, "problem_statement_enabled", False
+        ),
+        objectives_enabled=_bool_attr(chat, "objectives_enabled", False),
+        images_enabled=_bool_attr(chat, "images_enabled", False),
+        questions_enabled=_bool_attr(chat, "questions_enabled", False),
         rubrics_ids=rubrics_ids,
+        standards_ids=chat.standard_ids or None,
+        standard_groups_ids=chat.standard_group_ids or None,
+        departments_ids=chat.department_ids or None,
+        personas_ids=chat.persona_ids or None,
+        problem_statements_ids=chat.problem_statement_ids or None,
+        objectives_ids=chat.objective_ids or None,
+        questions_ids=chat.question_ids or None,
+        options_ids=chat.option_ids or None,
         videos_ids=videos_ids,
+        images_ids=chat.image_ids or None,
+        documents_ids=chat.document_ids or None,
+        parameter_fields_ids=chat.parameter_field_ids or None,
+        names_ids=chat.name_ids or None,
+        descriptions_ids=chat.description_ids or None,
     )
 
     # 4. attempt ↔ attempt_chat bridge.
@@ -301,21 +352,22 @@ async def _seed_one_attempt(
             id=sid(f"{slug}/completion"),
             stop=True,
         )
-        score = _SCORES[idx % len(_SCORES)]
+        score_pct = _SCORE_PCTS[idx % len(_SCORE_PCTS)]
+        score = _score_from_percent(rubric_total_points, score_pct)
         time_taken = _TIME_TAKEN_SECONDS[idx % len(_TIME_TAKEN_SECONDS)]
         await create_attempt_grade(
             conn,
             chat_id=attempt_chat_id,
             session_id=session_id,
             time_taken=time_taken,
-            passed=score >= 60,
+            passed=score >= (rubric_pass_points or 0),
             score=score,
             id=sid(f"{slug}/grade"),
             # Link the grade to the same rubric the chat references —
             # otherwise attempt_grade_rubrics_connection is empty and
             # downstream rubric_score / standard_group rollups can't
             # tie back to the chat's rubric.
-            rubric_ids=[rubric_id] if rubric_id else None,
+            rubric_ids=rubrics_ids,
         )
 
 
@@ -340,7 +392,34 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
             conn, redis, limit_count=50, bypass_cache=True
         )
         # Available scenario chats — pre-seeded by the simulation seeds.
-        chats = await search_chat_entries_internal(conn, limit_count=50)
+        chats = await search_chat_entries_internal(conn, limit_count=1000)
+        homes = await search_homes(conn, limit=10000, bypass_mv=True)
+        practices = await search_practices(conn, limit=10000, bypass_mv=True)
+        home_ids = {h.id for h in homes if h.id}
+        practice_ids = {p.id for p in practices if p.id}
+        chat_templates = await get_chats(
+            conn,
+            [chat["chat_entry_id"] for chat in chats if chat.get("chat_entry_id")],
+        )
+        chat_template_map = {chat.id: chat for chat in chat_templates if chat.id}
+        rubric_ids = list(
+            {
+                rubric_id
+                for chat in chat_templates
+                for rubric_id in (chat.rubric_ids or [])
+            }
+        )
+        rubric_map = {
+            rubric.id: rubric
+            for rubric in await get_rubrics(conn, rubric_ids, redis, bypass_cache=True)
+            if rubric.id
+        }
+        eligible_chats = [
+            chat
+            for chat in chats
+            if chat.get("chat_entry_id") in chat_template_map
+            and chat.get("parent_id") in (home_ids | practice_ids)
+        ]
         # Agents + pricing for the agent-activity chain.
         agents = await search_agents(conn, redis, limit_count=6, bypass_cache=True)
         input_pricings = await search_pricing(
@@ -348,12 +427,6 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         )
         output_pricings = await search_pricing(
             conn, redis, pricing_type="output", limit_count=4, bypass_cache=True
-        )
-        # Rubric: drives attempt_chat_mv.rubric_total_points →
-        # mv_attempt_facts.score_percent → Average/Highest Score on
-        # the dashboard. Without one, those metrics aggregate to 0.
-        rubrics = await search_rubrics(
-            conn, redis, limit_count=1, bypass_cache=True
         )
         # Video: only used on home (non-practice) attempts. Skip
         # gracefully if the setup has no videos.
@@ -365,15 +438,15 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
             videos = []
         print(
             f"  (discovery: profile_personas={len(profile_personas)}, "
-            f"chats={len(chats)}, agents={len(agents)}, "
+            f"eligible_chats={len(eligible_chats)}, agents={len(agents)}, "
             f"input_pricings={len(input_pricings)}, "
             f"output_pricings={len(output_pricings)})"
         )
 
-        if not profile_personas or not chats:
+        if not profile_personas or not eligible_chats:
             print(
                 "  (skipped: need at least one profile_personas and "
-                "one chat_entry to seed attempts)"
+                "one home/practice chat_entry to seed attempts)"
             )
             return
 
@@ -391,16 +464,20 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         primary_agent_id = agents[0].id if agents else None
         input_pricing_id = input_pricings[0].id if input_pricings else None
         output_pricing_id = output_pricings[0].id if output_pricings else None
-        rubric_id = rubrics[0].id if rubrics else None
         video_id = videos[0].id if videos else None
 
         async with conn.transaction():
             for idx in range(ATTEMPT_COUNT):
                 pp = profile_personas[idx % len(profile_personas)]
-                chat = chats[idx % len(chats)]
+                chat_row = eligible_chats[idx % len(eligible_chats)]
                 # search_chat_entries_internal returns list[dict] from
                 # chat_mv (the MV column is `chat_entry_id`).
-                chat_id = chat["chat_entry_id"]
+                chat_id = chat_row["chat_entry_id"]
+                chat_template = chat_template_map[chat_id]
+                parent_id = chat_row["parent_id"]
+                is_practice = parent_id in practice_ids
+                rubric_id = (chat_template.rubric_ids or [None])[0]
+                rubric = rubric_map.get(rubric_id) if rubric_id else None
 
                 user_persona_entry = persona_resource_to_entry.get(pp.persona_id)
                 if user_persona_entry is None:
@@ -419,22 +496,20 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                 # search_chat_personas to the canonical surface.
                 voice_persona_entry = user_persona_entry
 
-                # First half practice (freeform), second half home
-                # (video-based) — gives the dashboard's per-type
-                # aggregations data on both buckets.
-                is_practice = idx < int(ATTEMPT_COUNT * PRACTICE_RATIO)
                 try:
                     await _seed_one_attempt(
                         conn,
                         idx=idx,
                         user_persona_entry_id=user_persona_entry,
-                        chat_id=chat_id,
+                        chat=chat_template,
+                        parent_id=parent_id,
                         profile_id=pp.profile_id,
                         voice_persona_entry_id=voice_persona_entry,
                         agent_id=primary_agent_id,
                         input_pricing_id=input_pricing_id,
                         output_pricing_id=output_pricing_id,
-                        rubric_id=rubric_id,
+                        rubric_total_points=rubric.total_points if rubric else None,
+                        rubric_pass_points=rubric.pass_points if rubric else None,
                         video_id=video_id,
                         is_practice=is_practice,
                     )

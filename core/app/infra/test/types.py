@@ -52,6 +52,16 @@ class GetTestArtifactRequest(BaseModel):
     configs_expanded_page_size: int = Field(20, ge=1, le=200, description="Rows per expanded group")
     configs_search: str | None = Field(None, description="Free-text filter on group name")
 
+    # Picker selection — the run_ids the user has currently picked for
+    # the next Run. Server loads each selected run's historical
+    # messages so the client can preview them inline (dashed-border
+    # cards) interleaved with the test's actual history bindings. None
+    # / empty → no preview messages loaded.
+    configs_selected: list[UUID] = Field(
+        default_factory=list,
+        description="Run IDs currently selected in the picker; messages preloaded for preview",
+    )
+
 
 class TestRunItem(BaseModel):
     """A single run row for the UI table, derived from a benchmark invocation."""
@@ -93,6 +103,18 @@ class TestConfigItem(BaseModel):
     prompt_ids: list[str] = Field(default_factory=list, description="Prompt resource ids from the historical agent")
     tool_ids: list[str] = Field(default_factory=list, description="Tool resource ids from the historical agent")
     instruction_ids: list[str] = Field(default_factory=list, description="Instruction resource ids from the historical agent")
+
+    # Snapshot of the historical agent_resource's tunable settings.
+    # Mirrors the raw fields on ``GetAgentResponse`` (not level ids) so
+    # the panel can prefill exactly what the run executed against. The
+    # client matches each value back to the model's available
+    # ``temperature_levels`` / ``reasoning_levels`` / ``qualities``
+    # chips in ``resources.*`` for selection state. ``model_id`` lets
+    # the panel look up the model's chip catalog.
+    model_id: str | None = Field(None, description="Model id from the historical agent")
+    temperature: float | None = Field(None, description="Temperature value from the historical agent")
+    reasoning: str | None = Field(None, description="Reasoning level value from the historical agent")
+    quality: str | None = Field(None, description="Quality value from the historical agent")
 
     # Historical permissions: ``(artifact, operation)`` pairs the
     # historical run actually executed, parsed from each call's

@@ -22,6 +22,7 @@ from app.tools.entries.attempt_chat.types import (
 )
 from app.tools.resources.cohorts.get import get_cohorts
 from app.tools.resources.profiles.get import get_profiles
+from app.tools.resources.roles.get import get_roles
 from app.tools.resources.scenarios.get import get_scenarios
 from app.tools.resources.simulations.get import get_simulations
 
@@ -35,6 +36,7 @@ def _to_chat_item(r: GetAttemptChatResponse) -> ChatItem:
         group_id=r.group_id,
         attempt_chat_id=r.chat_entry_id,
         profile_id=r.profile_id,
+        role_id=r.role_id,
         cohort_id=r.cohort_id,
         department_id=r.department_id,
         simulation_id=r.simulation_id,
@@ -66,6 +68,7 @@ async def resolve_reports_context(
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     attempt_type: str | None = None,
     is_archived: bool = False,
     date_from: date | None = None,
@@ -91,6 +94,7 @@ async def resolve_reports_context(
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
                 simulation_ids=simulation_ids,
+                role_ids=role_ids,
                 attempt_type=attempt_type,
                 is_archived=is_archived,
                 date_from=date_from,
@@ -115,6 +119,7 @@ async def resolve_reports_context(
     profile_ids_set: set[UUID] = set()
     scenario_ids_set: set[UUID] = set()
     cohort_ids_set: set[UUID] = set()
+    role_ids_set: set[UUID] = set()
 
     for item in chat_items:
         if item.simulation_id:
@@ -125,6 +130,8 @@ async def resolve_reports_context(
             scenario_ids_set.add(item.scenario_id)
         if item.cohort_id:
             cohort_ids_set.add(item.cohort_id)
+        if item.role_id:
+            role_ids_set.add(item.role_id)
 
     # ── Phase 3: Parallel resource hydration ─────────────────────────
     async def _get_simulations() -> list:
@@ -158,11 +165,19 @@ async def resolve_reports_context(
                 c, list(cohort_ids_set), redis, bypass_cache=bypass_cache
             )
 
-    simulations, profiles, scenarios, cohorts = await asyncio.gather(
+    async def _get_roles() -> list:
+        if not role_ids_set:
+            return []
+        return await get_roles(
+            pool, list(role_ids_set), redis, bypass_cache=bypass_cache
+        )
+
+    simulations, profiles, scenarios, cohorts, roles = await asyncio.gather(
         _get_simulations(),
         _get_profiles(),
         _get_scenarios(),
         _get_cohorts(),
+        _get_roles(),
     )
 
     # ── Phase 4: Return ArtifactContext ──────────────────────────────
@@ -177,6 +192,7 @@ async def resolve_reports_context(
         resources={
             "simulations": ResourcePair(selected=simulations, suggestions=[]),
             "profiles": ResourcePair(selected=profiles, suggestions=[]),
+            "roles": ResourcePair(selected=roles, suggestions=[]),
             "scenarios": ResourcePair(selected=scenarios, suggestions=[]),
             "cohorts": ResourcePair(selected=cohorts, suggestions=[]),
         },

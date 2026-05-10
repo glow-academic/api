@@ -39,6 +39,7 @@ from app.infra.dashboard.types import (
 )
 from app.infra.globals import get_redis_client
 from app.routes.attempt.dashboard.search import _build_history_response
+from app.tools.resources.roles.get import get_roles
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -104,10 +105,11 @@ async def get_dashboard_impl_cached(
             pool,
             redis,
             target_profile_id=request.target_profile_id,
-            actor_profile_id=request.actor_profile_id,
+            actor_profile_id=request.actor_profile_id or common.profile.profiles_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
             simulation_ids=request.simulation_ids,
+            role_ids=request.role_ids,
             attempt_type=attempt_type,
             is_archived=is_archived,
             date_from=parsed_start_date.date() if parsed_start_date else None,
@@ -194,9 +196,9 @@ async def get_dashboard_impl_cached(
         str(s.id): s.name for s in scenarios_list if s.id and s.name
     }
     standard_group_name_map = {
-        str(getattr(sg, "standard_group_id", None)): getattr(sg, "name", "")
+        str(sg.id): sg.name
         for sg in standard_groups
-        if getattr(sg, "standard_group_id", None) and getattr(sg, "name", None)
+        if sg.id and sg.name
     }
     field_parameter_map: dict[UUID, UUID] = {}
     for pf in parameter_fields:
@@ -360,6 +362,10 @@ async def get_dashboard_impl_cached(
         bundle.profile_name = tp.name
         bundle.profile_emails = tp.emails
         bundle.profile_primary_email = tp.primary_email
+        if tp.role_id:
+            roles = await get_roles(pool, [tp.role_id], redis, bypass_cache)
+            if roles:
+                bundle.profile_role = roles[0].name
 
     if request.history_page_size and request.history_page_size > 0:
         profile_resource_id: UUID | None = None
@@ -380,6 +386,7 @@ async def get_dashboard_impl_cached(
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
+            role_ids=request.role_ids,
             practice=request.history_practice,
             scenario_ids=request.history_scenario_ids,
             infinite_mode=request.history_infinite_mode,

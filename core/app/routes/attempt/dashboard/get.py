@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+from app.infra.dashboard.types import DashboardBundleResponse, DashboardRequest
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
@@ -11,8 +12,9 @@ from app.utils.error.handle_route_error import handle_route_error
 router = APIRouter()
 
 
-@router.post("/get")
+@router.post("/get", response_model=DashboardBundleResponse)
 async def get_dashboard(
+    dashboard_request: DashboardRequest,
     http_request: Request,
     response: Response,
 ):
@@ -20,10 +22,6 @@ async def get_dashboard(
         # Lazy imports to avoid circular import
         from app.infra.attempt.group import group_attempt_impl
         from app.infra.dashboard.get import get_dashboard_impl_cached
-        from app.infra.dashboard.types import DashboardBundleResponse, DashboardRequest
-
-        body = await http_request.json()
-        request = DashboardRequest(**body)
 
         profile_id = http_request.state.profile_id
         session_id = http_request.state.session_id
@@ -47,7 +45,7 @@ async def get_dashboard(
         async def _runner() -> DashboardBundleResponse:
             response_data, cache_hit = await get_dashboard_impl_cached(
                 pool,
-                request,
+                dashboard_request,
                 profile_id=profile_id,
                 bypass_cache=bypass_cache,
                 cache_key_path=http_request.url.path,
@@ -63,7 +61,7 @@ async def get_dashboard(
             session_id=session_id,
             group_id=group_id,
             operation="dashboard_get",
-            arguments=request.model_dump(mode="json"),
+            arguments=dashboard_request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=DashboardBundleResponse,
             runner=_runner,

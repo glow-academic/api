@@ -36,27 +36,22 @@ from app.tools.resources.pricing.get import get_pricing
 
 async def _resolve_profile_ids(
     pool: asyncpg.Pool,
-    department_ids: list[str] | None = None,
-    roles: list[str] | None = None,
+    department_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
 ) -> list[UUID] | None:
-    """Resolve department_ids + roles to matching profile_ids."""
-    if not department_ids and not roles:
+    """Resolve department_ids + role_ids to matching profile_ids."""
+    if not department_ids and not role_ids:
         return None
     conditions: list[str] = []
     params: list = []
     idx = 1
     if department_ids:
         conditions.append(f"p.department_ids && ${idx}::uuid[]")
-        params.append([UUID(d) for d in department_ids])
+        params.append(department_ids)
         idx += 1
-    if roles:
-        conditions.append(f"""EXISTS (
-            SELECT 1 FROM profile_roles_junction prj
-            JOIN roles_resource r ON prj.role_id = r.id
-            WHERE prj.profile_id = p.id AND prj.active = true
-              AND r.role = ANY(${idx}::text[])
-        )""")
-        params.append(roles)
+    if role_ids:
+        conditions.append(f"p.role_id = ANY(${idx}::uuid[])")
+        params.append(role_ids)
         idx += 1
     where = " AND ".join(conditions)
     async with pool.acquire() as conn:
@@ -70,8 +65,8 @@ async def resolve_activity_context(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
-    department_ids: list[str] | None = None,
-    roles: list[str] | None = None,
+    department_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -86,7 +81,7 @@ async def resolve_activity_context(
       - names (for profile display)
     """
     # Step 1: Resolve department/role filters to profile_ids
-    filter_profile_ids = await _resolve_profile_ids(pool, department_ids, roles)
+    filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
 
     # Merge with direct profile_ids filter
     effective_profile_ids = profile_ids or filter_profile_ids
@@ -203,8 +198,8 @@ async def resolve_activity_search_context(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
-    department_ids: list[str] | None = None,
-    roles: list[str] | None = None,
+    department_ids: list[UUID] | None = None,
+    role_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -226,7 +221,7 @@ async def resolve_activity_search_context(
       - names (profile display), pricing (cost computation)
     """
     # Step 1: Resolve department/role filters
-    filter_profile_ids = await _resolve_profile_ids(pool, department_ids, roles)
+    filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
     effective_profile_ids = profile_ids or filter_profile_ids
 
     page_offset = page * page_size

@@ -50,6 +50,7 @@ async def get_test_impl(
     configs_expanded: list[UUID] | None = None,
     configs_expanded_page_size: int = 20,
     configs_search: str | None = None,
+    configs_selected: list[UUID] | None = None,
     **_kwargs: Any,
 ) -> GetTestArtifactResponse:
     """Core test artifact detail fetcher.
@@ -523,17 +524,26 @@ async def get_test_impl(
                         cfg_prompt_ids: list[str] = []
                         cfg_tool_ids: list[str] = []
                         cfg_instruction_ids: list[str] = []
+                        cfg_model_id: str | None = None
+                        cfg_temperature: float | None = None
+                        cfg_reasoning: str | None = None
+                        cfg_quality: str | None = None
                         if cfg_agent_id and cfg_agent_id in agent_map:
                             a = agent_map[cfg_agent_id]
                             cfg_agent_name = a.name
-                            if a.model_id and a.model_id in model_map:
-                                cfg_model_name = model_map[a.model_id].name
+                            if a.model_id:
+                                cfg_model_id = str(a.model_id)
+                                if a.model_id in model_map:
+                                    cfg_model_name = model_map[a.model_id].name
                             if a.prompt_id:
                                 cfg_prompt_ids = [str(a.prompt_id)]
                             cfg_tool_ids = [str(t) for t in (a.tool_ids or [])]
                             cfg_instruction_ids = [
                                 str(i) for i in (a.instruction_ids or [])
                             ]
+                            cfg_temperature = a.temperature
+                            cfg_reasoning = a.reasoning
+                            cfg_quality = a.quality
                         if cfg_model_name is None and cfg.model_ids:
                             mid = cfg.model_ids[0]
                             if mid in model_map:
@@ -565,8 +575,70 @@ async def get_test_impl(
                                 tool_ids=cfg_tool_ids,
                                 instruction_ids=cfg_instruction_ids,
                                 permissions=run_perms,
+                                model_id=cfg_model_id,
+                                temperature=cfg_temperature,
+                                reasoning=cfg_reasoning,
+                                quality=cfg_quality,
                             )
                         )
+
+        # === HYDRATE CONFIG-REFERENCED RESOURCES ===
+        # Configs surface ids from arbitrary historical agents — their
+        # prompts/instructions/tools/models often aren't in the test
+        # context's "selected" sets. Pull the missing ones via canonical
+        # black-box ``get_*`` so the panel can prefill bodies + display
+        # values without a second fetch. Bulk lookup, cache-friendly.
+        cfg_prompt_id_set: set[UUID] = set()
+        cfg_instruction_id_set: set[UUID] = set()
+        cfg_tool_id_set: set[UUID] = set()
+        cfg_model_id_set: set[UUID] = set()
+        for ci in config_items:
+            for pid in ci.prompt_ids:
+                cfg_prompt_id_set.add(UUID(pid))
+            for iid in ci.instruction_ids:
+                cfg_instruction_id_set.add(UUID(iid))
+            for tid in ci.tool_ids:
+                cfg_tool_id_set.add(UUID(tid))
+            if ci.model_id:
+                cfg_model_id_set.add(UUID(ci.model_id))
+
+        prompts_list_for_payload: list = list(_res("prompts"))
+        instructions_list_for_payload: list = list(_res("instructions"))
+        models_list_for_payload: list = list(models_list)
+        # Tool list is built below (needs perm hydration). We collect
+        # ids here and merge into ``tools_list_for_payload`` after it's
+        # initialized from ``_res_all``.
+
+        existing_prompt_ids = {p.id for p in prompts_list_for_payload}
+        existing_instruction_ids = {i.id for i in instructions_list_for_payload}
+        existing_model_ids = {m.id for m in models_list_for_payload}
+
+        missing_prompt_ids = [pid for pid in cfg_prompt_id_set if pid not in existing_prompt_ids]
+        missing_instruction_ids = [iid for iid in cfg_instruction_id_set if iid not in existing_instruction_ids]
+        missing_model_ids = [mid for mid in cfg_model_id_set if mid not in existing_model_ids]
+
+        if missing_prompt_ids or missing_instruction_ids or missing_model_ids:
+            async with pool.acquire() as conn:
+                if missing_prompt_ids:
+                    from app.tools.resources.prompts.get import get_prompts
+                    extra_prompts = await get_prompts(
+                        conn, missing_prompt_ids, effective_redis,
+                    )
+                    prompts_list_for_payload.extend(extra_prompts)
+                if missing_instruction_ids:
+                    from app.tools.resources.instructions.get import get_instructions
+                    extra_instructions = await get_instructions(
+                        conn, missing_instruction_ids, effective_redis,
+                    )
+                    instructions_list_for_payload.extend(extra_instructions)
+                if missing_model_ids:
+                    from app.tools.resources.models.get import (
+                        get_models as _get_models_for_cfg_payload,
+                    )
+                    extra_models = await _get_models_for_cfg_payload(
+                        conn, missing_model_ids, effective_redis,
+                    )
+                    models_list_for_payload.extend(extra_models)
 
         # === BUILD RESOURCES PAYLOAD ===
         def _to_dict_map(items: list) -> dict[str, dict] | None:
@@ -582,7 +654,20 @@ async def get_test_impl(
         # historical permissions without an extra fetch. Bulk
         # permission lookup so this stays O(1) round-trip.
         from app.tools.resources.permissions.get import get_permissions
-        tools_list_for_payload = _res_all("tools")
+        tools_list_for_payload = list(_res_all("tools"))
+        existing_tool_ids = {t.id for t in tools_list_for_payload}
+        missing_tool_ids = [
+            tid for tid in cfg_tool_id_set if tid not in existing_tool_ids
+        ]
+        if missing_tool_ids:
+            async with pool.acquire() as conn:
+                from app.tools.resources.tools.get import (
+                    get_tools as _get_tools_for_cfg_payload,
+                )
+                extra_tools = await _get_tools_for_cfg_payload(
+                    conn, missing_tool_ids, effective_redis,
+                )
+                tools_list_for_payload.extend(extra_tools)
         all_tool_perm_ids: set[UUID] = set()
         for t in tools_list_for_payload:
             for pid in (getattr(t, "permission_ids", None) or []):
@@ -590,7 +675,7 @@ async def get_test_impl(
         if all_tool_perm_ids:
             async with pool.acquire() as conn:
                 tool_perms = await get_permissions(
-                    conn, list(all_tool_perm_ids), redis, bypass_cache=False,
+                    conn, list(all_tool_perm_ids), effective_redis, bypass_cache=False,
                 )
         else:
             tool_perms = []
@@ -616,17 +701,48 @@ async def get_test_impl(
             evals=_to_dict_map(evals_list),
             rubrics=_to_dict_map(rubrics_list),
             agents=_to_dict_map(agents_list),
-            models=_to_dict_map(models_list),
+            models=_to_dict_map(models_list_for_payload),
             voices=_to_dict_map(_res_all("voices")),
             temperature_levels=_to_dict_map(_res_all("temperature_levels")),
             reasoning_levels=_to_dict_map(_res_all("reasoning_levels")),
             modalities=_to_dict_map(_res_all("modalities")),
-            prompts=_to_dict_map(_res("prompts")),
-            instructions=_to_dict_map(_res("instructions")),
+            prompts=_to_dict_map(prompts_list_for_payload),
+            instructions=_to_dict_map(instructions_list_for_payload),
             tools=_to_tool_dict_map(tools_list_for_payload),
             qualities=_to_dict_map(_res_all("qualities")),
             standard_groups=_to_dict_map(_res("standard_groups")),
         )
+
+        # === LOAD HISTORICAL MESSAGES FOR PREVIEWED RUNS ===
+        # The picker's currently-selected configs render as dashed-
+        # border preview cards in the main history area, interleaved
+        # with the test's actual bindings. The bindings' messages are
+        # already loaded above via the test context; selected configs
+        # may reference runs from arbitrary other groups, so load
+        # those messages explicitly. Black-box: search_messages with
+        # the run_ids set. Skip silently when nothing selected.
+        if configs_selected:
+            existing_run_ids: set[UUID] = {
+                m.run_id for m in messages if m.run_id is not None
+            }
+            extra_run_ids = [
+                rid for rid in configs_selected if rid not in existing_run_ids
+            ]
+            if extra_run_ids:
+                from app.tools.entries.messages.search import (
+                    search_messages as _search_messages_for_preview,
+                )
+                async with pool.acquire() as conn:
+                    extra_messages, _ = await _search_messages_for_preview(
+                        conn,
+                        run_ids=extra_run_ids,
+                        sort_order="asc",
+                        limit=10000,
+                    )
+                # Append to the same list — the client uses run_id to
+                # slice messages per row, so order across runs doesn't
+                # matter.
+                messages = list(messages) + list(extra_messages)
 
         # === BUILD ENTRIES PAYLOAD ===
         calls = ctx.entries.get("calls", [])
@@ -708,6 +824,7 @@ async def get_test_impl_cached(
     configs_expanded: list[UUID] | None = None,
     configs_expanded_page_size: int = 20,
     configs_search: str | None = None,
+    configs_selected: list[UUID] | None = None,
 ) -> tuple[GetTestArtifactResponse, bool]:
     """HTTP response layer with caching.
 
@@ -723,6 +840,7 @@ async def get_test_impl_cached(
         configs_expanded=configs_expanded or [],
         configs_expanded_page_size=configs_expanded_page_size,
         configs_search=configs_search,
+        configs_selected=configs_selected or [],
     ).model_dump(mode="json")
     cache_key_val = cache_key(cache_key_path, body_dict)
 
@@ -740,6 +858,7 @@ async def get_test_impl_cached(
         configs_expanded=configs_expanded,
         configs_expanded_page_size=configs_expanded_page_size,
         configs_search=configs_search,
+        configs_selected=configs_selected,
     )
 
     if not api_response.test:

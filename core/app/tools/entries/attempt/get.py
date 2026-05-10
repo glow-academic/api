@@ -19,7 +19,7 @@ async def get_attempts(
 
     rows = await conn.fetch(
         f"""
-        SELECT attempt_id, simulation_id, profile_id, user_persona_id,
+        SELECT attempt_id, simulation_id, profile_id, role_id, user_persona_id,
                personas_id, cohort_id, department_id, practice,
                attempt_created_at, infinite_mode, num_chats, is_archived,
                scenario_ids, chat_entry_id, attempt_chat_id
@@ -34,6 +34,7 @@ async def get_attempts(
             attempt_id=r["attempt_id"],
             simulation_id=r["simulation_id"],
             profile_id=r["profile_id"],
+            role_id=r["role_id"],
             user_persona_id=r["user_persona_id"],
             personas_id=r["personas_id"],
             cohort_id=r["cohort_id"],

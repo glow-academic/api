@@ -947,6 +947,7 @@ def _attempt_chat_to_chat_item(
         chat_entry_id=ac.chat_entry_id,
         group_id=ac.group_id,
         profile_id=ac.profile_id,
+        role_id=ac.role_id,
         cohort_id=ac.cohort_id,
         department_id=ac.department_id,
         simulation_id=ac.simulation_id,

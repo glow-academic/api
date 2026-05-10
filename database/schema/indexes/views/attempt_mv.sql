@@ -9,3 +9,11 @@ CREATE UNIQUE INDEX attempt_mv_attempt_id_idx ON public.attempt_mv USING btree (
 
 
 --
+
+-- Name: attempt_mv_role_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attempt_mv_role_id_idx ON public.attempt_mv USING btree (role_id);
+
+
+--

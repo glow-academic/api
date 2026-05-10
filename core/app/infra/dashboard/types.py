@@ -26,7 +26,7 @@ class DashboardRequest(BaseModel):
     cohort_ids: list[UUID] | None = Field(None, description="Cohort IDs to filter by")
     simulation_ids: list[UUID] | None = Field(None, description="Simulation IDs to filter by")
     department_ids: list[UUID] | None = Field(None, description="Department IDs to filter by")
-    roles: list[str] | None = Field(None, description="Roles to filter by")
+    role_ids: list[UUID] | None = Field(None, description="Role resource IDs to filter profiles by")
     simulation_filters: list[str] | None = Field(None, description="Simulation filter strings")
     actor_profile_id: UUID | None = Field(None, description="Acting user profile ID")
     target_profile_id: UUID | None = Field(None, description="Target profile ID to scope data")
@@ -65,6 +65,7 @@ class ListDashboardRequest(BaseModel):
     end_date: str | None = Field(None, description="Filter end date")
     cohort_ids: list[UUID] | None = Field(None, description="Cohort IDs to filter by")
     department_ids: list[UUID] | None = Field(None, description="Department IDs to filter by")
+    role_ids: list[UUID] | None = Field(None, description="Role resource IDs to filter profiles by")
     target_profile_id: UUID | None = Field(None, description="Target profile ID to scope data")
 
     # History-specific

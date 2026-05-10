@@ -719,6 +719,7 @@ async def prepare_generation(
                     pool,
                     group_id=group_id,
                     exclude_run_id=run_id,
+                    agent_id=agent_group_id,
                 )
                 rendered_history = render_history_for_dispatch(
                     _raw_history,

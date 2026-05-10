@@ -27,6 +27,14 @@ class PricingRequest(BaseModel):
     end_date: datetime | None = Field(default=None, description="Filter end date")
     date_from: datetime | None = Field(default=None, description="Alias for start date")
     date_to: datetime | None = Field(default=None, description="Alias for end date")
+    department_ids: list[UUID] = Field(default_factory=list, description="Department IDs to filter by")
+    page_limit: int = Field(100, ge=1, le=500, description="Max chart items per page")
+    page_offset: int = Field(0, ge=0, description="Chart pagination offset")
+    history_page: int = Field(0, ge=0, description="Embedded history page number")
+    history_page_size: int = Field(50, ge=1, le=200, description="Embedded history items per page")
+    history_sort_by: str = Field("date", description="Embedded history sort field")
+    history_sort_order: str = Field("desc", description="Embedded history sort direction")
+    history_model_id: UUID | None = Field(None, description="Model UUID to filter embedded history by")
 
     @property
     def effective_date_from(self) -> datetime | None:
@@ -69,6 +77,16 @@ class PricingResources(BaseModel):
     models: dict[str, dict] = Field(default_factory=dict, description="Model resources keyed by ID")
 
 
+class PricingHistoryResponse(BaseModel):
+    """Embedded pricing group history for the pricing bundle endpoint."""
+
+    items: list["PricingGroupItem"] = Field(default_factory=list, description="Pricing group rows")
+    total_count: int = Field(default=0, description="Total number of matching records")
+    page: int = Field(0, description="Current page number")
+    page_size: int = Field(50, description="Items per page")
+    total_pages: int = Field(0, description="Total number of pages")
+
+
 class PricingResponse(BaseModel):
     """Response for pricing get (top chart)."""
 
@@ -79,6 +97,7 @@ class PricingResponse(BaseModel):
     model_options: list[FilterOption] = Field(default_factory=list, description="Model filter options")
     agent_options: list[FilterOption] = Field(default_factory=list, description="Agent filter options")
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
+    history: PricingHistoryResponse | None = Field(None, description="Embedded pricing group history")
 
 
 class PricingGroupItem(BaseModel):
