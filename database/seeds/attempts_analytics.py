@@ -74,10 +74,7 @@ from app.tools.entries.run_pricing.create import create_run_pricing_entry_intern
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.tokens.create import create_token
 from app.tools.resources.agents.search import search_agents
-from app.tools.resources.fields.create import create_field
 from app.tools.resources.options.get import get_options
-from app.tools.resources.parameter_fields.create import create_parameter_field
-from app.tools.resources.parameters.create import create_parameter
 from app.tools.resources.pricing.search import search_pricing
 from app.tools.resources.problem_statements.create import create_problem_statement
 from app.tools.resources.profile_personas.search import search_profile_personas
@@ -87,6 +84,19 @@ from app.tools.resources.standards.types import GetStandardResponse
 from app.tools.resources.videos.search import search_videos
 from database.seeds.activity_sessions import ensure_activity_session
 from database.seeds.ids import sid
+from database.seeds.setups.university.fields import (
+    CROWDEDNESS_FIELD_RESOURCES,
+    DEADLINE_FIELD_RESOURCES,
+    LOCATION_FIELD_RESOURCES,
+    TIME_FIELD_RESOURCES,
+)
+from database.seeds.setups.university.parameter_field_ids import pf
+from database.seeds.setups.university.parameters import (
+    P_CROWDEDNESS_RESOURCE,
+    P_DEADLINE_RESOURCE,
+    P_LOCATION_RESOURCE,
+    P_TIME_RESOURCE,
+)
 
 ATTEMPT_COUNT = 12
 TURNS_PER_ATTEMPT = 6
@@ -172,25 +182,22 @@ async def _create_or_reuse_id(
         return id
 
 
-async def _create_attempt_chat_resources(
+async def _create_attempt_problem_statement(
     conn: asyncpg.Connection,
     redis: Redis,
     *,
     slug: str,
     idx: int,
     type_label: str,
-    chat: GetChatResponse,
-) -> tuple[list[UUID], list[UUID], list[UUID]]:
-    """Create per-attempt problem/field/parameter resources.
+) -> list[UUID]:
+    """Create a per-attempt narrative problem statement.
 
-    These are attached to the materialized attempt chat, mirroring the
-    resolved runtime bundle without mutating the shared home/practice template.
+    Problem statements are intentionally per-attempt (each chat tells a
+    different story). Parameters and fields, by contrast, reuse the
+    canonical university scenario taxonomy — see
+    ``_canonical_attempt_parameter_fields`` below.
     """
     problem_statement_id = sid(f"{slug}/problem-statement")
-    field_id = sid(f"{slug}/field")
-    parameter_id = sid(f"{slug}/parameter")
-    parameter_field_id = sid(f"{slug}/parameter-field")
-
     scenario_label = f"{type_label} attempt #{idx + 1}"
     await _create_or_reuse_id(
         conn,
@@ -207,48 +214,38 @@ async def _create_attempt_chat_resources(
         ),
         problem_statement_id,
     )
-    await _create_or_reuse_id(
-        conn,
-        lambda: create_field(
-            conn,
-            name=f"{scenario_label} urgency",
-            description="How urgent the learner's situation feels during the chat.",
-            redis=redis,
-            id=field_id,
-            department_ids=chat.department_ids or None,
-        ),
-        field_id,
-    )
-    await _create_or_reuse_id(
-        conn,
-        lambda: create_parameter(
-            conn,
-            redis,
-            id=parameter_id,
-            name=f"{scenario_label} learner state",
-            description=(
-                "Seeded scenario parameter describing learner confidence, "
-                "emotional tone, and desired support level."
-            ),
-            department_ids=chat.department_ids or None,
-            field_ids=[field_id],
-            scenario_parameter=True,
-        ),
-        parameter_id,
-    )
-    await _create_or_reuse_id(
-        conn,
-        lambda: create_parameter_field(
-            conn,
-            field_id=field_id,
-            parameter_id=parameter_id,
-            redis=redis,
-            id=parameter_field_id,
-        ),
-        parameter_field_id,
-    )
+    return [problem_statement_id]
 
-    return [problem_statement_id], [parameter_field_id], [parameter_id]
+
+# Canonical scenario parameters we rotate across attempts. Each attempt
+# picks ONE field per parameter via index modulo, so all 12 attempts get a
+# distinct combo of (Location, Time, Crowdedness, Deadline). These IDs come
+# from ``database/seeds/setups/university`` — never invented per-attempt.
+_CANONICAL_SCENARIO_PARAMETERS: list[tuple[UUID, list[UUID]]] = [
+    (P_LOCATION_RESOURCE, LOCATION_FIELD_RESOURCES),
+    (P_TIME_RESOURCE, TIME_FIELD_RESOURCES),
+    (P_CROWDEDNESS_RESOURCE, CROWDEDNESS_FIELD_RESOURCES),
+    (P_DEADLINE_RESOURCE, DEADLINE_FIELD_RESOURCES),
+]
+
+
+def _canonical_attempt_parameter_fields(idx: int) -> tuple[list[UUID], list[UUID]]:
+    """Return canonical parameter_field + parameter IDs for attempt ``idx``.
+
+    Picks one field per scenario parameter, rotating through each
+    parameter's field list with ``idx`` so attempts visibly differ in the
+    Activity / Dashboard footer panels (Lawson vs Felix Haas, 9am vs 1pm,
+    etc.) instead of all sharing one synthetic "learner state" entry.
+    """
+    parameter_field_ids: list[UUID] = []
+    parameter_ids: list[UUID] = []
+    for parameter_id, field_resources in _CANONICAL_SCENARIO_PARAMETERS:
+        if not field_resources:
+            continue
+        field_id = field_resources[idx % len(field_resources)]
+        parameter_field_ids.append(pf(parameter_id, field_id))
+        parameter_ids.append(parameter_id)
+    return parameter_field_ids, parameter_ids
 
 
 def _pick_feedback_standards(
@@ -442,17 +439,19 @@ async def _seed_one_attempt(
     # scope a real started attempt would have.
     rubrics_ids = chat.rubric_ids or None
     videos_ids = chat.video_ids or ([video_id] if (not is_practice) and video_id else None)
-    (
-        seeded_problem_statement_ids,
-        seeded_parameter_field_ids,
-        seeded_parameter_ids,
-    ) = await _create_attempt_chat_resources(
+    seeded_problem_statement_ids = await _create_attempt_problem_statement(
         conn,
         redis,
         slug=slug,
         idx=idx,
         type_label=type_label,
-        chat=chat,
+    )
+    # Reuse canonical scenario parameter_fields from the university setup
+    # (Location/Time/Crowdedness/Deadline) instead of fabricating per-attempt
+    # placeholders. Each attempt picks a distinct field per parameter via idx
+    # rotation so footer panels show real variation across rows.
+    canonical_parameter_field_ids, canonical_parameter_ids = (
+        _canonical_attempt_parameter_fields(idx)
     )
     await create_attempt_chat(
         conn,
@@ -488,12 +487,12 @@ async def _seed_one_attempt(
         images_ids=chat.image_ids or None,
         documents_ids=chat.document_ids or None,
         parameter_fields_ids=_unique_ids(
-            chat.parameter_field_ids, seeded_parameter_field_ids
+            chat.parameter_field_ids, canonical_parameter_field_ids
         )
         or None,
         names_ids=chat.name_ids or None,
         descriptions_ids=chat.description_ids or None,
-        parameters_ids=seeded_parameter_ids or None,
+        parameters_ids=canonical_parameter_ids or None,
     )
 
     # 4. attempt ↔ attempt_chat bridge.

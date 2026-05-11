@@ -1,1 +1,5 @@
-{# Tool Refresh response template #}
+{% if success %}
+Tool list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

@@ -6,13 +6,21 @@
 --
 
 CREATE MATERIALIZED VIEW public.sessions_mv AS
+ WITH profile_dep_agg AS (
+         SELECT pdj.profile_id,
+            array_agg(DISTINCT pdj.departments_id ORDER BY pdj.departments_id) AS department_ids
+           FROM public.profile_departments_junction pdj
+          GROUP BY pdj.profile_id
+        )
  SELECT s.id AS session_id,
     psc.profiles_id AS profile_id,
     s.created_at AS session_created_at,
     s.active,
-    s.mcp
-   FROM (public.sessions_entry s
+    s.mcp,
+    COALESCE(pda.department_ids, ARRAY[]::uuid[]) AS department_ids
+   FROM ((public.sessions_entry s
      JOIN public.profiles_sessions_connection psc ON ((psc.session_id = s.id)))
+     LEFT JOIN profile_dep_agg pda ON ((pda.profile_id = psc.profiles_id)))
   WITH NO DATA;
 
 

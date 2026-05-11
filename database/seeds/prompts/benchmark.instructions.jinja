@@ -2,42 +2,36 @@
 
 {% if params.artifact_id %}
 **Existing benchmark** (ID: `{{ params.artifact_id }}`).
+Use `Benchmark_Get(id: "{{ params.artifact_id }}")` to see its configuration and results.
 {% else %}
-**New benchmark** — no artifact exists yet.
+**No benchmark selected** — use `Benchmark_Search` to find one.
 {% endif %}
-{% if params.invocation_id %}**Invocation ID:** `{{ params.invocation_id }}`{% endif %}
-{% if params.draft_id %}**Draft ID:** `{{ params.draft_id }}`{% endif %}
-{% if group_id %}**Group ID:** `{{ group_id }}`{% endif %}
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
 
-{% set draft = views.draft_invocation if views and views.draft_invocation else None %}
+## Parameters
 
-{% if draft %}
-### Current State
-{{ draft | tojson }}
-{% endif %}
-
-{% if models and models|length > 0 %}
-### Available Models
-{% for item in models %}
-- id: {{ item.id }} | name: {{ item.name }}
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
 {% endfor %}
 {% endif %}
 
-{% if instructions and instructions|length > 0 %}
-### Available Instructions
-{% for item in instructions %}
-- id: {{ item.id }} | template: {{ item.template[:80] }}{% if item.template|length > 80 %}...{% endif %}
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
 {% endfor %}
-{% endif %}
 
-{% if departments and departments|length > 0 %}
-### Available Departments
-{% for item in departments %}
-- id: {{ item.id }} | name: {{ item.name }}
-{% endfor %}
-{% endif %}
+## What To Do
 
-## Tool Usage
+**Tool calls for actions, plain text for answers.** Lookup/inspect work (search, get, refresh, export) → tool calls. Answering an info question grounded in data already visible in the conversation → a short plain-text reply is fine.
 
-Use the tools listed in the system prompt. Prefer **use_*** tools when suitable resources already exist above.
+**Prior tool renders persist as chat messages the user can still see.** So:
+- **Do NOT re-fetch** when a recent `Benchmark_Search` or `Benchmark_Get` result is already in the conversation. The user is looking at it and you already have the data. Answer from that instead.
+- **Do NOT restate or re-list** what's literally just above your reply — the user can still see it. A brief acknowledgment is fine, a full re-listing is wasteful.
+- **Re-fetch only** when no matching prior render exists or state may have changed.
+
+Benchmark configuration is read-only here. If the user asks to *edit* a benchmark, point them at the Test artifact.

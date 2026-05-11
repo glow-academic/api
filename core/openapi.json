@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.34"
+    "version": "2.15.35"
   },
   "paths": {
     "/persona/get": {
@@ -19392,70 +19392,6 @@
         ]
       }
     },
-    "/attempt/home/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "home"
-        ],
-        "summary": "Home Refresh",
-        "description": "Refresh home materialized views and invalidate caches.",
-        "operationId": "home_refresh_attempt_home_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "home"
-        ]
-      }
-    },
-    "/attempt/home/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "home"
-        ],
-        "summary": "Export Home",
-        "description": "Export all home data as a clean, denormalized ZIP with certificate.",
-        "operationId": "export_home_attempt_home_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportHomeApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "home"
-        ]
-      }
-    },
     "/attempt/practice/get": {
       "post": {
         "tags": [
@@ -19544,70 +19480,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "practice"
-        ]
-      }
-    },
-    "/attempt/practice/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "practice"
-        ],
-        "summary": "Practice Refresh",
-        "description": "Refresh practice materialized views and invalidate caches.",
-        "operationId": "practice_refresh_attempt_practice_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "practice"
-        ]
-      }
-    },
-    "/attempt/practice/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "practice"
-        ],
-        "summary": "Export Practice",
-        "description": "Export all practice data as a clean, denormalized ZIP.",
-        "operationId": "export_practice_attempt_practice_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportPracticeApiResponse"
                 }
               }
             }
@@ -19727,70 +19599,6 @@
         ]
       }
     },
-    "/attempt/dashboard/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "dashboard"
-        ],
-        "summary": "Dashboard Refresh",
-        "description": "Refresh dashboard caches (no materialized views).",
-        "operationId": "dashboard_refresh_attempt_dashboard_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "dashboard"
-        ]
-      }
-    },
-    "/attempt/dashboard/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "dashboard"
-        ],
-        "summary": "Export Dashboard",
-        "description": "Export all dashboard data as a clean, denormalized ZIP.",
-        "operationId": "export_dashboard_attempt_dashboard_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportDashboardApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "dashboard"
-        ]
-      }
-    },
     "/attempt/leaderboard/get": {
       "post": {
         "tags": [
@@ -19878,70 +19686,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "leaderboard"
-        ]
-      }
-    },
-    "/attempt/leaderboard/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "leaderboard"
-        ],
-        "summary": "Leaderboard Refresh",
-        "description": "Refresh leaderboard caches.",
-        "operationId": "leaderboard_refresh_attempt_leaderboard_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "leaderboard"
-        ]
-      }
-    },
-    "/attempt/leaderboard/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "leaderboard"
-        ],
-        "summary": "Export Leaderboard",
-        "description": "Export all leaderboard data as a clean, denormalized ZIP.",
-        "operationId": "export_leaderboard_attempt_leaderboard_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportLeaderboardApiResponse"
                 }
               }
             }
@@ -20062,122 +19806,6 @@
         ]
       }
     },
-    "/attempt/record/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "record"
-        ],
-        "summary": "Record Refresh",
-        "description": "Refresh record caches.",
-        "operationId": "record_refresh_attempt_record_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "record"
-        ]
-      }
-    },
-    "/attempt/record/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "record"
-        ],
-        "summary": "Export Record",
-        "description": "Export record data (dashboard for one profile) as a clean, denormalized ZIP.",
-        "operationId": "export_record_attempt_record_export_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExportRecordApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportRecordApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "record"
-        ]
-      }
-    },
-    "/attempt/report/export": {
-      "post": {
-        "tags": [
-          "attempt",
-          "report"
-        ],
-        "summary": "Export Reports",
-        "description": "Export all reports data as a clean, denormalized ZIP.",
-        "operationId": "export_reports_attempt_report_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportReportsApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "report"
-        ]
-      }
-    },
     "/attempt/report/search": {
       "post": {
         "tags": [
@@ -20214,38 +19842,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "attempt",
-          "report"
-        ]
-      }
-    },
-    "/attempt/report/refresh": {
-      "post": {
-        "tags": [
-          "attempt",
-          "report"
-        ],
-        "summary": "Reports Refresh",
-        "description": "Refresh reports caches.",
-        "operationId": "reports_refresh_attempt_report_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
                 }
               }
             }
@@ -21870,70 +21466,6 @@
         ]
       }
     },
-    "/test/benchmark/refresh": {
-      "post": {
-        "tags": [
-          "test",
-          "benchmark"
-        ],
-        "summary": "Benchmark Refresh",
-        "description": "Refresh benchmark materialized views and invalidate caches.",
-        "operationId": "benchmark_refresh_test_benchmark_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "test",
-          "benchmark"
-        ]
-      }
-    },
-    "/test/benchmark/export": {
-      "post": {
-        "tags": [
-          "test",
-          "benchmark"
-        ],
-        "summary": "Export Benchmark",
-        "description": "Export all benchmark data as a clean, denormalized ZIP.",
-        "operationId": "export_benchmark_test_benchmark_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportBenchmarkApiResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "test",
-          "benchmark"
-        ]
-      }
-    },
     "/test/invocation/get": {
       "post": {
         "tags": [
@@ -22167,110 +21699,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GetInvocationDraftsApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "test",
-          "invocation"
-        ]
-      }
-    },
-    "/test/invocation/refresh": {
-      "post": {
-        "tags": [
-          "test",
-          "invocation"
-        ],
-        "summary": "Invocation Refresh",
-        "description": "Refresh invocation materialized views and invalidate caches.",
-        "operationId": "invocation_refresh_test_invocation_refresh_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshInvocationApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "test",
-          "invocation"
-        ]
-      }
-    },
-    "/test/invocation/export": {
-      "post": {
-        "tags": [
-          "test",
-          "invocation"
-        ],
-        "summary": "Export Invocation",
-        "description": "Export a single invocation as a clean, denormalized CSV.",
-        "operationId": "export_invocation_test_invocation_export_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExportInvocationApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportInvocationApiResponse"
                 }
               }
             }
@@ -22785,90 +22213,6 @@
         ]
       }
     },
-    "/system/group/refresh": {
-      "post": {
-        "tags": [
-          "system",
-          "group"
-        ],
-        "summary": "Group Refresh",
-        "description": "Refresh group materialized views and invalidate caches.",
-        "operationId": "group_refresh_system_group_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "group"
-        ]
-      }
-    },
-    "/system/group/export": {
-      "post": {
-        "tags": [
-          "system",
-          "group"
-        ],
-        "summary": "Export Group",
-        "description": "Export group data as a clean, denormalized ZIP.",
-        "operationId": "export_group_system_group_export_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExportGroupApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportGroupApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "group"
-        ]
-      }
-    },
     "/system/group/name": {
       "post": {
         "tags": [
@@ -22973,90 +22317,6 @@
         ]
       }
     },
-    "/system/session/refresh": {
-      "post": {
-        "tags": [
-          "system",
-          "session"
-        ],
-        "summary": "Session Refresh",
-        "description": "Refresh session materialized views and invalidate caches.",
-        "operationId": "session_refresh_system_session_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "session"
-        ]
-      }
-    },
-    "/system/session/export": {
-      "post": {
-        "tags": [
-          "system",
-          "session"
-        ],
-        "summary": "Export Session",
-        "description": "Export session data as a clean, denormalized ZIP.",
-        "operationId": "export_session_system_session_export_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExportSessionApiRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportSessionApiResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "session"
-        ]
-      }
-    },
     "/system/health/get": {
       "post": {
         "tags": [
@@ -23093,70 +22353,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "health"
-        ]
-      }
-    },
-    "/system/health/refresh": {
-      "post": {
-        "tags": [
-          "system",
-          "health"
-        ],
-        "summary": "Health Refresh",
-        "description": "Refresh health materialized views and invalidate caches.",
-        "operationId": "health_refresh_system_health_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "health"
-        ]
-      }
-    },
-    "/system/health/export": {
-      "post": {
-        "tags": [
-          "system",
-          "health"
-        ],
-        "summary": "Export Health",
-        "description": "Export all health data as a clean, denormalized ZIP.",
-        "operationId": "export_health_system_health_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportHealthApiResponse"
                 }
               }
             }
@@ -23276,38 +22472,6 @@
         ]
       }
     },
-    "/system/activity/refresh": {
-      "post": {
-        "tags": [
-          "system",
-          "activity"
-        ],
-        "summary": "Activity Refresh",
-        "description": "Refresh activity materialized views and invalidate caches.",
-        "operationId": "activity_refresh_system_activity_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "activity"
-        ]
-      }
-    },
     "/system/activity/resolve": {
       "post": {
         "tags": [
@@ -23344,38 +22508,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "activity"
-        ]
-      }
-    },
-    "/system/activity/export": {
-      "post": {
-        "tags": [
-          "system",
-          "activity"
-        ],
-        "summary": "Export Activity",
-        "description": "Export all activity data as a clean, denormalized ZIP.",
-        "operationId": "export_activity_system_activity_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportActivityApiResponse"
                 }
               }
             }
@@ -23480,70 +22612,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "pricing"
-        ]
-      }
-    },
-    "/system/pricing/refresh": {
-      "post": {
-        "tags": [
-          "system",
-          "pricing"
-        ],
-        "summary": "Pricing Refresh",
-        "description": "Refresh pricing materialized views and invalidate caches.",
-        "operationId": "pricing_refresh_system_pricing_refresh_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RefreshResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "x-cache-tags": [
-          "system",
-          "pricing"
-        ]
-      }
-    },
-    "/system/pricing/export": {
-      "post": {
-        "tags": [
-          "system",
-          "pricing"
-        ],
-        "summary": "Export Pricing",
-        "description": "Export all pricing data as a clean, denormalized ZIP.",
-        "operationId": "export_pricing_system_pricing_export_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExportPricingApiResponse"
                 }
               }
             }
@@ -40095,7 +39163,7 @@
                 "type": "null"
               }
             ],
-            "description": "Inline attempt history response"
+            "description": "Always null on /get \u2014 use /attempt/dashboard/search instead"
           }
         },
         "type": "object",
@@ -40812,126 +39880,6 @@
             ],
             "title": "Scenario Search",
             "description": "Search string for scenarios"
-          },
-          "history_practice": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Practice",
-            "description": "Filter to practice attempts only"
-          },
-          "history_scenario_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Scenario Ids",
-            "description": "Scenario IDs for history filter"
-          },
-          "history_infinite_mode": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Infinite Mode",
-            "description": "Filter by infinite mode status"
-          },
-          "history_show_archived": {
-            "type": "boolean",
-            "title": "History Show Archived",
-            "description": "Include archived attempts",
-            "default": false
-          },
-          "history_sort_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Sort By",
-            "description": "History sort field",
-            "default": "date"
-          },
-          "history_sort_order": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Sort Order",
-            "description": "History sort direction",
-            "default": "desc"
-          },
-          "history_page": {
-            "type": "integer",
-            "title": "History Page",
-            "description": "History pagination page number",
-            "default": 0
-          },
-          "history_page_size": {
-            "type": "integer",
-            "title": "History Page Size",
-            "description": "History items per page",
-            "default": 20
-          },
-          "history_simulation_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Simulation Search",
-            "description": "Search string for history simulations"
-          },
-          "history_scenario_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Scenario Search",
-            "description": "Search string for history scenarios"
-          },
-          "history_profile_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Profile Search",
-            "description": "Search string for history profiles"
           }
         },
         "type": "object",
@@ -49920,39 +48868,6 @@
         "title": "EvalRubricResource",
         "description": "Top-level rubric catalog entry. The ModelRubrics picker renders\none of these per option (alongside a \"no rubric\" clear state)."
       },
-      "ExportActivityApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportActivityApiResponse",
-        "description": "Response model for activity export."
-      },
       "ExportAgentApiRequest": {
         "properties": {
           "agent_id": {
@@ -50092,6 +49007,18 @@
             ],
             "title": "Simulation Ids",
             "description": "Optional simulation filter"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
           }
         },
         "type": "object",
@@ -50178,39 +49105,6 @@
         ],
         "title": "ExportAuthApiResponse",
         "description": "Response model for export auth endpoint."
-      },
-      "ExportBenchmarkApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportBenchmarkApiResponse",
-        "description": "Response model for benchmark export."
       },
       "ExportChatApiRequest": {
         "properties": {
@@ -50330,39 +49224,6 @@
         ],
         "title": "ExportCohortApiResponse",
         "description": "Response model for export cohort endpoint."
-      },
-      "ExportDashboardApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportDashboardApiResponse",
-        "description": "Response model for dashboard export."
       },
       "ExportDepartmentApiRequest": {
         "properties": {
@@ -50559,224 +49420,6 @@
         ],
         "title": "ExportFieldApiResponse",
         "description": "Response model for export field endpoint."
-      },
-      "ExportGroupApiRequest": {
-        "properties": {
-          "group_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Group Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "group_id"
-        ],
-        "title": "ExportGroupApiRequest"
-      },
-      "ExportGroupApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Name of the exported file"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportGroupApiResponse",
-        "description": "Response model for group export."
-      },
-      "ExportHealthApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Name of the exported file"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportHealthApiResponse",
-        "description": "Response model for health export."
-      },
-      "ExportHomeApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportHomeApiResponse",
-        "description": "Response model for home certificate export."
-      },
-      "ExportInvocationApiRequest": {
-        "properties": {
-          "test_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Test Id"
-          },
-          "invocation_entry_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Invocation Entry Id"
-          },
-          "draft_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Draft Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "test_id"
-        ],
-        "title": "ExportInvocationApiRequest",
-        "description": "Request model for invocation export."
-      },
-      "ExportInvocationApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportInvocationApiResponse",
-        "description": "Response model for invocation export."
-      },
-      "ExportLeaderboardApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportLeaderboardApiResponse",
-        "description": "Response model for leaderboard export."
       },
       "ExportModelApiRequest": {
         "properties": {
@@ -50991,72 +49634,6 @@
         "title": "ExportPersonaApiResponse",
         "description": "Response model for export persona endpoint.\n\nFile-modality: the server writes the CSV to disk, registers it as a\n``files_resource`` row joined to an ``uploads_entry``, and returns\nthe ``file_id``. The client downloads via ``/persona/file/download``\n(and the BFF wrapper at ``/api/persona/download/{file_id}``)."
       },
-      "ExportPracticeApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportPracticeApiResponse",
-        "description": "Response model for practice export."
-      },
-      "ExportPricingApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportPricingApiResponse",
-        "description": "Response model for pricing export."
-      },
       "ExportProfileApiRequest": {
         "properties": {
           "profile_export_id": {
@@ -51157,86 +49734,6 @@
         ],
         "title": "ExportProviderApiResponse",
         "description": "Response model for export provider endpoint."
-      },
-      "ExportRecordApiRequest": {
-        "properties": {
-          "target_profile_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Target Profile Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "target_profile_id"
-        ],
-        "title": "ExportRecordApiRequest"
-      },
-      "ExportRecordApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportRecordApiResponse",
-        "description": "Response model for record export."
-      },
-      "ExportReportsApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Base64-encoded file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportReportsApiResponse",
-        "description": "Response model for reports export."
       },
       "ExportRubricApiRequest": {
         "properties": {
@@ -51404,53 +49901,6 @@
         ],
         "title": "ExportScenarioApiResponse",
         "description": "Response model for export scenario endpoint."
-      },
-      "ExportSessionApiRequest": {
-        "properties": {
-          "target_session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Target Session Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "target_session_id"
-        ],
-        "title": "ExportSessionApiRequest"
-      },
-      "ExportSessionApiResponse": {
-        "properties": {
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
-          },
-          "file_name": {
-            "type": "string",
-            "title": "File Name",
-            "description": "Name of the exported file"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported file"
-          },
-          "row_count": {
-            "type": "integer",
-            "title": "Row Count",
-            "description": "Number of rows in the export"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content",
-          "file_name",
-          "mime_type",
-          "row_count"
-        ],
-        "title": "ExportSessionApiResponse",
-        "description": "Response model for session export."
       },
       "ExportSettingApiRequest": {
         "properties": {
@@ -51637,6 +50087,18 @@
             ],
             "title": "Group Id",
             "description": "Target group UUID (required for view='group')"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
           }
         },
         "type": "object",
@@ -51720,6 +50182,18 @@
             ],
             "title": "Draft Id",
             "description": "Optional draft id for 'invocation' view"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
           }
         },
         "type": "object",
@@ -80878,6 +79352,38 @@
             "title": "Scenario Ids",
             "description": "Scenario IDs to filter by"
           },
+          "simulation_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Ids",
+            "description": "Simulation IDs to filter by"
+          },
+          "profile_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Ids",
+            "description": "Profile resource IDs to filter by (intersected with visible profiles)"
+          },
           "infinite_mode": {
             "anyOf": [
               {
@@ -84898,6 +83404,22 @@
             ],
             "title": "Scenario Ids",
             "description": "Scenario IDs to filter by"
+          },
+          "simulation_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Ids",
+            "description": "Simulation IDs to filter by"
           },
           "infinite_mode": {
             "anyOf": [
@@ -98509,6 +97031,22 @@
             "title": "Model Ids",
             "description": "Associated model IDs"
           },
+          "profile_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Ids",
+            "description": "Profile IDs (human users) who triggered runs in this group"
+          },
           "agent_names": {
             "anyOf": [
               {
@@ -98682,7 +97220,7 @@
           "history_sort_by": {
             "type": "string",
             "title": "History Sort By",
-            "description": "Embedded history sort field",
+            "description": "Embedded history sort field (date | total_cost | total_tokens | run_count)",
             "default": "date"
           },
           "history_sort_order": {
@@ -98702,7 +97240,67 @@
               }
             ],
             "title": "History Model Id",
-            "description": "Model UUID to filter embedded history by"
+            "description": "Model UUID to filter embedded history by (legacy single)"
+          },
+          "history_model_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Model Ids",
+            "description": "Model UUIDs to filter embedded history by (multi). Takes precedence over history_model_id when set."
+          },
+          "history_profile_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Profile Ids",
+            "description": "Profile UUIDs (human users) to filter embedded history by"
+          },
+          "history_agent_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Agent Ids",
+            "description": "Agent UUIDs (LLM agents) to filter embedded history by"
+          },
+          "history_search": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Search",
+            "description": "Group name search (ILIKE) for embedded history"
           }
         },
         "type": "object",
@@ -102645,120 +101243,6 @@
             ],
             "title": "Scenario Search",
             "description": "Search string for scenarios"
-          },
-          "history_practice": {
-            "type": "boolean",
-            "title": "History Practice",
-            "description": "Filter to practice attempts only",
-            "default": false
-          },
-          "history_scenario_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Scenario Ids",
-            "description": "Scenario IDs for history filter"
-          },
-          "history_infinite_mode": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Infinite Mode",
-            "description": "Filter by infinite mode status"
-          },
-          "history_show_archived": {
-            "type": "boolean",
-            "title": "History Show Archived",
-            "description": "Include archived attempts",
-            "default": false
-          },
-          "history_sort_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Sort By",
-            "description": "History sort field",
-            "default": "date"
-          },
-          "history_sort_order": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Sort Order",
-            "description": "History sort direction",
-            "default": "desc"
-          },
-          "history_page": {
-            "type": "integer",
-            "title": "History Page",
-            "description": "History pagination page number",
-            "default": 0
-          },
-          "history_page_size": {
-            "type": "integer",
-            "title": "History Page Size",
-            "description": "History items per page",
-            "default": 20
-          },
-          "history_simulation_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Simulation Search",
-            "description": "Search string for history simulations"
-          },
-          "history_scenario_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Scenario Search",
-            "description": "Search string for history scenarios"
-          },
-          "history_profile_search": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "History Profile Search",
-            "description": "Search string for history profiles"
           }
         },
         "type": "object",
@@ -103095,47 +101579,6 @@
         "type": "object",
         "title": "RefreshFieldApiRequest",
         "description": "Request model for field refresh endpoint."
-      },
-      "RefreshInvocationApiRequest": {
-        "properties": {
-          "targets": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Targets",
-            "description": "MV targets to refresh (omit for all). Options: invocation_mv, invocation_drafts_mv"
-          },
-          "idempotency_key": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Idempotency Key",
-            "description": "Operation key for ack"
-          },
-          "accept": {
-            "type": "boolean",
-            "title": "Accept",
-            "description": "Accept or reject. Only meaningful with idempotency_key",
-            "default": true
-          }
-        },
-        "type": "object",
-        "title": "RefreshInvocationApiRequest",
-        "description": "Request model for invocation refresh endpoint."
       },
       "RefreshModelApiRequest": {
         "properties": {

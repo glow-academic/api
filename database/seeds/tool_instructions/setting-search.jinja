@@ -1,1 +1,21 @@
-{# Setting Search response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% set rows = r.settings if r.settings is defined else (r.results if r.results is defined else []) %}
+{% if rows and rows|length > 0 %}
+## Settings ({{ rows|length }} results{% if r.has_more %}, more available{% endif %})
+
+{% for item in rows %}
+- **{{ item.name or '(unnamed)' }}**{% if item.description %} — {{ item.description[:80] }}{% if item.description|length > 80 %}…{% endif %}{% endif %} (ID: `{{ item.id or item.setting_id }}`)
+{% endfor %}
+
+{% if r.has_more %}
+Use `page_offset` to see more results.
+{% endif %}
+{% else %}
+No settings found matching the search criteria.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching settings: {{ results[0].error }}
+{% else %}
+No setting search result returned.
+{% endif %}

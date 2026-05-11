@@ -1,1 +1,25 @@
-{# Eval Draft response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Draft saved. ID: `{{ r.draft_id }}`.{% if r.message %} {{ r.message }}{% endif %}
+{% if r.form_state %}
+### Form State
+{% set fs = r.form_state %}
+{% for key, value in fs.items() %}
+{% if value is not none and value != [] and value != '' and key != 'pending_ids' %}
+{% if value is string %}
+- **{{ key }}:** {{ value[:120] }}{% if value|length > 120 %}…{% endif %}
+{% elif value is mapping %}
+- **{{ key }}:** (set)
+{% elif value is iterable %}
+- **{{ key }}:** {{ value | length }}
+{% else %}
+- **{{ key }}:** {{ value }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] %}
+Draft save failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

@@ -1,1 +1,16 @@
-{# Profile Context response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Profile Context
+{% if r.profile %}
+- **Name:** {{ r.profile.name or '(unnamed)' }}
+- **Email:** {{ r.profile.email or '(none)' }}
+{% if r.profile.role %}- **Role:** {{ r.profile.role }}{% endif %}
+{% if r.profile.id %}- **ID:** `{{ r.profile.id }}`{% endif %}
+{% endif %}
+{% if r.departments and r.departments|length > 0 %}- **Departments:** {{ r.departments|length }}{% endif %}
+{% if r.permissions and r.permissions|length > 0 %}- **Permissions:** {{ r.permissions|length }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching profile context: {{ results[0].error }}
+{% else %}
+No profile context returned.
+{% endif %}

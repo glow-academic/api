@@ -75,6 +75,8 @@ async def _build_pricing_history(
         pool,
         redis,
         session_ids=[session_id] if session_id else None,
+        department_ids=request.department_ids or None,
+        name_search=request.history_search,
         date_from=request.effective_date_from,
         date_to=request.effective_date_to,
         sort_order=request.history_sort_order,
@@ -87,11 +89,34 @@ async def _build_pricing_history(
     total_groups = ctx.entries.get("total_groups", [])
     runs = ctx.entries.get("runs", [])
 
-    if request.history_model_id:
+    # Multi-model filter wins over the legacy singular `history_model_id`. We
+    # accept both so older callers keep working but multi-select is the
+    # canonical input from the client.
+    model_id_filter: set[UUID] = set()
+    if request.history_model_ids:
+        model_id_filter.update(request.history_model_ids)
+    elif request.history_model_id:
+        model_id_filter.add(request.history_model_id)
+
+    profile_id_filter: set[UUID] = set(request.history_profile_ids or [])
+    agent_id_filter: set[UUID] = set(request.history_agent_ids or [])
+
+    if model_id_filter or profile_id_filter or agent_id_filter:
+        def _run_matches(run) -> bool:  # noqa: ANN001 — local closure
+            if model_id_filter and not any(
+                mid in model_id_filter for mid in (run.model_ids or [])
+            ):
+                return False
+            if profile_id_filter and run.profiles_id not in profile_id_filter:
+                return False
+            if agent_id_filter and not any(
+                aid in agent_id_filter for aid in (run.agent_ids or [])
+            ):
+                return False
+            return True
+
         matching_group_ids = {
-            run.group_id
-            for run in runs
-            if run.group_id and request.history_model_id in (run.model_ids or [])
+            run.group_id for run in runs if run.group_id and _run_matches(run)
         }
         groups = [group for group in groups if group.id in matching_group_ids]
         total_groups = [
@@ -127,6 +152,7 @@ async def _build_pricing_history(
             "last_run_at": None,
             "agent_ids": set(),
             "model_ids": set(),
+            "profile_ids": set(),
         }
     )
 
@@ -161,12 +187,15 @@ async def _build_pricing_history(
             stats["agent_ids"].update(run.agent_ids)
         if run.model_ids:
             stats["model_ids"].update(run.model_ids)
+        if run.profiles_id:
+            stats["profile_ids"].add(run.profiles_id)
 
     items: list[PricingGroupItem] = []
     for group in groups:
         stats = group_stats.get(group.id, {})
         agent_id_list = list(stats.get("agent_ids", set()))
         model_id_list = list(stats.get("model_ids", set()))
+        profile_id_list = list(stats.get("profile_ids", set()))
         items.append(
             PricingGroupItem(
                 group_id=group.id,
@@ -181,6 +210,7 @@ async def _build_pricing_history(
                 total_cost=stats.get("total_cost", Decimal("0")),
                 agent_ids=agent_id_list or None,
                 model_ids=model_id_list or None,
+                profile_ids=profile_id_list or None,
                 agent_names=[
                     name_map[agent_id]
                     for agent_id in agent_id_list
@@ -195,6 +225,26 @@ async def _build_pricing_history(
                 or None,
             )
         )
+
+    # Apply explicit sort. `search_groups` returns rows ordered by created_at
+    # DESC; that's the default ("date"). For other sort_by values we re-sort
+    # in-memory because the metric (cost / tokens / runs) is computed here,
+    # not in the MV. Sort is applied after pagination already happened, so it
+    # only reorders the visible page — full-corpus sort would require pushing
+    # the metric into the MV.
+    sort_key = (request.history_sort_by or "date").lower()
+    reverse = (request.history_sort_order or "desc").lower() != "asc"
+    if sort_key == "total_cost":
+        items.sort(key=lambda i: i.total_cost, reverse=reverse)
+    elif sort_key == "total_tokens":
+        items.sort(key=lambda i: i.total_tokens, reverse=reverse)
+    elif sort_key == "run_count":
+        items.sort(key=lambda i: i.run_count, reverse=reverse)
+    elif sort_key in ("date", "first_run_at", "last_run_at"):
+        # Fall through — search_groups already ordered by created_at desc.
+        # Honor an explicit asc by reversing.
+        if not reverse:
+            items.reverse()
 
     total_count = len(total_groups)
     page_size = request.history_page_size

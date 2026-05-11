@@ -1,1 +1,8 @@
-{# Document Text Create response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Text added to document.{% if r.text_id %} Text ID: `{{ r.text_id }}`.{% endif %}
+{% elif results and results[0] %}
+Text create failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

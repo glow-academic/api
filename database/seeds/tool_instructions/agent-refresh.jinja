@@ -1,1 +1,5 @@
-{# Agent Refresh response template #}
+{% if success %}
+Agent list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

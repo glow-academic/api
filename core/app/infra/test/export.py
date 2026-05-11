@@ -106,6 +106,7 @@ async def export_test_impl(
     test_id: UUID | None = None,
     invocation_id: UUID | None = None,
     draft_id: UUID | None = None,
+    mode: str | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportTestApiResponse``."""

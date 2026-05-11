@@ -485,13 +485,71 @@ def _compute_cert_from_attempts(
     return profile_name, cohort_results
 
 
+def _build_attempts_csv_bytes(
+    attempts: list[Any],
+    profile_map: dict[UUID, str],
+    simulation_map: dict[UUID, str],
+    scenario_map: dict[UUID, str],
+    persona_map: dict[UUID, str],
+    cohort_map: dict[UUID, str],
+    department_map: dict[UUID, str],
+) -> bytes:
+    """Generate attempts.csv bytes from prefetched attempts + resource maps."""
+    attempts_output = io.StringIO()
+    attempts_writer = csv.writer(attempts_output)
+    attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
+
+    for a in attempts:
+        scenarios_str = PIPE.join(
+            scenario_map.get(sid, "") for sid in (a.scenario_ids or [])
+        )
+        attempts_writer.writerow(
+            [
+                str(a.attempt_id),
+                str(a.attempt_created_at),
+                profile_map.get(a.profile_id, "") if a.profile_id else "",
+                simulation_map.get(a.simulation_id, "") if a.simulation_id else "",
+                scenarios_str,
+                persona_map.get(a.personas_id, "") if a.personas_id else "",
+                cohort_map.get(a.cohort_id, "") if a.cohort_id else "",
+                department_map.get(a.department_id, "") if a.department_id else "",
+                "Yes" if a.practice else "No",
+                "Yes" if a.infinite_mode else "No",
+                str(a.num_chats),
+                "Yes" if a.is_archived else "No",
+            ]
+        )
+
+    return attempts_output.getvalue().encode("utf-8")
+
+
+def _build_certificate_bytes(
+    profile_name: str,
+    cohort_results: list[CohortResult],
+) -> tuple[bytes, str, str]:
+    """Generate certificate bytes; returns (bytes, mime_type, extension)."""
+    pdf_bytes = _generate_certificate_pdf(profile_name, cohort_results)
+    is_pdf = pdf_bytes[:4] == b"%PDF"
+    if is_pdf:
+        pdf_bytes = _try_pdfa_conversion(pdf_bytes)
+        return pdf_bytes, "application/pdf", "pdf"
+    return pdf_bytes, "text/plain", "txt"
+
+
 async def export_home_client(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     profile_id: UUID,
+    mode: str | None = None,
 ) -> ExportHomeApiResponse:
-    """Home full export using composable infra functions."""
+    """Home export — view-aware sub-modes via ``mode``.
+
+    Modes:
+      - ``None`` / ``"full"`` → ZIP with attempts.csv + certificate.pdf (legacy)
+      - ``"attempts"`` → attempts.csv only (no ZIP)
+      - ``"certificate"`` → certificate PDF only (or .txt fallback, no ZIP)
+    """
     from fastapi import HTTPException
 
     # -- Step 1: Profile context --
@@ -505,7 +563,24 @@ async def export_home_client(
     async with pool.acquire() as conn:
         attempts, _total_count = await search_attempts(conn, limit=100000, offset=0)
 
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+
     if not attempts:
+        # Empty response — mirror legacy shape per mode.
+        if mode == "certificate":
+            return ExportHomeApiResponse(
+                content="",
+                file_name="",
+                mime_type="application/pdf",
+                row_count=0,
+            )
+        if mode == "attempts":
+            return ExportHomeApiResponse(
+                content="",
+                file_name="",
+                mime_type="text/csv",
+                row_count=0,
+            )
         return ExportHomeApiResponse(
             content="",
             file_name="",
@@ -579,33 +654,48 @@ async def export_home_client(
     cohort_map = {c.id: c.name or "" for c in cohorts_data}
     department_map = {d.id: d.name or "" for d in departments_data}
 
-    # -- Step 4: Generate attempts CSV --
-    attempts_output = io.StringIO()
-    attempts_writer = csv.writer(attempts_output)
-    attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
-
-    for a in attempts:
-        scenarios_str = PIPE.join(
-            scenario_map.get(sid, "") for sid in (a.scenario_ids or [])
+    # ── Mode: attempts (CSV only) ────────────────────────────────────────────
+    if mode == "attempts":
+        csv_bytes = _build_attempts_csv_bytes(
+            attempts, profile_map, simulation_map, scenario_map,
+            persona_map, cohort_map, department_map,
         )
-        attempts_writer.writerow(
-            [
-                str(a.attempt_id),
-                str(a.attempt_created_at),
-                profile_map.get(a.profile_id, "") if a.profile_id else "",
-                simulation_map.get(a.simulation_id, "") if a.simulation_id else "",
-                scenarios_str,
-                persona_map.get(a.personas_id, "") if a.personas_id else "",
-                cohort_map.get(a.cohort_id, "") if a.cohort_id else "",
-                department_map.get(a.department_id, "") if a.department_id else "",
-                "Yes" if a.practice else "No",
-                "Yes" if a.infinite_mode else "No",
-                str(a.num_chats),
-                "Yes" if a.is_archived else "No",
-            ]
+        content = base64.b64encode(csv_bytes).decode("ascii")
+        return ExportHomeApiResponse(
+            content=content,
+            file_name=f"attempts_{timestamp}.csv",
+            mime_type="text/csv",
+            row_count=len(attempts),
         )
 
-    # -- Step 5: Compute certificate + generate PDF --
+    # ── Mode: certificate (PDF/text only) ────────────────────────────────────
+    if mode == "certificate":
+        profile_name, cohort_results = _compute_cert_from_attempts(
+            attempts,
+            profile_map,
+            simulation_map,
+            cohort_map,
+            simulations_data,
+            cohorts_data,
+            profile_id,
+        )
+        cert_bytes, cert_mime, cert_ext = _build_certificate_bytes(
+            profile_name, cohort_results,
+        )
+        content = base64.b64encode(cert_bytes).decode("ascii")
+        return ExportHomeApiResponse(
+            content=content,
+            file_name=f"certificate_{timestamp}.{cert_ext}",
+            mime_type=cert_mime,
+            row_count=len(cohort_results),
+        )
+
+    # ── Mode: full / default (ZIP with attempts.csv + certificate.pdf) ───────
+    attempts_csv_bytes = _build_attempts_csv_bytes(
+        attempts, profile_map, simulation_map, scenario_map,
+        persona_map, cohort_map, department_map,
+    )
+
     profile_name, cohort_results = _compute_cert_from_attempts(
         attempts,
         profile_map,
@@ -616,24 +706,19 @@ async def export_home_client(
         profile_id,
     )
 
-    # -- Step 6: Generate ZIP (attempts.csv + certificate.pdf) + upload --
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("attempts.csv", attempts_output.getvalue())
+        zf.writestr("attempts.csv", attempts_csv_bytes)
         if cohort_results:
-            pdf_bytes = _generate_certificate_pdf(profile_name, cohort_results)
-            is_pdf = pdf_bytes[:4] == b"%PDF"
-            if is_pdf:
-                pdf_bytes = _try_pdfa_conversion(pdf_bytes)
-                zf.writestr("certificate.pdf", pdf_bytes)
-            else:
-                zf.writestr("certificate.txt", pdf_bytes)
+            cert_bytes, _cert_mime, cert_ext = _build_certificate_bytes(
+                profile_name, cohort_results,
+            )
+            zf.writestr(f"certificate.{cert_ext}", cert_bytes)
 
     zip_content = zip_buffer.getvalue()
     row_count = len(attempts)
 
     content = base64.b64encode(zip_content).decode("ascii")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     file_name = f"home_export_{timestamp}.zip"
 
     return ExportHomeApiResponse(

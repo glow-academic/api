@@ -908,6 +908,14 @@ class ExportAttemptApiRequest(BaseModel):
     department_ids: list[UUID] | None = Field(None, description="Optional department filter")
     simulation_ids: list[UUID] | None = Field(None, description="Optional simulation filter")
 
+    mode: str | None = Field(
+        None,
+        description="Optional sub-mode within a view. Currently recognized: "
+                    "view=reports → mode='brightspace' (gradebook CSV only); "
+                    "view=home → mode='certificate' (PDF cert only) or 'attempts' (CSV only). "
+                    "Default (None) returns the full per-view bundle.",
+    )
+
 
 class SearchAttemptApiRequest(BaseModel):
     """Request model for attempt search."""

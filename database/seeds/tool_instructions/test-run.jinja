@@ -1,1 +1,8 @@
-{# Test Run response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Test run started.{% if r.run_id %} Run ID: `{{ r.run_id }}`.{% endif %}{% if r.test_id %} Test: `{{ r.test_id }}`.{% endif %}
+{% elif results and results[0] %}
+Run failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

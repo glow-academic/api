@@ -1,1 +1,7 @@
-{# Setting Duplicate response template #}
+{% if success and results and results[0] and results[0].result %}
+Setting duplicated successfully.{% if results[0].result.id %} New ID: `{{ results[0].result.id }}`.{% endif %}
+{% elif results and results[0] %}
+Duplicate failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

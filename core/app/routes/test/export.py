@@ -34,4 +34,5 @@ async def export_test(
         test_id=body.test_id,
         invocation_id=body.invocation_id,
         draft_id=body.draft_id,
+        mode=body.mode,
     )

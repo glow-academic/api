@@ -101,6 +101,7 @@ async def search_record(
             role_ids=request.role_ids,
             practice=request.practice,
             scenario_ids=request.scenario_ids,
+            simulation_ids=request.simulation_ids,
             infinite_mode=request.infinite_mode,
             show_archived=request.show_archived,
             sort_by=request.sort_by,

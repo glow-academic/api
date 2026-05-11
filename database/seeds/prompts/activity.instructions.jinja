@@ -1,60 +1,34 @@
-## Data Context
+## Context
 
-You are analyzing the **activity** view which provides real-time and recent activity monitoring across the platform.
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
 
-{% set draft = views.draft_activity if views and views.draft_activity else None %}
+## Parameters
 
-{% if draft %}
-### Current View State
-
-{% if draft.filters is defined and draft.filters %}
-**Active Filters:** {{ draft.filters | tojson }}
-{% endif %}
-
-{% if draft.date_range is defined and draft.date_range %}
-**Date Range:** {{ draft.date_range.start }} to {{ draft.date_range.end }}
-{% endif %}
-
-{% if draft.department_ids is defined and draft.department_ids and draft.department_ids|length > 0 %}
-**Selected Departments:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% endif %}
-{% endif %}
-
-### Available Data
-
-{% if departments and departments|length > 0 %}
-#### Departments in Scope
-{% for dept in departments %}
-- id: {{ dept.id }} | name: {{ dept.name }}{% if dept.description is defined and dept.description %} | {{ dept.description[:50] }}{% endif %}
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
 {% endfor %}
 {% endif %}
 
-{% if names and names|length > 0 %}
-#### Named Entities
-{% for name in names %}
-- id: {{ name.id }} | name: {{ name.name }}
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
 {% endfor %}
-{% endif %}
 
-{% if descriptions and descriptions|length > 0 %}
-#### Descriptions
-{% for desc in descriptions %}
-- id: {{ desc.id }} | {{ desc.description[:80] }}
-{% endfor %}
-{% endif %}
+## What To Do
 
-{% if flags and flags|length > 0 %}
-#### Active Flags
-{% for flag in flags %}
-- id: {{ flag.id }} | {{ flag.key if flag.key is defined else flag.id }}{% if flag.label is defined and flag.label %} | {{ flag.label }}{% endif %}
-{% endfor %}
-{% endif %}
+Retrieve the data the user is asking about with one or more Activity tool calls, then answer in plain text.
 
-## Analysis Focus
+- For the overall headline (no filters), call `Activity_Get`.
+- For any slice (date range, department, cohort, etc.), call `Activity_Search` with filters.
+- For exports, call `Activity_Export()`.
+- `Activity_Problem(type, message)` — Flag a new incident on the activity stream — used when the user reports something broken or worth tracking.
+- `Activity_Resolve(problem_id, resolved)` — Mark an incident resolved (or reopen it). Pass `resolved: false` to reopen.
 
-Produce insights focused on: recent actions, active sessions, error patterns, and usage spikes.
+**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent Activity tool result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
 
-For each insight, call **create_insights** with a clear, structured observation:
-1. **What** — the data point or pattern
-2. **Why it matters** — business impact or significance
-3. **Recommendation** — what action to take (if applicable)
+Cite specific numbers from the data. Do not invent values. Answer the question asked, not adjacent ones.

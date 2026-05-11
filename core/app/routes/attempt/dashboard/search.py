@@ -365,6 +365,13 @@ async def search_dashboard(
 
         visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
 
+        # If client supplied profile_ids filter, intersect with visible set so
+        # callers can never widen the visibility scope by guessing profile UUIDs.
+        scoped_profile_ids: list[UUID] | None = visible_profile_ids
+        if request.profile_ids and visible_profile_ids is not None:
+            visible_set = set(visible_profile_ids)
+            scoped_profile_ids = [pid for pid in request.profile_ids if pid in visible_set]
+
         # Parse dates
         date_from = None
         date_to = None
@@ -381,13 +388,14 @@ async def search_dashboard(
         ctx = await resolve_dashboard_search_context(
             pool,
             redis,
-            profile_resource_ids=visible_profile_ids,
+            profile_resource_ids=scoped_profile_ids,
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
             role_ids=request.role_ids,
             practice=request.practice,
             scenario_ids=request.scenario_ids,
+            simulation_ids=request.simulation_ids,
             infinite_mode=request.infinite_mode,
             show_archived=request.show_archived,
             sort_by=request.sort_by,

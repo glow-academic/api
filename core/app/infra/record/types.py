@@ -31,18 +31,9 @@ class RecordRequest(BaseModel):
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for section picker")
     scenario_search: str | None = Field(None, description="Search string for scenarios")
 
-    # History section (inline in /get for backward compat)
-    history_practice: bool = Field(False, description="Filter to practice attempts only")
-    history_scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for history filter")
-    history_infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
-    history_show_archived: bool = Field(False, description="Include archived attempts")
-    history_sort_by: str | None = Field("date", description="History sort field")
-    history_sort_order: str | None = Field("desc", description="History sort direction")
-    history_page: int = Field(0, description="History pagination page number")
-    history_page_size: int = Field(20, description="History items per page")
-    history_simulation_search: str | None = Field(None, description="Search string for history simulations")
-    history_scenario_search: str | None = Field(None, description="Search string for history scenarios")
-    history_profile_search: str | None = Field(None, description="Search string for history profiles")
+    # History fields removed — fetch attempt history via /attempt/record/search
+    # (per-profile) or /attempt/dashboard/search. Inline /get history caused
+    # dual computation; the dedicated search endpoint is now canonical.
 
 
 class ListRecordRequest(BaseModel):
@@ -60,6 +51,7 @@ class ListRecordRequest(BaseModel):
     # History-specific
     practice: bool = Field(False, description="Filter to practice attempts only")
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs to filter by")
+    simulation_ids: list[UUID] | None = Field(None, description="Simulation IDs to filter by")
     infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
     show_archived: bool = Field(False, description="Include archived attempts")
     sort_by: str = Field("date", description="Sort field name")

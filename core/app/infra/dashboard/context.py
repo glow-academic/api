@@ -674,6 +674,7 @@ async def resolve_dashboard_search_context(
     role_ids: list[UUID] | None = None,
     practice: bool | None = None,
     scenario_ids: list[UUID] | None = None,
+    simulation_ids: list[UUID] | None = None,
     infinite_mode: bool | None = None,
     show_archived: bool = False,
     sort_by: str = "date",
@@ -718,6 +719,7 @@ async def resolve_dashboard_search_context(
         items, total_count = await search_attempts(
             conn=c,
             profile_ids=query_profile_ids,
+            simulation_ids=simulation_ids,
             role_ids=role_ids,
             practice=practice,
             is_archived=show_archived if show_archived else False,
@@ -739,6 +741,7 @@ async def resolve_dashboard_search_context(
             option_items, _option_count = await search_attempts(
                 conn=c,
                 profile_ids=query_profile_ids,
+                simulation_ids=simulation_ids,
                 role_ids=role_ids,
                 practice=practice,
                 is_archived=show_archived if show_archived else False,

@@ -1,1 +1,5 @@
-{# Test Refresh response template #}
+{% if success %}
+Test list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

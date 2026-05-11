@@ -73,6 +73,13 @@ class ExportSystemApiRequest(BaseModel):
     )
     session_id: UUID | None = Field(None, description="Target session UUID (required for view='session')")
     group_id: UUID | None = Field(None, description="Target group UUID (required for view='group')")
+    mode: str | None = Field(
+        None,
+        description="Optional sub-mode within a view. Currently recognized: "
+                    "view=reports → mode='brightspace' (gradebook CSV only); "
+                    "view=home → mode='certificate' (PDF cert only) or 'attempts' (CSV only). "
+                    "Default (None) returns the full per-view bundle.",
+    )
 
 
 class ExportSystemApiResponse(BaseModel):

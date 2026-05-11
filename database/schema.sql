@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict qfQ8w7iLG0EqFie7hJLJzhNXTznfqfgVIkBFhPgbqsHZsfAzegAM7Kvas7Arynw
+\restrict XN8ThPFNNFzQtaI6OlfqGWtaMp0LjTPebf6tQnFlAr69u0egrs77jMnDcQjxNgp
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -10187,13 +10187,21 @@ CREATE TABLE public.sessions_entry (
 --
 
 CREATE MATERIALIZED VIEW public.sessions_mv AS
+ WITH profile_dep_agg AS (
+         SELECT pdj.profile_id,
+            array_agg(DISTINCT pdj.departments_id ORDER BY pdj.departments_id) AS department_ids
+           FROM public.profile_departments_junction pdj
+          GROUP BY pdj.profile_id
+        )
  SELECT s.id AS session_id,
     psc.profiles_id AS profile_id,
     s.created_at AS session_created_at,
     s.active,
-    s.mcp
-   FROM (public.sessions_entry s
+    s.mcp,
+    COALESCE(pda.department_ids, ARRAY[]::uuid[]) AS department_ids
+   FROM ((public.sessions_entry s
      JOIN public.profiles_sessions_connection psc ON ((psc.session_id = s.id)))
+     LEFT JOIN profile_dep_agg pda ON ((pda.profile_id = psc.profiles_id)))
   WITH NO DATA;
 
 
@@ -11311,17 +11319,19 @@ CREATE TABLE public.test_feedback_entry (
 --
 
 CREATE MATERIALIZED VIEW public.test_feedback_mv AS
- SELECT id AS feedback_id,
-    grade_id,
-    call_id,
-    tool_call_id,
-    total,
-    feedback,
-    total_points,
-    pass_points,
-    created_at
-   FROM public.test_feedback_entry fe
-  WHERE (active = true)
+ SELECT fe.id AS feedback_id,
+    fe.grade_id,
+    fe.call_id,
+    fe.tool_call_id,
+    fsc.standard_id,
+    fe.total,
+    fe.feedback,
+    fe.total_points,
+    fe.pass_points,
+    fe.created_at
+   FROM (public.test_feedback_entry fe
+     LEFT JOIN public.feedbacks_standards_connection fsc ON ((fsc.feedbacks_id = fe.id)))
+  WHERE (fe.active = true)
   WITH NO DATA;
 
 
@@ -36049,5 +36059,5 @@ ALTER TABLE ONLY public.videos_videos_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qfQ8w7iLG0EqFie7hJLJzhNXTznfqfgVIkBFhPgbqsHZsfAzegAM7Kvas7Arynw
+\unrestrict XN8ThPFNNFzQtaI6OlfqGWtaMp0LjTPebf6tQnFlAr69u0egrs77jMnDcQjxNgp
 

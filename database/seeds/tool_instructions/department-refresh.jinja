@@ -1,1 +1,5 @@
-{# Department Refresh response template #}
+{% if success %}
+Department list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

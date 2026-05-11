@@ -9,10 +9,8 @@ from app.infra.system.group import (
     GroupSystemApiResponse,
     group_system_impl,
 )
-from app.routes.system.group.export import router as export_router
 from app.routes.system.group.get import router as get_router
 from app.routes.system.group.name import router as name_router
-from app.routes.system.group.refresh import router as refresh_router
 from app.routes.system.group.search import router as search_router
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -80,6 +78,4 @@ async def group_system(
 
 router.include_router(get_router)
 router.include_router(search_router)
-router.include_router(refresh_router)
-router.include_router(export_router)
 router.include_router(name_router)

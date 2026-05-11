@@ -1,1 +1,5 @@
-{# Cohort Refresh response template #}
+{% if success %}
+Cohort list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

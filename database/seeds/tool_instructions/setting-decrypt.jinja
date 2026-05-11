@@ -1,1 +1,8 @@
-{# Setting Decrypt response template #}
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Setting secret decrypted.{% if r.id %} ID: `{{ r.id }}`.{% endif %}{% if r.value %} Value visible above (do not echo).{% endif %}
+{% elif results and results[0] %}
+Decrypt failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

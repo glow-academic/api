@@ -92,6 +92,7 @@ async def export_attempt_impl(
     view: str = "single",
     attempt_id: UUID | None = None,
     record_id: UUID | None = None,
+    mode: str | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportAttemptApiResponse``.
@@ -137,13 +138,13 @@ async def export_attempt_impl(
         envelope = await export_dashboard_impl(pool, redis, profile_id=profile_id)
     elif view == "reports" or view == "report":
         from app.infra.reports.export import export_reports_impl
-        envelope = await export_reports_impl(pool, redis, profile_id=profile_id)
+        envelope = await export_reports_impl(pool, redis, profile_id=profile_id, mode=mode)
     elif view == "leaderboard":
         from app.infra.leaderboard.export import export_leaderboard_impl
         envelope = await export_leaderboard_impl(pool, redis, profile_id=profile_id)
     elif view == "home":
         from app.infra.home_export import export_home_client
-        envelope = await export_home_client(pool, redis, profile_id=profile_id)
+        envelope = await export_home_client(pool, redis, profile_id=profile_id, mode=mode)
     elif view == "practice":
         from app.infra.practice_export import export_practice_client
         envelope = await export_practice_client(pool, redis, profile_id=profile_id)

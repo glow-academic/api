@@ -31,6 +31,7 @@ async def export_system_impl(
     view: str,
     target_session_id: UUID | None = None,
     group_id: UUID | None = None,
+    mode: str | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportSystemApiResponse``."""

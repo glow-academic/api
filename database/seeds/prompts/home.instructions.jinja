@@ -1,19 +1,32 @@
 ## Context
 
-{% if params.artifact_id %}
-**Existing home** (ID: `{{ params.artifact_id }}`).
-Use `Home_Get(id: "{{ params.artifact_id }}")` to see current state.
-{% else %}
-**New home** — no artifact exists yet.
-{% endif %}
-{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
 {% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
 
-{% set draft = views.draft_home if views and views.draft_home else None %}
+## Parameters
 
-{% if draft %}
-### Current State
-{{ draft | tojson }}
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
+{% endfor %}
 {% endif %}
 
-No additional resource context is available for this artifact type.
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
+{% endfor %}
+
+## What To Do
+
+Retrieve the data the user is asking about with one or more Home tool calls, then answer in plain text.
+
+- For the overall headline (no filters), call `Home_Get`.
+- For any slice (date range, department, cohort, etc.), call `Home_Search` with filters.
+- For exports, call `Home_Export()`.
+
+**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent Home tool result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
+
+Cite specific numbers from the data. Do not invent values. Answer the question asked, not adjacent ones.

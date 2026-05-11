@@ -43,20 +43,9 @@ class DashboardRequest(BaseModel):
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for section picker")
     scenario_search: str | None = Field(None, description="Search string for scenarios")
 
-    # History section (attempt list) — kept for backward compat, use /list endpoint
-    history_practice: bool | None = Field(
-        None, description="Filter to practice attempts only"
-    )
-    history_scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for history filter")
-    history_infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
-    history_show_archived: bool = Field(False, description="Include archived attempts")
-    history_sort_by: str | None = Field("date", description="History sort field")
-    history_sort_order: str | None = Field("desc", description="History sort direction")
-    history_page: int = Field(0, description="History pagination page number")
-    history_page_size: int = Field(20, description="History items per page")
-    history_simulation_search: str | None = Field(None, description="Search string for history simulations")
-    history_scenario_search: str | None = Field(None, description="Search string for history scenarios")
-    history_profile_search: str | None = Field(None, description="Search string for history profiles")
+    # History fields removed — fetch attempt history via /attempt/dashboard/search.
+    # Keeping the inline history block in /get caused dual computation and cache
+    # fragmentation; /search is now canonical.
 
 
 class ListDashboardRequest(BaseModel):
@@ -73,6 +62,8 @@ class ListDashboardRequest(BaseModel):
     # History-specific
     practice: bool | None = Field(None, description="Filter to practice attempts only")
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs to filter by")
+    simulation_ids: list[UUID] | None = Field(None, description="Simulation IDs to filter by")
+    profile_ids: list[UUID] | None = Field(None, description="Profile resource IDs to filter by (intersected with visible profiles)")
     infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
     show_archived: bool = Field(False, description="Include archived attempts")
     sort_by: str = Field("date", description="Sort field name")
@@ -564,8 +555,10 @@ class DashboardBundleResponse(BaseModel):
     # Inline analytics facets
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
 
-    # Attempt history
-    history: HistoryResponse | None = Field(None, description="Inline attempt history response")
+    # Attempt history is no longer inline on /get — fetch via
+    # /attempt/dashboard/search. Field retained as `None` for prop-shape
+    # compatibility with clients that merge /search results into the bundle.
+    history: HistoryResponse | None = Field(None, description="Always null on /get — use /attempt/dashboard/search instead")
 
 
 class ListDashboardResponse(BaseModel):

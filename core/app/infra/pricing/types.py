@@ -32,9 +32,13 @@ class PricingRequest(BaseModel):
     page_offset: int = Field(0, ge=0, description="Chart pagination offset")
     history_page: int = Field(0, ge=0, description="Embedded history page number")
     history_page_size: int = Field(50, ge=1, le=200, description="Embedded history items per page")
-    history_sort_by: str = Field("date", description="Embedded history sort field")
+    history_sort_by: str = Field("date", description="Embedded history sort field (date | total_cost | total_tokens | run_count)")
     history_sort_order: str = Field("desc", description="Embedded history sort direction")
-    history_model_id: UUID | None = Field(None, description="Model UUID to filter embedded history by")
+    history_model_id: UUID | None = Field(None, description="Model UUID to filter embedded history by (legacy single)")
+    history_model_ids: list[UUID] | None = Field(None, description="Model UUIDs to filter embedded history by (multi). Takes precedence over history_model_id when set.")
+    history_profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs (human users) to filter embedded history by")
+    history_agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs (LLM agents) to filter embedded history by")
+    history_search: str | None = Field(None, description="Group name search (ILIKE) for embedded history")
 
     @property
     def effective_date_from(self) -> datetime | None:
@@ -115,6 +119,7 @@ class PricingGroupItem(BaseModel):
     total_cost: Decimal = Field(Decimal("0"), description="Total cost for the group")
     agent_ids: list[UUID] | None = Field(None, description="Associated agent IDs")
     model_ids: list[UUID] | None = Field(None, description="Associated model IDs")
+    profile_ids: list[UUID] | None = Field(None, description="Profile IDs (human users) who triggered runs in this group")
     agent_names: list[str] | None = Field(None, description="Associated agent names")
     model_names: list[str] | None = Field(None, description="Associated model names")
 

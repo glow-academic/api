@@ -1,1 +1,5 @@
-{# Profile Unemulate response template #}
+{% if success %}
+Stopped profile emulation. You are now operating as your own profile.
+{% else %}
+Unemulate failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

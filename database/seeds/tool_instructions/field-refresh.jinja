@@ -1,1 +1,5 @@
-{# Field Refresh response template #}
+{% if success %}
+Field list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

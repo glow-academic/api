@@ -35,4 +35,5 @@ async def export_system(
         view=body.view,
         target_session_id=body.session_id,
         group_id=body.group_id,
+        mode=body.mode,
     )

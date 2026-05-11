@@ -34,4 +34,5 @@ async def export_attempt(
         view=body.view,
         attempt_id=body.attempt_id,
         record_id=body.record_id,
+        mode=body.mode,
     )

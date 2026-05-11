@@ -92,13 +92,132 @@ async def _empty_list() -> list:  # type: ignore[type-arg]
     return []
 
 
+def _build_invocations_csv(
+    invocations: list,
+    name_map: dict[UUID, str],
+    department_map: dict[UUID, str],
+    voice_map: dict[UUID, str],
+) -> str:
+    inv_output = io.StringIO()
+    inv_writer = csv.writer(inv_output)
+    inv_writer.writerow(INVOCATION_CSV_COLUMNS)
+
+    for inv in invocations:
+        agents_str = PIPE.join(name_map.get(aid, "") for aid in (inv.agent_ids or []))
+        departments_str = PIPE.join(
+            department_map.get(did, "") for did in (inv.department_ids or [])
+        )
+
+        inv_writer.writerow(
+            [
+                str(inv.invocation_id),
+                inv.invocation_title,
+                str(inv.position),
+                "Yes" if inv.invocation_completed else "No",
+                str(inv.grade_score) if inv.grade_score is not None else "",
+                "Yes" if inv.grade_passed else "No",
+                str(inv.grade_time_taken) if inv.grade_time_taken is not None else "",
+                agents_str,
+                departments_str,
+                voice_map.get(inv.voice_id, "") if inv.voice_id else "",
+                str(inv.invocation_created_at),
+            ]
+        )
+    return inv_output.getvalue()
+
+
+def _build_groups_csv(
+    groups: list,
+    name_map: dict[UUID, str],
+    voice_map: dict[UUID, str],
+) -> str:
+    grp_output = io.StringIO()
+    grp_writer = csv.writer(grp_output)
+    grp_writer.writerow(GROUP_CSV_COLUMNS)
+
+    for g in groups:
+        grp_writer.writerow(
+            [
+                str(g.id),
+                str(g.test_invocation_id),
+                PIPE.join(name_map.get(aid, "") for aid in (g.agent_ids or [])),
+                PIPE.join(voice_map.get(vid, "") for vid in (g.voice_ids or [])),
+                PIPE.join(name_map.get(pid, "") for pid in (g.prompt_ids or [])),
+                PIPE.join(name_map.get(iid, "") for iid in (g.instruction_ids or [])),
+                PIPE.join(name_map.get(tid, "") for tid in (g.tool_ids or [])),
+                str(g.created_at),
+                "Yes" if g.active else "No",
+            ]
+        )
+    return grp_output.getvalue()
+
+
+def _build_runs_csv(
+    runs: list,
+    name_map: dict[UUID, str],
+    voice_map: dict[UUID, str],
+) -> str:
+    run_output = io.StringIO()
+    run_writer = csv.writer(run_output)
+    run_writer.writerow(RUN_CSV_COLUMNS)
+
+    for r in runs:
+        run_writer.writerow(
+            [
+                str(r.id),
+                str(r.test_invocation_id),
+                PIPE.join(name_map.get(aid, "") for aid in (r.agent_ids or [])),
+                PIPE.join(voice_map.get(vid, "") for vid in (r.voice_ids or [])),
+                PIPE.join(name_map.get(pid, "") for pid in (r.prompt_ids or [])),
+                PIPE.join(name_map.get(iid, "") for iid in (r.instruction_ids or [])),
+                PIPE.join(name_map.get(tid, "") for tid in (r.tool_ids or [])),
+                str(r.created_at),
+                "Yes" if r.active else "No",
+            ]
+        )
+    return run_output.getvalue()
+
+
+def _build_brightspace_csv(
+    invocations: list,
+    name_map: dict[UUID, str],
+) -> str:
+    """Build the Brightspace gradebook CSV — one row per graded invocation."""
+    bs_output = io.StringIO()
+    bs_writer = csv.writer(bs_output)
+    bs_writer.writerow(BRIGHTSPACE_CSV_COLUMNS)
+
+    for inv in invocations:
+        if inv.grade_score is not None:
+            agent_name = PIPE.join(
+                name_map.get(aid, "") for aid in (inv.agent_ids or [])
+            )
+            bs_writer.writerow(
+                [
+                    agent_name,
+                    str(inv.grade_score),
+                    "Yes" if inv.grade_passed else "No",
+                    str(inv.grade_time_taken)
+                    if inv.grade_time_taken is not None
+                    else "",
+                ]
+            )
+    return bs_output.getvalue()
+
+
 async def export_reports_impl(
     pool: asyncpg.Pool,
     redis: Redis,  # type: ignore[type-arg]
     *,
     profile_id: UUID,
+    mode: str | None = None,
 ) -> ExportReportsApiResponse:
-    """Reports full export using composable infra functions."""
+    """Reports export — view-aware sub-modes via ``mode``.
+
+    Modes:
+      - ``None`` / ``"full"`` → ZIP with invocations/groups/runs/brightspace CSVs
+      - ``"brightspace"`` → brightspace.csv only (no ZIP)
+    """
 
     # -- Step 1: Profile context --
     profile = await resolve_profile_identity_context(pool, profile_id, redis)
@@ -115,12 +234,47 @@ async def export_reports_impl(
         )
 
     if not invocations:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        if mode == "brightspace":
+            return ExportReportsApiResponse(
+                content="",
+                file_name="",
+                mime_type="text/csv",
+                row_count=0,
+            )
         return ExportReportsApiResponse(
             content="",
             file_name="",
             mime_type="application/zip",
             row_count=0,
         )
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+
+    # ── Mode: brightspace (CSV only) ─────────────────────────────────────────
+    if mode == "brightspace":
+        # Only need names for agent labels.
+        all_name_ids: set[UUID] = set()
+        for inv in invocations:
+            all_name_ids.update(inv.agent_ids or [])
+
+        names_data = (
+            await get_names(pool, list(all_name_ids), redis) if all_name_ids else []
+        )
+        name_map: dict[UUID, str] = {n.id: n.name for n in names_data}
+
+        bs_content_str = _build_brightspace_csv(invocations, name_map)
+        bs_bytes = bs_content_str.encode("utf-8")
+        content = base64.b64encode(bs_bytes).decode("ascii")
+        graded_rows = sum(1 for inv in invocations if inv.grade_score is not None)
+        return ExportReportsApiResponse(
+            content=content,
+            file_name=f"brightspace_{timestamp}.csv",
+            mime_type="text/csv",
+            row_count=graded_rows,
+        )
+
+    # ── Mode: full / default (ZIP with all 4 CSVs) ───────────────────────────
 
     # -- Step 3: Search groups and runs --
     invocation_ids = [inv.invocation_id for inv in invocations]
@@ -190,113 +344,28 @@ async def export_reports_impl(
         _get_voices(),
     )
 
-    name_map: dict[UUID, str] = {n.id: n.name for n in names_data}
+    name_map = {n.id: n.name for n in names_data}
     department_map: dict[UUID, str] = {d.id: d.name or "" for d in departments_data}
     voice_map: dict[UUID, str] = {v.id: v.voice for v in voices_data}
 
-    # -- Step 5: Generate CSVs --
-
-    # invocations.csv
-    inv_output = io.StringIO()
-    inv_writer = csv.writer(inv_output)
-    inv_writer.writerow(INVOCATION_CSV_COLUMNS)
-
-    for inv in invocations:
-        agents_str = PIPE.join(name_map.get(aid, "") for aid in (inv.agent_ids or []))
-        departments_str = PIPE.join(
-            department_map.get(did, "") for did in (inv.department_ids or [])
-        )
-
-        inv_writer.writerow(
-            [
-                str(inv.invocation_id),
-                inv.invocation_title,
-                str(inv.position),
-                "Yes" if inv.invocation_completed else "No",
-                str(inv.grade_score) if inv.grade_score is not None else "",
-                "Yes" if inv.grade_passed else "No",
-                str(inv.grade_time_taken) if inv.grade_time_taken is not None else "",
-                agents_str,
-                departments_str,
-                voice_map.get(inv.voice_id, "") if inv.voice_id else "",
-                str(inv.invocation_created_at),
-            ]
-        )
-
-    # groups.csv
-    grp_output = io.StringIO()
-    grp_writer = csv.writer(grp_output)
-    grp_writer.writerow(GROUP_CSV_COLUMNS)
-
-    for g in groups:
-        grp_writer.writerow(
-            [
-                str(g.id),
-                str(g.test_invocation_id),
-                PIPE.join(name_map.get(aid, "") for aid in (g.agent_ids or [])),
-                PIPE.join(voice_map.get(vid, "") for vid in (g.voice_ids or [])),
-                PIPE.join(name_map.get(pid, "") for pid in (g.prompt_ids or [])),
-                PIPE.join(name_map.get(iid, "") for iid in (g.instruction_ids or [])),
-                PIPE.join(name_map.get(tid, "") for tid in (g.tool_ids or [])),
-                str(g.created_at),
-                "Yes" if g.active else "No",
-            ]
-        )
-
-    # runs.csv
-    run_output = io.StringIO()
-    run_writer = csv.writer(run_output)
-    run_writer.writerow(RUN_CSV_COLUMNS)
-
-    for r in runs:
-        run_writer.writerow(
-            [
-                str(r.id),
-                str(r.test_invocation_id),
-                PIPE.join(name_map.get(aid, "") for aid in (r.agent_ids or [])),
-                PIPE.join(voice_map.get(vid, "") for vid in (r.voice_ids or [])),
-                PIPE.join(name_map.get(pid, "") for pid in (r.prompt_ids or [])),
-                PIPE.join(name_map.get(iid, "") for iid in (r.instruction_ids or [])),
-                PIPE.join(name_map.get(tid, "") for tid in (r.tool_ids or [])),
-                str(r.created_at),
-                "Yes" if r.active else "No",
-            ]
-        )
-
-    # brightspace.csv — per-invocation agent grade summary
-    bs_output = io.StringIO()
-    bs_writer = csv.writer(bs_output)
-    bs_writer.writerow(BRIGHTSPACE_CSV_COLUMNS)
-
-    for inv in invocations:
-        if inv.grade_score is not None:
-            agent_name = PIPE.join(
-                name_map.get(aid, "") for aid in (inv.agent_ids or [])
-            )
-            bs_writer.writerow(
-                [
-                    agent_name,
-                    str(inv.grade_score),
-                    "Yes" if inv.grade_passed else "No",
-                    str(inv.grade_time_taken)
-                    if inv.grade_time_taken is not None
-                    else "",
-                ]
-            )
+    # -- Step 5: Generate CSVs via helpers --
+    inv_csv = _build_invocations_csv(invocations, name_map, department_map, voice_map)
+    grp_csv = _build_groups_csv(groups, name_map, voice_map)
+    run_csv = _build_runs_csv(runs, name_map, voice_map)
+    bs_csv = _build_brightspace_csv(invocations, name_map)
 
     # -- Step 6: Generate ZIP --
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("invocations.csv", inv_output.getvalue())
-        zf.writestr("groups.csv", grp_output.getvalue())
-        zf.writestr("runs.csv", run_output.getvalue())
-        zf.writestr("brightspace.csv", bs_output.getvalue())
+        zf.writestr("invocations.csv", inv_csv)
+        zf.writestr("groups.csv", grp_csv)
+        zf.writestr("runs.csv", run_csv)
+        zf.writestr("brightspace.csv", bs_csv)
 
     zip_content = zip_buffer.getvalue()
     row_count = len(invocations) + len(groups) + len(runs)
 
     content = base64.b64encode(zip_content).decode("ascii")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     file_name = f"reports_export_{timestamp}.zip"
 
     return ExportReportsApiResponse(

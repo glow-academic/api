@@ -1,1 +1,17 @@
-{# Field Create response template #}
+{% if success and results %}
+Field created successfully.
+{% for r in results %}
+{% if r.result and r.result.results %}
+{% for item in r.result.results %}
+- **{{ item.message }}**{% if item.id %} (ID: `{{ item.id }}`){% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% elif results %}
+Field creation failed.
+{% for r in results %}
+- {{ r.error or r.message or 'Unknown error' }}
+{% endfor %}
+{% else %}
+No result returned.
+{% endif %}

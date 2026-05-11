@@ -107,11 +107,35 @@ async def resolve_pricing_context(
     )
 
 
+async def _resolve_session_ids_for_departments(
+    pool: asyncpg.Pool,
+    department_ids: list[UUID],
+) -> list[UUID]:
+    """Return session_ids whose owning profile belongs to any of the
+    supplied departments. Reads ``sessions_mv.department_ids`` (added in
+    migration ``v2.15.35_02_sessions_mv_department_ids.sql``).
+    """
+    if not department_ids:
+        return []
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT DISTINCT session_id
+              FROM public.sessions_mv
+             WHERE department_ids && $1::uuid[]
+            """,
+            department_ids,
+        )
+    return [r["session_id"] for r in rows]
+
+
 async def resolve_pricing_search_context(
     pool: asyncpg.Pool,
     redis: Redis,
     *,
     session_ids: list[UUID] | None = None,
+    department_ids: list[UUID] | None = None,
+    name_search: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     sort_order: str = "desc",
@@ -131,12 +155,53 @@ async def resolve_pricing_search_context(
     """
     page_offset = page * page_size
 
+    # Department filter: resolve to a session_id whitelist via sessions_mv
+    # (one extra round-trip vs joining inside search_groups, but keeps
+    # search_groups generic). Empty result short-circuits to no rows.
+    if department_ids:
+        dept_session_ids = await _resolve_session_ids_for_departments(
+            pool, department_ids
+        )
+        if not dept_session_ids:
+            return ArtifactContext(
+                artifact_id=None,
+                active=True,
+                group_id=None,  # type: ignore[arg-type]
+                resources={
+                    "agents": ResourcePair(selected=[], suggestions=[]),
+                    "models": ResourcePair(selected=[], suggestions=[]),
+                    "pricing": ResourcePair(selected=[], suggestions=[]),
+                    "names": ResourcePair(selected=[], suggestions=[]),
+                },
+                entries={"groups": [], "total_groups": [], "runs": []},
+            )
+        if session_ids:
+            # Intersect both filters — caller-supplied session scope wins.
+            allowed = set(session_ids) & set(dept_session_ids)
+            session_ids = list(allowed) if allowed else []
+            if not session_ids:
+                return ArtifactContext(
+                    artifact_id=None,
+                    active=True,
+                    group_id=None,  # type: ignore[arg-type]
+                    resources={
+                        "agents": ResourcePair(selected=[], suggestions=[]),
+                        "models": ResourcePair(selected=[], suggestions=[]),
+                        "pricing": ResourcePair(selected=[], suggestions=[]),
+                        "names": ResourcePair(selected=[], suggestions=[]),
+                    },
+                    entries={"groups": [], "total_groups": [], "runs": []},
+                )
+        else:
+            session_ids = dept_session_ids
+
     # Step 1: Paginated groups + total count
     async def _fetch_groups_page() -> list:
         async with pool.acquire() as conn:
             return await search_groups(
                 conn,
                 session_ids=session_ids,
+                name=name_search,
                 date_from=date_from,
                 date_to=date_to,
                 limit=page_size,
@@ -148,6 +213,7 @@ async def resolve_pricing_search_context(
             return await search_groups(
                 conn,
                 session_ids=session_ids,
+                name=name_search,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,

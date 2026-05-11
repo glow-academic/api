@@ -23,7 +23,6 @@ from app.infra.dashboard.builders import (
 )
 from app.infra.dashboard.context import (
     resolve_dashboard_context,
-    resolve_dashboard_search_context,
 )
 from app.infra.dashboard.permissions import (
     compute_footer_metrics_v2,
@@ -346,56 +345,9 @@ async def get_record_impl_cached(
             if roles:
                 bundle.profile_role = roles[0].name
 
-    # --- Phase 7: Inline history (backward compat) ---
-    if request.history_page_size and request.history_page_size > 0:
-        # Local import — route module depends on this one, so pulling
-        # `_build_history_response` in at module load would cycle.
-        from app.routes.attempt.dashboard.search import _build_history_response
-
-        async with pool.acquire() as c:
-            profile_resource_id: UUID | None = await c.fetchval(
-                """
-                SELECT profiles_id FROM profile_profiles_junction
-                WHERE profile_id = $1 AND active = true
-                LIMIT 1
-                """,
-                profile_id,
-            )
-
-        date_from = parsed_start_date.date() if parsed_start_date else None
-        date_to = parsed_end_date.date() if parsed_end_date else None
-
-        search_ctx = await resolve_dashboard_search_context(
-            pool,
-            redis,
-            profile_resource_id=profile_resource_id,
-            target_profile_id=request.target_profile_id,
-            cohort_ids=request.cohort_ids,
-            department_ids=request.department_ids,
-            role_ids=request.role_ids,
-            practice=request.history_practice,
-            scenario_ids=request.history_scenario_ids,
-            infinite_mode=request.history_infinite_mode,
-            show_archived=request.history_show_archived,
-            sort_by=request.history_sort_by or "date",
-            sort_order=request.history_sort_order or "desc",
-            page=request.history_page,
-            page_size=request.history_page_size,
-            date_from=date_from,
-            date_to=date_to,
-            bypass_cache=bypass_cache,
-        )
-
-        history_result = _build_history_response(
-            search_ctx,
-            practice=request.history_practice,
-            simulation_search=request.history_simulation_search,
-            scenario_search=request.history_scenario_search,
-            profile_search=request.history_profile_search,
-            page=request.history_page,
-            page_size=request.history_page_size,
-        )
-        bundle.history = history_result
+    # History fetched via /attempt/record/search or /attempt/dashboard/search.
+    # Inline history removed to eliminate dual computation; client merges
+    # /search result into the bundle on the consumer side.
 
     await set_cached(
         cache_key_val,

@@ -23,10 +23,7 @@ from app.infra.dashboard.builders import (
     build_scenario_meta,
     build_simulation_meta,
 )
-from app.infra.dashboard.context import (
-    resolve_dashboard_context,
-    resolve_dashboard_search_context,
-)
+from app.infra.dashboard.context import resolve_dashboard_context
 from app.infra.dashboard.permissions import (
     compute_footer_metrics_v2,
     compute_header_metrics_v2,
@@ -42,7 +39,6 @@ from app.infra.dashboard.visibility import (
     resolve_visible_simulation_scope,
 )
 from app.infra.globals import get_redis_client
-from app.routes.attempt.dashboard.search import _build_history_response
 from app.tools.resources.roles.get import get_roles
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
@@ -395,36 +391,10 @@ async def get_dashboard_impl_cached(
             if roles:
                 bundle.profile_role = roles[0].name
 
-    if request.history_page_size and request.history_page_size > 0:
-        search_ctx = await resolve_dashboard_search_context(
-            pool,
-            redis,
-            profile_resource_ids=visible_profile_ids,
-            target_profile_id=request.target_profile_id,
-            cohort_ids=request.cohort_ids,
-            department_ids=request.department_ids,
-            role_ids=request.role_ids,
-            practice=request.history_practice,
-            scenario_ids=request.history_scenario_ids,
-            infinite_mode=request.history_infinite_mode,
-            show_archived=request.history_show_archived,
-            sort_by=request.history_sort_by or "date",
-            sort_order=request.history_sort_order or "desc",
-            page=request.history_page,
-            page_size=request.history_page_size,
-            date_from=parsed_start_date.date() if parsed_start_date else None,
-            date_to=parsed_end_date.date() if parsed_end_date else None,
-            bypass_cache=bypass_cache,
-        )
-        bundle.history = _build_history_response(
-            search_ctx,
-            practice=request.history_practice,
-            simulation_search=request.history_simulation_search,
-            scenario_search=request.history_scenario_search,
-            profile_search=request.history_profile_search,
-            page=request.history_page,
-            page_size=request.history_page_size,
-        )
+    # History is no longer computed inline on /get — the client fetches it
+    # via the canonical /attempt/dashboard/search endpoint, which paginates
+    # independently and avoids dual computation. Keeping `bundle.history`
+    # null here lets the client merge the /search result client-side.
 
     await set_cached(
         cache_key_val,

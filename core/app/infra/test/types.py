@@ -470,6 +470,13 @@ class ExportTestApiRequest(BaseModel):
     test_id: UUID | None = Field(None, description="UUID of the target test (required for 'single' and 'invocation')")
     invocation_id: UUID | None = Field(None, description="UUID of the target invocation entry (optional for 'invocation')")
     draft_id: UUID | None = Field(None, description="Optional draft id for 'invocation' view")
+    mode: str | None = Field(
+        None,
+        description="Optional sub-mode within a view. Currently recognized: "
+                    "view=reports → mode='brightspace' (gradebook CSV only); "
+                    "view=home → mode='certificate' (PDF cert only) or 'attempts' (CSV only). "
+                    "Default (None) returns the full per-view bundle.",
+    )
 
 
 class ExportTestApiResponse(BaseModel):
