@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
+from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
@@ -248,7 +249,7 @@ class CreateRubricItem(ScopedItem):
     departments: list[str] | None = Field(None, description="Department names for resolution")
     # Pass points — dual-mode (value or ID). `pass_points` resolves to a
     # pass-type Points resource and is junctioned as `pass_points_id`. Total
-    # is derived server-side from standards; not writeable.
+    # is derived server-side from standard groups; not writeable.
     pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
     pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
     standard_group_ids: list[UUID] | None = Field(None, description="Standard group UUIDs")
@@ -535,7 +536,7 @@ class PatchRubricDraftApiRequest(ScopedItem):
     video_rubric: bool | None = Field(None, description="Denormalized video_rubric flag state")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
-    # Pass points — dual-mode. Total is computed server-side from standards
+    # Pass points — dual-mode. Total is computed server-side from standard groups
     # and returned on reads; not writeable.
     pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
     pass_points: int | None = Field(None, description="Pass points value (resolves to a pass-type Points resource)")
@@ -567,11 +568,11 @@ class DraftFormState(BaseModel):
     video_rubric: bool | None = Field(None, description="Echoed video_rubric flag state")
     department_ids: list[UUID] = Field(default_factory=list, description="Selected department UUIDs")
     # Pass points (normalized + denormalized). Total points are computed
-    # server-side from standards and exposed on reads alongside.
+    # server-side from standard groups and exposed on reads alongside.
     pass_points_id: UUID | None = Field(None, description="Pass-type Points resource UUID")
     pass_points: int | None = Field(None, description="Denormalized pass points value")
     total_points_id: UUID | None = Field(None, description="Total-type Points resource UUID (computed)")
-    total_points: int | None = Field(None, description="Denormalized total points value (sum of standards)")
+    total_points: int | None = Field(None, description="Denormalized total points value (sum of standard groups)")
     standard_group_ids: list[UUID] = Field(default_factory=list, description="Selected standard group UUIDs")
     standard_groups: list[RubricStandardGroupDraftValue] = Field(
         default_factory=list,
@@ -602,12 +603,37 @@ class PatchRubricDraftApiResponse(BaseModel):
 
 
 class ExportRubricApiResponse(BaseModel):
-    """Response model for export rubric endpoint."""
+    """Response model for export rubric endpoint.
 
-    content: str = Field(..., description="Exported file content")
-    file_name: str = Field(..., description="Suggested file name for download")
-    mime_type: str = Field(..., description="MIME type of the exported content")
-    row_count: int = Field(..., description="Number of rows in the export")
+    File modality: the server writes the rendered PDF to disk, registers
+    it as a ``files_resource`` row joined to an ``uploads_entry``, and
+    returns the ``file_id``. Same shape as every other artifact's export
+    — only the upload's ``mime_type`` differs (``application/pdf`` here,
+    ``text/csv`` elsewhere).
+    """
+
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of rows in the export (rubric standards)")
+
+
+class FileDownloadRubricApiRequest(BaseModel):
+    """Request model for rubric file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadRubricApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 # ========== List Endpoint Types ==========
@@ -661,6 +687,9 @@ class ListRubricApiResponse(BaseModel):
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     eval_filter: ListFilterSection | None = Field(None, description="Filter options for evals in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # =============================================================================

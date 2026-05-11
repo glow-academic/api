@@ -11,7 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
-from app.infra.persona.types import SectionFilter
+from app.infra.persona.types import ImportField, SectionFilter
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
 
@@ -431,6 +431,9 @@ class ListScenarioApiResponse(BaseModel):
     department_filter: "ListFilterSection | None" = Field(None, description="Filter options for departments")
     flag_filter: "ListFilterSection | None" = Field(None, description="Filter options for flags")
     total_count: int | None = Field(None, description="Total number of matching records")
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # =============================================================================

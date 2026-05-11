@@ -27,16 +27,24 @@ Flow:
 
 from __future__ import annotations
 
-import base64
 import io
+import os
+import uuid as uuid_mod
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.rubric.types import ExportRubricApiResponse
+from app.tools.entries.file_uploads.create import create_file_upload
+from app.tools.entries.files.create import create_file as create_file_entry
+from app.tools.entries.files.refresh import refresh_files_internal
+from app.tools.entries.uploads.create import create_upload
+from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.entries.attempt_feedback.search import search_attempt_feedback_entries
 from app.tools.entries.attempt_feedback.types import GetAttemptFeedbackResponse
 from app.tools.entries.attempt_grade.search import search_attempt_grades
@@ -302,16 +310,18 @@ async def export_rubric_impl(
     *,
     profile_id: UUID,
     rubric_id: UUID,
+    session_id: UUID | None = None,
     chat_id: UUID | None = None,
 ) -> ExportRubricApiResponse:
     """Export a single rubric as a PDF (optionally filled with grades).
 
-    Returns an `ExportRubricApiResponse` with base64-encoded PDF bytes
-    in `content`. HTTP callers decode back to raw bytes before emitting
-    a binary response; WS callers pass the response through the audit
-    layer (which JSON-serializes it for the `.completed` event) so
-    downstream subscribers receive the same envelope as the former CSV
-    export.
+    File modality (same chain as every other artifact's export):
+      build PDF bytes → write to disk → ``create_upload`` (mime_type
+      ``application/pdf``) → ``create_file_resource`` →
+      ``create_file_entry`` → ``create_file_upload`` →
+      ``refresh_files_internal`` → return ``file_id``. The client then
+      downloads via ``/rubric/file/download`` (BFF wrap at
+      ``/api/rubric/download/{file_id}``).
 
     Args:
         pool: database pool
@@ -384,12 +394,43 @@ async def export_rubric_impl(
         standard_groups, standards, grading, title=name
     )
 
-    # row_count loses its CSV meaning here; we keep the field for
-    # schema stability and populate it with the standard count, which
-    # is the closest analogue ("rows of the rubric table body").
+    # 6. File-modality upload chain (mirrors persona/export.py).
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    file_name = f"{name}_{timestamp}.pdf"
+    upload_uuid = uuid_mod.uuid4()
+    relative_path = f"{upload_uuid}.pdf"
+    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    with open(disk_path, "wb") as f:
+        f.write(pdf_bytes)
+
+    async with pool.acquire() as conn:
+        upload_row = await create_upload(
+            conn,
+            session_id=session_id,
+            file_path=relative_path,
+            mime_type="application/pdf",
+            size=len(pdf_bytes),
+        )
+        resource_row = await create_file_resource(conn, redis)
+        if session_id is not None:
+            entry_row = await create_file_entry(
+                conn,
+                session_id=session_id,
+                files_id=resource_row.id,
+            )
+            await create_file_upload(
+                conn,
+                file_id=entry_row.id,
+                upload_id=upload_row.id,
+                session_id=session_id,
+            )
+            await refresh_files_internal(conn, redis)
+
+    # row_count = number of rubric standards rendered (closest analogue
+    # to CSV row count for schema symmetry across artifacts).
     return ExportRubricApiResponse(
-        content=base64.b64encode(pdf_bytes).decode("ascii"),
-        file_name=f"{name}.pdf",
-        mime_type="application/pdf",
+        file_id=resource_row.id,
+        file_name=file_name,
         row_count=len(standards),
     )

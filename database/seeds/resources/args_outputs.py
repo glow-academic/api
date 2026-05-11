@@ -111,6 +111,18 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="context",
     ),
+    "operation_csv": dict(
+        id=sid("args_output/operation_csv"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="csv",
+    ),
+    "operation_docs": dict(
+        id=sid("args_output/operation_docs"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="docs",
+    ),
     "operation_decrypt": dict(
         id=sid("args_output/operation_decrypt"),
         args_id=_OPERATION_ARG_ID,
@@ -488,6 +500,24 @@ SHARED_ARGS_OUTPUTS = {
         args_id=sid("arg/draft_id"),
         name="draft_id",
         template="{{ draft_id }}",
+    ),
+    "entity_id": dict(
+        id=sid("args_output/entity_id"),
+        args_id=sid("arg/entity_id"),
+        name="entity_id",
+        template="{{ entity_id }}",
+    ),
+    "filename": dict(
+        id=sid("args_output/filename"),
+        args_id=sid("arg/filename"),
+        name="filename",
+        template="{{ filename }}",
+    ),
+    "use_custom": dict(
+        id=sid("args_output/use_custom"),
+        args_id=sid("arg/use_custom"),
+        name="use_custom",
+        template="{{ use_custom }}",
     ),
     # --- Payload: attempt/test fields ---
     "message": dict(

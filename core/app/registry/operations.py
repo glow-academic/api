@@ -74,10 +74,16 @@ def resolve_callable(
 
 _I = "app.infra"
 
+from pathlib import Path as _Path
+
 from app.registry.discover import discover_infra_ops as _discover
 
+# Resolve the infra base relative to this file so discovery works from any
+# CWD (e.g. seed runners launched from the repo root, not core/).
+_INFRA_BASE = _Path(__file__).resolve().parents[1] / "infra"
+
 # Auto-discover from filesystem
-INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = _discover()
+INFRA_OPS: dict[tuple[str, str], tuple[str, str] | None] = _discover(_INFRA_BASE)
 
 # --- "context" → "page_context" alias ---
 # Operation name is "context" but file is "page_context.py" (can't rename
@@ -158,7 +164,7 @@ for _alias, _source in [
 
 from app.registry.discover import discover_infra_item_types as _discover_items
 
-INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = _discover_items()
+INFRA_ITEM_TYPES: dict[tuple[str, str], tuple[str, str]] = _discover_items(_INFRA_BASE)
 
 # --- Manual override: attempt chat_create uses ApiRequest directly ---
 INFRA_ITEM_TYPES[("attempt", "chat_create")] = (

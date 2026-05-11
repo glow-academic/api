@@ -15,6 +15,10 @@ class GetTestFeedbackResponse(BaseModel):
     grade_id: UUID
     call_id: UUID
     tool_call_id: UUID
+    # Per-standard attribution via the shared ``feedbacks_standards_connection``
+    # table. Nullable for legacy rows written before the connection was
+    # populated (and for the LEFT JOIN miss case).
+    standard_id: UUID | None = None
     total: int
     feedback: str
     total_points: int

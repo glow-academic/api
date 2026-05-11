@@ -215,6 +215,7 @@ async def _search_eval_build(
             flag_filter=flag_filter,
             total_count=0,
             user_role=profile.role,
+            import_fields=EVAL_IMPORT_FIELDS,
         )
 
     # ── Step 3: Get eval artifacts with junction IDs ──────────────────
@@ -401,6 +402,7 @@ async def _search_eval_build(
         flag_filter=flag_filter,
         total_count=total_count,
         user_role=profile.role,
+        import_fields=EVAL_IMPORT_FIELDS,
     )
 
 

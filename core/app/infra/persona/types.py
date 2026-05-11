@@ -431,6 +431,13 @@ class ListPersonaApiResponse(BaseModel):
     instruction_filter: ListFilterSection | None = Field(None, description="Instruction filter options for bulk edit")
     flag_filter: ListFilterSection | None = Field(None, description="Flag filter options for bulk edit")
     total_count: int | None = Field(None, description="Total number of personas matching filters")
+    # CSV import column schema — gates the "Import CSV" button on the
+    # client (button only renders when this is non-empty). Stable across
+    # requests; server-authoritative so the client doesn't duplicate
+    # the field list.
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # ========== Shared Save/Create/Update Types ==========
@@ -871,12 +878,36 @@ class ExportPersonaApiRequest(BaseModel):
 
 
 class ExportPersonaApiResponse(BaseModel):
-    """Response model for export persona endpoint."""
+    """Response model for export persona endpoint.
 
-    content: str = Field(..., description="CSV content as a string")
+    File-modality: the server writes the CSV to disk, registers it as a
+    ``files_resource`` row joined to an ``uploads_entry``, and returns
+    the ``file_id``. The client downloads via ``/persona/file/download``
+    (and the BFF wrapper at ``/api/persona/download/{file_id}``).
+    """
+
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
-    mime_type: str = Field(..., description="MIME type of the export (text/csv)")
     row_count: int = Field(..., description="Number of data rows in the export")
+
+
+class FileDownloadPersonaApiRequest(BaseModel):
+    """Request model for persona file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadPersonaApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 # =============================================================================

@@ -85,6 +85,7 @@ async def search_activity(
         total_sessions = ctx.entries.get("total_sessions", [])
         groups = ctx.entries.get("groups", [])
         runs = ctx.entries.get("runs", [])
+        problems = ctx.entries.get("problems", [])
 
         names_rp = ctx.resources.get("names")
         name_list = names_rp.selected if names_rp else []
@@ -111,6 +112,11 @@ async def search_activity(
             if g.session_id:
                 group_to_session[g.id] = g.session_id
                 group_counts[g.session_id] += 1
+
+        problem_counts: dict[UUID, int] = defaultdict(int)
+        for problem in problems:
+            if problem.session_id:
+                problem_counts[problem.session_id] += 1
 
         # --- Phase 5: Aggregate run stats per session ---
         session_stats: dict[UUID, dict] = defaultdict(
@@ -177,6 +183,7 @@ async def search_activity(
                     last_run_at=stats.get("last_run_at"),
                     total_tokens=stats.get("total_tokens", 0),
                     total_cost=stats.get("total_cost", Decimal("0")),
+                    problem_count=problem_counts.get(sid, 0),
                 )
             )
 

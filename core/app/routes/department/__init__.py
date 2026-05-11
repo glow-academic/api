@@ -10,6 +10,7 @@ from app.routes.department.draft import router as draft_router
 from app.routes.department.drafts import router as drafts_router
 from app.routes.department.duplicate import router as duplicate_router
 from app.routes.department.export import router as export_router
+from app.routes.department.file import router as file_router
 from app.routes.department.generate import router as generate_router
 from app.routes.department.generations import router as generations_router
 from app.routes.department.get import router as get_router
@@ -45,4 +46,5 @@ router.include_router(stream_router)
 
 # Typed media operations
 router.include_router(text_router)
+router.include_router(file_router)
 router.include_router(call_router)

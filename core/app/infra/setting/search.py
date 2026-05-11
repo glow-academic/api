@@ -274,6 +274,7 @@ async def _search_setting_build(
         settings=settings_list,
         keys=None,
         flag_filter=flag_filter,
+        import_fields=SETTING_IMPORT_FIELDS,
     )
 
 
@@ -289,6 +290,7 @@ def _empty_response(
         user_role=user_role,
         settings=[],
         keys=None,
+        import_fields=SETTING_IMPORT_FIELDS,
     )
 
 

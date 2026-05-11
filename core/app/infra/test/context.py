@@ -44,6 +44,7 @@ from app.tools.resources.reasoning_levels.get import get_reasoning_levels
 from app.tools.resources.reasoning_levels.search import search_reasoning_levels
 from app.tools.resources.rubrics.get import get_rubrics
 from app.tools.resources.standard_groups.get import get_standard_groups
+from app.tools.resources.standards.search import search_standards
 from app.tools.resources.temperature_levels.get import get_temperature_levels
 from app.tools.resources.temperature_levels.search import search_temperature_levels
 from app.tools.resources.tools.get import get_tools
@@ -293,6 +294,20 @@ async def resolve_test_context(
         _get(get_standard_groups, sg_ids_set),
     )
 
+    # Standards live one level below standard_groups. Required so the
+    # graded-view rubric_structure can carry per-standard metadata
+    # (name/description/points) without an extra client roundtrip.
+    standards_res: list = []
+    if sg_ids_set:
+        async with pool.acquire() as c:
+            standards_res = await search_standards(
+                c,
+                redis,
+                standard_group_ids=list(sg_ids_set),
+                limit_count=10000,
+                bypass_cache=bypass_cache,
+            )
+
     # ── Phase 5c: Global catalogs for resource panel pickers ──────────
     # The panel needs full lists of pickable options (not just selected).
     # Suggestions are returned alongside the selected resources so the
@@ -363,6 +378,7 @@ async def resolve_test_context(
             "tools": ResourcePair(selected=tools_res, suggestions=tools_all),
             "qualities": ResourcePair(selected=qualities_res, suggestions=qualities_all),
             "standard_groups": ResourcePair(selected=standard_groups_res, suggestions=[]),
+            "standards": ResourcePair(selected=standards_res, suggestions=[]),
         },
     )
 

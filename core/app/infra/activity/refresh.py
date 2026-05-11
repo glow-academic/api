@@ -15,8 +15,21 @@ ARTIFACT_TYPE = "activity"
 # Tags to invalidate — artifact cache + resource caches
 _TAGS = ["activity", "artifacts"]
 
-# Views refreshed by this endpoint
-ALL_TARGETS = ["activity_mv"]
+# Views read by the Activity page. The top cards use sessions/activity/logins/
+# problems/grants/emulations; the history table joins sessions -> groups -> runs
+# and computes cost from run pricing.
+ALL_TARGETS = [
+    "sessions_mv",
+    "activity_mv",
+    "logins_mv",
+    "problems_mv",
+    "grants_mv",
+    "emulations_mv",
+    "groups_mv",
+    "runs_mv",
+    "tokens_mv",
+    "run_pricing_mv",
+]
 
 
 async def refresh_activity_impl(
@@ -29,7 +42,7 @@ async def refresh_activity_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
     operation_key: UUID | None = None,
-    **_kwargs,
+    **_kwargs: object,
 ) -> RefreshResponse:
     """Activity refresh — permission-check + enqueue, no synchronous MV refresh."""
     effective_op_key = operation_key or idempotency_key

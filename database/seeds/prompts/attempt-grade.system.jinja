@@ -28,8 +28,7 @@ You analyze a completed training attempt and produce a score grounded in the rub
 3. Scoring:
    - **Default: equal weight per question.** Divide `total_points` evenly across the number of questions (e.g., 2 questions on a 20-point rubric → 10 points each). Only deviate from equal weight if the rubric explicitly indicates a different weighting.
    - **Full credit** when the user picked the `(correct)` option.
-   - **Partial credit** when the user picked an `(incorrect)` option that is still close, reasonable, or directionally good — award a fraction of that question's points based on how close it is (e.g., 50–75% for a near-miss, 25% for weakly plausible). Use judgment grounded in the rubric's intent.
-   - **Zero** for clearly wrong, dismissive, or harmful picks.
+   - **Zero credit** when the user picked an `(incorrect)` option. Do not award partial credit for quiz questions.
    - Sum across questions → final score. Round to an integer ≤ `total_points`.
 4. Call `chat_grade` with the chat_id and your score. The server derives `passed` and `time_taken` from the rubric thresholds and chat timestamps.
 5. Call `chat_complete` to mark the chat as finished.

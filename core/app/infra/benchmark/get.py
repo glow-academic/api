@@ -61,7 +61,7 @@ async def get_benchmark_impl(
     profile_id: UUID,
     request: BenchmarkRequest | None = None,
     bypass_cache: bool = False,
-    **_kwargs,
+    **_kwargs: object,
 ) -> BenchmarkResponse:
     """Resolve the canonical benchmark response for any surface.
 
@@ -119,9 +119,20 @@ async def get_benchmark_impl(
         if "departments" in cards_ctx.resources
         else []
     )
+    rubrics_list = (
+        cards_ctx.resources["rubrics"].selected
+        if "rubrics" in cards_ctx.resources
+        else []
+    )
 
     eval_cards = _build_eval_cards(
-        benchmarks, invocations, tests, test_invocations, evals_list
+        benchmarks,
+        invocations,
+        tests,
+        test_invocations,
+        evals_list,
+        rubrics_list,
+        cards_ctx.entries.get("test_eval_ids_by_test", {}),
     )
     department_items = [
         BenchmarkDepartmentItem(
@@ -197,14 +208,37 @@ async def _resolve_both(
     )
 
 
+def _eval_ids_for_test(test: object, mapping: dict[UUID, list[UUID]]) -> list[UUID]:
+    """Return benchmark-linked eval IDs, falling back to legacy test_mv.eval_id."""
+    test_id = getattr(test, "test_id", None)
+    eval_ids = list(mapping.get(test_id, [])) if test_id else []
+    legacy_eval_id = getattr(test, "eval_id", None)
+    if legacy_eval_id and legacy_eval_id not in eval_ids:
+        eval_ids.append(legacy_eval_id)
+    return eval_ids
+
+
+def _score_percent(raw_score: float | None, rubric: object | None) -> float | None:
+    """Convert raw rubric points to display percent; fallback preserves legacy rows."""
+    if raw_score is None:
+        return None
+    total_points = getattr(rubric, "total_points", None) if rubric else None
+    if not total_points or total_points <= 0:
+        return raw_score
+    return max(0.0, min(100.0, 100.0 * raw_score / total_points))
+
+
 def _build_eval_cards(
     benchmarks: list,
     invocations: list,
     tests: list,
     test_invocations: list,
     evals_list: list,
+    rubrics_list: list,
+    test_eval_ids_by_test: dict[UUID, list[UUID]] | None = None,
 ) -> list[BenchmarkEvalOperational]:
     """Build eval cards with aggregated stats."""
+    test_eval_ids_by_test = test_eval_ids_by_test or {}
     inv_by_benchmark: dict[UUID, list] = defaultdict(list)
     for invocation in invocations:
         if invocation.benchmark_id:
@@ -228,18 +262,19 @@ def _build_eval_cards(
     test_ids_per_eval: dict[UUID, list[UUID]] = defaultdict(list)
     infinite_per_eval: dict[UUID, bool] = {}
     for test in tests:
-        if test.eval_id:
-            tests_per_eval[test.eval_id] += 1
-            test_ids_per_eval[test.eval_id].append(test.test_id)
+        for eval_id in _eval_ids_for_test(test, test_eval_ids_by_test):
+            tests_per_eval[eval_id] += 1
+            test_ids_per_eval[eval_id].append(test.test_id)
             if test.archived:
-                archived_per_eval[test.eval_id] += 1
+                archived_per_eval[eval_id] += 1
             if test.infinite_mode:
-                infinite_per_eval[test.eval_id] = True
+                infinite_per_eval[eval_id] = True
 
     ti_by_test: dict[UUID, list] = defaultdict(list)
     for test_invocation in test_invocations:
         if test_invocation.test_id:
             ti_by_test[test_invocation.test_id].append(test_invocation)
+    rubric_map = {rubric.id: rubric for rubric in rubrics_list if rubric.id}
 
     eval_stats: dict[UUID, dict] = {}
     for eval_id, test_ids in test_ids_per_eval.items():
@@ -256,8 +291,14 @@ def _build_eval_cards(
                 if test_invocation.grade_passed:
                     passed = True
                 if test_invocation.grade_score is not None:
-                    if highest is None or test_invocation.grade_score > highest:
-                        highest = test_invocation.grade_score
+                    score_pct = _score_percent(
+                        test_invocation.grade_score,
+                        rubric_map.get(test_invocation.rubric_id),
+                    )
+                    if score_pct is not None and (
+                        highest is None or score_pct > highest
+                    ):
+                        highest = score_pct
                 if test_invocation.rubric_id:
                     rubric_ids.add(test_invocation.rubric_id)
         eval_stats[eval_id] = {
@@ -329,6 +370,7 @@ def _build_history(
     profile_map = {p.id: p for p in profiles_list if p.id}
     rubric_map = {r.id: r for r in rubrics_list if r.id}
     model_map = {m.id: m for m in models_list if m.id}
+    test_eval_ids_by_test = ctx.entries.get("test_eval_ids_by_test", {})
 
     ti_by_test: dict[UUID, list] = defaultdict(list)
     for test_invocation in test_invocations:
@@ -360,25 +402,20 @@ def _build_history(
                 rubric_uuid = item.rubric_id
                 break
 
-        # Score aggregation — best score across invocations, normalised to 0-100.
-        # Mirrors simulation pattern in
-        # core/app/routes/attempt/home/search.py:_compute_history_aggregates
-        # which sums grade_score / grade_total_points across chats. Tests use
-        # grade_score directly (already 0-100 per user spec).
-        best_score: float | None = None
-        has_passed = False
+        # Score aggregation — best raw rubric score across invocations.
+        best_raw_score: float | None = None
         for item in test_items:
-            if item.grade_passed:
-                has_passed = True
             if item.grade_score is not None:
-                if best_score is None or item.grade_score > best_score:
-                    best_score = item.grade_score
+                if best_raw_score is None or item.grade_score > best_raw_score:
+                    best_raw_score = item.grade_score
 
         # Eval lookup
         eval_name: str | None = None
         eval_model_uuids: list[UUID] = []
-        if test.eval_id and test.eval_id in eval_map:
-            ev = eval_map[test.eval_id]
+        test_eval_ids = _eval_ids_for_test(test, test_eval_ids_by_test)
+        primary_eval_id = test_eval_ids[0] if test_eval_ids else None
+        if primary_eval_id and primary_eval_id in eval_map:
+            ev = eval_map[primary_eval_id]
             eval_name = ev.name
             eval_model_uuids = list(ev.model_ids or [])
 
@@ -393,6 +430,8 @@ def _build_history(
             pass_pct = compute_pass_pct(rubric.total_points, rubric.pass_points)
             if pass_pct is not None:
                 rubric_pass_threshold_percent = float(pass_pct)
+        else:
+            rubric = None
 
         # Profile lookup
         profile_name: str | None = None
@@ -409,18 +448,19 @@ def _build_history(
                 if nm:
                     model_names.append(nm)
 
-        # Score (canonical 0-100 int) — cast best_score to int.
+        # Score (canonical display percent) — derive from raw rubric points.
         # Mirrors `score = round(score_percent)` in
         # core/app/routes/attempt/home/search.py:150
+        best_score_pct = _score_percent(best_raw_score, rubric)
         score: int | None = (
-            int(round(best_score)) if best_score is not None else None
+            int(round(best_score_pct)) if best_score_pct is not None else None
         )
 
         # score_status — port simulation's compute_score_status, threshold from
         # rubric pass_pct (defaults to 70 if rubric missing).
         # core/app/infra/attempt/chat/permissions.py:60
         score_status = compute_score_status(
-            best_score, rubric_pass_threshold_percent
+            best_score_pct, rubric_pass_threshold_percent
         )
 
         # show_view / show_continue — mirror simulation patterns in
@@ -449,7 +489,7 @@ def _build_history(
                 ),
                 profile_id=test.profile_id,
                 profile_name=profile_name,
-                eval_id=str(test.eval_id) if test.eval_id else None,
+                eval_id=str(primary_eval_id) if primary_eval_id else None,
                 eval_name=eval_name,
                 rubric_id=str(rubric_uuid) if rubric_uuid else None,
                 rubric_name=rubric_name,
@@ -469,8 +509,8 @@ def _build_history(
         )
 
         # ── Tally filter-option counts ──────────────────────────────
-        if test.eval_id:
-            eid_str = str(test.eval_id)
+        if primary_eval_id:
+            eid_str = str(primary_eval_id)
             eval_counter[eid_str] += 1
             eval_id_to_name.setdefault(eid_str, eval_name)
         for mid_str in model_id_strs:

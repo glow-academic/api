@@ -72,6 +72,8 @@ SHARED_ARGS = {
     "filter_simulation_ids": dict(id=sid("arg/filter_simulation_ids"), name="filter_simulation_ids", field_type="uuid[]"),
     "filter_status": dict(id=sid("arg/filter_status"), name="filter_status", field_type="string[]"),
     "filter_tool_ids": dict(id=sid("arg/filter_tool_ids"), name="filter_tool_ids", field_type="uuid[]"),
+    "entity_id": dict(id=sid("arg/entity_id"), name="entity_id", field_type="uuid", description="Target artifact entity UUID for page-context / docs lookups"),
+    "filename": dict(id=sid("arg/filename"), name="filename", field_type="string", description="Original filename of an uploaded file (e.g. CSV import)"),
     "flag_search": dict(id=sid("arg/flag_search"), name="flag_search", field_type="string"),
     "grade": dict(id=sid("arg/grade"), name="grade", field_type="boolean"),
     "grade_id": dict(id=sid("arg/grade_id"), name="grade_id", field_type="uuid", description="Grade entry UUID"),

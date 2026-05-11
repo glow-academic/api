@@ -11,16 +11,24 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import asyncio
-import base64
 import csv
 import io
+import os
+import uuid as uuid_mod
 from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.globals import UPLOAD_FOLDER
+
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.tools.entries.file_uploads.create import create_file_upload
+from app.tools.entries.files.create import create_file as create_file_entry
+from app.tools.entries.files.refresh import refresh_files_internal
+from app.tools.entries.uploads.create import create_upload
+from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.artifacts.simulation.search import search_simulations
 from app.tools.resources.departments.get import get_departments
@@ -53,6 +61,7 @@ async def export_simulation_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
     simulation_id: UUID | None = None,
 ) -> dict:
     """Simulation full export using composable infra functions.
@@ -91,13 +100,6 @@ async def export_simulation_impl(
                 offset_count=0,
             )
 
-        if not simulation_ids:
-            return ExportSimulationApiResponse(
-                content="",
-                file_name="",
-                mime_type="text/csv",
-                row_count=0,
-            )
 
     # -- Step 3: Get simulation artifacts with all junction IDs --
 
@@ -242,13 +244,41 @@ async def export_simulation_impl(
     csv_content = output.getvalue()
     row_count = len(artifacts)
 
-    content = base64.b64encode(csv_content.encode("utf-8")).decode("ascii")
+    csv_bytes = csv_content.encode("utf-8")
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     file_name = f"simulations_export_{timestamp}.csv"
+    upload_uuid = uuid_mod.uuid4()
+    relative_path = f"{upload_uuid}.csv"
+    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    with open(disk_path, "wb") as f:
+        f.write(csv_bytes)
+
+    async with pool.acquire() as conn:
+        upload_row = await create_upload(
+            conn,
+            session_id=session_id,
+            file_path=relative_path,
+            mime_type="text/csv",
+            size=len(csv_bytes),
+        )
+        resource_row = await create_file_resource(conn, redis)
+        if session_id is not None:
+            entry_row = await create_file_entry(
+                conn,
+                session_id=session_id,
+                files_id=resource_row.id,
+            )
+            await create_file_upload(
+                conn,
+                file_id=entry_row.id,
+                upload_id=upload_row.id,
+                session_id=session_id,
+            )
+            await refresh_files_internal(conn, redis)
 
     return ExportSimulationApiResponse(
-        content=content,
+        file_id=resource_row.id,
         file_name=file_name,
-        mime_type="text/csv",
         row_count=row_count,
     )

@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
+from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -318,6 +319,9 @@ class ListDocumentApiResponse(BaseModel):
     department_filter: ListFilterSection | None = Field(None, description="Filter options for departments in list UI")
     flag_filter: ListFilterSection | None = Field(None, description="Filter options for flags in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # ========== Shared Create/Update Types ==========

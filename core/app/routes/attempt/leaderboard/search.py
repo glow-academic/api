@@ -8,6 +8,7 @@ from app.infra.api_types import FilterOption
 from app.infra.common_context import resolve_common_context
 from app.infra.globals import get_pool, get_redis_client
 from app.infra.leaderboard.context import resolve_leaderboard_search_context
+from app.infra.leaderboard.get import _resolve_attempt_type_filter
 from app.infra.leaderboard.permissions import (
     build_leaderboard_rows_v3,
 )
@@ -96,12 +97,7 @@ async def search_leaderboard(
         is_archived = bool(
             request.simulation_filters and "archived" in request.simulation_filters
         )
-        if request.simulation_filters and "general" in request.simulation_filters:
-            attempt_type = "general"
-        elif request.simulation_filters and "practice" in request.simulation_filters:
-            attempt_type = "practice"
-        else:
-            attempt_type = "general"
+        attempt_type = _resolve_attempt_type_filter(request.simulation_filters)
 
         # --- Phase 2: Resolve leaderboard search context ---
         ctx = await resolve_leaderboard_search_context(

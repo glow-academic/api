@@ -29,9 +29,12 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.tools.resources.points.get import get_points
 from app.tools.resources.rubrics.create import (
     create_rubric as create_rubric_resource,
 )
+from app.tools.resources.standard_groups.get import get_standard_groups
+from app.tools.resources.standards.get import get_standards
 
 if TYPE_CHECKING:
     from app.infra.rubric.types import (
@@ -190,7 +193,7 @@ async def resolve_rubric_values(
         item.flag_ids = resolved_flag_ids
 
     # Pass points — resolve scalar value to a pass-type Points resource ID.
-    # Total points are computed on read from standards and never written here.
+    # Total points are computed on read from standard groups and never written here.
     if item.pass_points is not None and item.pass_points_id is None:
         from app.tools.resources.points.search import search_points
         results = await search_points(
@@ -299,3 +302,41 @@ async def create_denormalized_snapshot(
             pass_points=pass_points or 0,
         )
     return result.id
+
+
+async def resolve_rubric_point_totals(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    pass_points_id: UUID | None = None,
+    standard_group_ids: list[UUID] | None = None,
+    standard_ids: list[UUID] | None = None,
+) -> tuple[int | None, int | None]:
+    """Resolve rubric pass/max points from resource rows.
+
+    Standards are rubric levels, so their points are not additive for the
+    rubric maximum. The max comes from the selected criteria groups.
+    """
+    pass_value: int | None = None
+    total_value: int | None = None
+
+    async with pool.acquire() as conn:
+        if pass_points_id:
+            rows = await get_points(conn, [pass_points_id], redis, bypass_cache=True)
+            pass_value = rows[0].value if rows else None
+
+        group_ids = list(standard_group_ids or [])
+        if not group_ids and standard_ids:
+            standards = await get_standards(
+                conn,
+                list(standard_ids),
+                redis,
+                bypass_cache=True,
+            )
+            group_ids = list(dict.fromkeys(s.standard_group_id for s in standards))
+
+        if group_ids:
+            groups = await get_standard_groups(conn, group_ids, redis, bypass_cache=True)
+            total_value = sum((g.points or 0) for g in groups) if groups else 0
+
+    return pass_value, total_value

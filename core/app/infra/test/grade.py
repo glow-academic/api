@@ -10,8 +10,7 @@ Derives everything from invocation_id via black boxes:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from uuid import UUID
 
 import asyncpg
@@ -35,13 +34,12 @@ async def create_grade_impl(
     session_id: UUID,
     invocation_id: UUID | None = None,
     score: int = 0,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> dict:
     """Create a test grade entry.
 
     Model passes: invocation_id, score.
     Infra derives everything else from invocation_id:
-      - group_id (invocation.group_id)
       - run_id (test → call → run chain)
       - passed (score vs rubric threshold)
       - time_taken (now - invocation created_at)
@@ -55,7 +53,7 @@ async def create_grade_impl(
         raise ValueError("invocation_id is required")
 
     async with pool.acquire() as conn:
-        # Step 1: Get invocation → rubric_id, group_id, test_id, created_at
+        # Step 1: Get invocation → rubric_id, test_id, created_at
         invocations = await get_test_invocations(
             conn, ids=[invocation_id], bypass_mv=True
         )
@@ -64,12 +62,12 @@ async def create_grade_impl(
 
         inv = invocations[0]
         rubric_id = inv.rubric_id
-        group_id = inv.group_id
 
         # Step 2: Derive run_id — prefer context (kwargs), fall back to test chain
         run_id: UUID | None = None
         if "run_id" in kwargs and kwargs["run_id"]:
-            run_id = kwargs["run_id"] if isinstance(kwargs["run_id"], UUID) else UUID(str(kwargs["run_id"]))
+            raw_run_id = kwargs["run_id"]
+            run_id = raw_run_id if isinstance(raw_run_id, UUID) else UUID(str(raw_run_id))
         elif inv.test_id:
             tests = await get_tests(conn, ids=[inv.test_id])
             if tests and tests[0].call_id:
@@ -77,17 +75,28 @@ async def create_grade_impl(
                 if calls:
                     run_id = calls[0].run_id
 
-        # Step 3: Get rubric → pass_points threshold
+        # Step 3: Get rubric → raw point bounds and pass threshold
+        total_points = 0
         pass_points = 0
         if rubric_id:
             rubrics = await get_rubrics(conn, [rubric_id], redis)
             if rubrics:
+                total_points = rubrics[0].total_points or 0
                 pass_points = rubrics[0].pass_points
+        if total_points > 0 and score > total_points:
+            raise ValueError(
+                f"Score {score} exceeds maximum of {total_points}. "
+                f"Pass threshold is {pass_points}."
+            )
+        if score < 0:
+            raise ValueError(
+                f"Score cannot be negative. Valid range: 0-{total_points}."
+            )
 
         # Step 4: Derive passed and time_taken
         passed = score >= pass_points if pass_points > 0 else score > 0
         time_taken_ms = int(
-            (datetime.now(timezone.utc) - inv.invocation_created_at).total_seconds() * 1000
+            (datetime.now(UTC) - inv.invocation_created_at).total_seconds() * 1000
         )
 
         # Step 5: Create call for audit linkage

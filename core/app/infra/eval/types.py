@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
+from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
@@ -266,6 +267,9 @@ class ListEvalApiResponse(BaseModel):
     rubric_filter: ListFilterSection | None = Field(None, description="Filter options for rubrics in list UI")
     total_count: int | None = Field(None, description="Total number of matching records")
     user_role: str | None = Field(None, description="Role of the current user")
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # ========== Shared Create/Update Types ==========
@@ -650,10 +654,28 @@ class PatchEvalDraftApiResponse(BaseModel):
 class ExportEvalApiResponse(BaseModel):
     """Response model for export eval endpoint."""
 
-    content: str = Field(..., description="Exported file content")
-    file_name: str = Field(..., description="Suggested file name for download")
-    mime_type: str = Field(..., description="MIME type of the exported content")
-    row_count: int = Field(..., description="Number of rows in the export")
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of data rows in the export")
+
+
+class FileDownloadEvalApiRequest(BaseModel):
+    """Request model for eval file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadEvalApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 # =============================================================================

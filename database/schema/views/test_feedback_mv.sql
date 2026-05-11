@@ -6,17 +6,19 @@
 --
 
 CREATE MATERIALIZED VIEW public.test_feedback_mv AS
- SELECT id AS feedback_id,
-    grade_id,
-    call_id,
-    tool_call_id,
-    total,
-    feedback,
-    total_points,
-    pass_points,
-    created_at
-   FROM public.test_feedback_entry fe
-  WHERE (active = true)
+ SELECT fe.id AS feedback_id,
+    fe.grade_id,
+    fe.call_id,
+    fe.tool_call_id,
+    fsc.standard_id,
+    fe.total,
+    fe.feedback,
+    fe.total_points,
+    fe.pass_points,
+    fe.created_at
+   FROM (public.test_feedback_entry fe
+     LEFT JOIN public.feedbacks_standards_connection fsc ON ((fsc.feedbacks_id = fe.id)))
+  WHERE (fe.active = true)
   WITH NO DATA;
 
 

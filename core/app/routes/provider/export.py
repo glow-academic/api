@@ -16,6 +16,7 @@ async def export_providers(
 ) -> ExportProviderApiResponse:
     """Export all providers as a clean, denormalized CSV."""
     profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
     pool = get_pool()
     redis = get_redis_client()
 
@@ -23,5 +24,6 @@ async def export_providers(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
         provider_id=body.provider_id,
     )

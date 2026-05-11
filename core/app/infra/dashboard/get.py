@@ -37,6 +37,10 @@ from app.infra.dashboard.types import (
     DashboardBundleResponse,
     DashboardRequest,
 )
+from app.infra.dashboard.visibility import (
+    resolve_visible_profile_ids,
+    resolve_visible_simulation_scope,
+)
 from app.infra.globals import get_redis_client
 from app.routes.attempt.dashboard.search import _build_history_response
 from app.tools.resources.roles.get import get_roles
@@ -57,6 +61,16 @@ DASHBOARD_FACETS_CONFIG = AnalyticsFacetsConfig(
 )
 
 
+def _resolve_attempt_type_filter(simulation_filters: list[str] | None) -> str | None:
+    """Map multi-select attempt filters to the single MV attempt_type filter."""
+    selected = set(simulation_filters or [])
+    has_general = "general" in selected
+    has_practice = "practice" in selected
+    if has_general == has_practice:
+        return None
+    return "practice" if has_practice else "general"
+
+
 async def get_dashboard_impl_cached(
     pool,
     request: DashboardRequest,
@@ -66,7 +80,13 @@ async def get_dashboard_impl_cached(
     cache_key_path: str = "/dashboard/get",
 ) -> tuple[DashboardBundleResponse, bool]:
     tags = ["artifacts", "dashboard", "views", "analytics"]
-    cache_key_val = cache_key(cache_key_path, request.model_dump(mode="json"))
+    cache_key_val = cache_key(
+        cache_key_path,
+        {
+            "profile_id": str(profile_id),
+            "request": request.model_dump(mode="json"),
+        },
+    )
 
     if not bypass_cache:
         cached = await get_cached(cache_key_val, redis=get_redis_client())
@@ -79,6 +99,16 @@ async def get_dashboard_impl_cached(
     )
     if not common:
         raise HTTPException(status_code=401, detail="Profile not found")
+
+    visible_profile_ids, visible_simulation_scope = await asyncio.gather(
+        resolve_visible_profile_ids(pool, common.profile),
+        resolve_visible_simulation_scope(
+            pool,
+            common.profile,
+            department_ids=request.department_ids,
+        ),
+    )
+    visible_simulation_ids, visible_scenario_ids = visible_simulation_scope
 
     parsed_start_date = (
         datetime.fromisoformat(request.start_date.replace("Z", "+00:00"))
@@ -93,18 +123,16 @@ async def get_dashboard_impl_cached(
     is_archived = bool(
         request.simulation_filters and "archived" in request.simulation_filters
     )
-    if request.simulation_filters and "general" in request.simulation_filters:
-        attempt_type = "general"
-    elif request.simulation_filters and "practice" in request.simulation_filters:
-        attempt_type = "practice"
-    else:
-        attempt_type = None
+    attempt_type = _resolve_attempt_type_filter(request.simulation_filters)
 
     ctx, analytics_facets = await asyncio.gather(
         resolve_dashboard_context(
             pool,
             redis,
             target_profile_id=request.target_profile_id,
+            visible_profile_ids=visible_profile_ids,
+            visible_simulation_ids=visible_simulation_ids,
+            visible_scenario_ids=visible_scenario_ids,
             actor_profile_id=request.actor_profile_id or common.profile.profiles_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,
@@ -368,21 +396,10 @@ async def get_dashboard_impl_cached(
                 bundle.profile_role = roles[0].name
 
     if request.history_page_size and request.history_page_size > 0:
-        profile_resource_id: UUID | None = None
-        async with pool.acquire() as c:
-            profile_resource_id = await c.fetchval(
-                """
-                SELECT profiles_id FROM profile_profiles_junction
-                WHERE profile_id = $1 AND active = true
-                LIMIT 1
-                """,
-                profile_id,
-            )
-
         search_ctx = await resolve_dashboard_search_context(
             pool,
             redis,
-            profile_resource_id=profile_resource_id,
+            profile_resource_ids=visible_profile_ids,
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,

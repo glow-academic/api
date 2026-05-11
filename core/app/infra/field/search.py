@@ -385,6 +385,7 @@ async def _search_field_build(
         department_filter=department_filter,
         flag_filter=flag_filter,
         total_count=total_count,
+        import_fields=FIELD_IMPORT_FIELDS,
     )
 
 
@@ -398,6 +399,7 @@ def _empty_response(
         actor_name=actor_name,
         fields=[],
         total_count=total_count,
+        import_fields=FIELD_IMPORT_FIELDS,
     )
 
 

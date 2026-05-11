@@ -59,6 +59,7 @@ async def rubric_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
             rubric_id=payload.rubric_id,
             chat_id=payload.chat_id,
         ),

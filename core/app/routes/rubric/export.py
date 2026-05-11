@@ -1,23 +1,22 @@
-"""Rubric export endpoint — PDF generation.
+"""Rubric export endpoint — file-modality PDF export.
 
-Returns a raw PDF (`application/pdf`) for the requested rubric,
-optionally filled with per-standard highlights + feedback when
-`grade_id` is supplied. Thin wrapper over `export_rubric_impl` — the
-infra layer produces the canonical `ExportRubricApiResponse` envelope
-(base64 PDF, used by the websocket path too); this route decodes it
-back to raw bytes for HTTP delivery.
+Canonical with every other artifact's ``/<art>/export``: the impl
+renders the PDF, writes it to disk, and registers it as a
+``files_resource`` row. This route returns the JSON envelope
+``{file_id, file_name, row_count}``; the client follows up with
+``/api/rubric/download/{file_id}`` (BFF over ``/rubric/file/download``)
+to fetch the actual bytes. PDF is just another file with
+``mime_type='application/pdf'`` — same chain as CSV exports.
 """
 
-import base64
-from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Request
-from fastapi.responses import Response
-from pydantic import BaseModel, Field
 
 from app.infra.globals import get_pool, get_redis_client
 from app.infra.rubric.export import export_rubric_impl
+from app.infra.rubric.types import ExportRubricApiResponse
+from pydantic import BaseModel, Field
 
 router = APIRouter()
 
@@ -37,42 +36,22 @@ class ExportRubricApiRequest(BaseModel):
     )
 
 
-@router.post(
-    "/export",
-    responses={200: {"content": {"application/pdf": {}}}},
-    response_class=Response,
-)
+@router.post("/export", response_model=ExportRubricApiResponse)
 async def export_rubrics(
     body: ExportRubricApiRequest,
     http_request: Request,
-) -> Response:
-    """Export a rubric as a PDF (optionally filled with grade data)."""
+) -> ExportRubricApiResponse:
+    """Render a rubric PDF and register it as a downloadable file."""
     profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
     pool = get_pool()
     redis = get_redis_client()
 
-    envelope = await export_rubric_impl(
+    return await export_rubric_impl(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
         rubric_id=body.rubric_id,
         chat_id=body.chat_id,
-    )
-
-    pdf_bytes = base64.b64decode(envelope.content)
-
-    # RFC 5987-encoded filename so non-ASCII rubric names survive the
-    # Content-Disposition header round-trip (most browsers honor
-    # `filename*=UTF-8''…`, falling back to `filename="…"`).
-    fallback = envelope.file_name.encode("ascii", errors="replace").decode("ascii")
-    encoded = quote(envelope.file_name, safe="")
-    return Response(
-        content=pdf_bytes,
-        media_type=envelope.mime_type,
-        headers={
-            "Content-Disposition": (
-                f'inline; filename="{fallback}"; filename*=UTF-8\'\'{encoded}'
-            ),
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-        },
     )

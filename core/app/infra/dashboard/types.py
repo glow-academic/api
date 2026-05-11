@@ -44,7 +44,9 @@ class DashboardRequest(BaseModel):
     scenario_search: str | None = Field(None, description="Search string for scenarios")
 
     # History section (attempt list) — kept for backward compat, use /list endpoint
-    history_practice: bool = Field(False, description="Filter to practice attempts only")
+    history_practice: bool | None = Field(
+        None, description="Filter to practice attempts only"
+    )
     history_scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for history filter")
     history_infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
     history_show_archived: bool = Field(False, description="Include archived attempts")
@@ -69,7 +71,7 @@ class ListDashboardRequest(BaseModel):
     target_profile_id: UUID | None = Field(None, description="Target profile ID to scope data")
 
     # History-specific
-    practice: bool = Field(False, description="Filter to practice attempts only")
+    practice: bool | None = Field(None, description="Filter to practice attempts only")
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs to filter by")
     infinite_mode: bool | None = Field(None, description="Filter by infinite mode status")
     show_archived: bool = Field(False, description="Include archived attempts")

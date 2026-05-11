@@ -11,6 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.simulation_drafts.types import (
     GetSimulationDraftResponse,
@@ -557,6 +558,9 @@ class ListSimulationApiResponse(BaseModel):
     department_filter: "ListFilterSection | None" = Field(None, description="Filter options for departments")
     flag_filter: "ListFilterSection | None" = Field(None, description="Filter options for flags")
     total_count: int | None = Field(None, description="Total number of matching records")
+    import_fields: list[ImportField] | None = Field(
+        None, description="CSV import column schema for the bulk-import dialog"
+    )
 
 
 # =============================================================================
@@ -769,10 +773,28 @@ class ExportSimulationApiRequest(BaseModel):
 class ExportSimulationApiResponse(BaseModel):
     """Response model for export simulation endpoint."""
 
-    content: str = Field(..., description="Exported file content")
-    file_name: str = Field(..., description="Suggested file name for download")
-    mime_type: str = Field(..., description="MIME type of the exported content")
-    row_count: int = Field(..., description="Total number of exported rows")
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of data rows in the export")
+
+
+class FileDownloadSimulationApiRequest(BaseModel):
+    """Request model for simulation file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadSimulationApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 # =============================================================================

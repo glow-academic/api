@@ -2327,6 +2327,20 @@ async def main_setup(setup: str = "university") -> None:
         from database.seeds.tests_analytics import seed as _seed_tests_analytics
         await _seed_tests_analytics(pool, redis_client)
 
+        print("\nRefreshing materialized views after analytics seeds...")
+        async with pool.acquire() as _refresh_conn:
+            mvs_rows = await _refresh_conn.fetch(
+                'SELECT matviewname FROM pg_matviews'
+            )
+            for row in mvs_rows:
+                try:
+                    await _refresh_conn.execute(
+                        f'REFRESH MATERIALIZED VIEW "{row["matviewname"]}"'
+                    )
+                except Exception as e:
+                    print(f"  (skipped {row['matviewname']}: {e})")
+        print(f"  {len(mvs_rows)} MVs refreshed.")
+
         # Restore original SEED_PROFILE_ID
         SEED_PROFILE_ID = original_seed_profile_id
 

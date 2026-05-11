@@ -22,7 +22,7 @@ from app.tools.entries.logins.search import search_logins
 from app.tools.entries.practice.search import search_practices
 from app.tools.entries.problems.search import search_problems
 from app.tools.entries.runs.search import search_runs
-from app.tools.entries.sessions.search import search_sessions
+from app.tools.entries.sessions.get import get_sessions
 from app.tools.resources.names.get import get_names
 
 
@@ -52,9 +52,18 @@ async def resolve_session_context(
     """
 
     # ── Phase 1: Fetch session + groups + actor name in parallel ───
+    # Look up the session by id directly (not via profile-scoped search) so
+    # cross-profile views work — e.g. a superadmin clicking into another
+    # user's session from /analytics/activity. The previous
+    # ``search_sessions(profile_ids=[profile_id])`` filter caused 404s any
+    # time the viewer wasn't the session owner.
+    # TODO: gate cross-profile reads by role/permission once activity-view
+    # is a first-class permission. Today any authenticated caller who knows
+    # a session id can resolve its detail — fine for admin tooling, less so
+    # for general users. Mirrors the unscoped behavior of the activity list.
     async def _fetch_sessions() -> list:
         async with pool.acquire() as c:
-            return await search_sessions(c, profile_ids=[profile_id], limit=10000)
+            return await get_sessions(c, ids=[session_id])
 
     async def _fetch_groups() -> list:
         async with pool.acquire() as c:
@@ -69,8 +78,7 @@ async def resolve_session_context(
         _fetch_actor_name(),
     )
 
-    # Find the specific session
-    session = next((s for s in sessions if s.id == session_id), None)
+    session = sessions[0] if sessions else None
     if not session:
         return _empty_context(actor_name_items)
 

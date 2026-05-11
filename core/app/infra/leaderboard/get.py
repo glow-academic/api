@@ -43,6 +43,16 @@ LEADERBOARD_FACETS_CONFIG = AnalyticsFacetsConfig(
 )
 
 
+def _resolve_attempt_type_filter(simulation_filters: list[str] | None) -> str | None:
+    """Map multi-select attempt filters to the single MV attempt_type filter."""
+    selected = set(simulation_filters or [])
+    has_general = "general" in selected
+    has_practice = "practice" in selected
+    if has_general == has_practice:
+        return None
+    return "practice" if has_practice else "general"
+
+
 def _parse_filters(request: LeaderboardRequest) -> dict[str, Any]:
     parsed_start_date = (
         datetime.fromisoformat(request.start_date.replace("Z", "+00:00"))
@@ -64,10 +74,7 @@ def _parse_filters(request: LeaderboardRequest) -> dict[str, Any]:
     is_archived = bool(
         request.simulation_filters and "archived" in request.simulation_filters
     )
-    if request.simulation_filters and "practice" in request.simulation_filters:
-        attempt_type = "practice"
-    else:
-        attempt_type = "general"
+    attempt_type = _resolve_attempt_type_filter(request.simulation_filters)
 
     return {
         "date_from": parsed_start_date.date() if parsed_start_date else None,

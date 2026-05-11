@@ -15,6 +15,7 @@ from app.infra.activity.context import (
 )
 from app.infra.activity.types import (
     ActivityHistoryResponse,
+    ActivityProblemItem,
     ActivityRequest,
     ActivityResources,
     ActivityResponse,
@@ -124,6 +125,7 @@ async def _build_activity_history(
     total_sessions = ctx.entries.get("total_sessions", [])
     groups = ctx.entries.get("groups", [])
     runs = ctx.entries.get("runs", [])
+    problems = ctx.entries.get("problems", [])
 
     names_rp = ctx.resources.get("names")
     name_list = names_rp.selected if names_rp else []
@@ -146,6 +148,11 @@ async def _build_activity_history(
         if group.session_id:
             group_to_session[group.id] = group.session_id
             group_counts[group.session_id] += 1
+
+    problem_counts: dict[UUID, int] = defaultdict(int)
+    for problem in problems:
+        if problem.session_id:
+            problem_counts[problem.session_id] += 1
 
     session_stats: dict[UUID, dict] = defaultdict(
         lambda: {
@@ -198,6 +205,7 @@ async def _build_activity_history(
             total_cost=session_stats.get(session.id, {}).get(
                 "total_cost", Decimal("0")
             ),
+            problem_count=problem_counts.get(session.id, 0),
         )
         for session in sessions
     ]
@@ -284,6 +292,20 @@ async def get_activity_impl_cached(
             if item.profile_id == request.summary_profile_id
         ]
 
+    problem_items = [
+        ActivityProblemItem(
+            problem_id=p.id,
+            profile_id=p.profile_id,
+            profile_name=name_map.get(p.profile_id) if p.profile_id else None,
+            session_id=p.session_id,
+            type=p.type,
+            message=p.message,
+            resolved=p.resolved,
+            created_at=p.created_at,
+        )
+        for p in problems[:50]
+    ]
+
     profile_ids_set: set[str] = set()
     for s in sessions:
         if s.profile_id:
@@ -298,6 +320,7 @@ async def get_activity_impl_cached(
         logins_count=len(logins),
         emulations_count=len(emulations),
         profile_summary=profile_summary,
+        problems=problem_items,
         resources=ActivityResources(profiles={pid: {} for pid in profile_ids_set}),
         analytics=analytics_facets,
         history=await _build_activity_history(

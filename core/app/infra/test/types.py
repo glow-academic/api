@@ -14,6 +14,16 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
+# Reuse the canonical rubric/grade shapes from attempt — same data, same
+# client consumer (TableRubric). Keeps benchmark and attempt's graded
+# view aligned without forking a second set of Pydantic models.
+from app.infra.attempt.types import (
+    AnalysisEntry,
+    FeedbackEntry,
+    GradeData,
+    GradingStateData,
+    RubricStructureData,
+)
 from app.tools.entries.messages.types import SearchMessageResponse
 from app.tools.entries.test.types import GetTestResponse
 from app.tools.entries.test_feedback.types import GetTestFeedbackResponse
@@ -150,6 +160,66 @@ class TestStatusSummary(BaseModel):
     not_started: int = Field(0, description="Number of not-started invocations")
 
 
+# =============================================================================
+# Graded-view payload (per-invocation × per-run, mirrors attempt.ChatData)
+# =============================================================================
+#
+# An invocation is the config under test (model × agent × prompt × tools ×
+# rubric). Running it N times produces N runs, each with its own grade.
+# ``InvocationDetail`` carries everything the graded view needs for one
+# config; ``runs[]`` carries the per-execution detail (grading_state,
+# transcript ids, etc.). The client picks an invocation (global switcher)
+# and a run within (local switcher) to drive TableRubric + transcript +
+# the right-side resource panel snapshot.
+
+
+class InvocationRunDetail(BaseModel):
+    """Per-run grade + replay detail within an invocation.
+
+    One row per ``test_invocation_runs_entry`` binding. Carries the
+    TableRubric-ready ``grading_state`` plus the message/call ids the
+    client uses to slice ``entries.messages`` / ``entries.calls``.
+    """
+
+    run_id: UUID = Field(..., description="UUID of the runs_entry row this binding executed")
+    binding_id: UUID = Field(..., description="UUID of the test_invocation_runs_entry binding row")
+    grade_id: UUID | None = Field(None, description="UUID of the test_grade_entry, if graded")
+    created_at: datetime | None = Field(None, description="When the binding was created")
+    completed: bool = Field(False, description="Whether the binding has a completion record")
+    grade: GradeData | None = Field(None, description="Score / passed / time_taken summary")
+    grading_state: GradingStateData | None = Field(None, description="Achieved/passed/feedback maps keyed by standard_id")
+    feedbacks: list[FeedbackEntry] | None = Field(None, description="Per-standard feedback rows")
+    analyses: list[AnalysisEntry] | None = Field(None, description="Chat-level analysis content (currently unused for tests)")
+    message_ids: list[UUID] | None = Field(None, description="Message ids belonging to this run")
+    call_ids: list[UUID] | None = Field(None, description="Tool-call ids belonging to this run")
+
+
+class InvocationDetail(BaseModel):
+    """Per-invocation graded-view payload.
+
+    Mirrors ``ChatData`` from attempt — one of these per invocation,
+    each carrying its rubric structure and the list of runs that
+    executed against it. ``primary_run_id`` is the default local
+    selection (usually the most recent / row-summary grade).
+    """
+
+    invocation_id: UUID = Field(..., description="UUID of the test_invocation_entry")
+    rubric_id: UUID | None = Field(None, description="UUID of the rubric used to grade this invocation")
+    rubric_structure: RubricStructureData | None = Field(None, description="Rubric structure for TableRubric (standards / groups / mappings)")
+    primary_run_id: UUID | None = Field(None, description="Default selected run for this invocation")
+    # Historical config bundle — sourced from the invocation's agent.
+    # The right-side ResourcePanel renders read-only snapshots from these
+    # ids by looking up resources.* keyed by id.
+    agent_id: UUID | None = Field(None, description="UUID of the agent under test")
+    model_id: UUID | None = Field(None, description="UUID of the model the agent is set up with")
+    voice_id: UUID | None = Field(None, description="UUID of the voice resource")
+    temperature_level_id: UUID | None = Field(None, description="UUID of the temperature level")
+    reasoning_level_id: UUID | None = Field(None, description="UUID of the reasoning level")
+    quality_id: UUID | None = Field(None, description="UUID of the quality level")
+    modality_ids: list[UUID] = Field(default_factory=list, description="Modality resource ids")
+    runs: list[InvocationRunDetail] = Field(default_factory=list, description="Per-execution detail")
+
+
 class TestEntries(BaseModel):
     """Entry payloads grouped by type."""
 
@@ -179,6 +249,7 @@ class TestResources(BaseModel):
     tools: dict[str, dict] | None = Field(None, description="Tool resources keyed by ID")
     qualities: dict[str, dict] | None = Field(None, description="Quality resources keyed by ID")
     standard_groups: dict[str, dict] | None = Field(None, description="Standard group resources keyed by ID")
+    standards: dict[str, dict] | None = Field(None, description="Standard resources keyed by ID")
 
 
 class GetTestArtifactResponse(BaseModel):
@@ -223,6 +294,14 @@ class GetTestArtifactResponse(BaseModel):
     # /attempt/get.next_chat_entry_id. Null when all invocations are done.
     next_invocation_id: str | None = Field(
         None, description="UUID of the next uncompleted invocation, or null if all are done"
+    )
+
+    # Graded-view payload — one ``InvocationDetail`` per invocation,
+    # each with its rubric_structure + per-run grading_state. Mirrors
+    # attempt.entries.attempt_chat[] for the canonical pattern.
+    invocation_details: list[InvocationDetail] = Field(
+        default_factory=list,
+        description="Per-invocation graded payloads (rubric_structure + runs[] with grading_state)",
     )
 
     # Normalized entries and resources

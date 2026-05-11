@@ -15,7 +15,7 @@ sync, so ``benchmark_entry`` + ``invocation_entry`` rows exist as
 templates for the tests we materialize here.
 
 Chain per test:
-  group + group_name + parent run + parent call →
+  session + activity/login metadata → group + group_name + parent run + parent call →
   test → benchmark_test → N × test_invocation (each with own run +
   call) → tokens + run_pricing → message + upload + text +
   text_completion + text_upload + message_upload (with real .txt
@@ -25,14 +25,16 @@ Chain per test:
 
 from __future__ import annotations
 
-import asyncpg
 from pathlib import Path
-from redis.asyncio import Redis
 from uuid import UUID
+
+import asyncpg
+from redis.asyncio import Redis
 
 from app.infra.globals import UPLOAD_FOLDER
 from app.tools.entries.benchmark.search import search_benchmarks
 from app.tools.entries.benchmark_test.create import create_benchmark_test
+from app.tools.entries.benchmark_test.refresh import refresh_benchmark_test
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
@@ -42,16 +44,24 @@ from app.tools.entries.messages.create import create_message
 from app.tools.entries.run_pricing.create import create_run_pricing_entry_internal
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.test.create import create_test
+from app.tools.entries.test.refresh import refresh_test
 from app.tools.entries.test_grade.create import create_test_grade
 from app.tools.entries.test_invocation.create import create_test_invocation
+from app.tools.entries.test_invocation.refresh import refresh_test_invocation
 from app.tools.entries.test_invocation_completion.create import (
     create_test_invocation_completion,
 )
 from app.tools.entries.test_invocation_runs.create import (
     create_test_invocation_runs,
 )
+from app.tools.entries.test_invocation_runs.refresh import (
+    refresh_test_invocation_runs,
+)
 from app.tools.entries.test_invocation_traces.create import (
     create_test_invocation_traces,
+)
+from app.tools.entries.test_invocation_traces.refresh import (
+    refresh_test_invocation_traces,
 )
 from app.tools.entries.text_completion.create import create_text_completion
 from app.tools.entries.text_uploads.create import create_text_upload
@@ -59,11 +69,12 @@ from app.tools.entries.texts.create import create_text
 from app.tools.entries.tokens.create import create_token
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.agents.search import search_agents
+from app.tools.resources.model_rubrics.get import get_model_rubrics
 from app.tools.resources.pricing.search import search_pricing
 from app.tools.resources.profiles.search import search_profiles
-
+from app.tools.resources.rubrics.get import get_rubrics
+from database.seeds.activity_sessions import ensure_activity_session
 from database.seeds.ids import sid
-
 
 TESTS_PER_RUN = 3
 INVOCATIONS_PER_TEST = 4
@@ -80,9 +91,49 @@ _ASSISTANT_TURNS = [
     "On this candidate response, the strongest evidence aligns with criterion two; criterion three is partially met.",
     "I'd score this 7/10. Strong on the analytical dimension, lighter on the application example.",
 ]
-_SCORES = [82, 71, 88, 64, 79, 93, 56, 75, 86, 90, 68, 84]
+_SCORE_PCTS = [82, 71, 88, 64, 79, 93, 56, 75, 86, 90, 68, 84]
 _TIME_TAKEN = [620, 940, 480, 1100, 760, 540, 1320, 850, 700, 580, 990, 720]
 _TOKEN_ENVELOPES = [(1500, 850), (2200, 1100), (900, 520), (1800, 1300)]
+
+
+def _score_from_percent(total_points: int | None, percent: int) -> int:
+    """Convert demo percentages into raw rubric points."""
+    if not total_points or total_points <= 0:
+        return percent
+    return max(0, min(total_points, round(total_points * percent / 100)))
+
+
+def _resolve_template_agent_ids(
+    template: object,
+    *,
+    agent_ids_by_model: dict[UUID, UUID],
+    fallback_agent_ids: list[UUID],
+    index: int,
+) -> list[UUID]:
+    """Mirror /test/invocation/create model_ids → agent_ids inheritance."""
+    model_ids = list(getattr(template, "model_ids", None) or [])
+    resolved = [
+        agent_ids_by_model[model_id]
+        for model_id in model_ids
+        if model_id in agent_ids_by_model
+    ]
+    if resolved:
+        return resolved
+    return [fallback_agent_ids[index % len(fallback_agent_ids)]]
+
+
+def _resolve_template_rubric_ids(
+    template: object,
+    *,
+    rubric_ids_by_model_rubric: dict[UUID, UUID],
+) -> list[UUID] | None:
+    """Mirror /test/invocation/create model_rubric_ids → rubric_ids."""
+    rubric_ids = [
+        rubric_ids_by_model_rubric[model_rubric_id]
+        for model_rubric_id in (getattr(template, "model_rubric_ids", None) or [])
+        if model_rubric_id in rubric_ids_by_model_rubric
+    ]
+    return rubric_ids or None
 
 
 def _write_transcript_file(upload_id: UUID, role: str, body: str) -> Path:
@@ -162,21 +213,26 @@ async def _seed_one_test(
     *,
     test_idx: int,
     benchmarks: list,
-    invocations_by_benchmark: dict[UUID, list[UUID]],
+    invocations_by_benchmark: dict[UUID, list],
     agent_ids: list[UUID],
+    agent_ids_by_model: dict[UUID, UUID],
+    rubric_ids_by_model_rubric: dict[UUID, UUID],
+    rubric_map: dict[UUID, object],
     input_pricing_id: UUID | None,
     output_pricing_id: UUID | None,
     profile_id: UUID,
-) -> None:
+) -> bool:
     """Walk the canonical chain for one test."""
     if not benchmarks or not agent_ids:
-        return
+        return False
 
     benchmark = benchmarks[test_idx % len(benchmarks)]
     benchmark_id = benchmark.benchmark_id
     template_invocations = invocations_by_benchmark.get(benchmark_id, [])[
         :INVOCATIONS_PER_TEST
     ]
+    if not template_invocations:
+        return False
 
     slug = f"tests-analytics/{test_idx}"
     test_id = sid(f"{slug}/test")
@@ -184,7 +240,16 @@ async def _seed_one_test(
     test_run_id = sid(f"{slug}/test-run")
     group_id = sid(f"{slug}/group")
     group_name_id = sid(f"{slug}/group-name")
-    session_id = profile_id
+    seeded_session = await ensure_activity_session(
+        conn,
+        slug=slug,
+        profile_id=profile_id,
+        label=f"Benchmark test seed #{test_idx + 1}",
+        include_problem=test_idx == 1,
+        include_grant=True,
+        include_emulation=test_idx == 0,
+    )
+    session_id = seeded_session.session_id
 
     # Group + name + parent run/call (test_entry FKs to calls_entry).
     await create_group(
@@ -222,9 +287,20 @@ async def _seed_one_test(
         conn, benchmark_id=benchmark_id, test_id=test_id, session_id=session_id
     )
 
-    for inv_idx, _template_inv_id in enumerate(template_invocations):
+    for inv_idx, template_invocation in enumerate(template_invocations):
         completed = inv_idx < int(INVOCATIONS_PER_TEST * COMPLETED_RATIO)
-        agent_for_inv = agent_ids[inv_idx % len(agent_ids)]
+        agent_ids_for_invocation = _resolve_template_agent_ids(
+            template_invocation,
+            agent_ids_by_model=agent_ids_by_model,
+            fallback_agent_ids=agent_ids,
+            index=inv_idx,
+        )
+        rubric_ids_for_invocation = _resolve_template_rubric_ids(
+            template_invocation,
+            rubric_ids_by_model_rubric=rubric_ids_by_model_rubric,
+        )
+        rubric_id = (rubric_ids_for_invocation or [None])[0]
+        rubric = rubric_map.get(rubric_id) if rubric_id else None
 
         inv_slug = f"{slug}/inv/{inv_idx}"
         ti_id = sid(f"{inv_slug}/test-invocation")
@@ -242,7 +318,7 @@ async def _seed_one_test(
             group_id=group_id,
             session_id=session_id,
             id=ti_run_id,
-            agent_ids=[agent_for_inv],
+            agent_ids=agent_ids_for_invocation,
         )
         await create_call(
             conn, run_id=ti_run_id, session_id=session_id, id=ti_call_id
@@ -252,9 +328,19 @@ async def _seed_one_test(
             id=ti_id,
             test_id=test_id,
             call_id=ti_call_id,
-            title=f"Invocation {inv_idx + 1}",
-            position=inv_idx,
-            agent_ids=[agent_for_inv],
+            title=f"Invocation {(template_invocation.position or inv_idx) + 1}",
+            use_custom=bool(template_invocation.use_custom),
+            position=template_invocation.position or inv_idx,
+            agent_ids=agent_ids_for_invocation,
+            rubric_ids=rubric_ids_for_invocation,
+            quality_ids=template_invocation.quality_ids or None,
+            department_ids=template_invocation.department_ids or None,
+            voice_ids=template_invocation.voice_ids or None,
+            reasoning_level_ids=template_invocation.reasoning_level_ids or None,
+            temperature_level_ids=(
+                template_invocation.temperature_level_ids or None
+            ),
+            modality_ids=template_invocation.modality_ids or None,
         )
 
         inp, out = _TOKEN_ENVELOPES[inv_idx % len(_TOKEN_ENVELOPES)]
@@ -290,7 +376,17 @@ async def _seed_one_test(
         )
 
         await create_test_invocation_traces(
-            conn, test_invocation_id=ti_id, id=trace_id, run_id=ti_run_id
+            conn,
+            test_invocation_id=ti_id,
+            id=trace_id,
+            run_id=ti_run_id,
+            reasoning_level_ids=template_invocation.reasoning_level_ids or None,
+            temperature_level_ids=(
+                template_invocation.temperature_level_ids or None
+            ),
+            voice_ids=template_invocation.voice_ids or None,
+            quality_ids=template_invocation.quality_ids or None,
+            modality_ids=template_invocation.modality_ids or None,
         )
         await create_test_invocation_runs(
             conn,
@@ -312,7 +408,13 @@ async def _seed_one_test(
                 id=completion_id,
                 stop=True,
             )
-            score = _SCORES[(test_idx * INVOCATIONS_PER_TEST + inv_idx) % len(_SCORES)]
+            score_pct = _SCORE_PCTS[
+                (test_idx * INVOCATIONS_PER_TEST + inv_idx) % len(_SCORE_PCTS)
+            ]
+            score = _score_from_percent(
+                getattr(rubric, "total_points", None),
+                score_pct,
+            )
             time_taken = _TIME_TAKEN[
                 (test_idx * INVOCATIONS_PER_TEST + inv_idx) % len(_TIME_TAKEN)
             ]
@@ -321,10 +423,12 @@ async def _seed_one_test(
                 invocation_id=ti_id,
                 call_id=grade_call_id,
                 time_taken=time_taken,
-                passed=score >= 60,
+                passed=score >= (getattr(rubric, "pass_points", None) or 0),
                 score=score,
                 id=grade_id,
             )
+
+    return True
 
 
 async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
@@ -359,34 +463,81 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
 
         # Per-benchmark invocation lookup — search_invocations supports
         # benchmark_ids filter so we get exactly what each test needs.
-        invocations_by_benchmark: dict[UUID, list[UUID]] = {}
+        invocations_by_benchmark: dict[UUID, list] = {}
         for b in benchmarks[:TESTS_PER_RUN]:
             inv_rows = await search_invocations(
                 conn, benchmark_ids=[b.benchmark_id], limit=INVOCATIONS_PER_TEST
             )
-            invocations_by_benchmark[b.benchmark_id] = [r.id for r in inv_rows]
+            invocations_by_benchmark[b.benchmark_id] = inv_rows
+
+        model_rubric_ids = list(
+            {
+                model_rubric_id
+                for inv_rows in invocations_by_benchmark.values()
+                for invocation in inv_rows
+                for model_rubric_id in (invocation.model_rubric_ids or [])
+            }
+        )
+        model_rubrics = await get_model_rubrics(
+            conn, model_rubric_ids, redis, bypass_cache=True
+        )
+        rubric_ids_by_model_rubric = {
+            model_rubric.id: model_rubric.rubric_id
+            for model_rubric in model_rubrics
+            if model_rubric.id and model_rubric.rubric_id
+        }
+        rubric_ids = list(set(rubric_ids_by_model_rubric.values()))
+        rubric_map = {
+            rubric.id: rubric
+            for rubric in await get_rubrics(conn, rubric_ids, redis, bypass_cache=True)
+            if rubric.id
+        }
 
         agent_ids = [a.id for a in agents]
+        agent_ids_by_model = {
+            agent.model_id: agent.id
+            for agent in agents
+            if agent.model_id and agent.id
+        }
         input_pricing_id = input_pricings[0].id if input_pricings else None
         output_pricing_id = output_pricings[0].id if output_pricings else None
         profile_id = profiles[0].id
 
-        async with conn.transaction():
-            for test_idx in range(TESTS_PER_RUN):
-                try:
-                    await _seed_one_test(
+        for test_idx in range(TESTS_PER_RUN):
+            try:
+                async with conn.transaction():
+                    seeded = await _seed_one_test(
                         conn,
                         test_idx=test_idx,
                         benchmarks=benchmarks,
                         invocations_by_benchmark=invocations_by_benchmark,
                         agent_ids=agent_ids,
+                        agent_ids_by_model=agent_ids_by_model,
+                        rubric_ids_by_model_rubric=rubric_ids_by_model_rubric,
+                        rubric_map=rubric_map,
                         input_pricing_id=input_pricing_id,
                         output_pricing_id=output_pricing_id,
                         profile_id=profile_id,
                     )
+                if seeded:
                     inserted += 1
+                else:
+                    print(f"  (test #{test_idx} skipped: no template invocations)")
+            except Exception as e:
+                print(f"  (test #{test_idx} skipped: {e})")
+                continue
+
+        if inserted:
+            for refresh in (
+                refresh_benchmark_test,
+                refresh_test,
+                refresh_test_invocation_traces,
+                refresh_test_invocation_runs,
+                refresh_test_invocation,
+            ):
+                try:
+                    await refresh(conn)
                 except Exception as e:
-                    print(f"  (test #{test_idx} skipped: {e})")
-                    continue
+                    print(f"  ({refresh.__name__} skipped: {e})")
 
     print(f"  OK: {inserted}/{TESTS_PER_RUN} tests seeded")

@@ -942,6 +942,56 @@
         ]
       }
     },
+    "/persona/file/download": {
+      "post": {
+        "tags": [
+          "persona",
+          "persona-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_persona_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadPersonaApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "persona",
+          "persona-file"
+        ]
+      }
+    },
     "/scenario/get": {
       "post": {
         "tags": [
@@ -3176,6 +3226,56 @@
         ]
       }
     },
+    "/simulation/file/download": {
+      "post": {
+        "tags": [
+          "simulation",
+          "simulation-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_simulation_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadSimulationApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "simulation",
+          "simulation-file"
+        ]
+      }
+    },
     "/simulation/call/download": {
       "post": {
         "tags": [
@@ -5292,6 +5392,56 @@
         ]
       }
     },
+    "/department/file/download": {
+      "post": {
+        "tags": [
+          "department",
+          "department-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_department_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadDepartmentApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "department",
+          "department-file"
+        ]
+      }
+    },
     "/department/call/download": {
       "post": {
         "tags": [
@@ -6245,6 +6395,56 @@
         "x-cache-tags": [
           "cohort",
           "cohort-text"
+        ]
+      }
+    },
+    "/cohort/file/download": {
+      "post": {
+        "tags": [
+          "cohort",
+          "cohort-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_cohort_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadCohortApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "cohort",
+          "cohort-file"
         ]
       }
     },
@@ -7204,6 +7404,56 @@
         ]
       }
     },
+    "/eval/file/download": {
+      "post": {
+        "tags": [
+          "eval",
+          "eval-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_eval_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadEvalApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "eval",
+          "eval-file"
+        ]
+      }
+    },
     "/eval/call/download": {
       "post": {
         "tags": [
@@ -7710,7 +7960,7 @@
           "rubric"
         ],
         "summary": "Export Rubrics",
-        "description": "Export a rubric as a PDF (optionally filled with grade data).",
+        "description": "Render a rubric PDF and register it as a downloadable file.",
         "operationId": "export_rubrics_rubric_export_post",
         "requestBody": {
           "content": {
@@ -7726,7 +7976,11 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/pdf": {}
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportRubricApiResponse"
+                }
+              }
             }
           },
           "422": {
@@ -8153,6 +8407,56 @@
         "x-cache-tags": [
           "rubric",
           "rubric-text"
+        ]
+      }
+    },
+    "/rubric/file/download": {
+      "post": {
+        "tags": [
+          "rubric",
+          "rubric-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_rubric_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadRubricApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "rubric",
+          "rubric-file"
         ]
       }
     },
@@ -9162,6 +9466,56 @@
         ]
       }
     },
+    "/setting/file/download": {
+      "post": {
+        "tags": [
+          "setting",
+          "setting-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_setting_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadSettingApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "setting",
+          "setting-file"
+        ]
+      }
+    },
     "/setting/call/download": {
       "post": {
         "tags": [
@@ -10118,6 +10472,56 @@
         ]
       }
     },
+    "/agent/file/download": {
+      "post": {
+        "tags": [
+          "agent",
+          "agent-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_agent_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadAgentApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "agent",
+          "agent-file"
+        ]
+      }
+    },
     "/agent/call/download": {
       "post": {
         "tags": [
@@ -11071,6 +11475,56 @@
         "x-cache-tags": [
           "model",
           "model-text"
+        ]
+      }
+    },
+    "/model/file/download": {
+      "post": {
+        "tags": [
+          "model",
+          "model-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_model_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadModelApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "model",
+          "model-file"
         ]
       }
     },
@@ -12080,6 +12534,56 @@
         ]
       }
     },
+    "/provider/file/download": {
+      "post": {
+        "tags": [
+          "provider",
+          "provider-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_provider_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadProviderApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "provider",
+          "provider-file"
+        ]
+      }
+    },
     "/provider/call/download": {
       "post": {
         "tags": [
@@ -13036,6 +13540,56 @@
         ]
       }
     },
+    "/parameter/file/download": {
+      "post": {
+        "tags": [
+          "parameter",
+          "parameter-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_parameter_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadParameterApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "parameter",
+          "parameter-file"
+        ]
+      }
+    },
     "/parameter/call/download": {
       "post": {
         "tags": [
@@ -13989,6 +14543,56 @@
         "x-cache-tags": [
           "field",
           "field-text"
+        ]
+      }
+    },
+    "/field/file/download": {
+      "post": {
+        "tags": [
+          "field",
+          "field-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_field_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadFieldApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "field",
+          "field-file"
         ]
       }
     },
@@ -16911,6 +17515,56 @@
         "x-cache-tags": [
           "tool",
           "tool-text"
+        ]
+      }
+    },
+    "/tool/file/download": {
+      "post": {
+        "tags": [
+          "tool",
+          "tool-file"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_tool_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadToolApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "tool",
+          "tool-file"
         ]
       }
     },
@@ -21847,6 +22501,36 @@
         ]
       }
     },
+    "/system/refresh": {
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "System Refresh",
+        "description": "Refresh system-scope caches (Phase A: invalidate tags only).",
+        "operationId": "system_refresh_system_refresh_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "system"
+        ]
+      }
+    },
     "/system/group": {
       "post": {
         "tags": [
@@ -23763,6 +24447,85 @@
         "title": "ActivityHistoryResponse",
         "description": "Embedded activity session history for the activity bundle endpoint."
       },
+      "ActivityProblemItem": {
+        "properties": {
+          "problem_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Problem Id",
+            "description": "Problem identifier"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id",
+            "description": "Profile that reported the problem"
+          },
+          "profile_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Name",
+            "description": "Profile display name"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Associated session"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Problem type"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Problem message"
+          },
+          "resolved": {
+            "type": "boolean",
+            "title": "Resolved",
+            "description": "Whether the problem is resolved",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Problem creation timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_id",
+          "type",
+          "message",
+          "created_at"
+        ],
+        "title": "ActivityProblemItem",
+        "description": "Recent problem displayed on the activity page."
+      },
       "ActivityRequest": {
         "properties": {
           "date_from": {
@@ -23918,6 +24681,14 @@
             "type": "array",
             "title": "Profile Summary",
             "description": "Per-profile activity summaries"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityProblemItem"
+            },
+            "type": "array",
+            "title": "Problems",
+            "description": "Recent problems for the activity panel"
           },
           "resources": {
             "$ref": "#/components/schemas/ActivityResources",
@@ -27608,7 +28379,7 @@
               }
             ],
             "title": "Score",
-            "description": "Overall test score (0-100)"
+            "description": "Overall test score percent (0-100)"
           },
           "score_status": {
             "anyOf": [
@@ -39945,10 +40716,16 @@
             "description": "Search string for scenarios"
           },
           "history_practice": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "History Practice",
-            "description": "Filter to practice attempts only",
-            "default": false
+            "description": "Filter to practice attempts only"
           },
           "history_scenario_ids": {
             "anyOf": [
@@ -49100,32 +49877,27 @@
       },
       "ExportAgentApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Total number of exported rows"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportAgentApiResponse",
@@ -49357,32 +50129,27 @@
       },
       "ExportCohortApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportCohortApiResponse",
@@ -49443,32 +50210,27 @@
       },
       "ExportDepartmentApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportDepartmentApiResponse",
@@ -49548,32 +50310,27 @@
       },
       "ExportEvalApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportEvalApiResponse",
@@ -49601,32 +50358,27 @@
       },
       "ExportFieldApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportFieldApiResponse",
@@ -49872,32 +50624,27 @@
       },
       "ExportModelApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportModelApiResponse",
@@ -49925,32 +50672,27 @@
       },
       "ExportParameterApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportParameterApiResponse",
@@ -50047,20 +50789,16 @@
       },
       "ExportPersonaApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "CSV content as a string"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
             "description": "Suggested download file name"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the export (text/csv)"
           },
           "row_count": {
             "type": "integer",
@@ -50070,13 +50808,12 @@
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportPersonaApiResponse",
-        "description": "Response model for export persona endpoint."
+        "description": "Response model for export persona endpoint.\n\nFile-modality: the server writes the CSV to disk, registers it as a\n``files_resource`` row joined to an ``uploads_entry``, and returns\nthe ``file_id``. The client downloads via ``/persona/file/download``\n(and the BFF wrapper at ``/api/persona/download/{file_id}``)."
       },
       "ExportPracticeApiResponse": {
         "properties": {
@@ -50219,32 +50956,27 @@
       },
       "ExportProviderApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportProviderApiResponse",
@@ -50358,6 +51090,34 @@
         ],
         "title": "ExportRubricApiRequest",
         "description": "Request model for rubric export."
+      },
+      "ExportRubricApiResponse": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Suggested download file name"
+          },
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count",
+            "description": "Number of rows in the export (rubric standards)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id",
+          "file_name",
+          "row_count"
+        ],
+        "title": "ExportRubricApiResponse",
+        "description": "Response model for export rubric endpoint.\n\nFile modality: the server writes the rendered PDF to disk, registers\nit as a ``files_resource`` row joined to an ``uploads_entry``, and\nreturns the ``file_id``. Same shape as every other artifact's export\n\u2014 only the upload's ``mime_type`` differs (``application/pdf`` here,\n``text/csv`` elsewhere)."
       },
       "ExportScenarioApiRequest": {
         "properties": {
@@ -50538,32 +51298,27 @@
       },
       "ExportSettingApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportSettingApiResponse",
@@ -50648,32 +51403,27 @@
       },
       "ExportSimulationApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Total number of exported rows"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportSimulationApiResponse",
@@ -50748,32 +51498,27 @@
       },
       "ExportToolApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export CSV"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Suggested file name for download"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported content"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportToolApiResponse",
@@ -51314,6 +52059,22 @@
         "title": "FieldResultItem",
         "description": "Per-item result within a bulk create/update response."
       },
+      "FileDownloadAgentApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadAgentApiRequest",
+        "description": "Request model for agent file download endpoint."
+      },
       "FileDownloadAttemptApiRequest": {
         "properties": {
           "file_id": {
@@ -51329,6 +52090,38 @@
         ],
         "title": "FileDownloadAttemptApiRequest",
         "description": "Request model for attempt file download endpoint."
+      },
+      "FileDownloadCohortApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadCohortApiRequest",
+        "description": "Request model for cohort file download endpoint."
+      },
+      "FileDownloadDepartmentApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadDepartmentApiRequest",
+        "description": "Request model for department file download endpoint."
       },
       "FileDownloadDocumentApiRequest": {
         "properties": {
@@ -51346,6 +52139,38 @@
         "title": "FileDownloadDocumentApiRequest",
         "description": "Request model for document file download endpoint."
       },
+      "FileDownloadEvalApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadEvalApiRequest",
+        "description": "Request model for eval file download endpoint."
+      },
+      "FileDownloadFieldApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadFieldApiRequest",
+        "description": "Request model for field file download endpoint."
+      },
       "FileDownloadGroupApiRequest": {
         "properties": {
           "file_id": {
@@ -51362,6 +52187,86 @@
         "title": "FileDownloadGroupApiRequest",
         "description": "Request model for group file download endpoint."
       },
+      "FileDownloadModelApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadModelApiRequest",
+        "description": "Request model for model file download endpoint."
+      },
+      "FileDownloadParameterApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadParameterApiRequest",
+        "description": "Request model for parameter file download endpoint."
+      },
+      "FileDownloadPersonaApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadPersonaApiRequest",
+        "description": "Request model for persona file download endpoint."
+      },
+      "FileDownloadProviderApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadProviderApiRequest",
+        "description": "Request model for provider file download endpoint."
+      },
+      "FileDownloadRubricApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadRubricApiRequest",
+        "description": "Request model for rubric file download endpoint."
+      },
       "FileDownloadScenarioApiRequest": {
         "properties": {
           "file_id": {
@@ -51377,6 +52282,54 @@
         ],
         "title": "FileDownloadScenarioApiRequest",
         "description": "Request model for scenario file download endpoint."
+      },
+      "FileDownloadSettingApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadSettingApiRequest",
+        "description": "Request model for setting file download endpoint."
+      },
+      "FileDownloadSimulationApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadSimulationApiRequest",
+        "description": "Request model for simulation file download endpoint."
+      },
+      "FileDownloadToolApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadToolApiRequest",
+        "description": "Request model for tool file download endpoint."
       },
       "FilePreviewAttemptApiRequest": {
         "properties": {
@@ -70836,6 +71789,14 @@
             "title": "Next Invocation Id",
             "description": "UUID of the next uncompleted invocation, or null if all are done"
           },
+          "invocation_details": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationDetail"
+            },
+            "type": "array",
+            "title": "Invocation Details",
+            "description": "Per-invocation graded payloads (rubric_structure + runs[] with grading_state)"
+          },
           "entries": {
             "anyOf": [
               {
@@ -70884,6 +71845,18 @@
             "type": "string",
             "format": "uuid",
             "title": "Tool Call Id"
+          },
+          "standard_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standard Id"
           },
           "total": {
             "type": "integer",
@@ -75702,6 +76675,62 @@
         "title": "ImageUploadScenarioApiResponse",
         "description": "Response model for scenario image upload endpoint."
       },
+      "ImportField": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": false
+          },
+          "multi": {
+            "type": "boolean",
+            "title": "Multi",
+            "default": false
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "string"
+          },
+          "example": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Example"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "ImportField",
+        "description": "Field descriptor for CSV import column mapping."
+      },
       "InvocationDepartmentResource": {
         "properties": {
           "department_id": {
@@ -75835,6 +76864,154 @@
         },
         "type": "object",
         "title": "InvocationDescriptionResource"
+      },
+      "InvocationDetail": {
+        "properties": {
+          "invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invocation Id",
+            "description": "UUID of the test_invocation_entry"
+          },
+          "rubric_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Id",
+            "description": "UUID of the rubric used to grade this invocation"
+          },
+          "rubric_structure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RubricStructureData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rubric structure for TableRubric (standards / groups / mappings)"
+          },
+          "primary_run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Run Id",
+            "description": "Default selected run for this invocation"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id",
+            "description": "UUID of the agent under test"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id",
+            "description": "UUID of the model the agent is set up with"
+          },
+          "voice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Id",
+            "description": "UUID of the voice resource"
+          },
+          "temperature_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature Level Id",
+            "description": "UUID of the temperature level"
+          },
+          "reasoning_level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Level Id",
+            "description": "UUID of the reasoning level"
+          },
+          "quality_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Id",
+            "description": "UUID of the quality level"
+          },
+          "modality_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Modality Ids",
+            "description": "Modality resource ids"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationRunDetail"
+            },
+            "type": "array",
+            "title": "Runs",
+            "description": "Per-execution detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invocation_id"
+        ],
+        "title": "InvocationDetail",
+        "description": "Per-invocation graded-view payload.\n\nMirrors ``ChatData`` from attempt \u2014 one of these per invocation,\neach carrying its rubric structure and the list of runs that\nexecuted against it. ``primary_run_id`` is the default local\nselection (usually the most recent / row-summary grade)."
       },
       "InvocationEndpointResource": {
         "properties": {
@@ -76850,6 +78027,145 @@
         },
         "type": "object",
         "title": "InvocationReasoningLevelResource"
+      },
+      "InvocationRunDetail": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Run Id",
+            "description": "UUID of the runs_entry row this binding executed"
+          },
+          "binding_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Binding Id",
+            "description": "UUID of the test_invocation_runs_entry binding row"
+          },
+          "grade_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grade Id",
+            "description": "UUID of the test_grade_entry, if graded"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "When the binding was created"
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed",
+            "description": "Whether the binding has a completion record",
+            "default": false
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GradeData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Score / passed / time_taken summary"
+          },
+          "grading_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GradingStateData"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Achieved/passed/feedback maps keyed by standard_id"
+          },
+          "feedbacks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/FeedbackEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedbacks",
+            "description": "Per-standard feedback rows"
+          },
+          "analyses": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AnalysisEntry"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analyses",
+            "description": "Chat-level analysis content (currently unused for tests)"
+          },
+          "message_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Ids",
+            "description": "Message ids belonging to this run"
+          },
+          "call_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Ids",
+            "description": "Tool-call ids belonging to this run"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "binding_id"
+        ],
+        "title": "InvocationRunDetail",
+        "description": "Per-run grade + replay detail within an invocation.\n\nOne row per ``test_invocation_runs_entry`` binding. Carries the\nTableRubric-ready ``grading_state`` plus the message/call ids the\nclient uses to slice ``entries.messages`` / ``entries.calls``."
       },
       "InvocationTemperatureLevelResource": {
         "properties": {
@@ -78312,6 +79628,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -79058,6 +80389,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -79211,10 +80557,16 @@
             "description": "Target profile ID to scope data"
           },
           "practice": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Practice",
-            "description": "Filter to practice attempts only",
-            "default": false
+            "description": "Filter to practice attempts only"
           },
           "scenario_ids": {
             "anyOf": [
@@ -79579,6 +80931,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of departments"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -79934,6 +81301,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -80259,6 +81641,21 @@
             ],
             "title": "User Role",
             "description": "Role of the current user"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -80537,6 +81934,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of fields"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -81382,6 +82794,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of models"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -81699,6 +83126,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of parameters"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -82093,6 +83535,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of personas matching filters"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -83026,6 +84483,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of providers"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -83321,6 +84793,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -84118,6 +85605,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -84644,6 +86146,21 @@
               }
             ],
             "description": "Filter options for systems in list UI"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -84976,6 +86493,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of matching records"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -85414,6 +86946,21 @@
             ],
             "title": "Total Count",
             "description": "Total number of tools"
+          },
+          "import_fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ImportField"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Fields",
+            "description": "CSV import column schema for the bulk-import dialog"
           }
         },
         "type": "object",
@@ -114706,6 +116253,22 @@
             ],
             "title": "Standard Groups",
             "description": "Standard group resources keyed by ID"
+          },
+          "standards": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Standards",
+            "description": "Standard resources keyed by ID"
           }
         },
         "type": "object",
@@ -131704,7 +133267,7 @@
               }
             ],
             "title": "Total Points",
-            "description": "Denormalized total points value (sum of standards)"
+            "description": "Denormalized total points value (sum of standard groups)"
           },
           "standard_group_ids": {
             "items": {

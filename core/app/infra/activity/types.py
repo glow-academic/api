@@ -51,6 +51,19 @@ class ProfileSummaryItem(BaseModel):
     activity_count: int = Field(0, description="Total activity count")
 
 
+class ActivityProblemItem(BaseModel):
+    """Recent problem displayed on the activity page."""
+
+    problem_id: UUID = Field(..., description="Problem identifier")
+    profile_id: UUID | None = Field(None, description="Profile that reported the problem")
+    profile_name: str | None = Field(None, description="Profile display name")
+    session_id: UUID | None = Field(None, description="Associated session")
+    type: str = Field(..., description="Problem type")
+    message: str = Field(..., description="Problem message")
+    resolved: bool = Field(False, description="Whether the problem is resolved")
+    created_at: datetime = Field(..., description="Problem creation timestamp")
+
+
 class ActivityResources(BaseModel):
     """Activity resource metadata."""
 
@@ -77,6 +90,8 @@ class ActivityResponse(BaseModel):
     emulations_count: int = Field(0, description="Total number of emulations")
     # Profile summary
     profile_summary: list[ProfileSummaryItem] = Field(default_factory=list, description="Per-profile activity summaries")
+    # Recent problems
+    problems: list[ActivityProblemItem] = Field(default_factory=list, description="Recent problems for the activity panel")
     # Resources
     resources: ActivityResources = Field(default_factory=ActivityResources, description="Activity resource metadata")
     # Inline analytics facets

@@ -331,7 +331,7 @@ async def _compute_rubric_scores(
     # rubric_id → set of standard_group_ids (from rubric resource)
     rubric_sg_map: dict[UUID, set[UUID]] = {}
     for rubric in rubrics_list:
-        rid = getattr(rubric, "rubric_id", None)
+        rid = getattr(rubric, "rubric_id", None) or getattr(rubric, "id", None)
         sg_ids = getattr(rubric, "standard_group_ids", None) or []
         if rid:
             rubric_sg_map[rid] = {sgid for sgid in sg_ids if sgid}
@@ -394,6 +394,9 @@ async def resolve_dashboard_context(
     redis: Redis,
     *,
     target_profile_id: UUID | None = None,
+    visible_profile_ids: list[UUID] | None = None,
+    visible_simulation_ids: list[UUID] | None = None,
+    visible_scenario_ids: list[UUID] | None = None,
     actor_profile_id: UUID | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
@@ -421,10 +424,15 @@ async def resolve_dashboard_context(
 
     # ── Phase 1: Fetch chats + thresholds in parallel ────────────────
     async def _fetch_chats() -> list[ChatItem]:
+        profile_filter_ids = (
+            [target_profile_id]
+            if target_profile_id
+            else (visible_profile_ids or None)
+        )
         async with pool.acquire() as c:
             raw, _total_count = await search_attempt_chats(
                 c,
-                profile_ids=[target_profile_id] if target_profile_id else None,
+                profile_ids=profile_filter_ids,
                 role_ids=role_ids,
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
@@ -449,10 +457,10 @@ async def resolve_dashboard_context(
     )
 
     # ── Phase 2: Collect IDs from chat_items ─────────────────────────
-    simulation_ids_set: set[UUID] = set()
+    simulation_ids_set: set[UUID] = set(visible_simulation_ids or [])
     persona_ids_set: set[UUID] = set()
     cohort_ids_set: set[UUID] = set()
-    scenario_ids_set: set[UUID] = set()
+    scenario_ids_set: set[UUID] = set(visible_scenario_ids or [])
     document_ids_set: set[UUID] = set()
     chat_ids: list[UUID] = []
 
@@ -659,11 +667,12 @@ async def resolve_dashboard_search_context(
     redis: Redis,
     *,
     profile_resource_id: UUID | None = None,
+    profile_resource_ids: list[UUID] | None = None,
     target_profile_id: UUID | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     role_ids: list[UUID] | None = None,
-    practice: bool = False,
+    practice: bool | None = None,
     scenario_ids: list[UUID] | None = None,
     infinite_mode: bool | None = None,
     show_archived: bool = False,
@@ -685,7 +694,10 @@ async def resolve_dashboard_search_context(
     Resources:
       - simulations, scenarios, personas, profiles
     """
-    if not profile_resource_id:
+    query_profile_ids = profile_resource_ids or (
+        [profile_resource_id] if profile_resource_id else []
+    )
+    if not query_profile_ids:
         return ArtifactContext(
             artifact_id=None,
             active=True,
@@ -694,7 +706,8 @@ async def resolve_dashboard_search_context(
             resources={},
         )
 
-    query_profile_id = target_profile_id or profile_resource_id
+    if target_profile_id:
+        query_profile_ids = [target_profile_id]
     page_offset = page * page_size
 
     date_from_ts = datetime.combine(date_from, time.min) if date_from else None
@@ -704,10 +717,10 @@ async def resolve_dashboard_search_context(
     async with pool.acquire() as c:
         items, total_count = await search_attempts(
             conn=c,
-            profile_ids=[query_profile_id],
+            profile_ids=query_profile_ids,
             role_ids=role_ids,
             practice=practice,
-            is_archived=(show_archived if practice else False),
+            is_archived=show_archived if show_archived else False,
             cohort_ids=cohort_ids,
             department_ids=department_ids,
             scenario_ids=scenario_ids,
@@ -725,10 +738,10 @@ async def resolve_dashboard_search_context(
         async with pool.acquire() as c:
             option_items, _option_count = await search_attempts(
                 conn=c,
-                profile_ids=[query_profile_id],
+                profile_ids=query_profile_ids,
                 role_ids=role_ids,
                 practice=practice,
-                is_archived=(show_archived if practice else False),
+                is_archived=show_archived if show_archived else False,
                 cohort_ids=cohort_ids,
                 department_ids=department_ids,
                 scenario_ids=scenario_ids,

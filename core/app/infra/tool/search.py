@@ -374,6 +374,7 @@ async def _search_tool_build(
         agent_filter=agent_filter,
         flag_filter=flag_filter,
         total_count=total_count,
+        import_fields=TOOL_IMPORT_FIELDS,
     )
 
 
@@ -387,6 +388,7 @@ def _empty_response(
         actor_name=actor_name,
         tools=[],
         total_count=total_count,
+        import_fields=TOOL_IMPORT_FIELDS,
     )
 
 

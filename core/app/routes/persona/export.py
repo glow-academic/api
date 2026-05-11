@@ -40,6 +40,7 @@ async def export_personas(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
                 id=body.persona_id,
             )
 

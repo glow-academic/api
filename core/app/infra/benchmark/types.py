@@ -86,8 +86,8 @@ class BenchmarkHistoryItem(BaseModel):
     model_ids: list[str] | None = Field(None, description="UUIDs of associated models")
     model_names: list[str] | None = Field(None, description="Display names of associated models")
 
-    # Score (canonical 0-100 int)
-    score: int | None = Field(None, description="Overall test score (0-100)")
+    # Score (display percent derived from raw rubric points)
+    score: int | None = Field(None, description="Overall test score percent (0-100)")
     score_status: str | None = Field(None, description="Score status label (e.g. high, medium, low)")
     pass_pct: int | None = Field(None, description="Pass percentage threshold from rubric")
 

@@ -11,23 +11,30 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import asyncio
-import base64
 import csv
 import io
+import os
+import uuid as uuid_mod
 from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
+from app.tools.entries.file_uploads.create import create_file_upload
+from app.tools.entries.files.create import create_file as create_file_entry
+from app.tools.entries.files.refresh import refresh_files_internal
+from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.examples.get import get_examples
 from app.tools.resources.fields.get import get_fields
+from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.resources.icons.get import get_icons
 from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.names.get import get_names
@@ -56,6 +63,7 @@ async def export_persona_impl(
     redis: Redis,
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
     id: UUID | None = None,
     **_kwargs,
 ) -> dict:
@@ -66,7 +74,10 @@ async def export_persona_impl(
       2. search_personas → all IDs (full dump, no pagination)
       3. get_personas → junction IDs per artifact
       4. Parallel resource hydration → human-readable values
-      5. Generate CSV + create upload entry
+      5. Write CSV to disk; create uploads_entry + files_resource +
+         file_uploads_entry junction; return ``file_id``. Client
+         downloads via ``/persona/file/download`` (BFF wrap at
+         ``/api/persona/download/{file_id}``).
     """
     persona_id = id  # alias: tools send 'id', internal code uses 'persona_id'
     from fastapi import HTTPException
@@ -95,14 +106,9 @@ async def export_persona_impl(
                 limit_count=100000,
                 offset_count=0,
             )
-
-            if not persona_ids:
-                return ExportPersonaApiResponse(
-                    content="",
-                    file_name="",
-                    mime_type="text/csv",
-                    row_count=0,
-                )
+            # Empty result is fine — falls through to the upload path
+            # below and produces a header-only CSV uploaded as a real
+            # file_id, so the client download flow stays uniform.
 
         # ── Step 3: Get persona artifacts with all junction IDs ────────────
 
@@ -290,14 +296,64 @@ async def export_persona_impl(
 
     csv_content = output.getvalue()
     row_count = len(artifacts)
+    csv_bytes = csv_content.encode("utf-8")
 
-    content = base64.b64encode(csv_content.encode("utf-8")).decode("ascii")
+    # ── Step 5: Write CSV to disk + register as a file resource ────────
+    # File modality: every export becomes a real ``files_resource`` row
+    # backed by an ``uploads_entry`` on disk. The client downloads via
+    # ``/persona/file/download`` (or the BFF wrap at
+    # ``/api/persona/download/{file_id}``) — same path PDF/other-mime
+    # exports will use later.
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     file_name = f"personas_export_{timestamp}.csv"
+    upload_uuid = uuid_mod.uuid4()
+    relative_path = f"{upload_uuid}.csv"
+    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    with open(disk_path, "wb") as f:
+        f.write(csv_bytes)
+
+    # Canonical 4-step chain (mirrors ``create_document_file``):
+    #   upload (file on disk + entry)
+    #   → files_resource (the catalog id the client downloads by — this
+    #     is the value returned as ``file_id``; matches the ``files_ids``
+    #     filter used in ``file_download_persona_impl``)
+    #   → files_entry (the instance, linked to the resource via
+    #     file_files_connection) — needed because ``file_uploads_entry``
+    #     FKs to ``files_entry``, not ``files_resource``
+    #   → file_uploads junction (entry.id ↔ upload.id)
+    async with pool.acquire() as conn:
+        upload_row = await create_upload(
+            conn,
+            session_id=session_id,
+            file_path=relative_path,
+            mime_type="text/csv",
+            size=len(csv_bytes),
+        )
+        resource_row = await create_file_resource(conn, redis)
+        if session_id is not None:
+            entry_row = await create_file_entry(
+                conn,
+                session_id=session_id,
+                files_id=resource_row.id,
+            )
+            await create_file_upload(
+                conn,
+                file_id=entry_row.id,
+                upload_id=upload_row.id,
+                session_id=session_id,
+            )
+            # ``search_files`` (used by file_download) reads from
+            # ``files_mv``, so the new chain must be refreshed before
+            # the client's follow-up download can resolve the file_id.
+            # ``WITH NO DATA`` on the MV definition means it stays
+            # empty until something refreshes it. Synchronous refresh
+            # is correct here — the client downloads in the very next
+            # call.
+            await refresh_files_internal(conn, redis)
 
     return ExportPersonaApiResponse(
-        content=content,
+        file_id=resource_row.id,
         file_name=file_name,
-        mime_type="text/csv",
         row_count=row_count,
     )

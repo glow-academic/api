@@ -19,6 +19,7 @@ from app.routes.system.health import router as health_router
 from app.routes.system.image import router as image_router
 from app.routes.system.pricing import router as pricing_router
 from app.routes.system.problem import router as problem_router
+from app.routes.system.refresh import router as refresh_router
 from app.routes.system.session import router as session_router
 from app.routes.system.text import router as text_router
 from app.routes.system.video import router as video_router
@@ -30,6 +31,7 @@ router.include_router(context_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(problem_router)
+router.include_router(refresh_router)
 
 # Child sub-routers
 router.include_router(group_router)      # prefix="/group"

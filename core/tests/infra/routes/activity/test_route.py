@@ -216,5 +216,16 @@ class TestActivityRoute:
         assert response.headers["X-Invalidate-Tags"] == "activity,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["activity_mv"]
+        assert payload["refreshed_views"] == [
+            "sessions_mv",
+            "activity_mv",
+            "logins_mv",
+            "problems_mv",
+            "grants_mv",
+            "emulations_mv",
+            "groups_mv",
+            "runs_mv",
+            "tokens_mv",
+            "run_pricing_mv",
+        ]
         assert payload["invalidated_tags"] == ["activity", "artifacts"]

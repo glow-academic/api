@@ -37,6 +37,7 @@ async def export_tools(
                 pool,
                 redis,
                 profile_id=profile_id,
+                session_id=session_id,
                 tool_id=body.tool_id,
             )
 

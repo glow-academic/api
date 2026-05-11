@@ -1,7 +1,8 @@
 """Resolve benchmark context — black-box tools only.
 
 Benchmark is a dashboard endpoint (no drafts, no artifact table).
-Uses benchmark_mv, invocation_mv, test_mv, test_invocation_mv as data grains.
+Uses benchmark_mv, benchmark_test_mv, invocation_mv, test_mv,
+test_invocation_mv as data grains.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from redis.asyncio import Redis
 
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.entries.benchmark.search import search_benchmarks
+from app.tools.entries.benchmark_test.search import search_benchmark_tests
 from app.tools.entries.invocation.search import search_invocations
 from app.tools.entries.test.search import search_tests
 from app.tools.entries.test_invocation.search import (
@@ -40,6 +42,7 @@ async def resolve_benchmark_context(
 
     Entries:
       - benchmarks: benchmark_mv rows
+      - benchmark_tests: benchmark_test_mv rows (benchmark → test bridge)
       - invocations: invocation_mv rows (templates with model_ids)
       - tests: test_mv rows
       - test_invocations: test_invocation_mv rows (runs with grades)
@@ -70,37 +73,60 @@ async def resolve_benchmark_context(
         for did in b.department_ids or []:
             dept_ids_set.add(did)
 
-    # ── Phase 3: Parallel fetch invocations + tests ───────────────────
+    benchmark_eval_ids_by_benchmark = {
+        b.benchmark_id: list(b.eval_ids or []) for b in benchmarks
+    }
+
+    # ── Phase 3: Parallel fetch invocations + benchmark-test bridges ──
     async def _fetch_invocations() -> list:
         if not benchmark_ids:
             return []
         async with pool.acquire() as c:
             return await search_invocations(c, benchmark_ids=benchmark_ids, limit=10000)
 
+    async def _fetch_benchmark_tests() -> list:
+        if not benchmark_ids:
+            return []
+        async with pool.acquire() as c:
+            return await search_benchmark_tests(
+                c, benchmark_ids=benchmark_ids, limit=100000
+            )
+
+    invocations, benchmark_tests = await asyncio.gather(
+        _fetch_invocations(),
+        _fetch_benchmark_tests(),
+    )
+
+    test_eval_ids_by_test: dict[UUID, list[UUID]] = {}
+    for bridge in benchmark_tests:
+        test_eval_ids_by_test.setdefault(bridge.test_id, [])
+        for eval_id in benchmark_eval_ids_by_benchmark.get(bridge.benchmark_id, []):
+            if eval_id not in test_eval_ids_by_test[bridge.test_id]:
+                test_eval_ids_by_test[bridge.test_id].append(eval_id)
+
+    # ── Phase 4: Collect test_ids → fetch tests + test_invocations ────
+    bridged_test_ids = list(test_eval_ids_by_test)
+
     async def _fetch_tests() -> list:
-        if not eval_ids_set:
+        if not bridged_test_ids:
             return []
         async with pool.acquire() as c:
             items, _total = await search_tests(
                 c,
-                eval_ids=list(eval_ids_set),
-                department_ids=department_ids,
+                test_ids=bridged_test_ids,
                 date_from=date_from,
                 date_to=date_to,
-                limit=10000,
+                limit=100000,
             )
             return items
 
-    invocations, tests = await asyncio.gather(
-        _fetch_invocations(),
-        _fetch_tests(),
-    )
-
-    # ── Phase 4: Collect test_ids → fetch test_invocations ────────────
+    tests = await _fetch_tests()
     test_ids = [t.test_id for t in tests]
     for t in tests:
         if t.eval_id:
             eval_ids_set.add(t.eval_id)
+        for eval_id in test_eval_ids_by_test.get(t.test_id, []):
+            eval_ids_set.add(eval_id)
         for did in t.department_ids or []:
             dept_ids_set.add(did)
 
@@ -173,9 +199,11 @@ async def resolve_benchmark_context(
         group_id=None,  # type: ignore[arg-type]
         entries={
             "benchmarks": benchmarks,
+            "benchmark_tests": benchmark_tests,
             "invocations": invocations,
             "tests": tests,
             "test_invocations": test_invocations,
+            "test_eval_ids_by_test": test_eval_ids_by_test,
         },
         resources={
             "evals": ResourcePair(selected=evals_res, suggestions=[]),
@@ -203,6 +231,8 @@ async def resolve_benchmark_search_context(
     """Resolve benchmark search context for history (search.py).
 
     Entries:
+      - benchmarks: benchmark_mv rows
+      - benchmark_tests: benchmark_test_mv rows (benchmark → test bridge)
       - tests: test_mv rows (paginated)
       - test_invocations: test_invocation_mv rows for those tests
 
@@ -210,12 +240,45 @@ async def resolve_benchmark_search_context(
       - evals
     """
 
-    # ── Phase 1: Fetch paginated tests ────────────────────────────────
+    # ── Phase 1: Fetch benchmarks + bridge rows, then paginated tests ─
+    async with pool.acquire() as c:
+        benchmarks = await search_benchmarks(
+            c,
+            department_ids=department_ids,
+            eval_ids=eval_ids,
+            limit=10000,
+        )
+
+    benchmark_ids = [b.benchmark_id for b in benchmarks]
+    benchmark_eval_ids_by_benchmark = {
+        b.benchmark_id: list(b.eval_ids or []) for b in benchmarks
+    }
+
+    if benchmark_ids:
+        async with pool.acquire() as c:
+            benchmark_tests = await search_benchmark_tests(
+                c,
+                benchmark_ids=benchmark_ids,
+                limit=100000,
+            )
+    else:
+        benchmark_tests = []
+
+    test_eval_ids_by_test: dict[UUID, list[UUID]] = {}
+    allowed_eval_ids = set(eval_ids) if eval_ids else None
+    for bridge in benchmark_tests:
+        test_eval_ids_by_test.setdefault(bridge.test_id, [])
+        for eval_id in benchmark_eval_ids_by_benchmark.get(bridge.benchmark_id, []):
+            if allowed_eval_ids is not None and eval_id not in allowed_eval_ids:
+                continue
+            if eval_id not in test_eval_ids_by_test[bridge.test_id]:
+                test_eval_ids_by_test[bridge.test_id].append(eval_id)
+
+    test_ids_from_benchmarks = list(test_eval_ids_by_test)
     async with pool.acquire() as c:
         tests, _total_count = await search_tests(
             c,
-            eval_ids=eval_ids,
-            department_ids=department_ids,
+            test_ids=test_ids_from_benchmarks,
             date_from=date_from,
             date_to=date_to,
             is_archived=is_archived,
@@ -231,6 +294,8 @@ async def resolve_benchmark_search_context(
     for t in tests:
         if t.eval_id:
             eval_ids_set.add(t.eval_id)
+        for eval_id in test_eval_ids_by_test.get(t.test_id, []):
+            eval_ids_set.add(eval_id)
         if t.profile_id:
             profile_ids_set.add(t.profile_id)
 
@@ -303,8 +368,11 @@ async def resolve_benchmark_search_context(
         active=True,
         group_id=None,  # type: ignore[arg-type]
         entries={
+            "benchmarks": benchmarks,
+            "benchmark_tests": benchmark_tests,
             "tests": tests,
             "test_invocations": test_invocations,
+            "test_eval_ids_by_test": test_eval_ids_by_test,
         },
         resources={
             "evals": ResourcePair(selected=evals_res, suggestions=[]),

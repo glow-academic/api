@@ -23,7 +23,7 @@ async def search_test_feedback_entries(
 
     rows = await conn.fetch(
         f"""
-        SELECT feedback_id, grade_id, call_id, tool_call_id,
+        SELECT feedback_id, grade_id, call_id, tool_call_id, standard_id,
                total, feedback, total_points, pass_points, created_at
         FROM {source}
         WHERE ($1::uuid[] IS NULL OR grade_id = ANY($1))
@@ -43,6 +43,7 @@ async def search_test_feedback_entries(
             grade_id=r["grade_id"],
             call_id=r["call_id"],
             tool_call_id=r["tool_call_id"],
+            standard_id=r["standard_id"],
             total=r["total"],
             feedback=r["feedback"],
             total_points=r["total_points"],

@@ -261,8 +261,17 @@ async def resolve_activity_search_context(
     if session_ids:
         async with pool.acquire() as c:
             groups = await search_groups(c, session_ids=session_ids, limit=100000)
+        async with pool.acquire() as c:
+            problems = await search_problems(
+                c,
+                session_ids=session_ids,
+                date_from=date_from,
+                date_to=date_to,
+                limit=100000,
+            )
     else:
         groups = []
+        problems = []
 
     # Step 4: Runs for those groups
     group_ids = [g.id for g in groups]
@@ -317,6 +326,7 @@ async def resolve_activity_search_context(
             "total_sessions": total_sessions,
             "groups": groups,
             "runs": runs,
+            "problems": problems,
         },
     )
 

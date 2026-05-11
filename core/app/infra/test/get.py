@@ -13,12 +13,26 @@ from uuid import UUID
 import asyncpg
 from fastapi import HTTPException
 
+from app.infra.attempt.permissions import (
+    compute_achieved_standards,
+    compute_passed_standards,
+)
+from app.infra.attempt.types import (
+    FeedbackEntry,
+    GradeData,
+    GradingStateData,
+    RubricStructureData,
+    StandardGroupMeta,
+    StandardMeta,
+)
 from app.infra.globals import get_redis_client
 from app.infra.test.context import resolve_test_context
 from app.infra.test.permissions import compute_test_status
 from app.infra.test.types import (
     GetTestArtifactRequest,
     GetTestArtifactResponse,
+    InvocationDetail,
+    InvocationRunDetail,
     TestConfigGroup,
     TestConfigItem,
     TestEntries,
@@ -711,6 +725,7 @@ async def get_test_impl(
             tools=_to_tool_dict_map(tools_list_for_payload),
             qualities=_to_dict_map(_res_all("qualities")),
             standard_groups=_to_dict_map(_res("standard_groups")),
+            standards=_to_dict_map(_res("standards")),
         )
 
         # === LOAD HISTORICAL MESSAGES FOR PREVIEWED RUNS ===
@@ -778,6 +793,300 @@ async def get_test_impl(
         if rubric_name_map:
             rubric_name = next(iter(rubric_name_map.values()), None)
 
+        # === BUILD GRADED-VIEW PAYLOAD (per-invocation × per-run) ===
+        # Mirrors attempt.entries.attempt_chat[] — one InvocationDetail per
+        # invocation, each with rubric_structure + runs[] carrying
+        # TableRubric-ready grading_state. The client picks an invocation
+        # (global switcher) and a run (local switcher) to drive transcript,
+        # rubric, and the right-side resource panel.
+
+        # ── Resource lookups (id → row) for rubric_structure assembly ──
+        standards_list = _res("standards")
+        standard_groups_list = _res("standard_groups")
+        rubrics_by_id: dict[UUID, Any] = {r.id: r for r in rubrics_list}
+        standard_groups_by_id: dict[UUID, Any] = {sg.id: sg for sg in standard_groups_list}
+        standards_by_id: dict[UUID, Any] = {s.id: s for s in standards_list}
+        standards_by_group_id: dict[UUID, list] = {}
+        for std in standards_list:
+            standards_by_group_id.setdefault(std.standard_group_id, []).append(std)
+
+        # ── Grade / feedback / message indexes ─────────────────────────
+        # ``grades`` carries ``invocation_id`` but not ``run_id`` directly.
+        # Each grade is tied to a single tool-call (``grade.call_id``)
+        # which fired during one specific run. We don't currently project
+        # that join here — v1 uses the binding's primary grade via the
+        # invocation row (``inv.grade_id``) and aligns extras by
+        # creation order. Multi-grade-per-invocation cases will need a
+        # proper grade↔run join (TODO: follow-up).
+        grades_by_invocation: dict[UUID, list] = {}
+        for g in grades:
+            grades_by_invocation.setdefault(g.invocation_id, []).append(g)
+        # Sort each invocation's grades by creation time so the primary
+        # (most-recent or first) is deterministic.
+        for inv_id in grades_by_invocation:
+            grades_by_invocation[inv_id].sort(key=lambda g: g.created_at)
+
+        feedback_by_grade: dict[UUID, list] = {}
+        for f in feedback:
+            # GetTestFeedbackResponse carries ``grade_id`` (verify via attr).
+            gid = getattr(f, "grade_id", None)
+            if gid is not None:
+                feedback_by_grade.setdefault(gid, []).append(f)
+
+        msg_ids_by_run_id: dict[UUID, list[UUID]] = {}
+        for m in messages:
+            if m.run_id:
+                msg_ids_by_run_id.setdefault(m.run_id, []).append(m.id)
+
+        call_ids_by_run_id: dict[UUID, list[UUID]] = {}
+        for c in calls:
+            run_id_val = getattr(c, "run_id", None)
+            call_id_val = getattr(c, "id", None) or getattr(c, "call_id", None)
+            if run_id_val and call_id_val:
+                call_ids_by_run_id.setdefault(run_id_val, []).append(call_id_val)
+
+        def _build_rubric_structure(
+            rubric_id: UUID | None,
+        ) -> RubricStructureData | None:
+            if not rubric_id:
+                return None
+            rubric = rubrics_by_id.get(rubric_id)
+            if not rubric:
+                return None
+            sg_ids = list(rubric.standard_group_ids or [])
+            if not sg_ids:
+                return None
+            standard_groups_dict: dict[str, list[str]] = {}
+            standard_groups_mapping_dict: dict[str, StandardGroupMeta] = {}
+            standards_mapping_dict: dict[str, StandardMeta] = {}
+            for sg_id in sg_ids:
+                sg = standard_groups_by_id.get(sg_id)
+                if not sg:
+                    continue
+                stds_in_group = standards_by_group_id.get(sg_id, [])
+                standard_groups_dict[str(sg_id)] = [
+                    str(s.id) for s in stds_in_group
+                ]
+                standard_groups_mapping_dict[str(sg_id)] = StandardGroupMeta(
+                    name=sg.name,
+                    description=sg.description,
+                    points=sg.points,
+                    pass_points=sg.pass_points,
+                )
+                for s in stds_in_group:
+                    standards_mapping_dict[str(s.id)] = StandardMeta(
+                        name=s.name,
+                        description=s.description,
+                        points=s.points,
+                    )
+            return RubricStructureData(
+                standard_groups=standard_groups_dict or None,
+                standard_groups_mapping=standard_groups_mapping_dict or None,
+                standards_mapping=standards_mapping_dict or None,
+            )
+
+        # ── ``standards`` lookup dicts for compute_passed/achieved ─────
+        # The attempt helpers expect resource_meta dicts: {id_str: {...}}.
+        # Build them in the shape they expect.
+        sg_meta_for_compute: dict[str, dict] = {
+            str(sg.id): {
+                "name": sg.name,
+                "description": sg.description,
+                "points": sg.points,
+                "pass_points": sg.pass_points,
+            }
+            for sg in standard_groups_list
+        }
+        std_meta_for_compute: dict[str, dict] = {
+            str(s.id): {
+                "name": s.name,
+                "description": s.description,
+                "points": s.points,
+                "standard_group_id": s.standard_group_id,
+            }
+            for s in standards_list
+        }
+
+        def _build_grading_state(
+            feedback_rows: list,
+        ) -> GradingStateData | None:
+            """Compute achieved/passed/feedback maps keyed by standard_id.
+
+            Pulls ``standard_id`` off each feedback row (sourced from
+            ``test_feedback_mv``'s LEFT JOIN to
+            ``feedbacks_standards_connection``). Legacy rows written
+            before the connection was populated have ``standard_id =
+            None`` — they're filtered out so they don't pollute the
+            grading state with an unkeyed bucket.
+            """
+            if not feedback_rows:
+                return None
+            scored_rows = [
+                f for f in feedback_rows if getattr(f, "standard_id", None) is not None
+            ]
+            if not scored_rows:
+                return None
+            achieved_dict: dict[str, bool] = {}
+            passed_dict: dict[str, bool] = {}
+            feedback_dict: dict[str, str] = {}
+            feedbacks_dicts = [
+                {
+                    "standard_id": getattr(f, "standard_id", None),
+                    "total": getattr(f, "total", None),
+                }
+                for f in scored_rows
+            ]
+            achieved_raw = compute_achieved_standards(feedbacks_dicts)
+            for entry in achieved_raw or []:
+                std_id = entry.get("standard_id")
+                if std_id:
+                    achieved_dict[str(std_id)] = entry.get("achieved", False)
+            passed_raw = compute_passed_standards(
+                feedbacks_dicts, sg_meta_for_compute, std_meta_for_compute,
+            )
+            for entry in passed_raw or []:
+                std_id = entry.get("standard_id")
+                if std_id:
+                    passed_dict[str(std_id)] = entry.get("passed", False)
+            for f in scored_rows:
+                std_id = getattr(f, "standard_id", None)
+                text = getattr(f, "feedback", None)
+                if std_id and text:
+                    feedback_dict[str(std_id)] = text
+            return GradingStateData(
+                achieved_standards=achieved_dict or None,
+                passed_standards=passed_dict or None,
+                feedback_by_standard_id=feedback_dict or None,
+            )
+
+        invocation_details: list[InvocationDetail] = []
+        for inv in invocations:
+            inv_bindings = runs_by_invocation.get(inv.invocation_id, [])
+            inv_grades = grades_by_invocation.get(inv.invocation_id, [])
+            grades_remaining = list(inv_grades)
+
+            inv_run_details: list[InvocationRunDetail] = []
+            primary_run_id: UUID | None = None
+            for binding in inv_bindings:
+                # Pair this binding's run with a grade. Primary grade
+                # (``inv.grade_id``) wins for the row-summary binding;
+                # the rest pop in creation order. When grades and
+                # bindings don't align 1:1 the leftover bindings
+                # render ungraded (grade=None / grading_state=None),
+                # which the FE handles via "Not graded" state.
+                paired_grade = None
+                if inv.grade_id is not None:
+                    for i, g in enumerate(grades_remaining):
+                        if g.id == inv.grade_id:
+                            paired_grade = grades_remaining.pop(i)
+                            break
+                if paired_grade is None and grades_remaining:
+                    paired_grade = grades_remaining.pop(0)
+
+                grade_data: GradeData | None = None
+                grading_state: GradingStateData | None = None
+                fb_entries: list[FeedbackEntry] | None = None
+                paired_feedback: list = []
+                if paired_grade is not None:
+                    # Pull total/pass points off the invocation's rubric
+                    # (top-level rubric_resource carries them). Same
+                    # source attempt uses.
+                    rubric = rubrics_by_id.get(inv.rubric_id) if inv.rubric_id else None
+                    grade_data = GradeData(
+                        score=paired_grade.score,
+                        passed=paired_grade.passed,
+                        time_taken=paired_grade.time_taken,
+                        total_points=getattr(rubric, "points", None) if rubric else None,
+                        pass_points=getattr(rubric, "pass_points", None) if rubric else None,
+                    )
+                    paired_feedback = feedback_by_grade.get(paired_grade.id, [])
+                    grading_state = _build_grading_state(paired_feedback)
+                    if paired_feedback:
+                        fb_entries = []
+                        for f in paired_feedback:
+                            std_id = getattr(f, "standard_id", None)
+                            std = standards_by_id.get(std_id) if std_id else None
+                            fb_entries.append(
+                                FeedbackEntry(
+                                    # test_feedback_mv exposes ``feedback_id``;
+                                    # attempt exposes ``id``. Accept either.
+                                    id=(
+                                        getattr(f, "feedback_id", None)
+                                        or getattr(f, "id", None)
+                                    ),
+                                    standard_id=std_id,
+                                    standard_group_id=(
+                                        std.standard_group_id if std else None
+                                    ),
+                                    total=getattr(f, "total", None),
+                                    feedback=getattr(f, "feedback", None),
+                                )
+                            )
+
+                run_id = binding.run_id
+                is_primary = (
+                    paired_grade is not None
+                    and inv.grade_id is not None
+                    and paired_grade.id == inv.grade_id
+                )
+                if is_primary and run_id:
+                    primary_run_id = run_id
+
+                inv_run_details.append(
+                    InvocationRunDetail(
+                        run_id=run_id or binding.id,
+                        binding_id=binding.id,
+                        grade_id=paired_grade.id if paired_grade else None,
+                        created_at=binding.created_at,
+                        completed=binding.id in completed_binding_ids,
+                        grade=grade_data,
+                        grading_state=grading_state,
+                        feedbacks=fb_entries,
+                        analyses=None,  # test artifact has no analyses table yet
+                        message_ids=(
+                            msg_ids_by_run_id.get(run_id) if run_id else None
+                        ),
+                        call_ids=(
+                            call_ids_by_run_id.get(run_id) if run_id else None
+                        ),
+                    )
+                )
+
+            # Fallback: if no binding owned the primary grade, fall back
+            # to the first run with a grade, then the first run at all.
+            if primary_run_id is None:
+                primary_run_id = next(
+                    (r.run_id for r in inv_run_details if r.grade is not None),
+                    None,
+                )
+            if primary_run_id is None and inv_run_details:
+                primary_run_id = inv_run_details[0].run_id
+
+            # Historical config bundle — pulled from the invocation's
+            # first agent. The FE looks these up against ``resources.*``
+            # keyed by id to render the read-only snapshot panel.
+            agent_id = inv.agent_ids[0] if inv.agent_ids else None
+            model_id_for_inv: UUID | None = None
+            if agent_id and agent_id in agent_map:
+                model_id_for_inv = agent_map[agent_id].model_id
+
+            invocation_details.append(
+                InvocationDetail(
+                    invocation_id=inv.invocation_id,
+                    rubric_id=inv.rubric_id,
+                    rubric_structure=_build_rubric_structure(inv.rubric_id),
+                    primary_run_id=primary_run_id,
+                    agent_id=agent_id,
+                    model_id=model_id_for_inv,
+                    voice_id=inv.voice_id,
+                    temperature_level_id=inv.temperature_level_id,
+                    reasoning_level_id=inv.reasoning_level_id,
+                    quality_id=inv.quality_id,
+                    modality_ids=list(inv.modality_ids or []),
+                    runs=inv_run_details,
+                )
+            )
+
         return GetTestArtifactResponse(
             test=test,
             invocations=invocations,
@@ -797,6 +1106,7 @@ async def get_test_impl(
             current_invocation_id=current_invocation_id,
             has_runs_or_groups=has_runs_or_groups,
             next_invocation_id=next_invocation_id,
+            invocation_details=invocation_details,
             entries=entries_payload,
             resources=resources_payload,
         )

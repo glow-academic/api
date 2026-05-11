@@ -445,6 +445,7 @@ async def _search_provider_build(
         status_filter=status_filter,
         flag_filter=flag_filter,
         total_count=total_count,
+        import_fields=PROVIDER_IMPORT_FIELDS,
     )
 
 
@@ -458,6 +459,7 @@ def _empty_response(
         actor_name=actor_name,
         providers=[],
         total_count=total_count,
+        import_fields=PROVIDER_IMPORT_FIELDS,
     )
 
 

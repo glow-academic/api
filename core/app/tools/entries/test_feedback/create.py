@@ -20,10 +20,17 @@ async def create_test_feedback(
     feedback: str = "No feedback provided",
     total_points: int = 0,
     pass_points: int = 0,
+    standard_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateTestFeedbackResponse:
-    """Create a test_feedback entry."""
+    """Create a test_feedback entry.
+
+    When ``standard_ids`` is provided, also writes one row per standard
+    into the shared ``feedbacks_standards_connection`` table — mirrors
+    ``create_attempt_feedback``. Lets the graded-view path read
+    ``standard_id`` off ``test_feedback_mv`` via its LEFT JOIN.
+    """
     entry_id = await conn.fetchval(
         """
         INSERT INTO test_feedback_entry (id, grade_id, call_id, tool_call_id, total, feedback, total_points, pass_points, active, mcp, generated)
@@ -41,4 +48,17 @@ async def create_test_feedback(
         mcp,
         id,
     )
+
+    if standard_ids:
+        for standard_id in standard_ids:
+            await conn.execute(
+                """
+                INSERT INTO feedbacks_standards_connection (feedbacks_id, standard_id)
+                VALUES ($1, $2)
+                ON CONFLICT (feedbacks_id, standard_id) DO NOTHING
+                """,
+                entry_id,
+                standard_id,
+            )
+
     return CreateTestFeedbackResponse(id=entry_id)

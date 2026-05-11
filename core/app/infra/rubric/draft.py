@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.rubric.permissions import compute_can_draft
+from app.infra.rubric.permissions_context import resolve_rubric_point_totals
 from app.infra.rubric.refresh import refresh_rubric_impl
 from app.infra.rubric.types import (
     DraftFormState,
@@ -24,19 +25,17 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.entries.soft_calls.search import search_soft_calls
-
-ARTIFACT = "rubric"
-OPERATION = "draft"
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
-from app.tools.resources.points.get import get_points
 from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
-from app.tools.resources.standards.get import get_standards
+
+ARTIFACT = "rubric"
+OPERATION = "draft"
 
 
 async def _maybe_auto_accept_rubric_draft(
@@ -331,7 +330,7 @@ async def patch_rubric_draft_impl(
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> PatchRubricDraftApiResponse:
     """Rubric draft using the canonical request/response contract."""
 
@@ -451,7 +450,7 @@ async def patch_rubric_draft_impl(
     # flag-type it wants active (rubric_active, simulation_rubric, video_rubric).
     combined_flag_ids = list(request.flag_ids or [])
 
-    # Only pass points are stored on drafts; total is computed from standards.
+    # Only pass points are stored on drafts; total is computed from standard groups.
     draft_point_ids = [request.pass_points_id] if request.pass_points_id else None
 
     async with pool.acquire() as conn:
@@ -484,16 +483,14 @@ async def patch_rubric_draft_impl(
 
     # Denormalize point values for the form_state echo.
     # pass_points = value of the referenced pass-type resource.
-    # total_points = sum of selected standards' points (derived, read-only).
-    pass_points_value: int | None = None
-    total_points_value: int | None = None
-    async with pool.acquire() as conn:
-        if request.pass_points_id:
-            rows = await get_points(conn, [request.pass_points_id], redis, bypass_cache=True)
-            pass_points_value = rows[0].value if rows else None
-        if request.standard_ids:
-            rows = await get_standards(conn, list(request.standard_ids), redis, bypass_cache=True)
-            total_points_value = sum((r.points or 0) for r in rows) if rows else 0
+    # total_points = sum of selected standard groups' max points.
+    pass_points_value, total_points_value = await resolve_rubric_point_totals(
+        pool,
+        redis,
+        pass_points_id=request.pass_points_id,
+        standard_group_ids=request.standard_group_ids,
+        standard_ids=request.standard_ids,
+    )
 
     # Re-derive denormalized booleans from the final flag_ids so the client
     # echo matches whatever the server actually persisted.

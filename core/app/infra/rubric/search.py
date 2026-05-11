@@ -469,6 +469,7 @@ async def _search_rubric_build(
         simulation_filter=simulation_filter,
         flag_filter=flag_filter,
         total_count=total_count,
+        import_fields=RUBRIC_IMPORT_FIELDS,
     )
 
 
@@ -484,6 +485,7 @@ def _empty_response(
         standard_groups=[],
         standards=[],
         total_count=total_count,
+        import_fields=RUBRIC_IMPORT_FIELDS,
     )
 
 

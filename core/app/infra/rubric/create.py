@@ -11,12 +11,14 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.rubric.permissions_context import (
     create_denormalized_snapshot,
+    resolve_rubric_point_totals,
     resolve_rubric_values,
 )
 from app.infra.rubric.refresh import refresh_rubric_impl
 from app.infra.rubric.types import (
     CreateRubricApiRequest,
     CreateRubricApiResponse,
+    CreateRubricItem,
     RubricResultItem,
 )
 from app.tools.artifacts.rubric.create import (
@@ -150,27 +152,13 @@ async def create_rubric_impl(
 
     # Denormalize point values from IDs for snapshot / downstream use.
     # pass_points = value of the referenced pass-type Points resource.
-    # total_points = sum of selected standards' points (computed, not written).
+    # total_points = sum of selected standard groups' max points.
     from app.tools.resources.flags.search import search_flags
-    from app.tools.resources.points.get import get_points
-    from app.tools.resources.standards.get import get_standards
-
-    async def _denorm_points(item) -> tuple[int | None, int | None]:
-        pass_value: int | None = None
-        total_value: int | None = None
-        async with pool.acquire() as conn:
-            if item.pass_points_id:
-                rows = await get_points(conn, [item.pass_points_id], redis, bypass_cache=True)
-                pass_value = rows[0].value if rows else None
-            if item.standard_ids:
-                rows = await get_standards(conn, list(item.standard_ids), redis, bypass_cache=True)
-                total_value = sum((r.points or 0) for r in rows) if rows else 0
-        return pass_value, total_value
 
     # Build a flag-id → row map so per-type bools (simulation_rubric,
     # video_rubric) for the snapshot can be derived from the canonical
     # flag_ids list. Same approach as the draft resolver.
-    async def _flag_bools_by_type(item) -> dict[str, bool]:
+    async def _flag_bools_by_type(item: CreateRubricItem) -> dict[str, bool]:
         if not item.flag_ids:
             return {}
         async with pool.acquire() as conn:
@@ -191,7 +179,13 @@ async def create_rubric_impl(
 
     if not soft:
         for item in items:
-            pass_value, total_value = await _denorm_points(item)
+            pass_value, total_value = await resolve_rubric_point_totals(
+                pool,
+                redis,
+                pass_points_id=item.pass_points_id,
+                standard_group_ids=item.standard_group_ids,
+                standard_ids=item.standard_ids,
+            )
             flag_bools = await _flag_bools_by_type(item)
             rubrics_resource_id = await create_denormalized_snapshot(
                 pool,

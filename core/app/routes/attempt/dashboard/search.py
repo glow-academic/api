@@ -22,6 +22,7 @@ from app.infra.dashboard.context import resolve_dashboard_search_context
 from app.infra.dashboard.types import (
     ListDashboardRequest,
 )
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.globals import get_pool, get_redis_client
 from app.infra.types import ArtifactContext
 from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
@@ -98,7 +99,7 @@ def _transform_history_item(
     aggregates: dict[str, Any],
     resource_meta: dict[str, dict[UUID, dict[str, Any]]],
     pass_threshold: float | None,
-    practice: bool,
+    practice: bool | None,
 ) -> HistoryItem:
     """Transform an attempt MV row + aggregates into a HistoryItem."""
     sim_meta = (
@@ -144,7 +145,8 @@ def _transform_history_item(
     score_status = compute_score_status(score_percent, pass_threshold)
     score = round(score_percent) if score_percent is not None else None
 
-    is_archived = attempt.is_archived if practice else False
+    is_practice_view = practice is True
+    is_archived = attempt.is_archived if is_practice_view else False
     show_view = compute_show_view(is_archived)
     num_incomplete_chats = (aggregates.get("num_chats") or 0) - (
         aggregates.get("num_chats_completed") or 0
@@ -183,16 +185,16 @@ def _transform_history_item(
         pass_pct=pass_pct,
         show_view=show_view,
         show_continue=show_continue,
-        is_archived=is_archived if practice else None,
-        practice_simulation=True if practice else None,
-        practice_scenario_id=practice_scenario_id if practice else None,
+        is_archived=is_archived if is_practice_view else None,
+        practice_simulation=True if is_practice_view else None,
+        practice_scenario_id=practice_scenario_id if is_practice_view else None,
     )
 
 
 def _build_history_response(
     ctx: ArtifactContext,
     *,
-    practice: bool = False,
+    practice: bool | None = None,
     simulation_search: str | None = None,
     scenario_search: str | None = None,
     profile_search: str | None = None,
@@ -325,9 +327,13 @@ async def search_dashboard(
     tags = ["artifacts", "dashboard", "list"]
     bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
+    profile_id = http_request.state.profile_id
     cache_key_val = cache_key(
         http_request.url.path,
-        request.model_dump(mode="json"),
+        {
+            "profile_id": str(profile_id) if profile_id else None,
+            "request": request.model_dump(mode="json"),
+        },
     )
 
     if not bypass_cache:
@@ -342,7 +348,6 @@ async def search_dashboard(
         if not pool:
             raise RuntimeError("Database pool not initialized")
 
-        profile_id = http_request.state.profile_id
         if not profile_id:
             raise HTTPException(
                 status_code=401,
@@ -358,16 +363,7 @@ async def search_dashboard(
         if not common:
             raise HTTPException(status_code=401, detail="Profile not found")
 
-        # Resolve profile_resource_id
-        async with pool.acquire() as c:
-            profile_resource_id: UUID | None = await c.fetchval(
-                """
-                SELECT profiles_id FROM profile_profiles_junction
-                WHERE profile_id = $1 AND active = true
-                LIMIT 1
-                """,
-                profile_id,
-            )
+        visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
 
         # Parse dates
         date_from = None
@@ -385,7 +381,7 @@ async def search_dashboard(
         ctx = await resolve_dashboard_search_context(
             pool,
             redis,
-            profile_resource_id=profile_resource_id,
+            profile_resource_ids=visible_profile_ids,
             target_profile_id=request.target_profile_id,
             cohort_ids=request.cohort_ids,
             department_ids=request.department_ids,

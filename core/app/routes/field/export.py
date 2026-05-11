@@ -16,6 +16,7 @@ async def export_fields(
 ) -> ExportFieldApiResponse:
     """Export all fields as a clean, denormalized CSV."""
     profile_id = http_request.state.profile_id
+    session_id = http_request.state.session_id
     pool = get_pool()
     redis = get_redis_client()
 
@@ -23,5 +24,6 @@ async def export_fields(
         pool,
         redis,
         profile_id=profile_id,
+        session_id=session_id,
         field_id=body.field_id,
     )
