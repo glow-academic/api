@@ -273,8 +273,6 @@ def build_setting_get_result(
             name=item.name,
             description=item.description,
             agent_ids=item.agent_ids or [],
-            resolution_strategy=item.resolution_strategy,
-            resolution_threshold=item.resolution_threshold,
             generated=item.generated,
             suggested=_decorate(item.id, "systems")[0],
             selected=_decorate(item.id, "systems")[1],

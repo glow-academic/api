@@ -472,3 +472,21 @@ def _empty_response(
 
 async def _empty_list() -> list:
     return []
+
+
+PROFILE_IMPORT_FIELDS: list[dict[str, Any]] = [
+    {
+        "key": "name",
+        "label": "Name",
+        "required": True,
+        "example": "Jane Doe",
+        "description": "Profile display name",
+    },
+    {
+        "key": "departments",
+        "label": "Departments",
+        "multi": True,
+        "example": "Nursing, Medicine",
+        "description": "Comma-separated department names",
+    },
+]

@@ -9,8 +9,8 @@ from app.events.types import (
 from app.infra.pricing.types import PricingRequest, PricingResponse
 
 PRICING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
-    "get": OperationEventConfig(
-        operation="get",
+    "pricing": OperationEventConfig(
+        operation="pricing",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

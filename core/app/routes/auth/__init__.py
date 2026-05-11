@@ -4,8 +4,10 @@ from fastapi import APIRouter
 
 from app.routes.auth.context import router as context_router
 from app.routes.auth.create import router as create_router
+from app.routes.auth.csv import router as csv_router
 from app.routes.auth.delete import router as delete_router
 from app.routes.auth.draft import router as draft_router
+from app.routes.auth.file_download import router as file_download_router
 from app.routes.auth.drafts import router as drafts_router
 from app.routes.auth.duplicate import router as duplicate_router
 from app.routes.auth.export import router as export_router
@@ -18,16 +20,19 @@ from app.routes.auth.refresh import router as refresh_router
 from app.routes.auth.search import router as search_router
 from app.routes.auth.stream import router as stream_router
 from app.routes.auth.update import router as update_router
-from app.routes.auth.text import router as text_router
-from app.routes.auth.call import router as call_router
+from app.routes.auth.text_download import router as text_download_router
+from app.routes.auth.call_download import router as call_download_router
+from app.routes.auth.title import router as title_router
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Include all endpoint routers
+router.include_router(title_router)
 router.include_router(context_router)
 router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(create_router)
+router.include_router(csv_router)
 router.include_router(update_router)
 router.include_router(duplicate_router)
 router.include_router(delete_router)
@@ -42,5 +47,6 @@ router.include_router(refresh_router)
 router.include_router(stream_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(call_router)
+router.include_router(text_download_router)
+router.include_router(call_download_router)
+router.include_router(file_download_router)

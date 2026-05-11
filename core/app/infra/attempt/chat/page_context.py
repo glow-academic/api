@@ -282,11 +282,11 @@ async def _page_context_chat_build(
 
     # -- Step 7: Assemble response ----------------------------------------------
 
-    # Lazy imports to avoid circular dependencies
+    # Lazy imports to avoid circular dependencies.
+    # /chat/refresh and /chat/export were removed — refresh + export now come
+    # from /attempt/refresh and /attempt/export at the attempt root.
+    from app.routes.attempt.chat_get import chat_get
     from app.routes.attempt.draft import patch_chat_draft
-    from app.routes.chat.export import export_chat
-    from app.routes.chat.get import chat_get
-    from app.routes.chat.refresh import chat_refresh
 
     return ComposedContextResponse(
         name="chat",
@@ -366,14 +366,9 @@ async def _page_context_chat_build(
                 patch_chat_draft,
                 description="PATCH /draft — Create or patch a chat draft.",
             ),
-            get_operation_info(
-                chat_refresh,
-                description="POST /refresh — Refresh chat materialized views.",
-            ),
-            get_operation_info(
-                export_chat,
-                description="POST /export — Export chat data as CSV.",
-            ),
+            # Refresh + export use the attempt-root endpoints
+            # (/attempt/refresh, /attempt/export) — no chat-specific
+            # variants any more.
         ],
         page_metadata=page_metadata,
         prompts=prompts,

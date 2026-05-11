@@ -14,8 +14,8 @@ from app.infra.activity.types import (
 )
 
 ACTIVITY_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "activity_get": OperationEventConfig(
-        operation="activity_get",
+    "activity": OperationEventConfig(
+        operation="activity",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

@@ -10,7 +10,7 @@ from app.routes.simulation.draft import router as draft_router
 from app.routes.simulation.drafts import router as drafts_router
 from app.routes.simulation.duplicate import router as duplicate_router
 from app.routes.simulation.export import router as export_router
-from app.routes.simulation.file import router as file_router
+from app.routes.simulation.file_download import router as file_download_router
 from app.routes.simulation.generate import router as generate_router
 from app.routes.simulation.generations import router as generations_router
 from app.routes.simulation.get import router as get_router
@@ -20,12 +20,14 @@ from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
 from app.routes.simulation.stream import router as stream_router
 from app.routes.simulation.update import router as update_router
-from app.routes.simulation.text import router as text_router
-from app.routes.simulation.call import router as call_router
+from app.routes.simulation.text_download import router as text_download_router
+from app.routes.simulation.call_download import router as call_download_router
+from app.routes.simulation.title import router as title_router
 
 router = APIRouter(prefix="/simulation", tags=["simulation"])
 
 # Include all endpoint routers
+router.include_router(title_router)
 router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(create_router)
@@ -45,6 +47,6 @@ router.include_router(group_router)
 router.include_router(stream_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(file_router)
-router.include_router(call_router)
+router.include_router(text_download_router)
+router.include_router(file_download_router)
+router.include_router(call_download_router)

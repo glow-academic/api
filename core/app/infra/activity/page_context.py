@@ -153,7 +153,7 @@ async def _page_context_activity_build(
 
     # Lazy imports to avoid circular dependencies
     from app.routes.system.activity.export import export_activity
-    from app.routes.system.activity.get import get_activity
+    from app.routes.system.activity import get_activity
     from app.routes.system.activity.problem import create_problem
     from app.routes.system.activity.refresh import activity_refresh
     from app.routes.system.activity.resolve import resolve_problem

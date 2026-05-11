@@ -5,7 +5,7 @@ from typing import Any
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
-from app.routes.attempt.practice.get import get_practice_internal
+from app.routes.attempt.practice import get_practice_internal
 
 
 @sio.on("attempt.practice.get")  # type: ignore

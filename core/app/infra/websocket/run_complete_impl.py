@@ -1,17 +1,24 @@
 """Run completion — shared business logic called at the end of every
-generation (text, audio, eval re-entry).
+generation (text, audio).
 
 Pure business logic with injected dependencies (``emit``, ``conn``, ``redis``).
 No socket handler registration, no module-level sio, no global I/O —
 importable without triggering the socket tree. Callers invoke this
 directly rather than via a top-level internal event.
 
-Flow:
-  1. Save assistant message + token counts
-  2. resolve_run_completion (DB-based) — check if all agents done
-  3. If generation_test_id → route to eval (rubric quality gate)
-  4. If no eval → results already persisted, emit generation_complete
-  5. Chat special case → attempt grade completion
+Flow (atomic — fires once per run):
+  1. Save assistant message + token counts.
+  2. resolve_run_completion (DB-based) — check if all agents done.
+  3. If chat/attempt → ``_chat_post_complete`` refreshes the attempt
+     MVs and emits attempt lifecycle events.
+  4. The audit framework wrapping ``/<artifact>/generate`` emits the
+     canonical ``<artifact>.generate.completed`` event.
+
+No server-side grading / promotion / candidate merging. Tests created
+by ``setup_generation_test`` (rubric-bearing agents) leave their
+candidate writes pending in ``soft_calls_entry``; the client drives
+the rest — grading via ``/test/generate`` per invocation, promote /
+demote via ``/<artifact>/create`` with ``idempotency_key + accept``.
 """
 
 from __future__ import annotations
@@ -81,9 +88,6 @@ async def run_complete_impl(
     modality = data.get("modality", "text")
     artifact_type = data.get("artifact_type", "unknown")
 
-    # Identity context — propagated through the pipeline
-    profile_id_str = data.get("profile_id")
-    profiles_id_str = data.get("profiles_id")
     session_id_str = data.get("session_id")
 
     logger.info(
@@ -160,67 +164,17 @@ async def run_complete_impl(
     if not completion.all_done:
         return  # More agents pending
 
-    # Step 3: All agents finished
-    tool_results = data.get("tool_results") or []
+    # Step 3: All agents finished. ``setup_generation_test`` may have
+    # created test+invocation scaffolding for rubric-bearing agents, but
+    # nothing on the server promotes / grades / merges those candidates
+    # automatically — that's all client-driven via the soft_calls_entry
+    # ack pattern. Run completion is atomic: emit and stop. The client
+    # decides whether to grade (fire ``/test/generate`` per invocation)
+    # and which candidate to promote (call ``/<artifact>/create`` with
+    # ``idempotency_key + accept``).
     metadata = data.get("metadata") or {}
-    generation_test_id = metadata.get("generation_test_id")
 
-    # Step 4: Eval gate (idempotent — handles first pass and re-entry)
-    # If a rubric eval was set up (generation_test_id exists):
-    #   - First pass: eval not graded yet → route to test_proceed, return
-    #   - Second pass (re-triggered by generation_ended): eval graded → fall through
-    if generation_test_id:
-        from app.tools.entries.test_grade.search import search_test_grades
-        from app.tools.entries.test_invocation.search import (
-            search_test_invocation_entries_internal,
-        )
-
-        # Check if eval has been graded by looking for grade records
-        invocations, _total = await search_test_invocation_entries_internal(
-            conn,
-            test_ids=[uuid.UUID(generation_test_id)],
-            limit=10,
-        )
-        invocation_ids = [inv.invocation_id for inv in invocations]
-
-        grades = []
-        if invocation_ids:
-            grades = await search_test_grades(
-                conn,
-                invocation_ids=invocation_ids,
-                bypass_mv=True,
-            )
-
-        if not grades:
-            # First pass — eval not graded yet, route to eval
-            logger.info(
-                f"Run {run_id}: eval {generation_test_id} not graded yet, "
-                f"routing to test_proceed"
-            )
-            await emit(
-                [
-                    internal_event(
-                        "test.proceed.completed",
-                        {
-                            "sid": sid,
-                            "test_id": generation_test_id,
-                            "force_proceed": True,
-                            "profile_id": profile_id_str,
-                            "profiles_id": profiles_id_str,
-                            "session_id": session_id_str,
-                        },
-                    )
-                ]
-            )
-            return
-
-        # Second pass — eval graded, fall through to emit completion
-        logger.info(
-            f"Run {run_id}: eval {generation_test_id} graded "
-            f"({len(grades)} grades), proceeding to completion"
-        )
-
-    # Step 6: Chat/attempt post-processing — refresh attempt MVs + emit
+    # Step 4: Chat/attempt post-processing — refresh attempt MVs + emit
     # attempt_chat_started / attempt_grade_complete before the final completion
     # event so downstream UI sees consistent state.
     if artifact_type in ("chat", "attempt"):

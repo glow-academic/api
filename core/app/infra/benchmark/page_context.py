@@ -155,9 +155,10 @@ async def _page_context_benchmark_build(
         compute_benchmark_eval_status,
     )
     from app.routes.test.benchmark.export import export_benchmark
-    from app.routes.test.benchmark.get import get_benchmark
+    from app.routes.test.benchmark import get_benchmark
     from app.routes.test.benchmark.refresh import benchmark_refresh
-    from app.routes.test.benchmark.search import search_benchmark_history
+    # /benchmark/search was promoted to top-level /test/invocations.
+    from app.routes.test.invocations import list_invocations
 
     return ComposedContextResponse(
         name="benchmark",
@@ -180,8 +181,8 @@ async def _page_context_benchmark_build(
                 description="POST /get — Get benchmark evaluation results.",
             ),
             get_operation_info(
-                search_benchmark_history,
-                description="POST /search — Search benchmark run history.",
+                list_invocations,
+                description="POST /test/invocations — List test invocations with pagination/filters.",
             ),
             get_operation_info(
                 benchmark_refresh,

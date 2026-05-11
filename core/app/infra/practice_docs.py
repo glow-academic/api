@@ -75,8 +75,8 @@ async def docs_practice_client(
 
     # Lazy imports to avoid circular dependencies
     from app.routes.attempt.practice.export import export_practice
-    from app.routes.attempt.practice.get import practice_get
-    from app.routes.attempt.practice.search import search_practice
+    from app.routes.attempt.practice import practice_get
+    # /practice/search collapsed into canonical /attempt/search endpoint.
 
     return ComposedDocsResponse(
         name="practice",
@@ -93,10 +93,7 @@ async def docs_practice_client(
                 practice_get,
                 description="POST /get — Get practice dashboard with personal stats.",
             ),
-            get_operation_info(
-                search_practice,
-                description="POST /search — Search practice history entries.",
-            ),
+            # /search collapsed into canonical /attempt/search.
             get_operation_info(
                 export_practice,
                 description="POST /export — Export practice data as CSV/ZIP.",

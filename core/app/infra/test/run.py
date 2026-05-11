@@ -2,7 +2,7 @@
 
 Pure data primitive. Mirrors /attempt/chat/message — writes a row,
 nothing else. Bundle config + actual model invocation live elsewhere
-(/test/trace seeds the bundle on a test_invocation_traces_entry, then
+(/test/invocation/trace seeds the bundle on a test_invocation_traces_entry, then
 /test/generate executes the model and produces the run_id we bind here).
 """
 

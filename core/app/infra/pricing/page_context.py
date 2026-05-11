@@ -153,7 +153,7 @@ async def _page_context_pricing_build(
 
     # Lazy imports to avoid circular dependencies
     from app.routes.system.pricing.export import export_pricing
-    from app.routes.system.pricing.get import get_pricing
+    from app.routes.system.pricing import get_pricing
     from app.routes.system.pricing.refresh import pricing_refresh
     from app.routes.system.pricing.search import search_pricing
 

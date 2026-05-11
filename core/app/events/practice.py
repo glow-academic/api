@@ -14,8 +14,8 @@ from app.infra.practice.types import (
 )
 
 PRACTICE_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "practice_get": OperationEventConfig(
-        operation="practice_get",
+    "practice": OperationEventConfig(
+        operation="practice",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

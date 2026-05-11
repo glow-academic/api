@@ -10,7 +10,7 @@ from app.routes.department.draft import router as draft_router
 from app.routes.department.drafts import router as drafts_router
 from app.routes.department.duplicate import router as duplicate_router
 from app.routes.department.export import router as export_router
-from app.routes.department.file import router as file_router
+from app.routes.department.file_download import router as file_download_router
 from app.routes.department.generate import router as generate_router
 from app.routes.department.generations import router as generations_router
 from app.routes.department.get import router as get_router
@@ -20,12 +20,14 @@ from app.routes.department.refresh import router as refresh_router
 from app.routes.department.search import router as search_router
 from app.routes.department.stream import router as stream_router
 from app.routes.department.update import router as update_router
-from app.routes.department.text import router as text_router
-from app.routes.department.call import router as call_router
+from app.routes.department.text_download import router as text_download_router
+from app.routes.department.call_download import router as call_download_router
+from app.routes.department.title import router as title_router
 
 router = APIRouter(prefix="/department", tags=["department"])
 
 # Include all endpoint routers
+router.include_router(title_router)
 router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(create_router)
@@ -45,6 +47,6 @@ router.include_router(refresh_router)
 router.include_router(stream_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(file_router)
-router.include_router(call_router)
+router.include_router(text_download_router)
+router.include_router(file_download_router)
+router.include_router(call_download_router)

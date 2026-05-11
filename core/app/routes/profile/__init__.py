@@ -4,8 +4,10 @@ from fastapi import APIRouter
 
 from app.routes.profile.context import router as context_router
 from app.routes.profile.create import router as create_router
+from app.routes.profile.csv import router as csv_router
 from app.routes.profile.delete import router as delete_router
 from app.routes.profile.draft import router as draft_router
+from app.routes.profile.file_download import router as file_download_router
 from app.routes.profile.drafts import router as drafts_router
 from app.routes.profile.duplicate import router as duplicate_router
 from app.routes.profile.emulate import router as emulate_router
@@ -20,15 +22,18 @@ from app.routes.profile.search import router as search_router
 from app.routes.profile.stream import router as stream_router
 from app.routes.profile.unemulate import router as unemulate_router
 from app.routes.profile.update import router as update_router
-from app.routes.profile.text import router as text_router
-from app.routes.profile.call import router as call_router
+from app.routes.profile.text_download import router as text_download_router
+from app.routes.profile.call_download import router as call_download_router
+from app.routes.profile.title import router as title_router
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 # Standard artifact operations
+router.include_router(title_router)
 router.include_router(get_router)
 router.include_router(search_router)
 router.include_router(create_router)
+router.include_router(csv_router)
 router.include_router(update_router)
 router.include_router(duplicate_router)
 router.include_router(draft_router)
@@ -48,5 +53,6 @@ router.include_router(emulate_router)
 router.include_router(unemulate_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(call_router)
+router.include_router(text_download_router)
+router.include_router(call_download_router)
+router.include_router(file_download_router)

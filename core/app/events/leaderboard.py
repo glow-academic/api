@@ -14,8 +14,8 @@ from app.infra.leaderboard.types import (
 )
 
 LEADERBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "leaderboard_get": OperationEventConfig(
-        operation="leaderboard_get",
+    "leaderboard": OperationEventConfig(
+        operation="leaderboard",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

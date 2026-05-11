@@ -59,6 +59,4 @@ class WebsocketContext:
     tool_instructions: list  # Tool response templates (Layer 3)
     rubrics: list
     profile: Any = None  # ProfileIdentityContext — for canonical context
-    resolution_strategy: str | None = None
-    resolution_threshold: float | None = None
     tool_graph: Any = None  # SettingsToolGraph — for operations-based agent selection

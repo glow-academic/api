@@ -22,11 +22,15 @@ from typing import Any
 WRITE_OPERATIONS: frozenset[str] = frozenset({
     # CRUD
     "create", "update", "delete", "duplicate", "draft", "refresh",
+    # Bulk imports / exports — produce new server artifacts.
+    # csv ingests rows into the artifact table (import → mutates).
+    # export creates a file_id row representing the exported snapshot.
+    "csv", "export",
     # Uploads
     "image_upload", "video_upload", "text_upload", "file_upload", "audio_upload",
     # Artifact-specific
     "run", "generate", "problem", "resolve", "emulate", "unemulate",
-    "name", "title", "feedback",
+    "name", "title", "feedback", "terminate",
     # NOTE: ``group`` is intentionally NOT here. ``*_Group`` is now a
     # pure read — resolves the group + returns history. Renaming has
     # been split out into ``title`` (write) which appends a fresh
@@ -140,16 +144,16 @@ INFRA_OPS.update({
 # canonical wrappers before they can be routed from tools. See the
 # matching permission seeds in ``database/seeds/resources/permissions.py``.
 for _alias, _source in [
-    (("system",  "activity_get"),    ("activity",    "get")),
-    (("attempt", "dashboard_get"),   ("dashboard",   "get")),
-    (("system",  "health_get"),      ("health",      "get")),
-    (("attempt", "home_get"),        ("home",        "get")),
-    (("attempt", "leaderboard_get"), ("leaderboard", "get")),
-    (("attempt", "practice_get"),    ("practice",    "get")),
-    (("system",  "pricing_get"),     ("pricing",     "get")),
-    (("attempt", "record_get"),      ("record",      "get")),
-    (("test",    "benchmark_get"),   ("benchmark",   "get")),
-    (("attempt", "reports_get"),     ("reports",     "get")),
+    (("system",  "activity"),    ("activity",    "get")),
+    (("attempt", "dashboard"),   ("dashboard",   "get")),
+    (("system",  "health"),      ("health",      "get")),
+    (("attempt", "home"),        ("home",        "get")),
+    (("attempt", "leaderboard"), ("leaderboard", "get")),
+    (("attempt", "practice"),    ("practice",    "get")),
+    (("system",  "pricing"),     ("pricing",     "get")),
+    (("test",    "benchmark"),   ("benchmark",   "get")),
+    (("attempt", "report"),      ("reports",     "get")),
+    (("system",  "session"),     ("session",     "get")),
 ]:
     if _source in INFRA_OPS:
         INFRA_OPS[_alias] = INFRA_OPS[_source]

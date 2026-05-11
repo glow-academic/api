@@ -835,3 +835,19 @@ class CallDownloadAuthApiResult(BaseModel):
     content_type: str = Field(..., description="MIME type of the file")
     filename: str = Field(..., description="Original filename for Content-Disposition")
     size: int = Field(..., description="File size in bytes")
+
+
+class FileDownloadAuthApiRequest(BaseModel):
+    """Request model for auth file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadAuthApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

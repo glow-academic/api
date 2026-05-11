@@ -840,3 +840,19 @@ class CallDownloadProfileApiResult(BaseModel):
 CreateProfileApiResponse.model_rebuild()
 UpdateProfileApiResponse.model_rebuild()
 DuplicateProfileApiResponse.model_rebuild()
+
+
+class FileDownloadProfileApiRequest(BaseModel):
+    """Request model for profile file download endpoint."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource to download")
+
+
+class FileDownloadProfileApiResult(BaseModel):
+    """Resolved file info returned by the infra function."""
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")

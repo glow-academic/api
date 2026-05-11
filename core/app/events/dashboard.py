@@ -14,8 +14,8 @@ from app.infra.dashboard.types import (
 )
 
 DASHBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "dashboard_get": OperationEventConfig(
-        operation="dashboard_get",
+    "dashboard": OperationEventConfig(
+        operation="dashboard",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

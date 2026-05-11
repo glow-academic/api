@@ -95,7 +95,7 @@ class TestConfigItem(BaseModel):
     (agent + model + bundle) that can be re-fired any number of times
     into fresh trace executions. The bundle ids carried here come from
     the historical run's agent_resource — the picker passes them as
-    `RunPanelState` to /test/trace so the new trace records the same
+    `RunPanelState` to /test/invocation/trace so the new trace records the same
     prompt + tool + instruction set the original run executed against.
     """
 
@@ -108,7 +108,7 @@ class TestConfigItem(BaseModel):
 
     # Bundle ids from the historical run's agent_resource. The server
     # resolves them once here so the picker can pass them as panel
-    # state to /test/trace for faithful replay — no agent lookup on
+    # state to /test/invocation/trace for faithful replay — no agent lookup on
     # the client, no per-trace agent override on the server.
     prompt_ids: list[str] = Field(default_factory=list, description="Prompt resource ids from the historical agent")
     tool_ids: list[str] = Field(default_factory=list, description="Tool resource ids from the historical agent")

@@ -11,17 +11,29 @@ from app.infra.auth.types import AnalyticsFacets
 
 
 class LeaderboardRequest(BaseModel):
-    """Request for getting leaderboard artifact bundle (top sections)."""
+    """Request for leaderboard bundle (top-25% sections + rows inline).
+
+    The previous split between /get and /search was collapsed; this single
+    endpoint returns the full top-25% data inline. Pagination is intentionally
+    not supported — the leaderboard surfaces the canonical top slice only.
+    """
 
     start_date: str | None = Field(None, description="Filter start date")
     end_date: str | None = Field(None, description="Filter end date")
     cohort_ids: list[UUID] | None = Field(None, description="Cohort IDs to filter by")
+    simulation_ids: list[UUID] | None = Field(None, description="Simulation IDs to filter by")
     department_ids: list[UUID] | None = Field(None, description="Department IDs to filter by")
     simulation_filters: list[str] | None = Field(None, description="Simulation filter strings")
     target_profile_id: UUID | None = Field(None, description="Target profile ID to scope data")
 
-    # Backward-compatible singular filter.
+    # Backward-compatible singular filters.
     cohort_id: UUID | None = Field(None, description="Single cohort ID (deprecated)")
+    simulation_id: UUID | None = Field(None, description="Single simulation ID (deprecated)")
+
+    scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs to filter by")
+    search: str | None = Field(None, description="Profile name search (ILIKE) for filter dropdowns")
+    sort_by: str = Field(default="highest_score", description="Sort field name")
+    sort_order: str = Field(default="desc", description="Sort direction (asc or desc)")
 
 
 class ListLeaderboardRequest(BaseModel):
@@ -176,14 +188,22 @@ class LeaderboardResources(BaseModel):
 
 
 class LeaderboardResponse(BaseModel):
-    """Response for leaderboard get (top sections only).
+    """Response for leaderboard get — top-25% bundle including inline rows.
 
-    Includes inline analytics facets for SSR filter rendering.
+    Replaces the previous split between /get (sections only) and /search (rows
+    only). The leaderboard is a fixed top slice, not paginated, so one endpoint
+    returns both the section data and the row data the table renders.
     """
 
     sections: LeaderboardSections = Field(default_factory=LeaderboardSections, description="Computed leaderboard sections")
     resources: LeaderboardResources = Field(default_factory=LeaderboardResources, description="Resource metadata for hydration")
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
+
+    # Inline row data (previously fetched from the deleted /attempt/leaderboard/search).
+    data: list[LeaderboardDataRow] = Field(default_factory=list, description="Top-25% leaderboard rows")
+    total_count: int = Field(default=0, description="Total number of profiles matching filters (top 25% slice)")
+    simulation_options: list[FilterOption] = Field(default_factory=list, description="Simulation filter options")
+    profile_options: list[FilterOption] = Field(default_factory=list, description="Profile filter options")
 
 
 class ListLeaderboardResponse(BaseModel):

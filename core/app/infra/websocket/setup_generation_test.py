@@ -8,7 +8,7 @@ generation, creates:
      config + historical run_id pointing at the live run)
   4. A test_invocation_runs_entry per trace (binding the live run_id)
 
-Both manual replay (/test/start → /test/trace → /test/generate → /test/run)
+Both manual replay (/test/start → /test/invocation/trace → /test/generate → /test/run)
 and online eval (this function) produce the same row shape. Only difference:
 this function pre-fills all four because the run already exists; the manual
 flow creates them across separate API calls.

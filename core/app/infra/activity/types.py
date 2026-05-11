@@ -19,10 +19,8 @@ class ActivityRequest(BaseModel):
     page_limit: int = Field(50, ge=1, le=200, description="Max summary items per page")
     page_offset: int = Field(0, ge=0, description="Summary pagination offset")
     summary_profile_id: UUID | None = Field(None, description="Profile ID to focus the summary card")
-    history_page: int = Field(0, ge=0, description="Embedded history page number")
-    history_page_size: int = Field(50, ge=1, le=200, description="Embedded history items per page")
-    history_sort_by: str = Field("date", description="Embedded history sort field")
-    history_sort_order: str = Field("desc", description="Embedded history sort direction")
+    # History fields removed — paginated sessions list fetched via /system/sessions.
+    # See ListActivityRequest below for the filter shape that endpoint accepts.
 
 
 class ListActivityRequest(BaseModel):
@@ -96,8 +94,10 @@ class ActivityResponse(BaseModel):
     resources: ActivityResources = Field(default_factory=ActivityResources, description="Activity resource metadata")
     # Inline analytics facets
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
-    # Embedded history
-    history: ActivityHistoryResponse | None = Field(None, description="Embedded session history")
+    # Paginated history is no longer inline on /activity/get — fetch via
+    # /system/sessions. Field retained as always-None for prop-shape compat
+    # with clients that merge /system/sessions results into the bundle.
+    history: ActivityHistoryResponse | None = Field(None, description="Always null on /activity/get — use /system/sessions instead")
 
 
 class ListActivityResponse(BaseModel):

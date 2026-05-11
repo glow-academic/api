@@ -8,7 +8,6 @@ from app.infra.websocket.test_types import (
     TestAllCompleteEvent,
     TestErrorData,
     TestGradedData,
-    TestProceedData,
     TestProgressData,
     TestRunCompleteData,
 )
@@ -63,16 +62,6 @@ async def test_test_graded_data_fields():
     assert data.score == 85
     assert data.passed is True
     assert data.feedback == "Good job"
-
-
-async def test_test_proceed_data_requires_sid_and_test_id():
-    """TestProceedData requires sid and test_id."""
-    data = TestProceedData(sid="s1", test_id="t1")
-
-    assert data.sid == "s1"
-    assert data.test_id == "t1"
-    assert data.force_proceed is False
-    assert data.complete_all is False
 
 
 async def test_test_error_data_carries_message():

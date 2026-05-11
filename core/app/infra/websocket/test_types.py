@@ -42,21 +42,6 @@ class TestGradedData(BaseModel):
     feedback: str | None = None
 
 
-class TestProceedData(BaseModel):
-    """Internal bus payload for test_proceed — find next invocation to run."""
-
-    sid: str
-    test_id: str
-    force_proceed: bool = False
-    completed_invocation_id: str | None = None
-    complete_all: bool = False
-    # Identity threaded so downstream emits of test.run.triggered /
-    # test.group.started reach test_run_internal_impl without re-querying.
-    profile_id: str | None = None
-    session_id: str | None = None
-    profiles_id: str | None = None
-
-
 class TestErrorData(BaseModel):
     sid: str | None = None
     rooms: list[str] = []

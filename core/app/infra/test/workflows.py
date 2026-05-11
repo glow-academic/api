@@ -459,7 +459,7 @@ async def test_start_impl(
 ) -> None:
     """Create test via black boxes, optional benchmark bridge, delegate to test_proceed."""
     from app.infra.group.resolve import resolve_group_impl
-    from app.infra.websocket.test_types import TestErrorData, TestProceedData
+    from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.benchmark_test.create import create_benchmark_test
     from app.tools.entries.calls.create import create_call
     from app.tools.entries.runs.create import create_run

@@ -148,7 +148,7 @@ async def _page_context_health_build(
 
     # Lazy imports to avoid circular dependencies
     from app.routes.system.health.export import export_health
-    from app.routes.system.health.get import get_health
+    from app.routes.system.health import get_health
     from app.routes.system.health.refresh import health_refresh
 
     return ComposedContextResponse(

@@ -143,7 +143,7 @@ async def _page_context_leaderboard_build(
         compute_message_stats,
     )
     from app.routes.attempt.leaderboard.export import export_leaderboard
-    from app.routes.attempt.leaderboard.get import get_leaderboard
+    from app.routes.attempt.leaderboard import get_leaderboard
     from app.routes.attempt.leaderboard.refresh import leaderboard_refresh
     from app.routes.attempt.leaderboard.search import search_leaderboard
 

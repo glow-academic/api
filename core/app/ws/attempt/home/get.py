@@ -6,7 +6,7 @@ from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.home.types import GetHomeRequest
 from app.infra.identity.socket import resolve_socket_identity
-from app.routes.attempt.home.get import get_home_internal
+from app.routes.attempt.home import get_home_internal
 
 internal_sio = get_internal_sio()
 

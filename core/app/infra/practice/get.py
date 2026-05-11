@@ -18,7 +18,7 @@ async def get_practice_impl(
     session_id: UUID | None = None,
     bypass_cache: bool = False,
 ) -> GetPracticeResponse:
-    from app.routes.attempt.practice.get import get_practice_internal
+    from app.routes.attempt.practice import get_practice_internal
 
     return await get_practice_internal(
         pool,

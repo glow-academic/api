@@ -146,9 +146,9 @@ async def _page_context_dashboard_build(
         compute_secondary_metrics,
     )
     from app.routes.attempt.dashboard.export import export_dashboard
-    from app.routes.attempt.dashboard.get import get_dashboard
+    from app.routes.attempt.dashboard import get_dashboard
     from app.routes.attempt.dashboard.refresh import dashboard_refresh
-    from app.routes.attempt.dashboard.search import search_dashboard
+    # /dashboard/search collapsed into canonical /attempt/search endpoint.
 
     return ComposedContextResponse(
         name="dashboard",
@@ -187,10 +187,7 @@ async def _page_context_dashboard_build(
                 get_dashboard,
                 description="POST /get — Get dashboard analytics with metrics and sections.",
             ),
-            get_operation_info(
-                search_dashboard,
-                description="POST /search — Search dashboard history entries.",
-            ),
+            # /search collapsed into canonical /attempt/search.
             get_operation_info(
                 dashboard_refresh,
                 description="POST /refresh — Refresh dashboard materialized views.",

@@ -30,15 +30,8 @@ class PricingRequest(BaseModel):
     department_ids: list[UUID] = Field(default_factory=list, description="Department IDs to filter by")
     page_limit: int = Field(100, ge=1, le=500, description="Max chart items per page")
     page_offset: int = Field(0, ge=0, description="Chart pagination offset")
-    history_page: int = Field(0, ge=0, description="Embedded history page number")
-    history_page_size: int = Field(50, ge=1, le=200, description="Embedded history items per page")
-    history_sort_by: str = Field("date", description="Embedded history sort field (date | total_cost | total_tokens | run_count)")
-    history_sort_order: str = Field("desc", description="Embedded history sort direction")
-    history_model_id: UUID | None = Field(None, description="Model UUID to filter embedded history by (legacy single)")
-    history_model_ids: list[UUID] | None = Field(None, description="Model UUIDs to filter embedded history by (multi). Takes precedence over history_model_id when set.")
-    history_profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs (human users) to filter embedded history by")
-    history_agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs (LLM agents) to filter embedded history by")
-    history_search: str | None = Field(None, description="Group name search (ILIKE) for embedded history")
+    # History fields removed — paginated groups list fetched via /system/groups.
+    # See ListPricingRequest below for the filter shape that endpoint accepts.
 
     @property
     def effective_date_from(self) -> datetime | None:
@@ -52,7 +45,12 @@ class PricingRequest(BaseModel):
 
 
 class ListPricingRequest(BaseModel):
-    """Request for pricing list endpoint (group history, paginated)."""
+    """Request for /system/groups endpoint (paginated groups with cost data).
+
+    Canonical paginated groups list. Promoted from /system/pricing/search.
+    Filter fields here mirror the previous PricingRequest.history_* set so
+    consumers that used to drive the inline history pass them through.
+    """
 
     # Date filters
     start_date: datetime | None = Field(default=None, description="Filter start date")
@@ -60,9 +58,18 @@ class ListPricingRequest(BaseModel):
     date_from: datetime | None = Field(default=None, description="Alias for start date")
     date_to: datetime | None = Field(default=None, description="Alias for end date")
 
-    # Pagination
+    # Scope filters (mirrored from the old PricingRequest.history_* fields).
+    department_ids: list[UUID] | None = Field(None, description="Department IDs to filter by")
+    model_id: UUID | None = Field(None, description="Model UUID to filter by (legacy singular)")
+    model_ids: list[UUID] | None = Field(None, description="Model UUIDs to filter by (multi, preferred)")
+    profile_ids: list[UUID] | None = Field(None, description="Profile UUIDs (human users) to filter by")
+    agent_ids: list[UUID] | None = Field(None, description="Agent UUIDs (LLM agents) to filter by")
+    search: str | None = Field(None, description="Group name search (ILIKE)")
+
+    # Pagination + sort
     page: int = Field(0, description="Pagination page number")
     page_size: int = Field(50, description="Items per page")
+    sort_by: str = Field("date", description="Sort field (date | total_cost | total_tokens | run_count)")
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
 
     @property
@@ -101,7 +108,10 @@ class PricingResponse(BaseModel):
     model_options: list[FilterOption] = Field(default_factory=list, description="Model filter options")
     agent_options: list[FilterOption] = Field(default_factory=list, description="Agent filter options")
     analytics: AnalyticsFacets | None = Field(None, description="Inline analytics facets for SSR")
-    history: PricingHistoryResponse | None = Field(None, description="Embedded pricing group history")
+    # Paginated history is no longer inline on /pricing/get — fetch via
+    # /system/groups. Field retained as always-None for prop-shape compat
+    # with clients that merge /system/groups results into the bundle.
+    history: PricingHistoryResponse | None = Field(None, description="Always null on /pricing/get — use /system/groups instead")
 
 
 class PricingGroupItem(BaseModel):

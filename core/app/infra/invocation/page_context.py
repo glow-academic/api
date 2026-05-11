@@ -144,9 +144,10 @@ async def _page_context_invocation_build(
     # -- Step 7: Assemble response ----------------------------------------------
 
     # Lazy imports to avoid circular dependencies
-    from app.routes.test.invocation.draft import patch_invocation_draft
-    from app.routes.test.invocation.export import export_invocation
-    from app.routes.test.invocation.get import invocation_get
+    # /test/invocation/draft was promoted to top-level /test/draft.
+    from app.routes.test.draft import patch_invocation_draft
+    # /test/invocation/* flattened to /test/invocation_*.
+    from app.routes.test.invocation_get import invocation_get
 
     return ComposedContextResponse(
         name="invocation",
@@ -167,10 +168,8 @@ async def _page_context_invocation_build(
                 patch_invocation_draft,
                 description="PATCH /draft — Create or patch an invocation draft.",
             ),
-            get_operation_info(
-                export_invocation,
-                description="POST /export — Export invocation data as CSV.",
-            ),
+            # /invocation/export was deleted in an earlier consolidation; use
+            # /test/export with view='invocation' instead.
         ],
         page_metadata=page_metadata,
         prompts=prompts,

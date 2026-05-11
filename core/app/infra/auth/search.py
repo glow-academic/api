@@ -400,3 +400,27 @@ async def _search_auth_build(
 
 async def _empty_list() -> list:
     return []
+
+
+AUTH_IMPORT_FIELDS: list[dict[str, Any]] = [
+    {
+        "key": "name",
+        "label": "Name",
+        "required": True,
+        "example": "Production API Key",
+        "description": "Display name for this auth/credential",
+    },
+    {
+        "key": "description",
+        "label": "Description",
+        "example": "Used by the analytics worker pool",
+        "description": "Optional description",
+    },
+    {
+        "key": "departments",
+        "label": "Departments",
+        "multi": True,
+        "example": "Engineering, Operations",
+        "description": "Comma-separated department names for visibility scoping",
+    },
+]

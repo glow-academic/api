@@ -7,8 +7,7 @@ Creates all DB state needed for execution:
   4. create_run (active=not soft, linked to agents)
   5. persist_run_message — system, developer, user messages
   6. setup_generation_test — test + invocations if rubrics
-  7. init_run_trackers — Redis progress tracking
-  8. Returns PrepareGenerationResult with agent dispatches
+  7. Returns PrepareGenerationResult with agent dispatches
 """
 
 from __future__ import annotations
@@ -27,9 +26,7 @@ from app.infra.generation.types import (
 )
 from app.infra.types import ArtifactRequest
 from app.infra.websocket.generation_types import GeneratePayload
-from app.infra.websocket.init_run_trackers import init_run_trackers
 from app.infra.websocket.persist_run_message import persist_run_message
-from app.infra.websocket.run_tracker import WorkUnit
 from app.infra.websocket.setup_generation_test import (
     AgentTestConfig,
     setup_generation_test,
@@ -79,23 +76,6 @@ def _resolve_modality_pair(
     return input_set, output_set
 
 
-def _build_work_units(
-    agent_groups: dict[uuid.UUID, list[str]],
-    createable_resources: set[str] | list[str],
-) -> list[WorkUnit]:
-    """Build run-tracker work units from grouped agent resource assignments."""
-    createable = set(createable_resources)
-    return [
-        WorkUnit(
-            agent_id=str(aid),
-            target_type="resource" if rt in createable else "entry",
-            target_name=rt,
-        )
-        for aid, rts in agent_groups.items()
-        for rt in rts
-    ]
-
-
 async def prepare_generation(
     pool: asyncpg.Pool,
     redis: Any,
@@ -120,7 +100,6 @@ async def prepare_generation(
     from fastapi import HTTPException
     from app.infra.websocket.prepare_pipeline import (
         build_agent_dispatch,
-        compute_createable_resources,
         enrich_tools_with_args,
         enrich_tools_with_args_outputs,
         enrich_tools_with_instruction_templates,
@@ -543,7 +522,6 @@ async def prepare_generation(
     all_tool_dicts = enrich_tools_with_permissions(
         all_tool_dicts, config_tools, ws_ctx.permissions
     )
-    createable_resources = compute_createable_resources(config_tools)
 
     prompts_by_id = {p.id: p for p in ws_ctx.prompts}
     instructions_by_id = {i.id: i for i in ws_ctx.instructions}
@@ -570,17 +548,7 @@ async def prepare_generation(
             )
         run_id = run.id
 
-    # --- Step 7: Init trackers ---
-    units = _build_work_units(agent_groups, createable_resources)
-    await init_run_trackers(
-        redis,
-        run_id=str(run_id),
-        num_agents=len(agent_groups),
-        num_resources=len(resource_types),
-        units=units,
-    )
-
-    # --- Step 8: Setup generation test ---
+    # --- Step 7: Setup generation test ---
     test_id: UUID | None = None
 
     agents_with_rubrics = [
@@ -635,7 +603,9 @@ async def prepare_generation(
             if iid in instructions_by_id and instructions_by_id[iid].template
         ]
 
-        # Enrich metadata with test + resolution config
+        # Enrich metadata with the per-agent test invocation id so the
+        # client can correlate this dispatch back to the rubric-bearing
+        # candidate when reviewing the soft writes after completion.
         enriched_metadata = dict(payload_metadata)
         if generation_test_id:
             enriched_metadata["generation_test_id"] = generation_test_id
@@ -643,10 +613,6 @@ async def prepare_generation(
                 enriched_metadata["test_invocation_id"] = str(
                     generation_invocation_map[agent_group_id]
                 )
-        if ws_ctx.resolution_strategy:
-            enriched_metadata["resolution_strategy"] = ws_ctx.resolution_strategy
-        if ws_ctx.resolution_threshold is not None:
-            enriched_metadata["resolution_threshold"] = ws_ctx.resolution_threshold
 
         # Build dispatch (messages + scoped tools)
         dispatch = build_agent_dispatch(

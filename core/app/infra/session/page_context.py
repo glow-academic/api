@@ -145,7 +145,7 @@ async def _page_context_session_build(
 
     # Lazy imports to avoid circular dependencies
     from app.routes.system.session.export import export_session
-    from app.routes.system.session.get import get_session
+    from app.routes.system.session import get_session
 
     return ComposedContextResponse(
         name="session",

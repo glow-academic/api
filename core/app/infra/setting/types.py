@@ -99,8 +99,6 @@ class SettingSystemResource(BaseModel):
     name: str | None = Field(None, description="System display name")
     description: str | None = Field(None, description="System description")
     agent_ids: list[UUID] = Field(default_factory=list, description="Linked agent identifiers")
-    resolution_strategy: str | None = Field(None, description="Resolution strategy")
-    resolution_threshold: float | None = Field(None, description="Resolution threshold")
     generated: bool | None = Field(None, description="Whether the system was AI-generated")
     suggested: bool = Field(False, description="Whether this item is suggested")
     selected: bool = Field(False, description="Whether this item is selected")
@@ -278,8 +276,6 @@ class SettingSystemDraftValue(BaseModel):
     name: str = Field(..., description="System display name")
     description: str | None = Field(None, description="Optional description")
     agent_ids: list[UUID] = Field(default_factory=list, description="Agents that this system routes to")
-    resolution_strategy: str | None = Field(None, description="Routing strategy, e.g. 'first', 'best', 'all'")
-    resolution_threshold: float | None = Field(None, description="Score threshold (0–1) for resolution")
 
 
 class SettingThresholdDraftValue(BaseModel):

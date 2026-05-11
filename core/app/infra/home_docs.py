@@ -88,8 +88,8 @@ async def docs_home_client(
         format_cohort_names,
     )
     from app.routes.attempt.home.export import export_home
-    from app.routes.attempt.home.get import home_get
-    from app.routes.attempt.home.search import search_home
+    from app.routes.attempt.home import home_get
+    # /home/search was collapsed into the canonical /attempt/search endpoint.
 
     return ComposedDocsResponse(
         name="home",
@@ -143,10 +143,7 @@ async def docs_home_client(
                 home_get,
                 description="POST /get — Get home dashboard with personal stats.",
             ),
-            get_operation_info(
-                search_home,
-                description="POST /search — Search home history entries.",
-            ),
+            # /search collapsed into canonical /attempt/search.
             get_operation_info(
                 export_home,
                 description="POST /export — Export home data as CSV/ZIP.",

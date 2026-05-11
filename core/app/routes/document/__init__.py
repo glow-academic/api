@@ -10,7 +10,9 @@ from app.routes.document.draft import router as draft_router
 from app.routes.document.drafts import router as drafts_router
 from app.routes.document.duplicate import router as duplicate_router
 from app.routes.document.export import router as export_router
-from app.routes.document.file import router as file_router
+from app.routes.document.file_download import router as file_download_router
+from app.routes.document.file_preview import router as file_preview_router
+from app.routes.document.file_upload import router as file_upload_router
 from app.routes.document.generate import router as generate_router
 from app.routes.document.generations import router as generations_router
 from app.routes.document.get import router as get_router
@@ -19,13 +21,16 @@ from app.routes.document.problem import router as problem_router
 from app.routes.document.refresh import router as refresh_router
 from app.routes.document.search import router as search_router
 from app.routes.document.stream import router as stream_router
-from app.routes.document.text import router as text_router
+from app.routes.document.text_download import router as text_download_router
+from app.routes.document.text_upload import router as text_upload_router
 from app.routes.document.update import router as update_router
-from app.routes.document.call import router as call_router
+from app.routes.document.call_download import router as call_download_router
+from app.routes.document.title import router as title_router
 
 router = APIRouter(prefix="/document", tags=["document"])
 
 # Standard artifact operations
+router.include_router(title_router)
 router.include_router(search_router)
 router.include_router(get_router)
 router.include_router(create_router)
@@ -45,8 +50,11 @@ router.include_router(csv_router)
 router.include_router(stream_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(file_router)
+router.include_router(text_download_router)
+router.include_router(text_upload_router)
+router.include_router(file_download_router)
+router.include_router(file_preview_router)
+router.include_router(file_upload_router)
 
 # Typed media operations
-router.include_router(call_router)
+router.include_router(call_download_router)

@@ -10,7 +10,7 @@ from app.routes.agent.draft import router as draft_router
 from app.routes.agent.drafts import router as drafts_router
 from app.routes.agent.duplicate import router as duplicate_router
 from app.routes.agent.export import router as export_router
-from app.routes.agent.file import router as file_router
+from app.routes.agent.file_download import router as file_download_router
 from app.routes.agent.generate import router as generate_router
 from app.routes.agent.generations import router as generations_router
 from app.routes.agent.get import router as get_router
@@ -20,12 +20,14 @@ from app.routes.agent.refresh import router as refresh_router
 from app.routes.agent.search import router as search_router
 from app.routes.agent.stream import router as stream_router
 from app.routes.agent.update import router as update_router
-from app.routes.agent.text import router as text_router
-from app.routes.agent.call import router as call_router
+from app.routes.agent.text_download import router as text_download_router
+from app.routes.agent.call_download import router as call_download_router
+from app.routes.agent.title import router as title_router
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 # Standard artifact operations
+router.include_router(title_router)
 router.include_router(context_router)
 router.include_router(get_router)
 router.include_router(search_router)
@@ -45,6 +47,6 @@ router.include_router(refresh_router)
 router.include_router(stream_router)
 
 # Typed media operations
-router.include_router(text_router)
-router.include_router(file_router)
-router.include_router(call_router)
+router.include_router(text_download_router)
+router.include_router(file_download_router)
+router.include_router(call_download_router)

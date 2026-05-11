@@ -455,8 +455,6 @@ async def _resolve_creatable_values(
                         description=value.description or "",
                         redis=redis,
                         agent_ids=value.agent_ids or None,
-                        resolution_strategy=value.resolution_strategy,
-                        resolution_threshold=value.resolution_threshold,
                     )
                     value.id = created.id
                 if value.id:

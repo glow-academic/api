@@ -26,7 +26,7 @@ async def get_home_impl(
     session_id: UUID | None = None,
     bypass_cache: bool = False,
 ) -> GetHomeResponse:
-    from app.routes.attempt.home.get import get_home_internal
+    from app.routes.attempt.home import get_home_internal
 
     return await get_home_internal(
         pool,

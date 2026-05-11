@@ -44,8 +44,6 @@ class SystemContext:
     instructions: list  # GetInstructionResponse — agent developer instructions (Layer 2)
     tool_instructions: list  # GetInstructionResponse — tool response templates (Layer 3)
     rubrics: list  # GetRubricResponse
-    resolution_strategy: str | None = None
-    resolution_threshold: float | None = None
 
 
 async def resolve_system_context(
@@ -87,8 +85,6 @@ async def resolve_system_context(
             instructions=[],
             tool_instructions=[],
             rubrics=[],
-            resolution_strategy=system.resolution_strategy,
-            resolution_threshold=system.resolution_threshold,
         )
 
     # Step 2: fetch agents
@@ -201,6 +197,4 @@ async def resolve_system_context(
         instructions=instructions_list,
         tool_instructions=tool_instructions_list,
         rubrics=rubrics_list,
-        resolution_strategy=system.resolution_strategy,
-        resolution_threshold=system.resolution_threshold,
     )

@@ -20,7 +20,7 @@ from app.utils.error.handle_route_error import handle_route_error
 router = APIRouter()
 
 
-@router.patch(
+@router.post(
     "/draft",
     response_model=PatchModelDraftApiResponse,
 )

@@ -461,7 +461,7 @@ async def get_test_impl(
                 # the test_invocation's target (e.g. picking a Persona
                 # run on an Activity test) end up with empty tool_ids /
                 # prompt_ids / instruction_ids on the picker — which
-                # /test/trace then stores as empty, and prepare.py
+                # /test/invocation/trace then stores as empty, and prepare.py
                 # silently falls back to the test_invocation's agent
                 # for the replay (using its tools, not the historical
                 # run's). The bundle the LLM ends up dispatching against
@@ -534,7 +534,7 @@ async def get_test_impl(
                         cfg_agent_id = cfg.agent_ids[0] if cfg.agent_ids else None
                         # Bundle defaults — populated from the historical
                         # run's agent_resource so the picker can pass them
-                        # to /test/trace for faithful replay.
+                        # to /test/invocation/trace for faithful replay.
                         cfg_prompt_ids: list[str] = []
                         cfg_tool_ids: list[str] = []
                         cfg_instruction_ids: list[str] = []
