@@ -455,13 +455,29 @@ class SearchTestApiResponse(BaseModel):
 # =============================================================================
 
 
-class ExportTestApiResponse(BaseModel):
-    """Response model for test export."""
+class ExportTestApiRequest(BaseModel):
+    """Request model for view-aware test export.
 
-    content: str = Field(..., description="Exported file content")
-    file_name: str = Field(..., description="Name of the exported file")
-    mime_type: str = Field(..., description="MIME type of the exported file")
-    row_count: int = Field(..., description="Number of rows in the export")
+    Views: ``single`` (one test_id), ``benchmark`` (analytics), ``invocation``.
+    All views return the canonical ``{file_id, file_name, row_count}`` shape;
+    client downloads via ``/api/test/download/{file_id}``.
+    """
+
+    view: str = Field(
+        "single",
+        description="View discriminator: 'single' | 'benchmark' | 'invocation'",
+    )
+    test_id: UUID | None = Field(None, description="UUID of the target test (required for 'single' and 'invocation')")
+    invocation_id: UUID | None = Field(None, description="UUID of the target invocation entry (optional for 'invocation')")
+    draft_id: UUID | None = Field(None, description="Optional draft id for 'invocation' view")
+
+
+class ExportTestApiResponse(BaseModel):
+    """Response model for test export — canonical file modality."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export bytes")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of data rows in the export")
 
 
 # =============================================================================

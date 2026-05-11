@@ -880,9 +880,33 @@ class SearchAttemptApiResponse(BaseModel):
 
 
 class ExportAttemptApiRequest(BaseModel):
-    """Request model for attempt export."""
+    """Request model for attempt export.
 
-    attempt_id: UUID
+    View-aware: dispatches to per-view exports under a single artifact-level
+    endpoint. ``view='single'`` exports one attempt (legacy shape); the other
+    views are analytics surfaces (``/home``, ``/practice``, ``/leaderboard``,
+    ``/analytics/dashboard``, ``/analytics/reports``, ``/analytics/reports/[recordId]``).
+
+    All views return the same canonical file-modality response
+    (``{file_id, file_name, row_count}``).
+    """
+
+    view: str = Field(
+        "single",
+        description="View discriminator: 'single' | 'dashboard' | 'reports' | 'leaderboard' | 'home' | 'practice' | 'record' | 'report'",
+    )
+
+    # Single-view fields
+    attempt_id: UUID | None = Field(None, description="UUID of a single attempt (required for view='single')")
+
+    # Record-view fields
+    record_id: UUID | None = Field(None, description="UUID of the target profile (required for view='record')")
+
+    # Generic analytics filters (forwarded to the per-view impl when supported)
+    date_from: datetime | None = Field(None, description="Optional date window start")
+    date_to: datetime | None = Field(None, description="Optional date window end")
+    department_ids: list[UUID] | None = Field(None, description="Optional department filter")
+    simulation_ids: list[UUID] | None = Field(None, description="Optional simulation filter")
 
 
 class SearchAttemptApiRequest(BaseModel):
@@ -907,12 +931,17 @@ GetAttemptApiRequest = GetAttemptDetailRequest
 
 
 class ExportAttemptApiResponse(BaseModel):
-    """Response model for attempt export."""
+    """Response model for attempt export — canonical file modality.
 
-    content: str = Field(..., description="Exported file content")
-    file_name: str = Field(..., description="Name of the exported file")
-    mime_type: str = Field(..., description="MIME type of the exported file")
-    row_count: int = Field(..., description="Number of rows in the export")
+    File-modality: the server writes the export to disk, registers it as a
+    ``files_resource`` row joined to an ``uploads_entry``, and returns the
+    ``file_id``. The client downloads via ``/attempt/file/download`` (and the
+    BFF wrapper at ``/api/attempt/download/{file_id}``).
+    """
+
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export bytes")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of data rows in the export")
 
 
 # =============================================================================

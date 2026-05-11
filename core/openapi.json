@@ -17854,7 +17854,7 @@
           "attempt"
         ],
         "summary": "Export Attempt",
-        "description": "Export attempt data as a clean, denormalized ZIP.",
+        "description": "Artifact-level attempt export.\n\nDispatches on ``body.view`` to per-view exports and returns\n``{file_id, file_name, row_count}``. Client downloads via\n``/api/attempt/download/{file_id}`` (BFF) \u2192 ``/attempt/file/download``.",
         "operationId": "export_attempt_attempt_export_post",
         "requestBody": {
           "content": {
@@ -20818,7 +20818,7 @@
           "test"
         ],
         "summary": "Export Test",
-        "description": "Export test data as a clean, denormalized ZIP.",
+        "description": "Artifact-level test export.\n\nDispatches on ``body.view`` to per-view exports and returns\n``{file_id, file_name, row_count}``. Client downloads via\n``/api/test/download/{file_id}`` (BFF) \u2192 ``/test/file/download``.",
         "operationId": "export_test_test_export_post",
         "requestBody": {
           "content": {
@@ -21718,6 +21718,54 @@
         ]
       }
     },
+    "/test/file/download": {
+      "post": {
+        "tags": [
+          "test"
+        ],
+        "summary": "Download File",
+        "description": "Download a file by file resource ID.",
+        "operationId": "download_file_test_file_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileDownloadTestApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "test"
+        ]
+      }
+    },
     "/test/benchmark/get": {
       "post": {
         "tags": [
@@ -22326,6 +22374,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ComposedContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "x-cache-tags": [
+          "system"
+        ]
+      }
+    },
+    "/system/export": {
+      "post": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Export System",
+        "description": "Artifact-level system export.\n\nDispatches on ``body.view`` to per-view exports (activity, pricing,\ngroup, session, health) and returns ``{file_id, file_name, row_count}``.\nClient downloads via ``/api/system/download/{file_id}`` (BFF) \u2192\n``/system/file/download``.",
+        "operationId": "export_system_system_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportSystemApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportSystemApiResponse"
                 }
               }
             }
@@ -49905,50 +50003,128 @@
       },
       "ExportAttemptApiRequest": {
         "properties": {
-          "attempt_id": {
+          "view": {
             "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id"
+            "title": "View",
+            "description": "View discriminator: 'single' | 'dashboard' | 'reports' | 'leaderboard' | 'home' | 'practice' | 'record' | 'report'",
+            "default": "single"
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id",
+            "description": "UUID of a single attempt (required for view='single')"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id",
+            "description": "UUID of the target profile (required for view='record')"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Optional date window start"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "Optional date window end"
+          },
+          "department_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Department Ids",
+            "description": "Optional department filter"
+          },
+          "simulation_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Ids",
+            "description": "Optional simulation filter"
           }
         },
         "type": "object",
-        "required": [
-          "attempt_id"
-        ],
-        "title": "ExportAttemptApiRequest"
+        "title": "ExportAttemptApiRequest",
+        "description": "Request model for attempt export.\n\nView-aware: dispatches to per-view exports under a single artifact-level\nendpoint. ``view='single'`` exports one attempt (legacy shape); the other\nviews are analytics surfaces (``/home``, ``/practice``, ``/leaderboard``,\n``/analytics/dashboard``, ``/analytics/reports``, ``/analytics/reports/[recordId]``).\n\nAll views return the same canonical file-modality response\n(``{file_id, file_name, row_count}``)."
       },
       "ExportAttemptApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export bytes"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Name of the exported file"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported file"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
           "row_count"
         ],
         "title": "ExportAttemptApiResponse",
-        "description": "Response model for attempt export."
+        "description": "Response model for attempt export \u2014 canonical file modality.\n\nFile-modality: the server writes the export to disk, registers it as a\n``files_resource`` row joined to an ``uploads_entry``, and returns the\n``file_id``. The client downloads via ``/attempt/file/download`` (and the\nBFF wrapper at ``/api/attempt/download/{file_id}``)."
       },
       "ExportAuthApiRequest": {
         "properties": {
@@ -51429,52 +51605,154 @@
         "title": "ExportSimulationApiResponse",
         "description": "Response model for export simulation endpoint."
       },
-      "ExportTestApiRequest": {
+      "ExportSystemApiRequest": {
         "properties": {
-          "test_id": {
+          "view": {
             "type": "string",
-            "format": "uuid",
-            "title": "Test Id"
+            "title": "View",
+            "description": "View discriminator: 'activity' | 'pricing' | 'group' | 'session' | 'health'"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Target session UUID (required for view='session')"
+          },
+          "group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Id",
+            "description": "Target group UUID (required for view='group')"
           }
         },
         "type": "object",
         "required": [
-          "test_id"
+          "view"
         ],
-        "title": "ExportTestApiRequest"
+        "title": "ExportSystemApiRequest",
+        "description": "Request model for view-aware system export.\n\nViews: ``activity`` | ``pricing`` | ``group`` | ``session`` | ``health``.\nAll views return canonical ``{file_id, file_name, row_count}``; client\ndownloads via ``/api/system/download/{file_id}``."
       },
-      "ExportTestApiResponse": {
+      "ExportSystemApiResponse": {
         "properties": {
-          "content": {
+          "file_id": {
             "type": "string",
-            "title": "Content",
-            "description": "Exported file content"
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export bytes"
           },
           "file_name": {
             "type": "string",
             "title": "File Name",
-            "description": "Name of the exported file"
-          },
-          "mime_type": {
-            "type": "string",
-            "title": "Mime Type",
-            "description": "MIME type of the exported file"
+            "description": "Suggested download file name"
           },
           "row_count": {
             "type": "integer",
             "title": "Row Count",
-            "description": "Number of rows in the export"
+            "description": "Number of data rows in the export"
           }
         },
         "type": "object",
         "required": [
-          "content",
+          "file_id",
           "file_name",
-          "mime_type",
+          "row_count"
+        ],
+        "title": "ExportSystemApiResponse",
+        "description": "Response model for system export \u2014 canonical file modality."
+      },
+      "ExportTestApiRequest": {
+        "properties": {
+          "view": {
+            "type": "string",
+            "title": "View",
+            "description": "View discriminator: 'single' | 'benchmark' | 'invocation'",
+            "default": "single"
+          },
+          "test_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Id",
+            "description": "UUID of the target test (required for 'single' and 'invocation')"
+          },
+          "invocation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invocation Id",
+            "description": "UUID of the target invocation entry (optional for 'invocation')"
+          },
+          "draft_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft Id",
+            "description": "Optional draft id for 'invocation' view"
+          }
+        },
+        "type": "object",
+        "title": "ExportTestApiRequest",
+        "description": "Request model for view-aware test export.\n\nViews: ``single`` (one test_id), ``benchmark`` (analytics), ``invocation``.\nAll views return the canonical ``{file_id, file_name, row_count}`` shape;\nclient downloads via ``/api/test/download/{file_id}``."
+      },
+      "ExportTestApiResponse": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource holding the export bytes"
+          },
+          "file_name": {
+            "type": "string",
+            "title": "File Name",
+            "description": "Suggested download file name"
+          },
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count",
+            "description": "Number of data rows in the export"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id",
+          "file_name",
           "row_count"
         ],
         "title": "ExportTestApiResponse",
-        "description": "Response model for test export."
+        "description": "Response model for test export \u2014 canonical file modality."
       },
       "ExportToolApiRequest": {
         "properties": {
@@ -52314,6 +52592,22 @@
         ],
         "title": "FileDownloadSimulationApiRequest",
         "description": "Request model for simulation file download endpoint."
+      },
+      "FileDownloadTestApiRequest": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "File Id",
+            "description": "UUID of the files_resource to download"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id"
+        ],
+        "title": "FileDownloadTestApiRequest",
+        "description": "Request model for test file download endpoint."
       },
       "FileDownloadToolApiRequest": {
         "properties": {

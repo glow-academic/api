@@ -11,6 +11,7 @@ from app.routes.system.call import router as call_router
 
 # Top-level system operations
 from app.routes.system.context import router as context_router
+from app.routes.system.export import router as export_router
 from app.routes.system.file import router as file_router
 from app.routes.system.generate import router as generate_router
 from app.routes.system.generations import router as generations_router
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/system", tags=["system"])
 
 # Top-level system operations
 router.include_router(context_router)
+router.include_router(export_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(problem_router)

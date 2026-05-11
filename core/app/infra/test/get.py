@@ -835,8 +835,10 @@ async def get_test_impl(
 
         msg_ids_by_run_id: dict[UUID, list[UUID]] = {}
         for m in messages:
+            # SearchMessageResponse uses ``message_id`` (MV column),
+            # not ``id`` like resource-level types.
             if m.run_id:
-                msg_ids_by_run_id.setdefault(m.run_id, []).append(m.id)
+                msg_ids_by_run_id.setdefault(m.run_id, []).append(m.message_id)
 
         call_ids_by_run_id: dict[UUID, list[UUID]] = {}
         for c in calls:

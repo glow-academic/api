@@ -2803,6 +2803,10 @@ permissions = [
     dict(id=sid("permission/provider/file_download"), artifact="provider", operation="file_download", name="File Download Provider"),
     dict(id=sid("permission/setting/file_download"), artifact="setting", operation="file_download", name="File Download Setting"),
     dict(id=sid("permission/tool/file_download"), artifact="tool", operation="file_download", name="File Download Tool"),
+    # Test file download — fan-out from persona for view-aware test export downloads.
+    dict(id=sid("permission/test/file_download"), artifact="test", operation="file_download", name="File Download Test"),
+    # System artifact-level export — view-aware analytics export under /system/export.
+    dict(id=sid("permission/system/export"), artifact="system", operation="export", name="Export System"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -3240,6 +3244,7 @@ PERMISSION_IDS = {
     ("system", "session_problem"): sid("permission/session/problem"),
     ("system", "session_refresh"): sid("permission/session/refresh"),
     ("system", "session_search"): sid("permission/session/search"),
+    ("system", "export"): sid("permission/system/export"),
     ("system", "refresh"): sid("permission/system/refresh"),
     ("test", "archive"): sid("permission/test/archive"),
     ("test", "benchmark_context"): sid("permission/benchmark/context"),
@@ -3256,6 +3261,7 @@ PERMISSION_IDS = {
     ("test", "end"): sid("permission/test/end"),
     ("test", "export"): sid("permission/test/export"),
     ("test", "feedback"): sid("permission/test/feedback"),
+    ("test", "file_download"): sid("permission/test/file_download"),
     ("test", "generate"): sid("permission/test/generate"),
     ("test", "generations"): sid("permission/test/generations"),
     ("test", "get"): sid("permission/test/get"),

@@ -11,6 +11,7 @@ from app.routes.test.complete import router as complete_router
 from app.routes.test.context import router as context_router
 from app.routes.test.export import router as export_router
 from app.routes.test.feedback import router as feedback_router
+from app.routes.test.file import router as file_router
 from app.routes.test.generate import router as generate_router
 from app.routes.test.generations import router as generations_router
 from app.routes.test.get import router as get_router
@@ -51,6 +52,7 @@ router.include_router(problem_router)
 # Media operations
 router.include_router(text_router)
 router.include_router(call_router)
+router.include_router(file_router)
 
 # Absorbed sub-routers (one-to-one nesting)
 router.include_router(benchmark_router)    # prefix="/benchmark"

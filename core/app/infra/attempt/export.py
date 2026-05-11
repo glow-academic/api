@@ -1,12 +1,18 @@
-"""Attempt export logic — composable infra architecture.
+"""Attempt export logic — view-aware, canonical file-modality output.
 
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. search_attempts — scoped to one attempt
-  3. search_attempt_chats — scoped to one attempt
-  4. search_attempt_messages — scoped to one attempt
-  5. Resource get tools — parallel hydration (profiles, simulations, scenarios, personas)
-  6. ZIP generation (attempts.csv + chats.csv + messages.csv) + upload entry creation
+A single artifact-level endpoint dispatches to per-view exports by ``view``.
+Every view returns the canonical ``{file_id, file_name, row_count}`` shape;
+the helper :func:`app.infra.exports.file_modality.wrap_bytes_as_file` runs the
+4-step file-modality chain (uploads_entry + files_resource + files_entry +
+file_uploads junction + refresh) and returns the ``file_id`` for download via
+``/attempt/file/download`` (BFF: ``/api/attempt/download/{file_id}``).
+
+Per-view CSV/ZIP byte extraction strategy: every per-view impl returns a
+Pydantic envelope with base64-encoded ``content`` (see e.g.
+``ExportDashboardApiResponse``). We call those impls directly (no per-view
+route layer — avoid double auth/audit) and decode the base64 here. The
+single-view path keeps its existing attempts/chats/messages ZIP logic but
+now wraps the bytes through the file-modality helper.
 """
 
 from __future__ import annotations
@@ -16,13 +22,13 @@ import base64
 import csv
 import io
 import zipfile
-from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.exports.file_modality import wrap_bytes_as_file
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
@@ -72,8 +78,9 @@ MESSAGE_CSV_COLUMNS = [
 ]
 
 
-async def _empty() -> list:  # type: ignore[type-arg]
-    return []
+# =============================================================================
+# View dispatcher
+# =============================================================================
 
 
 async def export_attempt_impl(
@@ -81,31 +88,141 @@ async def export_attempt_impl(
     redis: Redis,  # type: ignore[type-arg]
     *,
     profile_id: UUID,
-    attempt_id: UUID,
-) -> dict:
-    """Attempt export using composable infra functions.
+    session_id: UUID | None = None,
+    view: str = "single",
+    attempt_id: UUID | None = None,
+    record_id: UUID | None = None,
+    **_kwargs,
+):
+    """Dispatch on ``view`` and return canonical ``ExportAttemptApiResponse``.
 
-    Flow:
-      1. resolve_profile_identity_context -> role, department_ids
-      2. search_attempts -> single attempt entry
-      3. search_attempt_chats -> chats for the attempt
-      4. search_attempt_messages -> messages for the attempt
-      5. Parallel resource hydration -> human-readable values
-      6. Generate ZIP (attempts.csv + chats.csv + messages.csv) and return base64-encoded content
+    ``view``:
+      - ``single``    → one attempt's ZIP (legacy single-attempt export)
+      - ``dashboard`` → analytics dashboard export
+      - ``reports``   → analytics reports export
+      - ``leaderboard`` → leaderboard export
+      - ``home``      → home page certificate export
+      - ``practice``  → practice page export
+      - ``record``    → analytics record export (one target profile)
+      - ``report``    → analytics single-report export (alias for reports)
     """
     from app.infra.attempt.types import ExportAttemptApiResponse
 
-    # -- Step 1: Profile context --
+    # ── Single-attempt view ──────────────────────────────────────────────
+    if view == "single":
+        if attempt_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="attempt_id is required for view='single'.",
+            )
+        bytes_, row_count = await _export_single_attempt_bytes(
+            pool, redis, profile_id=profile_id, attempt_id=attempt_id,
+        )
+        file_id, file_name = await wrap_bytes_as_file(
+            pool,
+            redis,
+            content=bytes_,
+            file_name_prefix="attempt_export",
+            mime_type="application/zip",
+            extension="zip",
+            session_id=session_id,
+        )
+        return ExportAttemptApiResponse(
+            file_id=file_id, file_name=file_name, row_count=row_count,
+        )
+
+    # ── Analytics views (delegate to per-view impl, decode base64) ────────
+    if view == "dashboard":
+        from app.infra.dashboard.export import export_dashboard_impl
+        envelope = await export_dashboard_impl(pool, redis, profile_id=profile_id)
+    elif view == "reports" or view == "report":
+        from app.infra.reports.export import export_reports_impl
+        envelope = await export_reports_impl(pool, redis, profile_id=profile_id)
+    elif view == "leaderboard":
+        from app.infra.leaderboard.export import export_leaderboard_impl
+        envelope = await export_leaderboard_impl(pool, redis, profile_id=profile_id)
+    elif view == "home":
+        from app.infra.home_export import export_home_client
+        envelope = await export_home_client(pool, redis, profile_id=profile_id)
+    elif view == "practice":
+        from app.infra.practice_export import export_practice_client
+        envelope = await export_practice_client(pool, redis, profile_id=profile_id)
+    elif view == "record":
+        if record_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="record_id is required for view='record'.",
+            )
+        from app.infra.record_export import export_record_client
+        envelope = await export_record_client(
+            pool, redis, profile_id=profile_id, target_profile_id=record_id,
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown attempt export view: {view!r}")
+
+    return await _wrap_envelope(
+        pool, redis, envelope, view_prefix=f"attempt_{view}_export", session_id=session_id,
+    )
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+async def _wrap_envelope(
+    pool: asyncpg.Pool,
+    redis: Redis,  # type: ignore[type-arg]
+    envelope,
+    *,
+    view_prefix: str,
+    session_id: UUID | None,
+):
+    """Decode per-view base64 envelope + run canonical file-modality chain."""
+    from app.infra.attempt.types import ExportAttemptApiResponse
+
+    raw_b64 = getattr(envelope, "content", "") or ""
+    if not raw_b64:
+        # Empty per-view result — still produce a valid (empty) file so the
+        # client download flow stays uniform.
+        bytes_ = b""
+    else:
+        bytes_ = base64.b64decode(raw_b64)
+
+    mime_type = getattr(envelope, "mime_type", "application/zip") or "application/zip"
+    row_count = int(getattr(envelope, "row_count", 0) or 0)
+
+    from app.infra.exports.file_modality import extension_from_mime
+
+    file_id, file_name = await wrap_bytes_as_file(
+        pool,
+        redis,
+        content=bytes_,
+        file_name_prefix=view_prefix,
+        mime_type=mime_type,
+        extension=extension_from_mime(mime_type),
+        session_id=session_id,
+    )
+    return ExportAttemptApiResponse(
+        file_id=file_id, file_name=file_name, row_count=row_count,
+    )
+
+
+async def _export_single_attempt_bytes(
+    pool: asyncpg.Pool,
+    redis: Redis,  # type: ignore[type-arg]
+    *,
+    profile_id: UUID,
+    attempt_id: UUID,
+) -> tuple[bytes, int]:
+    """Build the single-attempt ZIP (attempts.csv + chats.csv + messages.csv) and return (bytes, row_count)."""
 
     profile = await resolve_profile_identity_context(pool, profile_id, redis)
-
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
-
-    # -- Step 2: Search attempt + chats + messages --
 
     async def _fetch_attempts() -> list:
         async with pool.acquire() as c:
@@ -135,14 +252,11 @@ async def export_attempt_impl(
     )
 
     if not attempts:
-        return ExportAttemptApiResponse(
-            content="",
-            file_name="",
-            mime_type="application/zip",
-            row_count=0,
-        )
-
-    # -- Step 3: Parallel resource hydration --
+        # Empty ZIP, zero rows — still passes through the file-modality chain.
+        empty = io.BytesIO()
+        with zipfile.ZipFile(empty, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("attempts.csv", "")
+        return empty.getvalue(), 0
 
     all_profile_ids: set[UUID] = set()
     all_simulation_ids: set[UUID] = set()
@@ -200,24 +314,18 @@ async def export_attempt_impl(
         _fetch_personas(),
     )
 
-    # Build lookup maps
     profile_map = {p.id: p.name or "" for p in profiles_data}
     simulation_map = {s.id: s.name or "" for s in simulations_data}
     scenario_map = {s.id: s.name or "" for s in scenarios_data}
     persona_map = {p.id: p.name or "" for p in personas_data}
 
-    # -- Step 4: Generate CSVs --
-
-    # attempts.csv
     attempts_output = io.StringIO()
     attempts_writer = csv.writer(attempts_output)
     attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
-
     for a in attempts:
         scenarios_str = PIPE.join(
             scenario_map.get(sid, "") for sid in (a.scenario_ids or [])
         )
-
         attempts_writer.writerow(
             [
                 str(a.attempt_id),
@@ -226,8 +334,8 @@ async def export_attempt_impl(
                 simulation_map.get(a.simulation_id, "") if a.simulation_id else "",
                 scenarios_str,
                 persona_map.get(a.personas_id, "") if a.personas_id else "",
-                "",  # cohort — not hydrated for attempt export
-                "",  # department — not hydrated for attempt export
+                "",
+                "",
                 "Yes" if a.practice else "No",
                 "Yes" if a.infinite_mode else "No",
                 str(a.num_chats),
@@ -235,16 +343,13 @@ async def export_attempt_impl(
             ]
         )
 
-    # chats.csv
     chats_output = io.StringIO()
     chats_writer = csv.writer(chats_output)
     chats_writer.writerow(CHAT_CSV_COLUMNS)
-
     for c in chats:
         personas_str = PIPE.join(
             persona_map.get(pid, "") for pid in (c.persona_ids or [])
         )
-
         chats_writer.writerow(
             [
                 str(c.chat_id),
@@ -260,11 +365,9 @@ async def export_attempt_impl(
             ]
         )
 
-    # messages.csv
     messages_output = io.StringIO()
     messages_writer = csv.writer(messages_output)
     messages_writer.writerow(MESSAGE_CSV_COLUMNS)
-
     for m in messages:
         messages_writer.writerow(
             [
@@ -277,24 +380,10 @@ async def export_attempt_impl(
             ]
         )
 
-    # -- Step 5: Generate ZIP + upload --
-
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("attempts.csv", attempts_output.getvalue())
         zf.writestr("chats.csv", chats_output.getvalue())
         zf.writestr("messages.csv", messages_output.getvalue())
 
-    zip_content = zip_buffer.getvalue()
-    row_count = len(attempts) + len(chats) + len(messages)
-
-    content = base64.b64encode(zip_content).decode("ascii")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"attempt_export_{timestamp}.zip"
-
-    return ExportAttemptApiResponse(
-        content=content,
-        file_name=file_name,
-        mime_type="application/zip",
-        row_count=row_count,
-    )
+    return zip_buffer.getvalue(), len(attempts) + len(chats) + len(messages)

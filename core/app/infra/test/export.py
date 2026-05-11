@@ -1,12 +1,16 @@
-"""Test export logic — composable infra architecture.
+"""Test export logic — view-aware, canonical file-modality output.
 
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. search_tests — test metadata for given test_id
-  3. search_test_invocation_entries_internal — invocations for this test
-  4. search_test_invocation_runs — runs for these invocations
-  5. Resource get tools — parallel hydration (departments, names)
-  6. ZIP generation (tests.csv + invocations.csv + runs.csv) + upload entry creation
+A single artifact-level endpoint dispatches to per-view exports by ``view``.
+Views: ``single`` (one test), ``benchmark`` (analytics), ``invocation``.
+Every view returns the canonical ``{file_id, file_name, row_count}`` shape;
+:func:`app.infra.exports.file_modality.wrap_bytes_as_file` runs the 4-step
+file-modality chain. Client downloads via ``/api/test/download/{file_id}``.
+
+Per-view byte extraction: ``benchmark`` and ``invocation`` impls return a
+Pydantic envelope with base64-encoded ``content``. We call them directly
+(skipping the per-view route layer to avoid double auth/audit) and decode
+the base64 here. The ``single`` view keeps its existing tests/invocations/runs
+ZIP logic but now wraps the raw bytes through the canonical helper.
 """
 
 from __future__ import annotations
@@ -16,15 +20,14 @@ import base64
 import csv
 import io
 import zipfile
-from datetime import datetime
 from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.exports.file_modality import extension_from_mime, wrap_bytes_as_file
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.test.types import ExportTestApiResponse
 from app.tools.entries.test.search import search_tests
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
@@ -88,25 +91,127 @@ RUN_CSV_COLUMNS = [
 ]
 
 
+# =============================================================================
+# View dispatcher
+# =============================================================================
+
+
 async def export_test_impl(
     pool: asyncpg.Pool,
     redis: Redis,  # type: ignore[type-arg]
     *,
     profile_id: UUID,
+    session_id: UUID | None = None,
+    view: str = "single",
+    test_id: UUID | None = None,
+    invocation_id: UUID | None = None,
+    draft_id: UUID | None = None,
+    **_kwargs,
+):
+    """Dispatch on ``view`` and return canonical ``ExportTestApiResponse``."""
+    from app.infra.test.types import ExportTestApiResponse
+
+    if view == "single":
+        if test_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="test_id is required for view='single'.",
+            )
+        bytes_, row_count = await _export_single_test_bytes(
+            pool, redis, profile_id=profile_id, test_id=test_id,
+        )
+        file_id, file_name = await wrap_bytes_as_file(
+            pool,
+            redis,
+            content=bytes_,
+            file_name_prefix="test_export",
+            mime_type="application/zip",
+            extension="zip",
+            session_id=session_id,
+        )
+        return ExportTestApiResponse(
+            file_id=file_id, file_name=file_name, row_count=row_count,
+        )
+
+    if view == "benchmark":
+        from app.infra.benchmark.export import export_benchmark_impl
+        envelope = await export_benchmark_impl(pool, redis, profile_id=profile_id)
+    elif view == "invocation":
+        if test_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="test_id is required for view='invocation'.",
+            )
+        # The per-view impl needs a group_id, like the per-view route.
+        from app.infra.invocation.export import export_invocation_impl
+        from app.infra.test.group import group_test_impl
+        group_result = await group_test_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
+        envelope = await export_invocation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            test_id=test_id,
+            group_id=group_result.group_id,
+            invocation_entry_id=invocation_id,
+            draft_id=draft_id,
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown test export view: {view!r}")
+
+    return await _wrap_envelope(
+        pool, redis, envelope, view_prefix=f"test_{view}_export", session_id=session_id,
+    )
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+async def _wrap_envelope(
+    pool: asyncpg.Pool,
+    redis: Redis,  # type: ignore[type-arg]
+    envelope,
+    *,
+    view_prefix: str,
+    session_id: UUID | None,
+):
+    """Decode per-view base64 envelope + run canonical file-modality chain."""
+    from app.infra.test.types import ExportTestApiResponse
+
+    raw_b64 = getattr(envelope, "content", "") or ""
+    bytes_ = base64.b64decode(raw_b64) if raw_b64 else b""
+    mime_type = getattr(envelope, "mime_type", "application/zip") or "application/zip"
+    row_count = int(getattr(envelope, "row_count", 0) or 0)
+
+    file_id, file_name = await wrap_bytes_as_file(
+        pool,
+        redis,
+        content=bytes_,
+        file_name_prefix=view_prefix,
+        mime_type=mime_type,
+        extension=extension_from_mime(mime_type),
+        session_id=session_id,
+    )
+    return ExportTestApiResponse(
+        file_id=file_id, file_name=file_name, row_count=row_count,
+    )
+
+
+async def _export_single_test_bytes(
+    pool: asyncpg.Pool,
+    redis: Redis,  # type: ignore[type-arg]
+    *,
+    profile_id: UUID,
     test_id: UUID,
-) -> ExportTestApiResponse:
-    """Test export using composable infra functions.
+) -> tuple[bytes, int]:
+    """Build the single-test ZIP (tests.csv + invocations.csv + runs.csv); return (bytes, row_count)."""
 
-    Flow:
-      1. resolve_profile_identity_context → role, department_ids
-      2. search_tests → test metadata for given test_id
-      3. search_test_invocation_entries_internal → invocations for this test
-      4. search_test_invocation_runs → runs for these invocations
-      5. Parallel resource hydration → human-readable values
-      6. Generate ZIP (tests.csv + invocations.csv + runs.csv) + create upload entry
-    """
-
-    # -- Step 1: Profile context --
     profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
@@ -114,17 +219,14 @@ async def export_test_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Search test metadata --
     async with pool.acquire() as conn:
         tests, _total = await search_tests(conn, test_ids=[test_id], limit=1)
 
-    # -- Step 3: Search invocations for this test --
     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
             conn, test_ids=[test_id], limit=100000, offset=0
         )
 
-    # -- Step 4: Search runs for these invocations --
     invocation_ids = [inv.invocation_id for inv in invocations]
     if invocation_ids:
         async with pool.acquire() as conn:
@@ -137,14 +239,11 @@ async def export_test_impl(
         runs = []
 
     if not tests and not invocations and not runs:
-        return ExportTestApiResponse(
-            content="",
-            file_name="",
-            mime_type="application/zip",
-            row_count=0,
-        )
+        empty = io.BytesIO()
+        with zipfile.ZipFile(empty, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("tests.csv", "")
+        return empty.getvalue(), 0
 
-    # -- Step 5: Parallel resource hydration --
     all_name_ids: set[UUID] = set()
     all_department_ids: set[UUID] = set()
     all_voice_ids: set[UUID] = set()
@@ -193,18 +292,13 @@ async def export_test_impl(
     department_map: dict[UUID, str] = {d.id: d.name or "" for d in departments_data}
     voice_map: dict[UUID, str] = {v.id: v.voice for v in voices_data}
 
-    # -- Step 6: Generate CSVs --
-
-    # tests.csv
     test_output = io.StringIO()
     test_writer = csv.writer(test_output)
     test_writer.writerow(TEST_CSV_COLUMNS)
-
     for t in tests:
         departments_str = PIPE.join(
             department_map.get(did, str(did)) for did in (t.department_ids or [])
         )
-
         test_writer.writerow(
             [
                 str(t.test_id),
@@ -221,11 +315,9 @@ async def export_test_impl(
             ]
         )
 
-    # invocations.csv
     inv_output = io.StringIO()
     inv_writer = csv.writer(inv_output)
     inv_writer.writerow(INVOCATION_CSV_COLUMNS)
-
     for inv in invocations:
         agents_str = PIPE.join(
             name_map.get(aid, str(aid)) for aid in (inv.agent_ids or [])
@@ -234,7 +326,6 @@ async def export_test_impl(
             department_map.get(did, str(did)) for did in (inv.department_ids or [])
         )
         modality_ids_str = PIPE.join(str(mid) for mid in (inv.modality_ids or []))
-
         inv_writer.writerow(
             [
                 str(inv.invocation_id),
@@ -260,11 +351,9 @@ async def export_test_impl(
             ]
         )
 
-    # runs.csv
     run_output = io.StringIO()
     run_writer = csv.writer(run_output)
     run_writer.writerow(RUN_CSV_COLUMNS)
-
     for r in runs:
         run_writer.writerow(
             [
@@ -282,23 +371,10 @@ async def export_test_impl(
             ]
         )
 
-    # -- Step 7: Generate ZIP --
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("tests.csv", test_output.getvalue())
         zf.writestr("invocations.csv", inv_output.getvalue())
         zf.writestr("runs.csv", run_output.getvalue())
 
-    zip_content = zip_buffer.getvalue()
-    row_count = len(tests) + len(invocations) + len(runs)
-
-    content = base64.b64encode(zip_content).decode("ascii")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"test_export_{timestamp}.zip"
-
-    return ExportTestApiResponse(
-        content=content,
-        file_name=file_name,
-        mime_type="application/zip",
-        row_count=row_count,
-    )
+    return zip_buffer.getvalue(), len(tests) + len(invocations) + len(runs)

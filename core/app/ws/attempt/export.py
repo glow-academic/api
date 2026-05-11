@@ -43,7 +43,10 @@ async def attempt_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            view=payload.view,
             attempt_id=payload.attempt_id,
+            record_id=payload.record_id,
         ),
         arguments=payload.model_dump(mode="json"),
     )

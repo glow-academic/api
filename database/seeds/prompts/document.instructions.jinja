@@ -9,157 +9,84 @@ Use `Document_Get(id: "{{ params.artifact_id }}")` to see current state.
 {% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
 {% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
 
-## Current Form State
+## Parameters
 
-The user is currently editing a document with the following selections:
-
-{% set draft = views.draft_document if views and views.draft_document else None %}
-
-{% if names and names|length > 0 %}
-**Current Names:** {% for name in names %}{{ name.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.name_ids and draft.name_ids|length > 0 %}
-**Current Names IDs:** {% for id in draft.name_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Names:** (not selected)
-{% endif %}
-
-{% if descriptions and descriptions|length > 0 %}
-**Current Descriptions:** {% for desc in descriptions %}{{ desc.description[:100] }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.description_ids and draft.description_ids|length > 0 %}
-**Current Descriptions IDs:** {% for id in draft.description_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Descriptions:** (not selected)
-{% endif %}
-
-{% if flags and flags|length > 0 %}
-**Current Flags:** {% for item in flags %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.flag_ids and draft.flag_ids|length > 0 %}
-**Current Flags IDs:** {% for id in draft.flag_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Flags:** (not selected)
-{% endif %}
-
-{% if departments and departments|length > 0 %}
-**Current Departments:** {% for item in departments %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.department_ids and draft.department_ids|length > 0 %}
-**Current Departments IDs:** {% for id in draft.department_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Departments:** (not selected)
-{% endif %}
-
-{% if images and images|length > 0 %}
-**Current Images:** {% for item in images %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.image_ids and draft.image_ids|length > 0 %}
-**Current Images IDs:** {% for id in draft.image_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Images:** (not selected)
-{% endif %}
-
-{% if parameter_fields and parameter_fields|length > 0 %}
-**Current Parameter Fields:** {% for item in parameter_fields %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.parameter_field_ids and draft.parameter_field_ids|length > 0 %}
-**Current Parameter Fields IDs:** {% for id in draft.parameter_field_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Parameter Fields:** (not selected)
-{% endif %}
-
-{% if parameters and parameters|length > 0 %}
-**Current Parameters:** {% for item in parameters %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.parameter_ids and draft.parameter_ids|length > 0 %}
-**Current Parameters IDs:** {% for id in draft.parameter_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Parameters:** (not selected)
-{% endif %}
-
-{% if texts and texts|length > 0 %}
-**Current Texts:** {% for t in texts %}{{ t.text[:80] }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.text_ids and draft.text_ids|length > 0 %}
-**Current Texts IDs:** {% for id in draft.text_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Texts:** (not selected)
-{% endif %}
-
-{% if uploads and uploads|length > 0 %}
-**Current Uploads:** {% for item in uploads %}{{ item.name }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% elif draft and draft.upload_ids and draft.upload_ids|length > 0 %}
-**Current Uploads IDs:** {% for id in draft.upload_ids %}{{ id }}{% if not loop.last %}, {% endif %}{% endfor %}
-{% else %}
-**Current Uploads:** (not selected)
-{% endif %}
-
----
-
-## Available Context Resources
-
-You have access to the following existing resources. Either **use_*** an existing resource OR **create_*** a new one — you only need to do ONE.
-
-{% if names and names|length > 0 %}
-### Available Names
-{% for item in names %}
-- id: {{ item.id }} | name: {{ item.name }}
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
 {% endfor %}
 {% endif %}
 
-{% if descriptions and descriptions|length > 0 %}
-### Available Descriptions
-{% for item in descriptions %}
-- id: {{ item.id }} | description: {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
 {% endfor %}
+
+## What To Do
+
+**Tool calls for actions, plain text for answers.** Generation/edit work (draft, create, update, delete) → tool calls. Answering an info question grounded in data already visible in the conversation → a short plain-text reply is fine.
+
+**Prior tool renders persist as chat messages the user can still see.** So:
+- **Do NOT re-fetch** when a recent `Document_Search` or `Document_Get` result is already in the conversation. The user is looking at it and you already have the data. Answer from that instead.
+- **Do NOT restate or re-list** what's literally just above your reply — the user can still see it. A brief acknowledgment is fine ("you have 7 documents above"), a full re-listing is wasteful.
+- **Re-fetch only** when no matching prior render exists, or your own prior writes may have invalidated it.
+
+{% set tool_names = tools | map(attribute='name') | list %}
+{% if 'Document_Draft' in tool_names %}
+{# --- Draft/Edit mode --- #}
+Save results by calling **Document_Draft** with a single call. You can set multiple fields in one call.
+
+For each requested resource below, pick or generate **one** value and include it in a single `Document_Draft` call.
+
+{% if 'names' in resources %}
+**Names:** Generate ONE clear, descriptive document name. Include `name` in the draft call.
+{% endif %}
+{% if 'descriptions' in resources %}
+**Descriptions:** Write ONE description summarizing what the document contains and how it should be used. Include `description` in the draft call.
+{% endif %}
+{% if 'files' in resources %}
+**Files:** Attach uploaded file IDs. Include `file_ids` (list) in the draft call.
+{% endif %}
+{% if 'texts' in resources %}
+**Texts:** Write inline text blocks. Include `texts` (list of strings) for new content, or `text_ids` (list) to reuse existing text resources.
+{% endif %}
+{% if 'images' in resources %}
+**Images:** Select image IDs from Document_Get. Include `image_ids` (list) in the draft call.
+{% endif %}
+{% if 'parameter_fields' in resources %}
+**Parameter Fields:** First call `Document_Get` to see available Parameter Groups. Then call `Document_Get` again with `parameter_ids` set to the relevant group IDs to see the fields within. Select appropriate field IDs and include `parameter_field_ids` in the draft call.
+{% endif %}
+{% if 'flags' in resources %}
+**Flags:** Pass `flag_ids` (a list of flag option UUIDs) to set document state. Include the document_active flag's `id` from Document_Get to make it available.
+{% endif %}
+{% if 'departments' in resources %}
+**Departments:** Select relevant department IDs from Document_Get. Include `department_ids` in the draft call.
 {% endif %}
 
-{% if flags and flags|length > 0 %}
-### Available Flags
-{% for item in flags %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields. Omit all optional fields entirely.
+{% elif 'Document_Create' in tool_names %}
+{# --- List/Management mode --- #}
+You are managing documents from the list view. Use the available tools to fulfill the user's request.
+
+{% if 'Document_Create' in tool_names %}
+**Create:** Use `Document_Create` to create a new document. Provide name and description at minimum. Use `Document_Search` first to check existing options and avoid duplicates.
 {% endif %}
-
-{% if departments and departments|length > 0 %}
-### Available Departments
-{% for item in departments %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
+{% if 'Document_Search' in tool_names %}
+**Search:** Use `Document_Search` to find existing documents by name, department, or other filters.
 {% endif %}
-
-{% if images and images|length > 0 %}
-### Available Images
-{% for item in images %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
+{% if 'Document_Delete' in tool_names %}
+**Delete:** Use `Document_Delete` with `ids: [<uuid>]`. Confirm the document exists via search first.
 {% endif %}
-
-{% if parameter_fields and parameter_fields|length > 0 %}
-### Available Parameter Fields
-{% for item in parameter_fields %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
+{% if 'Document_Duplicate' in tool_names %}
+**Duplicate:** Use `Document_Duplicate(id: <uuid>)` to clone an existing document.
 {% endif %}
-
-{% if parameters and parameters|length > 0 %}
-### Available Parameters
-{% for item in parameters %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
+{% if 'Document_Update' in tool_names %}
+**Update:** Use `Document_Update(id: <uuid>, …)` to modify an existing document. Pass only the fields to change.
 {% endif %}
-
-{% if texts and texts|length > 0 %}
-### Available Texts
-{% for item in texts %}
-- id: {{ item.id }} | text: {{ item.text[:80] }}{% if item.text|length > 80 %}...{% endif %}
-{% endfor %}
+{% if 'Document_Export' in tool_names %}
+**Export:** Use `Document_Export` to export document data.
 {% endif %}
-
-{% if uploads and uploads|length > 0 %}
-### Available Uploads
-{% for item in uploads %}
-- id: {{ item.id }} | name: {{ item.name }}{% if item.description is defined and item.description %} | {{ item.description[:50] }}{% endif %}
-{% endfor %}
 {% endif %}
-
-## Tool Usage (Either/Or)
-
-For each resource, choose ONE approach:
-- **use_*** tools: When a suitable resource ALREADY EXISTS above (pass the existing id)
-- **create_*** tools: When you need to generate NEW content (nothing suitable exists)
-
-You do NOT need to both create and use — pick one based on whether a suitable resource exists.

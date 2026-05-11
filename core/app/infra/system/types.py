@@ -52,3 +52,32 @@ class ProblemSystemApiResponse(BaseModel):
     problem_id: UUID = Field(..., description="UUID of the created problem")
     success: bool = Field(True, description="Whether the problem was created")
     message: str = Field("Problem created successfully", description="Status message")
+
+
+# =============================================================================
+# Export Types — view-aware artifact-level export
+# =============================================================================
+
+
+class ExportSystemApiRequest(BaseModel):
+    """Request model for view-aware system export.
+
+    Views: ``activity`` | ``pricing`` | ``group`` | ``session`` | ``health``.
+    All views return canonical ``{file_id, file_name, row_count}``; client
+    downloads via ``/api/system/download/{file_id}``.
+    """
+
+    view: str = Field(
+        ...,
+        description="View discriminator: 'activity' | 'pricing' | 'group' | 'session' | 'health'",
+    )
+    session_id: UUID | None = Field(None, description="Target session UUID (required for view='session')")
+    group_id: UUID | None = Field(None, description="Target group UUID (required for view='group')")
+
+
+class ExportSystemApiResponse(BaseModel):
+    """Response model for system export — canonical file modality."""
+
+    file_id: UUID = Field(..., description="UUID of the files_resource holding the export bytes")
+    file_name: str = Field(..., description="Suggested download file name")
+    row_count: int = Field(..., description="Number of data rows in the export")
