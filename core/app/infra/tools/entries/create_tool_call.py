@@ -3,6 +3,7 @@
 import json
 import traceback as _tb
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -38,6 +39,7 @@ async def create_tool_call(
     instruction_template: str | None = None,
     on_call_created: Callable[[UUID | None], Any] | None = None,
     pre_minted_call_id: UUID | None = None,
+    started_at: "datetime | None" = None,
 ) -> CreateToolSetupResponse:
     """Execute a tool and persist the full entry chain + files.
 
@@ -77,9 +79,16 @@ async def create_tool_call(
         await on_call_created(call_id)
 
     # 2. Execute — call tool_fn with call_id available
+    # NOTE: ``call_id`` here is the audit tool-call entry id (what create_call
+    # just minted). It is namespace-distinct from any request-body field that
+    # happens to also be named ``call_id`` (e.g. POST /persona/call_download
+    # whose body field is the call-resource UUID to download). Strip that key
+    # from the spread to avoid TypeError on duplicate kwargs. The full
+    # ``arguments`` dict is preserved as-is for the audit record below.
     tool_error: Exception | None = None
     try:
-        raw_result = await tool_fn(conn, call_id=call_id, **arguments)
+        spread_args = {k: v for k, v in arguments.items() if k != "call_id"}
+        raw_result = await tool_fn(conn, call_id=call_id, **spread_args)
     except Exception as exc:
         # Capture the full failure trail into the call receipt. The
         # ``message`` + ``error_type`` fields stay shape-compatible with
@@ -204,7 +213,13 @@ async def create_tool_call(
         )
         call_upload_db_id = call_upload.id
 
-    # 6. Text message path (always)
+    # 6. Text message path (always). ``created_at=started_at`` stamps
+    # this audit row at the moment the tool was DISPATCHED, not the
+    # moment audit finishes writing (which is post-``await runner()``).
+    # Without this the row stamps ``now()`` and the FE chat panel
+    # global time-sort renders the tool-call indicator AFTER its own
+    # produced media (the nested run's outputs that happened between
+    # dispatch and audit-write).
     msg = await create_run_message(
         conn,
         run_id=effective_run_id,
@@ -212,6 +227,7 @@ async def create_tool_call(
         role=role,
         upload_id=text_upload.id,
         mcp=mcp,
+        created_at=started_at,
     )
 
     # 7. Call upload junctions (only when tool_id is provided)

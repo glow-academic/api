@@ -98,7 +98,7 @@ async def test_resolve_settings_theme_inactive_when_no_active_flag():
 
     assert result is not None
     assert result.is_active is False
-    assert result.primary_color is None
+    assert result.light.primary == ""
 
 
 async def test_resolve_settings_theme_active_with_colors_and_thresholds():
@@ -150,8 +150,8 @@ async def test_resolve_settings_theme_active_with_colors_and_thresholds():
 
     assert result is not None
     assert result.is_active is True
-    assert result.primary_color == "#123456"
-    assert result.accent == "#abcdef"
+    assert result.light.primary == "#123456"
+    assert result.light.accent == "#abcdef"
     assert result.success_threshold == 90
     assert result.warning_threshold == 75
     assert result.danger_threshold == 60
@@ -186,12 +186,14 @@ async def test_resolve_thresholds_returns_defaults_when_no_identity():
 
 async def test_settings_theme_result_dataclass():
     """SettingsThemeResult is frozen and has expected fields."""
+    from app.utils.settings.theme import ThemePrimitives
+
     result = SettingsThemeResult(
         is_active=True,
-        primary_color="#fff",
+        light=ThemePrimitives(primary="#fff"),
         success_threshold=90,
     )
     assert result.is_active is True
-    assert result.primary_color == "#fff"
+    assert result.light.primary == "#fff"
     assert result.success_threshold == 90
     assert result.warning_threshold is None

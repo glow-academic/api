@@ -88,6 +88,12 @@ class GroupDetailMessageItem(BaseModel):
 
     id: UUID | None = Field(None, description="UUID of the message")
     role: str | None = Field(None, description="Role of the message sender")
+    # Surfaced so the FE chat panel can sort messages globally by time
+    # instead of by ``(run_id, in-run order)``. Required when a tool
+    # call dispatches a nested run — nested-run messages have
+    # timestamps interleaved between the parent's tool-call dispatch
+    # and the parent's post-tool final text response.
+    created_at: datetime | None = Field(None, description="Timestamp the message row was inserted")
     text_ids: list[UUID] = Field(default_factory=list, description="Text resource UUIDs")
     audio_ids: list[UUID] = Field(default_factory=list, description="Audio resource UUIDs")
     image_ids: list[UUID] = Field(default_factory=list, description="Image resource UUIDs")

@@ -53,12 +53,12 @@ def test_derive_theme_tokens_normalizes_hex_and_generates_contrasting_tokens():
             primary="#ff0000",
             accent="oklch(0.7 0.1 200)",
             background="#ffffff",
-            surface="#ffffff",
             success="#00ff00",
             warning="#ffff00",
-            error="#ff0000",
-            sidebarBackground="#ffffff",
-            sidebarPrimary="#000000",
+            destructive="#ff0000",
+            danger="#dc2626",
+            sidebar="#ffffff",
+            sidebar_primary="#000000",
             chart1="#ff0000",
             chart2="#00ff00",
             chart3="#0000ff",
@@ -69,5 +69,7 @@ def test_derive_theme_tokens_normalizes_hex_and_generates_contrasting_tokens():
 
     assert tokens.primary.startswith("oklch(")
     assert tokens.background.startswith("oklch(")
-    assert tokens.primaryForeground.startswith("oklch(")
-    assert tokens.sidebarPrimaryForeground.startswith("oklch(")
+    assert tokens.primary_foreground.startswith("oklch(")
+    assert tokens.sidebar_primary_foreground.startswith("oklch(")
+    assert tokens.danger.startswith("oklch(")
+    assert tokens.danger_foreground.startswith("oklch(")

@@ -1,3 +1,20 @@
+## ⚠️ Testing Mode — Video Generation
+
+This environment is in **video-generation testing mode**. The video model
+has a local cache keyed by exact prompt string. To avoid the ~5 minute
+fresh-generation cost on every dev run, you MUST use the cached prompt
+verbatim whenever you generate a video:
+
+- **Always pass `instructions: ["a cat walking"]`** to
+  `Scenario_Generate(modality: "video")`. Do not paraphrase, do not extend,
+  do not add detail — the cache match is byte-exact.
+- The `title` arg should still describe the scenario contextually (e.g.
+  "Workplace Intro Video"); only `instructions` is locked.
+
+Any deviation from this exact prompt string triggers a real ~5 minute GPU
+generation and costs the developer that time. This banner will be removed
+when video generation moves out of testing mode.
+
 ## Context
 
 {% if params.artifact_id %}
@@ -64,7 +81,7 @@ For each requested resource below, pick or generate **one** value and include it
 **Images:** Call `Scenario_Image_Create` with a descriptive name and prompt. This delegates to a specialist image generation agent. Then include the returned image ID in a `Scenario_Draft` call using `image_ids`.
 {% endif %}
 {% if 'videos' in resources %}
-**Videos:** Call `Scenario_Video_Create` with a descriptive name and prompt. This delegates to a specialist video generation agent. Then include the returned video ID in a `Scenario_Draft` call using `video_ids`.
+**Videos:** Call `Scenario_Generate(modality: "video", title: "<short label>", instructions: ["a cat walking"])` — see the Testing Mode banner above; `instructions` is locked to the cached prompt to avoid 5-minute GPU runs. Then include the returned video ID in a `Scenario_Draft` call using `video_ids` and flip the `video_enabled = true` flag id from `Scenario_Get`.
 {% endif %}
 {% if 'questions' in resources %}
 **Questions:** Write assessment questions that test the trainee's understanding. Use `question_ids` from Scenario_Get if suitable ones exist, or generate new ones using `questions` (list of strings).

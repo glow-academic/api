@@ -1,5 +1,6 @@
 """Sessions CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -12,19 +13,21 @@ async def create_session(
     profile_id: UUID | None = None,
     *,
     id: UUID | None = None,
+    created_at: datetime | None = None,
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateSessionResponse:
     """Create a sessions entry with profile link via connection table."""
     entry_id = await conn.fetchval(
         """
-        INSERT INTO sessions_entry (id, active, mcp, generated)
-        VALUES (COALESCE($3, uuidv7()), $1, $2, true)
+        INSERT INTO sessions_entry (id, active, mcp, generated, created_at)
+        VALUES (COALESCE($3, uuidv7()), $1, $2, true, COALESCE($4, NOW()))
         RETURNING id
     """,
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if entry_id is None:

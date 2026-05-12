@@ -45,18 +45,31 @@ class InternalBusMediaEmitter:
         resource_type: str | None,
         resource_id: str | None,
         metadata: dict[str, Any] | None,
+        message_id: str | None = None,
+        profile_id: str | None = None,
     ) -> None:
-        """Media generation started."""
+        """Media generation started. ``message_id`` is the pre-minted
+        ``messages_entry.id`` the produced asset will be attributed to —
+        FE listeners use it as the React key for the optimistic skeleton
+        bubble so ``on_complete`` can swap content in place."""
         await self._bus.emit(
             _media_event_name(modality, "start", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,
+                # ``rooms=[profile_id]`` matches the text-emit pattern in
+                # ``execute.py`` so every observer for this user
+                # (additional tabs, the make-debug panel, …) sees media
+                # events too. Without it, ``_generic_forward`` falls
+                # back to ``[sid]`` and the emit reaches only the
+                # originating page.
+                "rooms": [profile_id] if profile_id else [],
                 "run_id": run_id,
                 "group_id": group_id,
                 "artifact_type": artifact_type,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
+                "message_id": message_id,
                 "type": "start",
                 "message": f"{modality.capitalize()} generation started",
                 "metadata": metadata,
@@ -75,6 +88,8 @@ class InternalBusMediaEmitter:
         resource_id: str | None,
         message: str,
         metadata: dict[str, Any] | None,
+        message_id: str | None = None,
+        profile_id: str | None = None,
     ) -> None:
         """Media generation progress update."""
         await self._bus.emit(
@@ -82,11 +97,13 @@ class InternalBusMediaEmitter:
             {
                 "modality": modality,
                 "sid": sid,
+                "rooms": [profile_id] if profile_id else [],
                 "run_id": run_id,
                 "group_id": group_id,
                 "artifact_type": artifact_type,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
+                "message_id": message_id,
                 "type": "progress",
                 "message": message,
                 "metadata": metadata,
@@ -105,18 +122,25 @@ class InternalBusMediaEmitter:
         resource_id: str | None,
         result: MediaResult,
         metadata: dict[str, Any] | None,
+        profile_id: str | None = None,
     ) -> None:
-        """Media generation completed successfully."""
+        """Media generation completed successfully. ``result.message_id``
+        (when present) carries the ``messages_entry.id`` the upload was
+        attributed to — same id as the matching ``on_start`` emit so the
+        FE listener can locate its optimistic skeleton and swap content
+        in place."""
         await self._bus.emit(
             _media_event_name(modality, "complete", artifact_type),
             {
                 "modality": modality,
                 "sid": sid,
+                "rooms": [profile_id] if profile_id else [],
                 "run_id": run_id,
                 "group_id": group_id,
                 "artifact_type": artifact_type,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
+                "message_id": result.message_id,
                 "type": "complete",
                 "event_type": "media_complete",
                 "file_path": result.file_path,
@@ -125,6 +149,7 @@ class InternalBusMediaEmitter:
                 "upload_id": result.upload_id,
                 "images_id": result.images_id,
                 "videos_id": result.videos_id,
+                "audios_id": result.audios_id,
                 "metadata": metadata,
             },
         )
@@ -141,6 +166,8 @@ class InternalBusMediaEmitter:
         resource_id: str | None,
         error_message: str,
         metadata: dict[str, Any] | None,
+        message_id: str | None = None,
+        profile_id: str | None = None,
     ) -> None:
         """Media generation failed."""
         await self._bus.emit(
@@ -148,11 +175,13 @@ class InternalBusMediaEmitter:
             {
                 "modality": modality,
                 "sid": sid,
+                "rooms": [profile_id] if profile_id else [],
                 "run_id": run_id,
                 "group_id": group_id,
                 "artifact_type": artifact_type,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
+                "message_id": message_id,
                 "type": "error",
                 "error_message": error_message,
                 "metadata": metadata,

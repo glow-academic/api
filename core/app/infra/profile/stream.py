@@ -19,6 +19,7 @@ async def stream_profile_impl(
     profile_id: UUID,
     session_id: UUID | None = None,
     group_id: UUID | None = None,
+    run_id: UUID | None = None,
 ) -> StreamingResponse:
     if group_id is None:
         group_result = await group_profile_impl(
@@ -29,5 +30,6 @@ async def stream_profile_impl(
         group_id = group_result.group_id
     return await build_artifact_stream_impl(
         group_id=group_id,
+        run_id=run_id,
         artifact="profile",
     )

@@ -534,6 +534,16 @@ async def prepare_generation(
     # --- Step 6: Create or reuse run ---
     agent_ids_for_run = [aid for aid in agent_groups if aid]
 
+    # ``client_run_id`` lets the FE pre-pick the run_id it expects so it
+    # can subscribe to per-run events before the server creates the row.
+    # Falls through to the auto-uuidv7 path when absent.
+    client_run_uuid: UUID | None = None
+    if payload.client_run_id:
+        try:
+            client_run_uuid = uuid.UUID(payload.client_run_id)
+        except (ValueError, TypeError):
+            client_run_uuid = None
+
     if payload.run_id:
         # Reuse existing run (e.g., grading pipeline passes its own run_id)
         run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
@@ -545,11 +555,13 @@ async def prepare_generation(
                 session_id=session_id,
                 agent_ids=agent_ids_for_run,
                 soft=soft,
+                id=client_run_uuid,
             )
         run_id = run.id
 
     # --- Step 7: Setup generation test ---
     test_id: UUID | None = None
+    eval_setup = None  # type: EvalSetup | None
 
     agents_with_rubrics = [
         AgentTestConfig(
@@ -564,10 +576,14 @@ async def prepare_generation(
         if getattr(a, "rubric_id", None)
     ]
 
-    generation_test_id: str | None = None
     generation_invocation_map: dict[uuid.UUID, uuid.UUID] | None = None
+    rubric_by_agent: dict[uuid.UUID, uuid.UUID] = {
+        a.id: a.rubric_id for a in config_agents if getattr(a, "rubric_id", None)
+    }
 
     if agents_with_rubrics:
+        from app.infra.websocket.generation_types import EvalSetup, InvocationSlot
+
         async with pool.acquire() as conn:
             gen_test = await setup_generation_test(
                 conn,
@@ -575,9 +591,24 @@ async def prepare_generation(
                 run_id=run_id,
                 profile_id=profiles_id,
             )
-        generation_test_id = str(gen_test.test_id)
         generation_invocation_map = gen_test.invocations
         test_id = gen_test.test_id
+
+        # Build the run-level eval scaffold once. Rides on the
+        # ArtifactGenerateResponse so audit's ``**output`` spread
+        # carries it onto ``<artifact>.generate.completed`` — no
+        # emit-time lookup, no metadata digging on the FE.
+        eval_setup = EvalSetup(
+            test_id=gen_test.test_id,
+            invocations=[
+                InvocationSlot(
+                    invocation_id=inv_id,
+                    agent_id=agent_id,
+                    rubric_id=rubric_by_agent.get(agent_id),
+                )
+                for agent_id, inv_id in gen_test.invocations.items()
+            ],
+        )
 
     # --- Step 9: Build dispatches + persist messages ---
     dispatches: list[AgentDispatch] = []
@@ -603,16 +634,11 @@ async def prepare_generation(
             if iid in instructions_by_id and instructions_by_id[iid].template
         ]
 
-        # Enrich metadata with the per-agent test invocation id so the
-        # client can correlate this dispatch back to the rubric-bearing
-        # candidate when reviewing the soft writes after completion.
+        # Per-dispatch metadata is passthrough — eval scaffolding rides
+        # on ``PrepareGenerationResult.eval_setup`` as a first-class
+        # field, not stuffed into a dict bucket. Keep this assignment
+        # so any caller-supplied metadata still flows.
         enriched_metadata = dict(payload_metadata)
-        if generation_test_id:
-            enriched_metadata["generation_test_id"] = generation_test_id
-            if generation_invocation_map and agent_group_id in generation_invocation_map:
-                enriched_metadata["test_invocation_id"] = str(
-                    generation_invocation_map[agent_group_id]
-                )
 
         # Build dispatch (messages + scoped tools)
         dispatch = build_agent_dispatch(
@@ -644,14 +670,19 @@ async def prepare_generation(
                         content=msg.raw_text,
                     )
 
-            # User instructions
+            # Instructions — role is "user" for FE-direct flows (a human
+            # typed something) and "assistant" for tool-driven flows
+            # (the parent LLM crafted these as a tool argument, e.g.
+            # ``Scenario_Generate(instructions=["…"])``). Caller decides
+            # via ``payload.instructions_role`` (default "user"); the
+            # INFRA_OPS tool dispatcher overrides to "assistant".
             if payload.instructions:
                 for instruction in payload.instructions:
                     await persist_run_message(
                         conn,
                         run_id=run_id,
                         session_id=session_id,
-                        role="user",
+                        role=payload.instructions_role,
                         content=instruction,
                     )
 
@@ -719,8 +750,16 @@ async def prepare_generation(
             for em in payload.extra_messages:
                 all_messages.append(em)
         if payload.instructions:
+            # Role mirrors the persistence path above (~line 685): "user"
+            # for FE-direct flows, "assistant" for tool-driven flows. The
+            # live ``text.complete`` emit reads this list, so a hardcoded
+            # "user" here would render the assistant-crafted instructions
+            # as a user bubble even though the persisted row has
+            # role=assistant.
             for instruction in payload.instructions:
-                all_messages.append({"role": "user", "content": instruction})
+                all_messages.append(
+                    {"role": payload.instructions_role, "content": instruction}
+                )
 
         _params = payload_params or {}
         _meta = enriched_metadata or {}
@@ -776,4 +815,15 @@ async def prepare_generation(
         test_id=test_id,
         resource_types=resource_types,
         replay_tape=replay_tape,
+        eval_setup=eval_setup,
+        # Forward caller-supplied label + derive description from the
+        # instructions when none was provided. Media dispatches consume
+        # both to stamp the produced ``{m}s_resource`` row with
+        # human-readable values.
+        title=payload.title,
+        description=(
+            "\n\n".join(payload.instructions)
+            if payload.instructions
+            else None
+        ),
     )

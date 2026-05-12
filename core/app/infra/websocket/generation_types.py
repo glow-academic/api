@@ -7,7 +7,7 @@ before sending via internal_sio.emit(..., model.model_dump(mode="json")).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -112,12 +112,34 @@ class GeneratePayload(BaseModel):
     """
 
     artifact_type: str = "unknown"
+    # Optional caller-supplied label for media generations. Becomes the
+    # ``name`` on the produced ``{m}s_resource`` row so the asset shows
+    # up in pickers as something human (e.g. "University Office") instead
+    # of the UUID-derived fallback. ``media_upload_impl`` handles
+    # collisions by suffixing with " 1", " 2", … so multiple generates
+    # under the same title still get distinct rows. Regular uploads
+    # already derive a name from the filename, so this field is only
+    # needed on the LLM-driven generation path.
+    title: str | None = None
     instructions: list[str] | None = None
+    # Role to attribute the persisted ``instructions`` messages to.
+    # Defaults to ``"user"`` (FE-direct flow: a human typed something).
+    # The INFRA_OPS tool dispatcher overrides to ``"assistant"`` because
+    # in the tool-driven path the parent LLM crafted those instructions
+    # as a tool argument — they aren't human input. Persona/scenario
+    # text generation reads ``payload.instructions_role`` in
+    # ``prepare_generation`` and uses it for ``persist_run_message``.
+    instructions_role: str = "user"
     operations: list[str] | None = None
     dangerous: bool = False
     params: dict[str, Any] | None = None
     group_id: str | None = None
     run_id: str | None = None
+    # FE-provided stable id (typically a fresh uuid4 generated client-side).
+    # When set, the server uses it as the ``runs_entry.id``. Lets the FE
+    # subscribe to events scoped to this run_id BEFORE the run is created,
+    # so no race on the first events of the run.
+    client_run_id: str | None = None
     modalities: list[str] | None = None     # requested output modalities
     audios_id: str | None = None            # resource-level audio handle for STT input
     conversation_id: str | None = None      # live realtime conversation buffer
@@ -216,6 +238,13 @@ class ArtifactGenerateRequest(BaseModel):
                                              # server-side via black boxes
     idempotency_key: UUID | None = None     # ack
     accept: bool = True                     # ack
+    # Block on the full execute+refresh pipeline (default) vs. fire the
+    # run as a background asyncio task and return ``run_id`` immediately.
+    # ``None`` lets the calling layer pick the default — today the HTTP
+    # route and the LLM tool dispatcher both default to ``True`` (blocking).
+    # Flip to ``False`` to opt into fire-and-forget; pair with ``X_Watch``
+    # if the caller wants to block on a specific run later.
+    wait_for_complete: bool | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -271,12 +300,68 @@ class ArtifactGenerateRequest(BaseModel):
         return data
 
 
+class InvocationSlot(BaseModel):
+    """One agent's slot in a multi-agent generation pool.
+
+    Populated by ``setup_generation_test`` when an agent carries a
+    rubric. The client uses these IDs to drive the eval workflow:
+    review the candidate's output, optionally fire a grader against
+    its ``invocation_id``, and promote/reject by call_id via the
+    existing ``idempotency_key + accept`` pattern.
+    """
+
+    invocation_id: UUID
+    agent_id: UUID
+    rubric_id: UUID | None = None
+
+
+class EvalSetup(BaseModel):
+    """Run-level eval scaffold — first-class on the generate response.
+
+    Audit's ``**output`` spread carries this onto
+    ``<artifact>.generate.completed``. Null when no rubric-bearing
+    agent participated.
+    """
+
+    test_id: UUID
+    invocations: list[InvocationSlot]
+
+
+class ProducedMedia(BaseModel):
+    """One asset produced by a generation run.
+
+    ``resource_id`` is the canonical id the per-artifact download tools
+    accept (e.g. ``Scenario_Image_Download(image_id=resource_id)`` for
+    ``modality="image"``). It maps to ``images_resource.id`` /
+    ``videos_resource.id`` / ``audios_resource.id`` depending on the
+    modality.
+    """
+
+    modality: Literal["image", "video", "audio"]
+    resource_id: UUID
+    upload_id: UUID
+    mime_type: str | None = None
+    file_size: int | None = None
+
+
 class ArtifactGenerateResponse(BaseModel):
     """Response from a per-artifact generate endpoint."""
 
     group_id: str
     run_id: str | None = None
     idempotency_key: UUID | None = None
+    # Eval scaffold for multi-candidate generations. Rides on the
+    # audit-emitted ``<artifact>.generate.completed`` event via the
+    # framework's ``**output`` spread — clients pick it up directly,
+    # no metadata digging required.
+    eval: EvalSetup | None = None
+    # Media artifacts produced by this run — typically populated by
+    # ``execute_media_dispatch`` (image/video generation) and bubbled up
+    # so the calling LLM tool can fetch via X_Image_Download /
+    # X_Video_Download without a separate watch step. Empty for runs
+    # that didn't produce any media (or for fire-and-forget runs that
+    # returned before media finished).
+    produced_media: list[ProducedMedia] = []
 
 
 # ═══════════════════════════════════════════════════════════════════════════

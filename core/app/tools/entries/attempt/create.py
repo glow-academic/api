@@ -1,5 +1,6 @@
 """Attempt CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -20,15 +21,16 @@ async def create_attempt(
     practice: bool = False,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptResponse:
     """Create an attempt entry with profiles connection."""
     attempt_id = await conn.fetchval(
         """
         INSERT INTO attempt_entry (
             id, session_id, user_persona_id, name, description,
-            infinite_mode, num_chats, practice, active, mcp, generated
+            infinite_mode, num_chats, practice, active, mcp, generated, created_at
         )
-        VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+        VALUES (COALESCE($10, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, true, COALESCE($11, NOW()))
         RETURNING id
         """,
         session_id,
@@ -41,6 +43,7 @@ async def create_attempt(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if attempt_id is None:

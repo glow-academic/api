@@ -1,5 +1,6 @@
 """Entry CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -18,13 +19,14 @@ async def create_attempt_grade(
     rubric_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptGradeResponse:
     """Create an attempt_grade entry."""
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_grade_entry
-            (id, chat_id, session_id, time_taken, passed, score, active, mcp, generated)
-        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
+            (id, chat_id, session_id, time_taken, passed, score, active, mcp, generated, created_at)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true, COALESCE($9, NOW()))
         RETURNING id
         """,
         chat_id,
@@ -35,6 +37,7 @@ async def create_attempt_grade(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if rubric_ids:

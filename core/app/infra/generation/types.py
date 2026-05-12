@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from app.infra.websocket.generation_types import EvalSetup
 
 
 def _default_output_modalities() -> set[str]:
@@ -94,3 +97,17 @@ class PrepareGenerationResult:
     # tool outputs from the tape instead of running impls. None for
     # non-replay runs (the standard path).
     replay_tape: list[ReplayTapeEntry] | None = None
+    # Multi-candidate eval scaffold — one ``InvocationSlot`` per
+    # rubric-bearing agent dispatched on this run. Rides on the
+    # artifact's generate response so audit emits it as a first-class
+    # field on ``<artifact>.generate.completed``. ``None`` for runs
+    # with no rubric-bearing agent.
+    eval_setup: EvalSetup | None = None
+    # Caller-supplied label + caller-supplied descriptive text. Media
+    # dispatches forward these onto the ``{m}s_resource`` row so
+    # generated assets get human-readable names and descriptions instead
+    # of UUID fallbacks. ``title`` mirrors ``payload.title``;
+    # ``description`` falls back to the joined ``payload.instructions``
+    # so the LLM doesn't have to repeat itself.
+    title: str | None = None
+    description: str | None = None

@@ -16,6 +16,7 @@ async def create_grant(
     profiles_id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateGrantResponse:
     """Create a grants entry with optional profile link.
 
@@ -27,8 +28,8 @@ async def create_grant(
 
     grant_id = await conn.fetchval(
         """
-        INSERT INTO grants_entry (id, session_id, expires_at, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO grants_entry (id, session_id, expires_at, active, mcp, generated, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, NOW()))
         RETURNING id
         """,
         session_id,
@@ -36,6 +37,7 @@ async def create_grant(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if grant_id is None:

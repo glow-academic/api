@@ -836,13 +836,13 @@
         ]
       }
     },
-    "/persona/stream": {
+    "/persona/watch": {
       "get": {
         "tags": [
           "persona"
         ],
-        "summary": "Persona Stream",
-        "operationId": "persona_stream_persona_stream_get",
+        "summary": "Persona Watch",
+        "operationId": "persona_watch_persona_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -865,6 +865,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every persona event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every persona event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -1886,13 +1905,13 @@
         ]
       }
     },
-    "/scenario/stream": {
+    "/scenario/watch": {
       "get": {
         "tags": [
           "scenario"
         ],
-        "summary": "Scenario Stream",
-        "operationId": "scenario_stream_scenario_stream_get",
+        "summary": "Scenario Watch",
+        "operationId": "scenario_watch_scenario_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -1915,6 +1934,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed \u2014 useful for per-run live feeds. Omit to receive every scenario event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed \u2014 useful for per-run live feeds. Omit to receive every scenario event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -3248,13 +3286,13 @@
         ]
       }
     },
-    "/simulation/stream": {
+    "/simulation/watch": {
       "get": {
         "tags": [
           "simulation"
         ],
-        "summary": "Simulation Stream",
-        "operationId": "simulation_stream_simulation_stream_get",
+        "summary": "Simulation Watch",
+        "operationId": "simulation_watch_simulation_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -3277,6 +3315,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every simulation event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every simulation event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -4298,13 +4355,13 @@
         ]
       }
     },
-    "/document/stream": {
+    "/document/watch": {
       "get": {
         "tags": [
           "document"
         ],
-        "summary": "Document Stream",
-        "operationId": "document_stream_document_stream_get",
+        "summary": "Document Watch",
+        "operationId": "document_watch_document_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -4327,6 +4384,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every document event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every document event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -5496,13 +5572,13 @@
         ]
       }
     },
-    "/department/stream": {
+    "/department/watch": {
       "get": {
         "tags": [
           "department"
         ],
-        "summary": "Department Stream",
-        "operationId": "department_stream_department_stream_get",
+        "summary": "Department Watch",
+        "operationId": "department_watch_department_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -5525,6 +5601,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every department event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every department event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -6546,13 +6641,13 @@
         ]
       }
     },
-    "/cohort/stream": {
+    "/cohort/watch": {
       "get": {
         "tags": [
           "cohort"
         ],
-        "summary": "Cohort Stream",
-        "operationId": "cohort_stream_cohort_stream_get",
+        "summary": "Cohort Watch",
+        "operationId": "cohort_watch_cohort_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -6575,6 +6670,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every cohort event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every cohort event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -7596,13 +7710,13 @@
         ]
       }
     },
-    "/eval/stream": {
+    "/eval/watch": {
       "get": {
         "tags": [
           "eval"
         ],
-        "summary": "Eval Stream",
-        "operationId": "eval_stream_eval_stream_get",
+        "summary": "Eval Watch",
+        "operationId": "eval_watch_eval_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -7625,6 +7739,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every eval event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every eval event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -8646,13 +8779,13 @@
         ]
       }
     },
-    "/rubric/stream": {
+    "/rubric/watch": {
       "get": {
         "tags": [
           "rubric"
         ],
-        "summary": "Rubric Stream",
-        "operationId": "rubric_stream_rubric_stream_get",
+        "summary": "Rubric Watch",
+        "operationId": "rubric_watch_rubric_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -8675,6 +8808,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every rubric event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every rubric event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -9746,13 +9898,13 @@
         ]
       }
     },
-    "/setting/stream": {
+    "/setting/watch": {
       "get": {
         "tags": [
           "setting"
         ],
-        "summary": "Setting Stream",
-        "operationId": "setting_stream_setting_stream_get",
+        "summary": "Setting Watch",
+        "operationId": "setting_watch_setting_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -9775,6 +9927,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every setting event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every setting event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -10796,13 +10967,13 @@
         ]
       }
     },
-    "/agent/stream": {
+    "/agent/watch": {
       "get": {
         "tags": [
           "agent"
         ],
-        "summary": "Agent Stream",
-        "operationId": "agent_stream_agent_stream_get",
+        "summary": "Agent Watch",
+        "operationId": "agent_watch_agent_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -10825,6 +10996,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every agent event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every agent event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -11846,13 +12036,13 @@
         ]
       }
     },
-    "/model/stream": {
+    "/model/watch": {
       "get": {
         "tags": [
           "model"
         ],
-        "summary": "Model Stream",
-        "operationId": "model_stream_model_stream_get",
+        "summary": "Model Watch",
+        "operationId": "model_watch_model_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -11875,6 +12065,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every model event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every model event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -12946,13 +13155,13 @@
         ]
       }
     },
-    "/provider/stream": {
+    "/provider/watch": {
       "get": {
         "tags": [
           "provider"
         ],
-        "summary": "Provider Stream",
-        "operationId": "provider_stream_provider_stream_get",
+        "summary": "Provider Watch",
+        "operationId": "provider_watch_provider_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -12975,6 +13184,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every provider event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every provider event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -13996,13 +14224,13 @@
         ]
       }
     },
-    "/parameter/stream": {
+    "/parameter/watch": {
       "get": {
         "tags": [
           "parameter"
         ],
-        "summary": "Parameter Stream",
-        "operationId": "parameter_stream_parameter_stream_get",
+        "summary": "Parameter Watch",
+        "operationId": "parameter_watch_parameter_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -14025,6 +14253,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every parameter event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every parameter event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -15046,13 +15293,13 @@
         ]
       }
     },
-    "/field/stream": {
+    "/field/watch": {
       "get": {
         "tags": [
           "field"
         ],
-        "summary": "Field Stream",
-        "operationId": "field_stream_field_stream_get",
+        "summary": "Field Watch",
+        "operationId": "field_watch_field_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -15075,6 +15322,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every field event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every field event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -16046,13 +16312,13 @@
         ]
       }
     },
-    "/profile/stream": {
+    "/profile/watch": {
       "get": {
         "tags": [
           "profile"
         ],
-        "summary": "Profile Stream",
-        "operationId": "profile_stream_profile_stream_get",
+        "summary": "Profile Watch",
+        "operationId": "profile_watch_profile_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -16075,6 +16341,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every profile event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every profile event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -17250,13 +17535,13 @@
         ]
       }
     },
-    "/auth/stream": {
+    "/auth/watch": {
       "get": {
         "tags": [
           "auth"
         ],
-        "summary": "Auth Stream",
-        "operationId": "auth_stream_auth_stream_get",
+        "summary": "Auth Watch",
+        "operationId": "auth_watch_auth_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -17279,6 +17564,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every auth event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every auth event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -18350,13 +18654,13 @@
         ]
       }
     },
-    "/tool/stream": {
+    "/tool/watch": {
       "get": {
         "tags": [
           "tool"
         ],
-        "summary": "Tool Stream",
-        "operationId": "tool_stream_tool_stream_get",
+        "summary": "Tool Watch",
+        "operationId": "tool_watch_tool_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -18379,6 +18683,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every tool event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every tool event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -19186,7 +19509,6 @@
           "attempt"
         ],
         "summary": "Attempt Stop",
-        "description": "Cancel an active generation by group_id.",
         "operationId": "attempt_stop_attempt_stop_post",
         "requestBody": {
           "content": {
@@ -19230,13 +19552,13 @@
         ]
       }
     },
-    "/attempt/stream": {
+    "/attempt/watch": {
       "get": {
         "tags": [
           "attempt"
         ],
-        "summary": "Attempt Stream",
-        "operationId": "attempt_stream_attempt_stream_get",
+        "summary": "Attempt Watch",
+        "operationId": "attempt_watch_attempt_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -19259,6 +19581,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every attempt event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every attempt event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -21571,13 +21912,13 @@
         ]
       }
     },
-    "/test/stream": {
+    "/test/watch": {
       "get": {
         "tags": [
           "test"
         ],
-        "summary": "Test Stream",
-        "operationId": "test_stream_test_stream_get",
+        "summary": "Test Watch",
+        "operationId": "test_watch_test_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -21600,6 +21941,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every test event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every test event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -22797,13 +23157,13 @@
         ]
       }
     },
-    "/system/stream": {
+    "/system/watch": {
       "get": {
         "tags": [
           "system"
         ],
-        "summary": "System Stream",
-        "operationId": "system_stream_system_stream_get",
+        "summary": "System Watch",
+        "operationId": "system_watch_system_watch_get",
         "security": [
           {
             "BearerAuth": []
@@ -22826,6 +23186,25 @@
               ],
               "title": "Group Id"
             }
+          },
+          {
+            "name": "run_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every system event in the group (the FE default).",
+              "title": "Run Id"
+            },
+            "description": "Optional run filter. If provided, only events whose envelope run_id matches are streamed. Omit to receive every system event in the group (the FE default)."
           }
         ],
         "responses": {
@@ -26224,6 +26603,17 @@
             "type": "boolean",
             "title": "Accept",
             "default": true
+          },
+          "wait_for_complete": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wait For Complete"
           }
         },
         "type": "object",
@@ -26258,6 +26648,24 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "eval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvalSetup"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "produced_media": {
+            "items": {
+              "$ref": "#/components/schemas/ProducedMedia"
+            },
+            "type": "array",
+            "title": "Produced Media",
+            "default": []
           }
         },
         "type": "object",
@@ -35801,8 +36209,14 @@
           "score": {
             "type": "integer",
             "title": "Score",
-            "description": "Overall score",
+            "description": "Overall score (ignored when full=True)",
             "default": 0
+          },
+          "full": {
+            "type": "boolean",
+            "title": "Full",
+            "description": "When true, server resolves the rubric and assigns score=total_points (max marks). Callers don't need to know the rubric ceiling ahead of time. Overrides any caller-supplied score.",
+            "default": false
           }
         },
         "type": "object",
@@ -49330,6 +49744,29 @@
         "type": "object",
         "title": "EvalRubricResource",
         "description": "Top-level rubric catalog entry. The ModelRubrics picker renders\none of these per option (alongside a \"no rubric\" clear state)."
+      },
+      "EvalSetup": {
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Test Id"
+          },
+          "invocations": {
+            "items": {
+              "$ref": "#/components/schemas/InvocationSlot"
+            },
+            "type": "array",
+            "title": "Invocations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_id",
+          "invocations"
+        ],
+        "title": "EvalSetup",
+        "description": "Run-level eval scaffold \u2014 first-class on the generate response.\n\nAudit's ``**output`` spread carries this onto\n``<artifact>.generate.completed``. Null when no rubric-bearing\nagent participated."
       },
       "ExportAgentApiRequest": {
         "properties": {
@@ -73026,6 +73463,19 @@
             "title": "Role",
             "description": "Role of the message sender"
           },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "Timestamp the message row was inserted"
+          },
           "text_ids": {
             "items": {
               "type": "string",
@@ -77025,6 +77475,39 @@
         ],
         "title": "InvocationRunDetail",
         "description": "Per-run grade + replay detail within an invocation.\n\nOne row per ``test_invocation_runs_entry`` binding. Carries the\nTableRubric-ready ``grading_state`` plus the message/call ids the\nclient uses to slice ``entries.messages`` / ``entries.calls``."
+      },
+      "InvocationSlot": {
+        "properties": {
+          "invocation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Invocation Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Agent Id"
+          },
+          "rubric_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invocation_id",
+          "agent_id"
+        ],
+        "title": "InvocationSlot",
+        "description": "One agent's slot in a multi-agent generation pool.\n\nPopulated by ``setup_generation_test`` when an agent carries a\nrubric. The client uses these IDs to drive the eval workflow:\nreview the candidate's output, optionally fire a grader against\nits ``invocation_id``, and promote/reject by call_id via the\nexisting ``idempotency_key + accept`` pattern."
       },
       "InvocationTemperatureLevelResource": {
         "properties": {
@@ -98367,6 +98850,59 @@
         "title": "ProblemToolApiResponse",
         "description": "Response model for tool problem endpoint."
       },
+      "ProducedMedia": {
+        "properties": {
+          "modality": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "audio"
+            ],
+            "title": "Modality"
+          },
+          "resource_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Resource Id"
+          },
+          "upload_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Upload Id"
+          },
+          "mime_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime Type"
+          },
+          "file_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "modality",
+          "resource_id",
+          "upload_id"
+        ],
+        "title": "ProducedMedia",
+        "description": "One asset produced by a generation run.\n\n``resource_id`` is the canonical id the per-artifact download tools\naccept (e.g. ``Scenario_Image_Download(image_id=resource_id)`` for\n``modality=\"image\"``). It maps to ``images_resource.id`` /\n``videos_resource.id`` / ``audios_resource.id`` depending on the\nmodality."
+      },
       "ProfileDepartmentResource": {
         "properties": {
           "department_id": {
@@ -99256,13 +99792,13 @@
           "theme": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ThemePrimitives"
+                "$ref": "#/components/schemas/ThemeBundle"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Theme primitives (ThemeHydrator)"
+            "description": "Resolved theme: hex primitives + derived oklch tokens + score thresholds"
           },
           "session_id": {
             "anyOf": [
@@ -114562,156 +115098,508 @@
         "title": "TextUploadDocumentApiResponse",
         "description": "Response model for document text upload endpoint."
       },
+      "ThemeBundle": {
+        "properties": {
+          "primitives": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemePrimitives"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hex inputs from the setting (light palette, for the theme editor)"
+          },
+          "tokens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeTokens"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived oklch tokens for light mode (SSR CSS-var injection)"
+          },
+          "dark_primitives": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemePrimitives"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hex inputs from the setting (dark palette, for the theme editor)"
+          },
+          "dark_tokens": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ThemeTokens"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Derived oklch tokens for dark mode (SSR CSS-var injection)"
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Thresholds"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Score thresholds resolved from the setting"
+          }
+        },
+        "type": "object",
+        "title": "ThemeBundle",
+        "description": "Full theme payload for a page bootstrap.\n\nRiding along on every ``/{artifact}/context`` response via\n``ProfileSummary.theme``. Layers:\n  - ``primitives`` / ``dark_primitives`` \u2014 hex inputs the settings\n    editor reads/writes (light + dark palettes).\n  - ``tokens`` / ``dark_tokens`` \u2014 oklch tokens the client paints with.\n    ``ThemeStyle`` emits two ``<style>`` blocks: one scoped to\n    ``:root:not(.dark)`` (light) and one to ``:root.dark`` (dark).\n  - ``thresholds`` \u2014 numeric score thresholds for analytics components.\nEmpty-in \u2192 empty-out per token: missing values fall through to the\nmatching ``globals.css`` default."
+      },
       "ThemePrimitives": {
         "properties": {
+          "background": {
+            "type": "string",
+            "title": "Background",
+            "default": ""
+          },
           "primary": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Primary",
-            "description": "Primary color hex value"
+            "default": ""
           },
           "accent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Accent",
-            "description": "Accent color hex value"
+            "default": ""
           },
-          "background": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Background",
-            "description": "Background color hex value"
+          "card": {
+            "type": "string",
+            "title": "Card",
+            "default": ""
           },
-          "surface": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Surface",
-            "description": "Surface color hex value"
+          "sidebar": {
+            "type": "string",
+            "title": "Sidebar",
+            "default": ""
+          },
+          "muted_foreground": {
+            "type": "string",
+            "title": "Muted Foreground",
+            "default": ""
+          },
+          "ring": {
+            "type": "string",
+            "title": "Ring",
+            "default": ""
+          },
+          "border": {
+            "type": "string",
+            "title": "Border",
+            "default": ""
+          },
+          "destructive": {
+            "type": "string",
+            "title": "Destructive",
+            "default": ""
           },
           "success": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Success",
-            "description": "Success state color hex value"
+            "default": ""
           },
           "warning": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Warning",
-            "description": "Warning state color hex value"
+            "default": ""
           },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error",
-            "description": "Error state color hex value"
+          "info": {
+            "type": "string",
+            "title": "Info",
+            "default": ""
           },
           "chart1": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Chart1",
-            "description": "Chart color 1 hex value"
+            "default": ""
           },
           "chart2": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Chart2",
-            "description": "Chart color 2 hex value"
+            "default": ""
           },
           "chart3": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Chart3",
-            "description": "Chart color 3 hex value"
+            "default": ""
           },
           "chart4": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Chart4",
-            "description": "Chart color 4 hex value"
+            "default": ""
           },
           "chart5": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Chart5",
-            "description": "Chart color 5 hex value"
+            "default": ""
+          },
+          "foreground": {
+            "type": "string",
+            "title": "Foreground",
+            "default": ""
+          },
+          "card_foreground": {
+            "type": "string",
+            "title": "Card Foreground",
+            "default": ""
+          },
+          "popover": {
+            "type": "string",
+            "title": "Popover",
+            "default": ""
+          },
+          "popover_foreground": {
+            "type": "string",
+            "title": "Popover Foreground",
+            "default": ""
+          },
+          "primary_foreground": {
+            "type": "string",
+            "title": "Primary Foreground",
+            "default": ""
+          },
+          "secondary": {
+            "type": "string",
+            "title": "Secondary",
+            "default": ""
+          },
+          "secondary_foreground": {
+            "type": "string",
+            "title": "Secondary Foreground",
+            "default": ""
+          },
+          "muted": {
+            "type": "string",
+            "title": "Muted",
+            "default": ""
+          },
+          "accent_foreground": {
+            "type": "string",
+            "title": "Accent Foreground",
+            "default": ""
+          },
+          "destructive_foreground": {
+            "type": "string",
+            "title": "Destructive Foreground",
+            "default": ""
+          },
+          "danger": {
+            "type": "string",
+            "title": "Danger",
+            "default": ""
+          },
+          "danger_foreground": {
+            "type": "string",
+            "title": "Danger Foreground",
+            "default": ""
+          },
+          "input": {
+            "type": "string",
+            "title": "Input",
+            "default": ""
+          },
+          "success_foreground": {
+            "type": "string",
+            "title": "Success Foreground",
+            "default": ""
+          },
+          "warning_foreground": {
+            "type": "string",
+            "title": "Warning Foreground",
+            "default": ""
+          },
+          "info_foreground": {
+            "type": "string",
+            "title": "Info Foreground",
+            "default": ""
+          },
+          "sidebar_foreground": {
+            "type": "string",
+            "title": "Sidebar Foreground",
+            "default": ""
+          },
+          "sidebar_primary": {
+            "type": "string",
+            "title": "Sidebar Primary",
+            "default": ""
+          },
+          "sidebar_primary_foreground": {
+            "type": "string",
+            "title": "Sidebar Primary Foreground",
+            "default": ""
+          },
+          "sidebar_accent": {
+            "type": "string",
+            "title": "Sidebar Accent",
+            "default": ""
+          },
+          "sidebar_accent_foreground": {
+            "type": "string",
+            "title": "Sidebar Accent Foreground",
+            "default": ""
+          },
+          "sidebar_border": {
+            "type": "string",
+            "title": "Sidebar Border",
+            "default": ""
+          },
+          "sidebar_ring": {
+            "type": "string",
+            "title": "Sidebar Ring",
+            "default": ""
           }
         },
         "type": "object",
         "title": "ThemePrimitives",
-        "description": "Raw theme color primitives (hex values) from settings.\n\nGeneral-purpose \u2014 not CSS-specific. Clients derive their own\npresentation tokens (oklch, CSS variables, etc.) from these."
+        "description": "40 optional fields. The 17 essentials drive the rest; the other 23\nare overrides for fine-tuning when derivation isn't what you want.\n\nEmpty primitive \u2192 empty token \u2192 client falls back to globals.css."
+      },
+      "ThemeTokens": {
+        "properties": {
+          "background": {
+            "type": "string",
+            "title": "Background",
+            "default": ""
+          },
+          "foreground": {
+            "type": "string",
+            "title": "Foreground",
+            "default": ""
+          },
+          "card": {
+            "type": "string",
+            "title": "Card",
+            "default": ""
+          },
+          "card_foreground": {
+            "type": "string",
+            "title": "Card Foreground",
+            "default": ""
+          },
+          "popover": {
+            "type": "string",
+            "title": "Popover",
+            "default": ""
+          },
+          "popover_foreground": {
+            "type": "string",
+            "title": "Popover Foreground",
+            "default": ""
+          },
+          "primary": {
+            "type": "string",
+            "title": "Primary",
+            "default": ""
+          },
+          "primary_foreground": {
+            "type": "string",
+            "title": "Primary Foreground",
+            "default": ""
+          },
+          "secondary": {
+            "type": "string",
+            "title": "Secondary",
+            "default": ""
+          },
+          "secondary_foreground": {
+            "type": "string",
+            "title": "Secondary Foreground",
+            "default": ""
+          },
+          "muted": {
+            "type": "string",
+            "title": "Muted",
+            "default": ""
+          },
+          "muted_foreground": {
+            "type": "string",
+            "title": "Muted Foreground",
+            "default": ""
+          },
+          "accent": {
+            "type": "string",
+            "title": "Accent",
+            "default": ""
+          },
+          "accent_foreground": {
+            "type": "string",
+            "title": "Accent Foreground",
+            "default": ""
+          },
+          "destructive": {
+            "type": "string",
+            "title": "Destructive",
+            "default": ""
+          },
+          "destructive_foreground": {
+            "type": "string",
+            "title": "Destructive Foreground",
+            "default": ""
+          },
+          "danger": {
+            "type": "string",
+            "title": "Danger",
+            "default": ""
+          },
+          "danger_foreground": {
+            "type": "string",
+            "title": "Danger Foreground",
+            "default": ""
+          },
+          "border": {
+            "type": "string",
+            "title": "Border",
+            "default": ""
+          },
+          "input": {
+            "type": "string",
+            "title": "Input",
+            "default": ""
+          },
+          "ring": {
+            "type": "string",
+            "title": "Ring",
+            "default": ""
+          },
+          "success": {
+            "type": "string",
+            "title": "Success",
+            "default": ""
+          },
+          "success_foreground": {
+            "type": "string",
+            "title": "Success Foreground",
+            "default": ""
+          },
+          "warning": {
+            "type": "string",
+            "title": "Warning",
+            "default": ""
+          },
+          "warning_foreground": {
+            "type": "string",
+            "title": "Warning Foreground",
+            "default": ""
+          },
+          "info": {
+            "type": "string",
+            "title": "Info",
+            "default": ""
+          },
+          "info_foreground": {
+            "type": "string",
+            "title": "Info Foreground",
+            "default": ""
+          },
+          "chart1": {
+            "type": "string",
+            "title": "Chart1",
+            "default": ""
+          },
+          "chart2": {
+            "type": "string",
+            "title": "Chart2",
+            "default": ""
+          },
+          "chart3": {
+            "type": "string",
+            "title": "Chart3",
+            "default": ""
+          },
+          "chart4": {
+            "type": "string",
+            "title": "Chart4",
+            "default": ""
+          },
+          "chart5": {
+            "type": "string",
+            "title": "Chart5",
+            "default": ""
+          },
+          "sidebar": {
+            "type": "string",
+            "title": "Sidebar",
+            "default": ""
+          },
+          "sidebar_foreground": {
+            "type": "string",
+            "title": "Sidebar Foreground",
+            "default": ""
+          },
+          "sidebar_primary": {
+            "type": "string",
+            "title": "Sidebar Primary",
+            "default": ""
+          },
+          "sidebar_primary_foreground": {
+            "type": "string",
+            "title": "Sidebar Primary Foreground",
+            "default": ""
+          },
+          "sidebar_accent": {
+            "type": "string",
+            "title": "Sidebar Accent",
+            "default": ""
+          },
+          "sidebar_accent_foreground": {
+            "type": "string",
+            "title": "Sidebar Accent Foreground",
+            "default": ""
+          },
+          "sidebar_border": {
+            "type": "string",
+            "title": "Sidebar Border",
+            "default": ""
+          },
+          "sidebar_ring": {
+            "type": "string",
+            "title": "Sidebar Ring",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "ThemeTokens",
+        "description": "40 fully-resolved CSS variable values (snake_case 1:1 with vars)."
+      },
+      "Thresholds": {
+        "properties": {
+          "success": {
+            "type": "integer",
+            "title": "Success",
+            "description": "Score >= this counts as success"
+          },
+          "warning": {
+            "type": "integer",
+            "title": "Warning",
+            "description": "Score >= this counts as warning"
+          },
+          "danger": {
+            "type": "integer",
+            "title": "Danger",
+            "description": "Score < success threshold but >= this counts as danger; below is neutral/no-data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "warning",
+          "danger"
+        ],
+        "title": "Thresholds",
+        "description": "Numeric score thresholds resolved from the active setting.\n\nServer pre-buckets dashboard metrics into ``success | warning | danger |\nneutral`` already, so most components don't need these values. Surface\nthem for chart reference lines, tooltips, and any client-side bucketing."
       },
       "TimerData": {
         "properties": {

@@ -21,14 +21,12 @@ Pass these to your tools:
 
 ## What To Do
 
-Retrieve the data the user is asking about with one or more Group tool calls, then answer in plain text.
+Retrieve the data the user is asking about by calling `System_Group` with the right filter args, then answer in plain text.
 
-- For any query (headline OR filtered), call `Group_Get` — Get takes the filter args directly here.
-- Use `Group_Search` only when you need pagination beyond what Get returns.
-- For exports, call `Group_Export(group_id: "...")` against a specific id.
-- `Group_Generate()` — Start a new chat thread (empty group). Use only when the user explicitly asks to start a fresh conversation.
-- `Group_Name(group_id, name)` — Set or update the display name on a specific chat thread — the analogue of `Persona_Title` for chat threads.
+- For the overall headline (no filters), call `System_Group()`.
+- For any slice (date range, department, cohort, etc.), pass the relevant filter args: `search`, `agent_id`, `model_id`, `date_from`, `date_to`, `sort_by`, `sort_order`, `page_limit`, `page_offset`.
+- `System_Groups(search, agent_id, model_id, date_from, date_to, sort_by, sort_order, page_limit, page_offset)` — Paginated list of all chat groups across the system.
 
-**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent Group tool result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
+**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent `System_Group` result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
 
 Cite specific numbers from the data. Do not invent values. Answer the question asked, not adjacent ones.

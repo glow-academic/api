@@ -20,7 +20,7 @@ from app.routes.document.group import router as group_router
 from app.routes.document.problem import router as problem_router
 from app.routes.document.refresh import router as refresh_router
 from app.routes.document.search import router as search_router
-from app.routes.document.stream import router as stream_router
+from app.routes.document.watch import router as watch_router
 from app.routes.document.text_download import router as text_download_router
 from app.routes.document.text_upload import router as text_upload_router
 from app.routes.document.update import router as update_router
@@ -47,7 +47,7 @@ router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(export_router)
 router.include_router(csv_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

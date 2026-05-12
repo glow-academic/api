@@ -1,5 +1,6 @@
 """Calls CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -17,12 +18,13 @@ async def create_call(
     operation_key: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateCallResponse:
     """Create a calls entry with optional tool link."""
     call_id = await conn.fetchval(
         """
-        INSERT INTO calls_entry (id, run_id, session_id, external_call_id, active, mcp, generated, operation_key)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, COALESCE($7, uuidv7()))
+        INSERT INTO calls_entry (id, run_id, session_id, external_call_id, active, mcp, generated, operation_key, created_at)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, COALESCE($7, uuidv7()), COALESCE($8, NOW()))
         RETURNING id
     """,
         run_id,
@@ -32,6 +34,7 @@ async def create_call(
         mcp,
         id,
         operation_key,
+        created_at,
     )
 
     if call_id is None:

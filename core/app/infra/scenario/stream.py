@@ -19,6 +19,7 @@ async def stream_scenario_impl(
     profile_id: UUID,
     session_id: UUID | None = None,
     group_id: UUID | None = None,
+    run_id: UUID | None = None,
 ) -> StreamingResponse:
     if group_id is None:
         group_result = await group_scenario_impl(
@@ -30,4 +31,5 @@ async def stream_scenario_impl(
     return await build_artifact_stream_impl(
         group_id=group_id,
         artifact="scenario",
+        run_id=run_id,
     )

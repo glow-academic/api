@@ -58,9 +58,17 @@ async def video_download_scenario_impl(
             detail="You don't have permission to download scenario videos.",
         )
 
-    # -- Step 3: Resolve videos_id -> file metadata via videos_mv --------------
+    # -- Step 3: Resolve to a file via videos_mv. Accept either flavor:
+    #   * ``videos_resource.id`` — what ``MediaResult.videos_id`` /
+    #     ``ProducedMedia.resource_id`` surface to the model.
+    #   * ``videos_entry.id``    — what ``messages_mv.video_ids`` carries
+    #     for FE chat attachments (= ``video_uploads_entry.video_id``).
+    # Try resource filter first, then entry filter. Same idea as
+    # ``image_download_scenario_impl``.
     async with pool.acquire() as conn:
         results = await search_videos(conn, videos_ids=[video_id], limit=1)
+        if not results:
+            results = await search_videos(conn, video_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

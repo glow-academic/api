@@ -51,6 +51,12 @@ THRESHOLD_WARNING = sid("threshold/80")
 THRESHOLD_DANGER = sid("threshold/70")
 
 # ---------------------------------------------------------------------------
+# Pre-existing flag IDs
+# ---------------------------------------------------------------------------
+
+FLAG_ACTIVE = sid("flag/setting-active")
+
+# ---------------------------------------------------------------------------
 # Pre-existing system resource IDs (from 10-systems/)
 # ---------------------------------------------------------------------------
 
@@ -80,7 +86,7 @@ settings = [
         resource_id=UNIVERSITY_SETTING_RESOURCE,
         name="University Settings",
         description="Department-specific settings for the University, linking authentication, AI systems, and grading thresholds.",
-        active_flag=True,
+        flag_ids=[FLAG_ACTIVE],
         department_ids=[UNIVERSITY_DEPT_RESOURCE],
         auth_ids=_UNI_AUTH_IDS or None,
         provider_ids=_UNI_PROVIDER_IDS or None,

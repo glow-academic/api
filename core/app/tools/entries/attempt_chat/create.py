@@ -1,5 +1,6 @@
 """Attempt chat CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -52,6 +53,7 @@ async def create_attempt_chat(
     parameters_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptChatResponse:
     """Create an attempt_chat entry with optional connection tables."""
     attempt_chat_id = await conn.fetchval(
@@ -64,7 +66,7 @@ async def create_attempt_chat(
             strengths_enabled, use_custom, use_previous,
             problem_statement_enabled, objectives_enabled, video_enabled,
             images_enabled, questions_enabled,
-            assistant_persona_ids, active, mcp, generated
+            assistant_persona_ids, active, mcp, generated, created_at
         )
         VALUES (
             COALESCE($27, uuidv7()), $1, $2, $3, $4, $5,
@@ -74,7 +76,7 @@ async def create_attempt_chat(
             $16, $17, $18,
             $19, $20, $21,
             $22, $23,
-            $24, $25, $26, true
+            $24, $25, $26, true, COALESCE($28, NOW())
         )
         RETURNING id
         """,
@@ -105,6 +107,7 @@ async def create_attempt_chat(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if attempt_chat_id is None:

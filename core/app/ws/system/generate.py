@@ -8,6 +8,7 @@ from app.infra.identity.socket import resolve_socket_identity
 from app.infra.system.generate import generate_system_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
+    GenerateConfig,
     GenerateErrorApiRequest,
 )
 from app.infra.websocket.typed_emit import emit_to_internal
@@ -45,7 +46,9 @@ async def system_generate(sid: str, data: dict[str, Any]) -> None:
         sid=sid,
         runner=lambda: generate_system_impl(
             pool, redis, profile_id=identity.profile_id, session_id=identity.session_id,
-            request=payload, sid=sid,
+            sid=sid,
+            **payload.model_dump(exclude={"config"}, exclude_none=True),
+            **(payload.config or GenerateConfig()).model_dump(exclude_none=True),
         ),
         arguments=payload.model_dump(mode="json"),
     )

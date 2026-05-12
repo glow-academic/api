@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.docs_helper import DocsApiResponse
-from app.infra.profile.types import ThemePrimitives
+from app.infra.profile.types import ThemeBundle
 from app.infra.shared_types import QGetProfileContextV4RoleResource
 
 
@@ -94,7 +94,7 @@ class ProfileSummary(BaseModel):
 
     # --- New fields (needed by client providers) ---
     id: UUID = Field(..., description="Profile UUID (SocketProvider, ProfileProvider)")
-    theme: ThemePrimitives | None = Field(None, description="Theme primitives (ThemeHydrator)")
+    theme: ThemeBundle | None = Field(None, description="Resolved theme: hex primitives + derived oklch tokens + score thresholds")
     session_id: UUID | None = Field(None, description="Current session UUID")
     is_emulation: bool = Field(False, description="Whether user is in emulation mode (ProfileProvider)")
     role_resources: list[QGetProfileContextV4RoleResource] | None = Field(None, description="All role resources for emulation display (ProfileProvider)")

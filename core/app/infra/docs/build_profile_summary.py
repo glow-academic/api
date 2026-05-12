@@ -7,15 +7,15 @@ files and adds the new fields needed to replace /profiles/context.
 from __future__ import annotations
 
 import asyncio
-from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.docs.types import ProfileSummary
-from app.infra.profile.types import ThemePrimitives
+from app.infra.profile.types import ThemeBundle, Thresholds
 from app.infra.profile_identity_context import ProfileIdentityContext
 from app.infra.shared_types import QGetProfileContextV4RoleResource
+from app.utils.settings.theme import derive_theme_tokens
 
 
 async def build_profile_summary(
@@ -32,27 +32,35 @@ async def build_profile_summary(
 
     # --- Parallel fetches: theme + roles ---
 
-    async def _fetch_theme() -> ThemePrimitives | None:
+    async def _fetch_theme() -> ThemeBundle | None:
         if not profile.settings_id:
             return None
         theme = await resolve_settings_theme(
             pool, redis, profile.settings_id,
         )
-        if not theme or not theme.is_active or not theme.primary_color:
+        # `theme.light.primary` plays the role of "any palette configured?"
+        # — if a setting is active but seeds zero colors, we still want to
+        # short-circuit to globals.css defaults rather than send a useless
+        # all-empty bundle.
+        if not theme or not theme.is_active or not theme.light.primary:
             return None
-        return ThemePrimitives(
-            primary=theme.primary_color,
-            accent=theme.accent,
-            background=theme.background,
-            surface=theme.surface,
-            success=theme.success,
-            warning=theme.warning,
-            error=theme.error,
-            chart1=theme.chart1,
-            chart2=theme.chart2,
-            chart3=theme.chart3,
-            chart4=theme.chart4,
-            chart5=theme.chart5,
+
+        light_tokens = derive_theme_tokens(theme.light)
+        dark_tokens = derive_theme_tokens(theme.dark)
+
+        # Fall back to canonical defaults (85/80/70) when a threshold row
+        # is missing — mirrors resolve_thresholds.
+        thresholds = Thresholds(
+            success=theme.success_threshold if theme.success_threshold is not None else 85,
+            warning=theme.warning_threshold if theme.warning_threshold is not None else 80,
+            danger=theme.danger_threshold if theme.danger_threshold is not None else 70,
+        )
+        return ThemeBundle(
+            primitives=theme.light,
+            tokens=light_tokens,
+            dark_primitives=theme.dark,
+            dark_tokens=dark_tokens,
+            thresholds=thresholds,
         )
 
     async def _fetch_roles() -> list:

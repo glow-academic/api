@@ -18,7 +18,7 @@ from app.routes.cohort.group import router as group_router
 from app.routes.cohort.problem import router as problem_router
 from app.routes.cohort.refresh import router as refresh_router
 from app.routes.cohort.search import router as search_router
-from app.routes.cohort.stream import router as stream_router
+from app.routes.cohort.watch import router as watch_router
 from app.routes.cohort.update import router as update_router
 from app.routes.cohort.text_download import router as text_download_router
 from app.routes.cohort.call_download import router as call_download_router
@@ -44,7 +44,7 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

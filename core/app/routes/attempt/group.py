@@ -5,6 +5,8 @@ Core logic lives in app.infra.attempt.group.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.attempt.group import (
@@ -43,13 +45,14 @@ async def group_attempt(
         pool = get_pool()
         redis = get_redis_client()
 
-        async def _runner() -> GroupAttemptApiResponse:
+        async def _runner(group_id: UUID) -> GroupAttemptApiResponse:
+            scoped_request = request.model_copy(update={'group_id': group_id})
             return await group_attempt_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                request=request,
+                request=scoped_request,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -60,6 +63,8 @@ async def group_attempt(
             session_id=session_id,
             operation="group",
             group_id=request.group_id,
+
+            mint_group_id_if_missing=True,
             arguments=request.model_dump(mode="json"),
             response_model=GroupAttemptApiResponse,
             runner=_runner,

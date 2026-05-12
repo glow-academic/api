@@ -37,7 +37,7 @@ from app.infra.tools.execute_infra_operation import (
     execute_infra_operation,
 )
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
-from app.infra.websocket.generation_types import GenerateErrorApiRequest
+from app.infra.websocket.generation_types import GenerateErrorApiRequest, ProducedMedia
 from app.infra.websocket.socket_event import internal_event, make_emit
 from app.infra.websocket.tool_call_utils import (
     build_tool_output_schemas,
@@ -143,6 +143,11 @@ class ExecuteGenerationResult:
     total_output_tokens: int = 0
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     assistant_output: str = ""
+    # Media artifacts produced by image/video dispatches in this run.
+    # Populated by ``execute_media_dispatch`` and surfaced on
+    # ``ArtifactGenerateResponse.produced_media`` so the calling LLM tool
+    # can fetch by id without a separate watch round-trip.
+    produced_media: list["ProducedMedia"] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -273,9 +278,11 @@ async def execute_generation(
         if executor in ("image", "video"):
             # execute_media_dispatch inspects dispatch.output_modalities itself
             # for the concrete modality; pass through as-is.
-            await execute_media_dispatch(
+            produced = await execute_media_dispatch(
                 dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
             )
+            if produced is not None:
+                total_result.produced_media.append(produced)
             return None
         if executor == "agentic_text":
             return await _execute_agent_dispatch(
@@ -748,6 +755,10 @@ async def _execute_agent_dispatch(
                     "arguments_str": arguments_str,
                     "result": tool_result,
                     "result_str": tool_result_str,
+                    # Server-side ``calls_entry.id`` for this tool dispatch —
+                    # used as ``idempotency_key`` by the FE to promote/reject
+                    # the soft write via ``/<artifact>/create``.
+                    "call_id": str(st["call_id"]) if st.get("call_id") else None,
                 })
 
                 # Emit call complete — use the structured success state from
@@ -833,8 +844,58 @@ async def _execute_agent_dispatch(
         if tool_choice == "required":
             tool_choice = "auto"
 
+    # Per-agent completion event — fires once per agent inside the
+    # shared run. Lets the FE start grading / promoting a single
+    # candidate before the full pool finishes. Carries this agent's
+    # eval slot when the agent was rubric-bearing.
+    invocation_slot = None
+    if prepared.eval_setup is not None:
+        for slot in prepared.eval_setup.invocations:
+            if slot.agent_id == dispatch.agent_id:
+                invocation_slot = slot
+                break
+
+    dispatch_total = len(prepared.dispatches)
+    dispatch_index = next(
+        (i for i, d in enumerate(prepared.dispatches) if d.agent_id == dispatch.agent_id),
+        0,
+    )
+
+    # Pull this agent's soft-write call_ids straight off ``all_tool_results``.
+    # Each entry's ``call_id`` is the ``calls_entry.id`` minted at dispatch
+    # time, which doubles as the ``idempotency_key`` the FE uses to
+    # promote/reject via ``/<artifact>/create``.
+    agent_call_ids = [
+        tr["call_id"] for tr in all_tool_results if tr.get("call_id")
+    ]
+
+    await internal_sio.emit(
+        f"{artifact_type}.generate.agent_completed",
+        {
+            "sid": sid,
+            "rooms": [str(profile_id)],
+            "artifact_type": artifact_type,
+            "run_id": str(run_id),
+            "group_id": str(group_id),
+            "agent_id": str(dispatch.agent_id),
+            "test_id": (
+                str(prepared.eval_setup.test_id)
+                if prepared.eval_setup is not None
+                else None
+            ),
+            "invocation": invocation_slot.model_dump(mode="json")
+            if invocation_slot is not None
+            else None,
+            "call_ids": agent_call_ids,
+            "progress": {
+                "index": dispatch_index,
+                "total": dispatch_total,
+            },
+        },
+    )
+
     # Finalize: persist assistant text + tokens, run multi-agent coordination
-    # and the rubric eval gate, then emit the final completion channel.
+    # then emit the final completion channel.
     # ``run_complete_impl`` is called directly (not via an internal event)
     # so nothing top-level needs to exist to carry the workflow.
     from app.infra.globals import UPLOAD_FOLDER

@@ -33,7 +33,7 @@ from app.routes.test.refresh import router as refresh_router
 from app.routes.test.search import router as search_router
 from app.routes.test.start import router as start_router
 from app.routes.test.stop import router as stop_router
-from app.routes.test.stream import router as stream_router
+from app.routes.test.watch import router as watch_router
 from app.routes.test.text_download import router as text_download_router
 
 router = APIRouter(prefix="/test", tags=["test"])
@@ -56,7 +56,7 @@ router.include_router(feedback_router)
 router.include_router(generate_router)
 router.include_router(generations_router)
 router.include_router(group_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 router.include_router(problem_router)
 # Promoted from /test/invocation/* to top-level (invocation was the only
 # consumer of these; keeping them nested obscured shared use across

@@ -66,7 +66,7 @@ async def download_call(
             session_id=session_id,
             group_id=group_id,
             operation="call_download",
-            arguments={{"call_id": str(request.call_id)}},
+            arguments={"call_id": str(request.call_id)},
             response_model=CallDownloadAgentApiResult,
             runner=_runner,
             upload_folder=get_upload_folder(),
@@ -74,16 +74,16 @@ async def download_call(
 
         encoded = urllib.parse.quote(result.filename, safe="")
         content_disposition = (
-            f"inline; filename=\"{{encoded}}\"; filename*=UTF-8\'\'{{encoded}}"
+            f"inline; filename=\"{encoded}\"; filename*=UTF-8\'\'{encoded}"
         )
 
         return FileResponse(
             path=result.file_path,
             media_type=result.content_type,
-            headers={{
+            headers={
                 "Content-Disposition": content_disposition,
                 "Cache-Control": "private, max-age=0, must-revalidate",
-            }},
+            },
         )
     except HTTPException:
         raise

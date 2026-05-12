@@ -7,7 +7,17 @@ Draft saved. ID: `{{ r.draft_id }}`.
 - **Name:** {% if fs.name_id %}`{{ fs.name_id }}`{% if fs.name %} — {{ fs.name }}{% endif %}{% else %}not set{% endif %}
 - **Description:** {% if fs.description_id %}`{{ fs.description_id }}`{% if fs.description %} — {{ fs.description[:100] }}{% endif %}{% else %}not set{% endif %}
 - **Problem Statement:** {% if fs.problem_statement_id %}`{{ fs.problem_statement_id }}`{% else %}not set{% endif %}
+{% if fs.flags %}
+- **Flag Toggles:**
+{% for type, items in (fs.flags | groupby('type')) %}
+{% set true_opt = items | selectattr('value', 'equalto', true) | list | first %}
+{% set false_opt = items | selectattr('value', 'equalto', false) | list | first %}
+{% set state = 'true' if (true_opt and true_opt.selected) else ('false' if (false_opt and false_opt.selected) else 'not set') %}
+  - `{{ type }}`: **{{ state }}**
+{% endfor %}
+{% else %}
 - **Flags:** {{ fs.flag_ids | length if fs.flag_ids else 0 }}
+{% endif %}
 - **Departments:** {{ fs.department_ids | length if fs.department_ids else 0 }}
 - **Personas:** {{ fs.persona_ids | length if fs.persona_ids else 0 }}
 - **Documents:** {{ fs.document_ids | length if fs.document_ids else 0 }}

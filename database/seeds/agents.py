@@ -27,7 +27,6 @@ def _role_model(role: str):
 AGENT_ACTIVE_FLAG = sid("flag/agent-active")
 
 # Shared tools — added to every agent
-GROUP_NAME_TOOL = sid("tool-resource/group/name")
 
 # ---------------------------------------------------------------------------
 # Deterministic IDs — importable by other modules (e.g., systems.py)
@@ -141,12 +140,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/activity/export"),
-            sid("tool-resource/activity/get"),
-            sid("tool-resource/activity/problem"),
-            sid("tool-resource/activity/refresh"),
-            sid("tool-resource/activity/resolve"),
-            sid("tool-resource/activity/search"),
+            sid("tool-resource/system/activity"),
         ],
         prompt_id=_prompt_id("Activity"),
         instruction_ids=[_instruction_id("Activity")],
@@ -159,6 +153,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/agent/title"),
             sid("tool-resource/agent/create"),
             sid("tool-resource/agent/delete"),
             sid("tool-resource/agent/draft"),
@@ -184,29 +179,23 @@ agents = [
         tool_ids=[
             sid("tool-resource/attempt/archive"),
             sid("tool-resource/attempt/context"),
-            sid("tool-resource/attempt/create"),
             sid("tool-resource/attempt/draft"),
             sid("tool-resource/attempt/drafts"),
             sid("tool-resource/attempt/export"),
             sid("tool-resource/attempt/generate"),
             sid("tool-resource/attempt/generations"),
             sid("tool-resource/attempt/get"),
-            sid("tool-resource/attempt/grade"),
             sid("tool-resource/attempt/title"),
-            sid("tool-resource/attempt/message"),
             sid("tool-resource/attempt/problem"),
             sid("tool-resource/attempt/refresh"),
-            sid("tool-resource/attempt/response"),
             sid("tool-resource/attempt/search"),
             sid("tool-resource/attempt/start"),
             sid("tool-resource/attempt/stop"),
             sid("tool-resource/attempt/chat_get"),
             sid("tool-resource/attempt/chat_create"),
             sid("tool-resource/attempt/chat_message"),
-            sid("tool-resource/attempt/chat_stop"),
             sid("tool-resource/attempt/chat_grade"),
             sid("tool-resource/attempt/chat_voice"),
-            sid("tool-resource/attempt/chat_mute"),
             sid("tool-resource/attempt/chat_silence"),
             sid("tool-resource/attempt/chat_response"),
             sid("tool-resource/attempt/chat_feedback"),
@@ -215,12 +204,6 @@ agents = [
             sid("tool-resource/attempt/chat_analyses"),
             sid("tool-resource/attempt/chat_complete"),
             sid("tool-resource/attempt/chat_hints"),
-            sid("tool-resource/attempt-audio/create"),
-            sid("tool-resource/attempt-audio/download"),
-            sid("tool-resource/attempt-audio/start"),
-            sid("tool-resource/attempt-audio/frame"),
-            sid("tool-resource/attempt-audio/stop"),
-            sid("tool-resource/attempt-audio/mute"),
         ],
         prompt_id=_prompt_id("Attempt Chat"),  # TODO: Create dedicated "Attempt" prompt
         instruction_ids=[_instruction_id("Attempt Chat")],  # TODO: Create dedicated "Attempt" instruction
@@ -239,12 +222,6 @@ agents = [
         tool_ids=[
             sid("tool-resource/attempt/get"),
             sid("tool-resource/attempt/chat_message"),
-            # The voice flow's /attempt/generate request asks for
-            # operations=['get', 'chat_message', 'chat_hints']. With
-            # the canonical score_agents selector, an agent must cover
-            # every requested op or it isn't a candidate. Without
-            # chat_hints here, the realtime request returned 0
-            # candidates and dispatches=0.
             sid("tool-resource/attempt/chat_hints"),
         ],
         prompt_id=_prompt_id("Attempt Realtime"),
@@ -258,6 +235,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/auth/title"),
             sid("tool-resource/auth/create"),
             sid("tool-resource/auth/delete"),
             sid("tool-resource/auth/draft"),
@@ -280,10 +258,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/benchmark/export"),
-            sid("tool-resource/benchmark/get"),
-            sid("tool-resource/benchmark/refresh"),
-            sid("tool-resource/benchmark/search"),
+            sid("tool-resource/test/benchmark"),
         ],
         prompt_id=_prompt_id("Benchmark"),
         instruction_ids=[_instruction_id("Benchmark")],
@@ -296,11 +271,6 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/chat/draft"),
-            sid("tool-resource/chat/drafts"),
-            sid("tool-resource/chat/export"),
-            sid("tool-resource/chat/get"),
-            sid("tool-resource/chat/refresh"),
         ],
         prompt_id=_prompt_id("Chat"),
         instruction_ids=[_instruction_id("Chat")],
@@ -313,6 +283,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/cohort/title"),
             sid("tool-resource/cohort/create"),
             sid("tool-resource/cohort/delete"),
             sid("tool-resource/cohort/draft"),
@@ -335,10 +306,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/dashboard/export"),
-            sid("tool-resource/dashboard/get"),
-            sid("tool-resource/dashboard/refresh"),
-            sid("tool-resource/dashboard/search"),
+            sid("tool-resource/attempt/dashboard"),
         ],
         prompt_id=_prompt_id("Dashboard"),
         instruction_ids=[_instruction_id("Dashboard")],
@@ -351,6 +319,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/department/title"),
             sid("tool-resource/department/create"),
             sid("tool-resource/department/delete"),
             sid("tool-resource/department/draft"),
@@ -373,6 +342,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/document/title"),
             sid("tool-resource/document/create"),
             sid("tool-resource/document/delete"),
             sid("tool-resource/document/draft"),
@@ -383,11 +353,6 @@ agents = [
             sid("tool-resource/document/refresh"),
             sid("tool-resource/document/search"),
             sid("tool-resource/document/update"),
-            sid("tool-resource/document-text/create"),
-            sid("tool-resource/document-text/download"),
-            sid("tool-resource/document-file/create"),
-            sid("tool-resource/document-file/download"),
-            sid("tool-resource/document-file/preview"),
         ],
         prompt_id=_prompt_id("Document"),
         instruction_ids=[_instruction_id("Document")],
@@ -400,6 +365,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/eval/title"),
             sid("tool-resource/eval/create"),
             sid("tool-resource/eval/delete"),
             sid("tool-resource/eval/draft"),
@@ -422,6 +388,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/field/title"),
             sid("tool-resource/field/create"),
             sid("tool-resource/field/delete"),
             sid("tool-resource/field/draft"),
@@ -444,12 +411,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/group/export"),
-            sid("tool-resource/group/generate"),
-            sid("tool-resource/group/get"),
-            sid("tool-resource/group/name"),
-            sid("tool-resource/group/refresh"),
-            sid("tool-resource/group/search"),
+            sid("tool-resource/system/group"),
         ],
         prompt_id=_prompt_id("Group"),
         instruction_ids=[_instruction_id("Group")],
@@ -462,9 +424,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/health/export"),
-            sid("tool-resource/health/get"),
-            sid("tool-resource/health/refresh"),
+            sid("tool-resource/system/health"),
         ],
         prompt_id=_prompt_id("Health"),
         instruction_ids=[_instruction_id("Health")],
@@ -477,10 +437,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/home/export"),
-            sid("tool-resource/home/get"),
-            sid("tool-resource/home/refresh"),
-            sid("tool-resource/home/search"),
+            sid("tool-resource/attempt/home"),
         ],
         prompt_id=_prompt_id("Home"),
         instruction_ids=[_instruction_id("Home")],
@@ -493,12 +450,10 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/invocation/decrypt"),
-            sid("tool-resource/invocation/draft"),
-            sid("tool-resource/invocation/drafts"),
-            sid("tool-resource/invocation/export"),
-            sid("tool-resource/invocation/get"),
-            sid("tool-resource/invocation/refresh"),
+            sid("tool-resource/test/draft"),
+            sid("tool-resource/test/export"),
+            sid("tool-resource/test/invocation_get"),
+            sid("tool-resource/test/refresh"),
         ],
         prompt_id=_prompt_id("Invocation"),
         instruction_ids=[_instruction_id("Invocation")],
@@ -511,10 +466,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/leaderboard/export"),
-            sid("tool-resource/leaderboard/get"),
-            sid("tool-resource/leaderboard/refresh"),
-            sid("tool-resource/leaderboard/search"),
+            sid("tool-resource/attempt/leaderboard"),
         ],
         prompt_id=_prompt_id("Leaderboard"),
         instruction_ids=[_instruction_id("Leaderboard")],
@@ -527,6 +479,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/model/title"),
             sid("tool-resource/model/create"),
             sid("tool-resource/model/delete"),
             sid("tool-resource/model/draft"),
@@ -549,6 +502,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/parameter/title"),
             sid("tool-resource/parameter/create"),
             sid("tool-resource/parameter/delete"),
             sid("tool-resource/parameter/draft"),
@@ -575,7 +529,6 @@ agents = [
             sid("tool-resource/persona/create"),
             sid("tool-resource/persona/csv"),
             sid("tool-resource/persona/delete"),
-            sid("tool-resource/persona/docs"),
             sid("tool-resource/persona/draft"),
             sid("tool-resource/persona/drafts"),
             sid("tool-resource/persona/duplicate"),
@@ -605,7 +558,6 @@ agents = [
             sid("tool-resource/persona/create"),
             sid("tool-resource/persona/csv"),
             sid("tool-resource/persona/delete"),
-            sid("tool-resource/persona/docs"),
             sid("tool-resource/persona/draft"),
             sid("tool-resource/persona/drafts"),
             sid("tool-resource/persona/duplicate"),
@@ -631,10 +583,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/practice/export"),
-            sid("tool-resource/practice/get"),
-            sid("tool-resource/practice/refresh"),
-            sid("tool-resource/practice/search"),
+            sid("tool-resource/attempt/practice"),
         ],
         prompt_id=_prompt_id("Practice"),
         instruction_ids=[_instruction_id("Practice")],
@@ -647,10 +596,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/pricing/export"),
-            sid("tool-resource/pricing/get"),
-            sid("tool-resource/pricing/refresh"),
-            sid("tool-resource/pricing/search"),
+            sid("tool-resource/system/pricing"),
         ],
         prompt_id=_prompt_id("Pricing"),
         instruction_ids=[_instruction_id("Pricing")],
@@ -663,6 +609,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/profile/title"),
             sid("tool-resource/profile/context"),
             sid("tool-resource/profile/create"),
             sid("tool-resource/profile/delete"),
@@ -688,6 +635,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/provider/title"),
             sid("tool-resource/provider/create"),
             sid("tool-resource/provider/decrypt"),
             sid("tool-resource/provider/delete"),
@@ -711,10 +659,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/record/export"),
-            sid("tool-resource/record/get"),
-            sid("tool-resource/record/refresh"),
-            sid("tool-resource/record/search"),
+            sid("tool-resource/attempt/report"),
         ],
         prompt_id=_prompt_id("Record"),
         instruction_ids=[_instruction_id("Record")],
@@ -727,10 +672,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/reports/export"),
-            sid("tool-resource/reports/get"),
-            sid("tool-resource/reports/refresh"),
-            sid("tool-resource/reports/search"),
+            sid("tool-resource/attempt/report"),
         ],
         prompt_id=_prompt_id("Reports"),
         instruction_ids=[_instruction_id("Reports")],
@@ -743,6 +685,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/rubric/title"),
             sid("tool-resource/rubric/create"),
             sid("tool-resource/rubric/delete"),
             sid("tool-resource/rubric/draft"),
@@ -779,10 +722,6 @@ agents = [
             sid("tool-resource/scenario/refresh"),
             sid("tool-resource/scenario/search"),
             sid("tool-resource/scenario/update"),
-            sid("tool-resource/scenario-image/create"),
-            sid("tool-resource/scenario-image/download"),
-            sid("tool-resource/scenario-video/create"),
-            sid("tool-resource/scenario-video/download"),
         ],
         prompt_id=_prompt_id("Scenario"),
         instruction_ids=[_instruction_id("Scenario")],
@@ -795,7 +734,6 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("image"),
         tool_ids=[
-            sid("tool-resource/scenario-image/create"),
         ],
     ),
     dict(
@@ -806,7 +744,6 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("video"),
         tool_ids=[
-            sid("tool-resource/scenario-video/create"),
         ],
     ),
     dict(
@@ -817,9 +754,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            sid("tool-resource/session/export"),
-            sid("tool-resource/session/get"),
-            sid("tool-resource/session/refresh"),
+            sid("tool-resource/system/session"),
         ],
         prompt_id=_prompt_id("Session"),
         instruction_ids=[_instruction_id("Session")],
@@ -832,6 +767,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/setting/title"),
             sid("tool-resource/setting/create"),
             sid("tool-resource/setting/decrypt"),
             sid("tool-resource/setting/delete"),
@@ -855,6 +791,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/simulation/title"),
             sid("tool-resource/simulation/create"),
             sid("tool-resource/simulation/delete"),
             sid("tool-resource/simulation/draft"),
@@ -881,20 +818,15 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
-            # Test orchestration (state-machine ops)
             sid("tool-resource/test/start"),
             sid("tool-resource/test/get"),
             sid("tool-resource/test/title"),
-            sid("tool-resource/test/end"),
-            sid("tool-resource/test/next"),
             sid("tool-resource/test/refresh"),
-            sid("tool-resource/test/run"),
             sid("tool-resource/test/search"),
             sid("tool-resource/test/stop"),
             sid("tool-resource/test/archive"),
             sid("tool-resource/test/export"),
             sid("tool-resource/test/draft"),
-            # Materialization (read template + create test_invocation_entry)
             sid("tool-resource/test/invocation_get"),
             sid("tool-resource/invocation/create"),
         ],
@@ -926,6 +858,7 @@ agents = [
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("text"),
         tool_ids=[
+            sid("tool-resource/tool/title"),
             sid("tool-resource/tool/create"),
             sid("tool-resource/tool/delete"),
             sid("tool-resource/tool/draft"),

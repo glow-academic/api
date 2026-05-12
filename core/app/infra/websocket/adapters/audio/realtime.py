@@ -152,7 +152,11 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
             api_key: Decrypted API key for the provider
             base_url: Provider's realtime WebSocket endpoint (defaults to OpenAI)
             model: Model to use (defaults to gpt-4o-realtime-preview)
-            voice: Voice for TTS (e.g., "alloy", "echo", "shimmer")
+            voice: Voice for TTS — provider-specific names
+                   (OpenAI: "alloy", "echo", "shimmer", "onyx", "nova", "fable";
+                   xAI Voice Agent: "eve", "ara", "rex", "sal", "leo"). When
+                   omitted, defaults are picked per-provider from the model
+                   string — see voice-default block below.
             instructions: System instructions for the session
             tools: Tools available to the model
             **kwargs: Additional options (turn_detection, etc.)
@@ -161,7 +165,13 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
             AudioSessionConfig with session details
         """
         model = model or DEFAULT_REALTIME_MODEL
-        voice = voice or "alloy"
+        # Provider-aware voice default. OpenAI and xAI use disjoint voice
+        # rosters; "alloy" rejects on xAI, "eve" rejects on OpenAI. Detect
+        # provider from the model id so a no-voice caller doesn't blow up
+        # the session.update on whichever realtime backend the litellm
+        # proxy points at.
+        if not voice:
+            voice = "eve" if "grok" in (model or "").lower() else "alloy"
 
         # Guard against double-open: if the conversation already has a live
         # WS (multi-generate-per-conversation), reuse it. This is the cheap
@@ -512,9 +522,15 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                     logger.info(f"Provider event: {event_type} - group_id={group_id}")
 
                 # -- Session lifecycle --
-
-                if event_type == "session.created":
-                    logger.info(f"Session created - group_id={group_id}")
+                # Accept both ``session.created`` (OpenAI canonical) and
+                # ``conversation.created`` (some realtime providers / older
+                # litellm bridge bindings emit this for the initial handshake).
+                # xAI's docs claim full OpenAI compatibility so this should
+                # be cosmetic, but accepting both is cheap defensive hardening.
+                if event_type in ("session.created", "conversation.created"):
+                    logger.info(
+                        f"Session created ({event_type}) - group_id={group_id}"
+                    )
 
                 elif event_type == "session.updated":
                     logger.info(f"Session updated - group_id={group_id}")
@@ -586,8 +602,19 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                         await self._emitter.on_audio_delta(group_id, audio_bytes)
 
                 # -- Assistant transcript --
+                # Three event variants we accept as "assistant transcript delta":
+                #   - ``response.audio_transcript.delta``      — audio-modality transcript (both providers)
+                #   - ``response.output_text.delta``           — OpenAI GA text-modality delta
+                #   - ``response.text.delta``                  — xAI text-modality delta (OpenAI beta name)
+                # Accepting all three makes the adapter modality-agnostic and
+                # cross-provider — a text-only realtime session still surfaces
+                # its content to ``on_transcript_delta``.
 
-                elif event_type == "response.audio_transcript.delta":
+                elif event_type in (
+                    "response.audio_transcript.delta",
+                    "response.output_text.delta",
+                    "response.text.delta",
+                ):
                     transcript = event.get("delta", "")
                     if transcript:
                         await self._emitter.on_transcript_delta(group_id, transcript)

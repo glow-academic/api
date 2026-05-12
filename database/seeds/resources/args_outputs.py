@@ -75,17 +75,168 @@ SHARED_ARGS_OUTPUTS = {
         name="operation",
         template="drafts",
     ),
-    "operation_drafts_search": dict(
-        id=sid("args_output/operation_drafts_search"),
-        args_id=_OPERATION_ARG_ID,
-        name="operation",
-        template="drafts_search",
-    ),
     "operation_title": dict(
         id=sid("args_output/operation_title"),
         args_id=_OPERATION_ARG_ID,
         name="operation",
         template="title",
+    ),
+    "operation_stream": dict(
+        id=sid("args_output/operation_stream"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="stream",
+    ),
+    # ``watch`` — one-shot block-until-done sibling of stream's live SSE.
+    # Same group of events, but the tool layer calls the one-shot impl
+    # via ``execute_infra_operation`` and gets back a single payload.
+    "operation_watch": dict(
+        id=sid("args_output/operation_watch"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="watch",
+    ),
+    "group_id_passthrough": dict(
+        id=sid("args_output/group_id_passthrough"),
+        args_id=sid("arg/group_id"),
+        name="group_id",
+        template="{{ group_id }}",
+    ),
+    "run_id_passthrough": dict(
+        id=sid("args_output/run_id_passthrough"),
+        args_id=sid("arg/run_id"),
+        name="run_id",
+        template="{{ run_id }}",
+    ),
+    "wait_for_complete_passthrough": dict(
+        id=sid("args_output/wait_for_complete_passthrough"),
+        args_id=sid("arg/wait_for_complete"),
+        name="wait_for_complete",
+        template="{{ wait_for_complete }}",
+    ),
+    # Hardcoded ``true`` — used by ``*_Generate`` tools so the LLM-tool
+    # layer always blocks (POC). Flip the template to ``false`` (or
+    # swap in ``wait_for_complete_passthrough`` to let the model pick)
+    # to unlock fire-and-forget + parallel generates.
+    "wait_for_complete_true": dict(
+        id=sid("args_output/wait_for_complete_true"),
+        args_id=sid("arg/wait_for_complete"),
+        name="wait_for_complete",
+        template="true",
+    ),
+    # Hardcoded ``assistant`` — when the LLM-tool layer dispatches a
+    # ``*_Generate`` tool call, the parent LLM crafted the
+    # ``instructions`` as a tool argument (NOT a human typing). The
+    # downstream ``prepare_generation`` reads ``payload.instructions_role``
+    # to persist messages with the correct role; setting this here means
+    # the FE chat panel renders the prompt as a left-aligned assistant
+    # bubble instead of a right-aligned user one. FE-direct routes never
+    # render via Jinja, so they default to ``"user"`` at the schema layer.
+    "instructions_role_assistant": dict(
+        id=sid("args_output/instructions_role_assistant"),
+        args_id=sid("arg/instructions_role"),
+        name="instructions_role",
+        template="assistant",
+    ),
+    "timeout_seconds_passthrough": dict(
+        id=sid("args_output/timeout_seconds_passthrough"),
+        args_id=sid("arg/timeout_seconds"),
+        name="timeout_seconds",
+        template="{{ timeout_seconds }}",
+    ),
+    # --- Generate payload wrappers ---
+    # The /<artifact>/generate route's ArtifactGenerateRequest expects
+    # ``modalities: list[str]`` and ``instructions: list[str]``. Tool args
+    # are single strings (the LLM picks one modality, writes one prompt),
+    # so these wrap the scalar into a JSON list the TypeAdapter parses back.
+    "modalities_wrapped": dict(
+        id=sid("args_output/modalities_wrapped"),
+        args_id=sid("arg/modality"),
+        name="modalities",
+        # Coalesce to image/video only — anything else (audio, text, empty,
+        # typo, prompt-injection attempt) snaps to "image" as the safe default.
+        # Belt-and-suspenders: even if the LLM ignores the description's
+        # "one of: image, video" hint, the rendered value is always valid.
+        template='["{% if modality == \'video\' %}video{% else %}image{% endif %}"]',
+    ),
+    "instructions_wrapped": dict(
+        id=sid("args_output/instructions_wrapped"),
+        args_id=sid("arg/instructions"),
+        name="instructions",
+        template="[{{ instructions | tojson }}]",
+    ),
+    # --- Routing: view-as-operation (flattened views collapse to single op-named-as-view) ---
+    "operation_activity": dict(
+        id=sid("args_output/operation_activity"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="activity",
+    ),
+    "operation_benchmark": dict(
+        id=sid("args_output/operation_benchmark"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="benchmark",
+    ),
+    "operation_dashboard": dict(
+        id=sid("args_output/operation_dashboard"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="dashboard",
+    ),
+    "operation_health": dict(
+        id=sid("args_output/operation_health"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="health",
+    ),
+    "operation_home": dict(
+        id=sid("args_output/operation_home"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="home",
+    ),
+    "operation_leaderboard": dict(
+        id=sid("args_output/operation_leaderboard"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="leaderboard",
+    ),
+    "operation_practice": dict(
+        id=sid("args_output/operation_practice"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="practice",
+    ),
+    "operation_pricing": dict(
+        id=sid("args_output/operation_pricing"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="pricing",
+    ),
+    "operation_report": dict(
+        id=sid("args_output/operation_report"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="report",
+    ),
+    "operation_session": dict(
+        id=sid("args_output/operation_session"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="session",
+    ),
+    "operation_groups": dict(
+        id=sid("args_output/operation_groups"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="groups",
+    ),
+    "operation_sessions": dict(
+        id=sid("args_output/operation_sessions"),
+        args_id=_OPERATION_ARG_ID,
+        name="operation",
+        template="sessions",
     ),
     "operation_duplicate": dict(
         id=sid("args_output/operation_duplicate"),
@@ -947,6 +1098,12 @@ SHARED_ARGS_OUTPUTS = {
         args_id=_ARTIFACT_ARG_ID,
         name="artifact",
         template="group",
+    ),
+    "artifact_system": dict(
+        id=sid("args_output/artifact_system"),
+        args_id=_ARTIFACT_ARG_ID,
+        name="artifact",
+        template="system",
     ),
     # --- Payload: resource ID fields ---
     "id": dict(

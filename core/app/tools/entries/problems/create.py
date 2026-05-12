@@ -1,5 +1,6 @@
 """Problems CREATE — insert into problems_entry with profile link."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -19,12 +20,13 @@ async def create_problem(
     profile_id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateProblemResponse:
     """Create a problem entry and optionally link to a profile."""
     problem_id = await conn.fetchval(
         """
-        INSERT INTO problems_entry (id, call_id, type, message, active, mcp, generated, artifact_type)
-        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, $7)
+        INSERT INTO problems_entry (id, call_id, type, message, active, mcp, generated, artifact_type, created_at)
+        VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true, $7, COALESCE($8, NOW()))
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
@@ -35,6 +37,7 @@ async def create_problem(
         mcp,
         id,
         artifact_type,
+        created_at,
     )
 
     if problem_id is None:

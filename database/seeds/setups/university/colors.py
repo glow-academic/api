@@ -1,52 +1,62 @@
-"""University color theme seed definitions.
+"""University color theme — mirrors the org seed.
 
-Colors are resource-level creates (no artifact wrapper).
-They get linked to the setting via post_links.
+The Essential 17 (light) + 18 (dark, including sidebar_primary). See
+``setups/organization/colors.py`` for the authoritative comment.
 """
 
 from database.seeds.ids import sid
 
-# ---------------------------------------------------------------------------
-# Deterministic IDs
-# ---------------------------------------------------------------------------
-
-C_PRIMARY = sid("uni/color/primary")
-C_ACCENT = sid("uni/color/accent")
-C_SUCCESS = sid("uni/color/success")
-C_WARNING = sid("uni/color/warning")
-C_ERROR = sid("uni/color/error")
-C_SIDEBAR_BG = sid("uni/color/sidebar-background")
-C_SIDEBAR_PRIMARY = sid("uni/color/sidebar-primary")
-C_CHART_2 = sid("uni/color/chart2")
-C_CHART_4 = sid("uni/color/chart4")
-C_CHART_5 = sid("uni/color/chart5")
-
-ALL_COLOR_IDS = [
-    C_PRIMARY,
-    C_ACCENT,
-    C_SUCCESS,
-    C_WARNING,
-    C_ERROR,
-    C_SIDEBAR_BG,
-    C_SIDEBAR_PRIMARY,
-    C_CHART_2,
-    C_CHART_4,
-    C_CHART_5,
+_LIGHT: list[tuple[str, str]] = [
+    ("background",       "#ffffff"),
+    ("primary",          "#171717"),
+    ("accent",           "#f5f5f5"),
+    ("card",             "#ffffff"),
+    ("sidebar",          "#fafafa"),
+    ("muted_foreground", "#737373"),
+    ("ring",             "#a1a1a1"),
+    ("border",           "#e5e5e5"),
+    ("destructive",      "#e7000b"),
+    ("success",          "#009e34"),
+    ("warning",          "#ea8100"),
+    ("info",             "#0065b4"),
+    ("chart1",           "#f54900"),
+    ("chart2",           "#009689"),
+    ("chart3",           "#104e64"),
+    ("chart4",           "#ffb900"),
+    ("chart5",           "#fe9a00"),
 ]
 
-# ---------------------------------------------------------------------------
-# Color definitions
-# ---------------------------------------------------------------------------
-
-colors = [
-    dict(id=C_PRIMARY, name="Custom", description="Custom color", hex_code="#171717", type="primary"),
-    dict(id=C_ACCENT, name="Custom", description="Custom color", hex_code="#f5f5f5", type="accent"),
-    dict(id=C_SUCCESS, name="Custom", description="Custom color", hex_code="#009e34", type="success"),
-    dict(id=C_WARNING, name="Custom", description="Custom color", hex_code="#ea8100", type="warning"),
-    dict(id=C_ERROR, name="Custom", description="Custom color", hex_code="#e7000b", type="danger"),
-    dict(id=C_SIDEBAR_BG, name="Custom", description="Custom color", hex_code="#fafafa", type="background"),
-    dict(id=C_SIDEBAR_PRIMARY, name="Custom", description="Custom color", hex_code="#171717", type="foreground"),
-    dict(id=C_CHART_2, name="Custom", description="Custom color", hex_code="#404040", type="chart2"),
-    dict(id=C_CHART_4, name="Custom", description="Custom color", hex_code="#b0b0b0", type="chart4"),
-    dict(id=C_CHART_5, name="Custom", description="Custom color", hex_code="#e0e0e0", type="chart5"),
+_DARK: list[tuple[str, str]] = [
+    ("dark_background",       "#0a0a0a"),
+    ("dark_primary",          "#e5e5e5"),
+    ("dark_accent",           "#262626"),
+    ("dark_card",             "#171717"),
+    ("dark_sidebar",          "#171717"),
+    ("dark_sidebar_primary",  "#1447e6"),
+    ("dark_muted_foreground", "#a1a1a1"),
+    ("dark_ring",             "#737373"),
+    ("dark_border",           "#262626"),
+    ("dark_destructive",      "#ff6467"),
+    ("dark_success",          "#009e34"),
+    ("dark_warning",          "#ea8100"),
+    ("dark_info",             "#0065b4"),
+    ("dark_chart1",           "#1447e6"),
+    ("dark_chart2",           "#00bc7d"),
+    ("dark_chart3",           "#fe9a00"),
+    ("dark_chart4",           "#ad46ff"),
+    ("dark_chart5",           "#ff2056"),
 ]
+
+
+def _row(type_name: str, hex_code: str) -> dict:
+    return dict(
+        id=sid(f"uni/color/{type_name.replace('_', '-')}"),
+        name=type_name.replace("_", " ").title(),
+        description=f"--{type_name.replace('_', '-')}",
+        hex_code=hex_code,
+        type=type_name,
+    )
+
+
+colors = [_row(t, h) for t, h in _LIGHT] + [_row(t, h) for t, h in _DARK]
+ALL_COLOR_IDS = [c["id"] for c in colors]

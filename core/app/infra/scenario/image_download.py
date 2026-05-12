@@ -59,9 +59,16 @@ async def image_download_scenario_impl(
             detail="You don't have permission to download scenario images.",
         )
 
-    # ── Step 3: Resolve images_id → file metadata via images_mv ────────
+    # ── Step 3: Resolve to a file via images_mv. The MV exposes both
+    # ``image_id`` (entry id, what ``messages_mv.image_ids`` carries
+    # for FE chat attachments) and ``images_id`` (resource id, what
+    # ``MediaResult.images_id`` / ``ProducedMedia.resource_id`` surface
+    # to the LLM). Try resource filter first, then entry filter — same
+    # downstream behavior either way once a row is found.
     async with pool.acquire() as conn:
         results = await search_images(conn, images_ids=[image_id], limit=1)
+        if not results:
+            results = await search_images(conn, image_ids=[image_id], limit=1)
 
     if not results:
         raise HTTPException(

@@ -29,6 +29,7 @@ async def build_artifact_stream_impl(
     *,
     group_id: UUID,
     artifact: str,
+    run_id: UUID | None = None,
     keepalive_sec: float = DEFAULT_KEEPALIVE_SEC,
 ) -> StreamingResponse:
     """SSE stream for a single time-windowed group, filtered to one artifact.
@@ -36,6 +37,10 @@ async def build_artifact_stream_impl(
     Canonical path for per-artifact streams — the caller resolves ``group_id``
     via ``group_{artifact}_impl`` and passes it here. Events on the group
     whose ``artifact`` field doesn't match are silently dropped.
+
+    If ``run_id`` is provided, only events whose envelope ``run_id`` matches
+    are yielded — useful when a caller wants a per-run live feed instead of
+    the whole group. ``None`` (default) keeps current group-wide behavior.
     """
     queue = subscribe(group_id=group_id)
 
@@ -51,6 +56,8 @@ async def build_artifact_stream_impl(
                     continue
 
                 if event.artifact != artifact:
+                    continue
+                if run_id is not None and event.run_id != run_id:
                     continue
 
                 # All events flow on the default ``message`` channel.

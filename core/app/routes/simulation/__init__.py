@@ -18,7 +18,7 @@ from app.routes.simulation.group import router as group_router
 from app.routes.simulation.problem import router as problem_router
 from app.routes.simulation.refresh import router as refresh_router
 from app.routes.simulation.search import router as search_router
-from app.routes.simulation.stream import router as stream_router
+from app.routes.simulation.watch import router as watch_router
 from app.routes.simulation.update import router as update_router
 from app.routes.simulation.text_download import router as text_download_router
 from app.routes.simulation.call_download import router as call_download_router
@@ -44,7 +44,7 @@ router.include_router(generations_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
 router.include_router(group_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

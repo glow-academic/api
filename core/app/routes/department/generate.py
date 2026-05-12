@@ -49,7 +49,8 @@ async def generate_department(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                request=request,
+                **request.model_dump(exclude={'config'}, exclude_none=True),
+                **(request.config or GenerateConfig()).model_dump(exclude_none=True),
             )
 
         return await run_artifact_operation_with_audit(

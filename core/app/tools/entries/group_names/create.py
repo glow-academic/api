@@ -1,5 +1,6 @@
 """Group names CREATE — append a new name entry for a group."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -16,6 +17,7 @@ async def create_group_name(
     generated: bool = False,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateGroupNameResponse:
     """Create a group_names entry (append-only).
 
@@ -32,8 +34,8 @@ async def create_group_name(
     entry_id = await conn.fetchval(
         """
         INSERT INTO group_names_entry
-                (id, group_id, name, session_id, generated, mcp, active)
-        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7)
+                (id, group_id, name, session_id, generated, mcp, active, created_at)
+        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id
         """,
@@ -44,6 +46,7 @@ async def create_group_name(
         generated,
         mcp,
         not soft,
+        created_at,
     )
 
     if entry_id is None:

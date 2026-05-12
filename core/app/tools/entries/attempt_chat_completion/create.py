@@ -1,5 +1,6 @@
 """Entry CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
@@ -19,12 +20,13 @@ async def create_attempt_chat_completion(
     message: str = "",
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptChatCompletionResponse:
     """Create an attempt_chat_completion entry."""
     entry_id = await conn.fetchval(
         """
-        INSERT INTO attempt_chat_completion_entry (id, chat_id, session_id, stop, error, message, active, mcp, generated)
-        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
+        INSERT INTO attempt_chat_completion_entry (id, chat_id, session_id, stop, error, message, active, mcp, generated, created_at)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true, COALESCE($9, NOW()))
         ON CONFLICT (chat_id) DO NOTHING
         RETURNING id
         """,
@@ -36,6 +38,7 @@ async def create_attempt_chat_completion(
         not soft,
         mcp,
         id,
+        created_at,
     )
     if entry_id is None:
         entry_id = await conn.fetchval(

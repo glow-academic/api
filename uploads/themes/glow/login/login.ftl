@@ -1,6 +1,31 @@
 <#import "template.ftl" as layout>
 <#include "providers.ftl">
 
+<#--
+  Theme bridge: read the same signal next-themes uses in the Next.js
+  app and toggle `.dark` / `.light` on <html> BEFORE the page paints,
+  so the login surface inherits whatever theme the user chose in the
+  app. Resolution order:
+    1. ``?glow_theme=`` URL parameter (works locally + prod; survives
+       even when cookies can't cross origins).
+    2. ``glow_theme`` cookie (parent-domain in prod, host-only in dev).
+    3. (fallback) OS preference via @media (prefers-color-scheme).
+  Inline + executed before <body> renders, so there's no flash.
+-->
+<script>
+(function() {
+  try {
+    var u = new URLSearchParams(window.location.search).get('glow_theme');
+    var m = document.cookie.match(/(?:^|; )glow_theme=([^;]+)/);
+    var t = u || (m && decodeURIComponent(m[1])) || '';
+    var r = document.documentElement;
+    if (t === 'dark') { r.classList.add('dark'); r.classList.remove('light'); }
+    else if (t === 'light') { r.classList.add('light'); r.classList.remove('dark'); }
+    // 'system' or unset → leave classes off so @media prefers-color-scheme wins
+  } catch (e) { /* no-op: fall back to OS preference */ }
+})();
+</script>
+
 <@layout.registrationLayout displayInfo=social.displayInfo; section>
   <#if section = "form">
     <#-- Read department from URL parameter -->
@@ -39,17 +64,24 @@
           <#-- Logo section -->
           <div class="logo-section">
             <div class="logo-link">
+              <#-- Page gradient now uses --background / --accent (light
+                   surfaces in light mode, dark in dark mode), so the
+                   icon rect uses --primary (the brand color, which
+                   contrasts the page bg in both modes) and the inner
+                   sparkle uses --primary-foreground (contrasts the
+                   brand rect). Same contrast-pair rule applied in the
+                   other direction now that the page itself is themed. -->
               <svg width="64" height="64" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-icon">
                 <defs>
                   <linearGradient id="glow-gradient-login" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#93C5FD"></stop>
-                    <stop offset="50%" stop-color="#60A5FA"></stop>
-                    <stop offset="100%" stop-color="#3B82F6"></stop>
+                    <stop offset="0%" stop-color="var(--primary, #93C5FD)"></stop>
+                    <stop offset="50%" stop-color="var(--primary, #60A5FA)"></stop>
+                    <stop offset="100%" stop-color="var(--accent, #3B82F6)"></stop>
                   </linearGradient>
                 </defs>
                 <rect width="32" height="32" rx="8" fill="url(#glow-gradient-login)"></rect>
                 <g transform="translate(16, 16) scale(0.667)">
-                  <path d="M0 -11L2.59 -2.59L11 0L2.59 2.59L0 11L-2.59 2.59L-11 0L-2.59 -2.59L0 -11Z" fill="white"></path>
+                  <path d="M0 -11L2.59 -2.59L11 0L2.59 2.59L0 11L-2.59 2.59L-11 0L-2.59 -2.59L0 -11Z" fill="var(--primary-foreground, white)"></path>
                 </g>
               </svg>
               <h1 class="glow-title">GLOW</h1>

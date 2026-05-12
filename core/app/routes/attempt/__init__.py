@@ -45,7 +45,7 @@ from app.routes.attempt.report import router as report_router
 from app.routes.attempt.search import router as search_router
 from app.routes.attempt.start import router as start_router
 from app.routes.attempt.stop import router as stop_router
-from app.routes.attempt.stream import router as stream_router
+from app.routes.attempt.watch import router as watch_router
 from app.routes.attempt.text_download import router as text_download_router
 from app.routes.attempt.video_download import router as video_download_router
 from app.routes.attempt.call_download import router as call_download_router
@@ -69,7 +69,7 @@ router.include_router(problem_router)
 router.include_router(start_router)
 router.include_router(complete_router)
 router.include_router(stop_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Chat sub-router (chat-level + voice operations)
 router.include_router(chat_analyses_router)

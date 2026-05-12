@@ -21,11 +21,27 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.agent.context import resolve_agent_context
 from app.infra.attempt.context import resolve_attempt_context
+from app.infra.auth.context import resolve_auth_context
+from app.infra.cohort.context import resolve_cohort_context
 from app.infra.common_context import resolve_common_context
+from app.infra.department.context import resolve_department_context
+from app.infra.document.context import resolve_document_context
+from app.infra.eval.context import resolve_eval_context
+from app.infra.field.context import resolve_field_context
 from app.infra.helpers import dedupe_by_id
+from app.infra.model.context import resolve_model_context
+from app.infra.parameter.context import resolve_parameter_context
 from app.infra.persona.context import resolve_persona_context
+from app.infra.profile.context import resolve_profile_context
+from app.infra.provider.context import resolve_provider_context
+from app.infra.rubric.context import resolve_rubric_context
+from app.infra.scenario.context import resolve_scenario_context
+from app.infra.setting.context import resolve_setting_context
+from app.infra.simulation.context import resolve_simulation_context
 from app.infra.system_context import resolve_system_context
+from app.infra.tool.context import resolve_tool_context
 from app.infra.tool_graph import score_tools
 from app.infra.types import (
     ArtifactContext,
@@ -64,7 +80,106 @@ TEST_SCORING_RESOURCES: set[str] = {
     "feedbacks",
     "grades",
 }
-# TODO: SCENARIO_SCORING_RESOURCES, SIMULATION_SCORING_RESOURCES, etc.
+# Scenario generation — the agent fills problem statement, objectives, media,
+# parameter fields, etc. Mirrors the resource bank that ``resolve_scenario_context``
+# returns.
+SCENARIO_SCORING_RESOURCES: set[str] = {
+    "names",
+    "descriptions",
+    "problem_statements",
+    "flags",
+    "departments",
+    "personas",
+    "documents",
+    "parameters",
+    "parameter_fields",
+    "objectives",
+    "images",
+    "videos",
+    "questions",
+    "options",
+    "fields",
+    "conditional_parameters",
+}
+# Simulation generation — picks scenarios + per-scenario config.
+SIMULATION_SCORING_RESOURCES: set[str] = {
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "scenarios",
+    "scenario_flags",
+    "scenario_positions",
+    "scenario_rubrics",
+    "scenario_time_limits",
+    "rubrics",
+}
+# Cohort generation — picks simulations + profile-persona bindings.
+COHORT_SCORING_RESOURCES: set[str] = {
+    "names",
+    "descriptions",
+    "flags",
+    "departments",
+    "simulations",
+    "simulation_positions",
+    "simulation_availability",
+    "profiles",
+    "profile_personas",
+    "personas",
+}
+# CRUD-artifact scoring sets — derived from each artifact's resource bank
+# (the ``"key": ResourcePair(...)`` entries in their respective context.py).
+AGENT_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "models", "prompts", "instructions", "flags",
+    "departments", "tools", "temperature_levels", "reasoning_levels", "voices",
+    "qualities", "rubrics",
+}
+AUTH_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "protocols", "slugs", "items",
+}
+DEPARTMENT_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "settings",
+}
+DOCUMENT_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "parameter_fields",
+    "parameters", "files", "images", "texts",
+}
+EVAL_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "models", "model_flags",
+    "model_rubrics", "model_positions", "rubrics",
+}
+FIELD_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "conditional_parameters",
+}
+MODEL_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "values", "providers",
+    "modalities", "temperature_levels", "pricing", "reasoning_levels",
+    "qualities", "voices",
+}
+PARAMETER_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "parameter_fields",
+}
+PROFILE_SCORING_RESOURCES: set[str] = {
+    "names", "emails", "flags", "departments", "roles",
+}
+PROVIDER_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "values", "endpoints", "keys",
+}
+RUBRIC_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "points",
+    "standard_groups", "standards",
+}
+SETTING_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "colors", "flags", "departments", "logins",
+    "systems", "mcp", "thresholds", "provider_keys", "auth_item_keys",
+    "auth_item_values",
+}
+TOOL_SCORING_RESOURCES: set[str] = {
+    "names", "descriptions", "flags", "departments", "args", "arg_positions",
+    "args_outputs", "permissions", "instructions",
+}
+# System "generate" has no artifact-specific context — register an empty set.
+SYSTEM_SCORING_RESOURCES: set[str] = set()
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +224,17 @@ async def _resolve_test_context_for_websocket(
     return ArtifactContext(resources={}, entries={})
 
 
+async def _resolve_system_context_for_websocket(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+    **_ignored: Any,
+) -> ArtifactContext:
+    """System generation has no artifact-specific context — empty context."""
+    return ArtifactContext(resources={}, entries={})
+
+
 ARTIFACT_RESOLVERS: dict[str, ArtifactResolverConfig] = {
     "attempt": ArtifactResolverConfig(
         resolver=_resolve_attempt_context_for_websocket,
@@ -125,7 +251,92 @@ ARTIFACT_RESOLVERS: dict[str, ArtifactResolverConfig] = {
         scoring_resources=TEST_SCORING_RESOURCES,
         id_kwarg="test_id",
     ),
-    # TODO: "scenario", "simulation", "cohort"
+    "scenario": ArtifactResolverConfig(
+        resolver=resolve_scenario_context,
+        scoring_resources=SCENARIO_SCORING_RESOURCES,
+        id_kwarg="scenario_id",
+    ),
+    "simulation": ArtifactResolverConfig(
+        resolver=resolve_simulation_context,
+        scoring_resources=SIMULATION_SCORING_RESOURCES,
+        id_kwarg="simulation_id",
+    ),
+    "cohort": ArtifactResolverConfig(
+        resolver=resolve_cohort_context,
+        scoring_resources=COHORT_SCORING_RESOURCES,
+        id_kwarg="cohort_id",
+    ),
+    # CRUD-artifact resolvers — wired so generate works for every artifact.
+    "agent": ArtifactResolverConfig(
+        resolver=resolve_agent_context,
+        scoring_resources=AGENT_SCORING_RESOURCES,
+        id_kwarg="agent_id",
+    ),
+    "auth": ArtifactResolverConfig(
+        resolver=resolve_auth_context,
+        scoring_resources=AUTH_SCORING_RESOURCES,
+        id_kwarg="auth_id",
+    ),
+    "department": ArtifactResolverConfig(
+        resolver=resolve_department_context,
+        scoring_resources=DEPARTMENT_SCORING_RESOURCES,
+        id_kwarg="department_id",
+    ),
+    "document": ArtifactResolverConfig(
+        resolver=resolve_document_context,
+        scoring_resources=DOCUMENT_SCORING_RESOURCES,
+        id_kwarg="document_id",
+    ),
+    "eval": ArtifactResolverConfig(
+        resolver=resolve_eval_context,
+        scoring_resources=EVAL_SCORING_RESOURCES,
+        id_kwarg="eval_id",
+    ),
+    "field": ArtifactResolverConfig(
+        resolver=resolve_field_context,
+        scoring_resources=FIELD_SCORING_RESOURCES,
+        id_kwarg="field_id",
+    ),
+    "model": ArtifactResolverConfig(
+        resolver=resolve_model_context,
+        scoring_resources=MODEL_SCORING_RESOURCES,
+        id_kwarg="model_id",
+    ),
+    "parameter": ArtifactResolverConfig(
+        resolver=resolve_parameter_context,
+        scoring_resources=PARAMETER_SCORING_RESOURCES,
+        id_kwarg="parameter_id",
+    ),
+    "profile": ArtifactResolverConfig(
+        resolver=resolve_profile_context,
+        scoring_resources=PROFILE_SCORING_RESOURCES,
+        id_kwarg="profile_id",
+    ),
+    "provider": ArtifactResolverConfig(
+        resolver=resolve_provider_context,
+        scoring_resources=PROVIDER_SCORING_RESOURCES,
+        id_kwarg="provider_id",
+    ),
+    "rubric": ArtifactResolverConfig(
+        resolver=resolve_rubric_context,
+        scoring_resources=RUBRIC_SCORING_RESOURCES,
+        id_kwarg="rubric_id",
+    ),
+    "setting": ArtifactResolverConfig(
+        resolver=resolve_setting_context,
+        scoring_resources=SETTING_SCORING_RESOURCES,
+        id_kwarg="setting_id",
+    ),
+    "tool": ArtifactResolverConfig(
+        resolver=resolve_tool_context,
+        scoring_resources=TOOL_SCORING_RESOURCES,
+        id_kwarg="tool_id",
+    ),
+    "system": ArtifactResolverConfig(
+        resolver=_resolve_system_context_for_websocket,
+        scoring_resources=SYSTEM_SCORING_RESOURCES,
+        id_kwarg="entity_id",
+    ),
 }
 
 

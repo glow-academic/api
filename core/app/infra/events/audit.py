@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import uuid
 from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
 from uuid import UUID
@@ -233,6 +234,17 @@ async def run_artifact_operation_with_audit(
     # wins so its earlier ``.started`` correlates with our ``.completed``.
     emit_call_id: UUID = call_id or _mint_call_id()
 
+    # Dispatch timestamp — captured BEFORE we await the runner so it
+    # reflects when the tool was invoked, not when audit finished
+    # writing the result row. Passed through to ``create_tool_call`` so
+    # the audit-side ``messages_entry`` row uses this for ``created_at``,
+    # which makes the FE chat panel render the tool-call indicator at
+    # its true position in time — BEFORE the nested run's outputs
+    # (prompt + produced media) that happened between dispatch and the
+    # audit write. See the matching ``created_at`` override on
+    # ``create_run_message`` / ``create_message``.
+    started_at = datetime.now(timezone.utc)
+
     # --- Tool resource for the wire ---
     # Resolve via the canonical ``get_tools`` black box (cached). Sent
     # alongside every event so the client knows whether to render a
@@ -321,6 +333,7 @@ async def run_artifact_operation_with_audit(
                 raise_on_error=False,
                 on_call_created=_on_call_created,
                 pre_minted_call_id=emit_call_id,
+                started_at=started_at,
             )
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id

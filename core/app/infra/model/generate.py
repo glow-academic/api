@@ -10,15 +10,14 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.generation.execute import execute_generation
+from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.model.refresh import refresh_model_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.generation_types import (
-    ArtifactGenerateRequest,
     ArtifactGenerateResponse,
-    GenerateConfig,
     GeneratePayload,
 )
 from app.registry.generate import REGISTRY
@@ -35,7 +34,17 @@ async def generate_model_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: ArtifactGenerateRequest,
+    instructions: list[str] | None = None,
+    modalities: list[str] | None = None,
+    audios_id: UUID | None = None,
+    conversation_id: UUID | None = None,
+    trace_id: UUID | None = None,
+    operations: list[str] | None = None,
+    dangerous: bool = False,
+    params: dict | None = None,
+    group_id: UUID | str | None = None,
+    wait_for_complete: bool | None = None,
+    instructions_role: str = "user",
     sid: str | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -48,13 +57,9 @@ async def generate_model_impl(
     else:
         from app.infra.websocket.get_socket_owner import get_socket_owner
         resolved_sid = await get_socket_owner(str(profile_id)) or ""
-    cfg = request.config or GenerateConfig()
 
-    tool_soft = not cfg.dangerous
+    tool_soft = not dangerous
 
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key and accept is None:
-        accept = request.accept
 
     profile = await resolve_profile_identity_context(
         pool,
@@ -73,11 +78,20 @@ async def generate_model_impl(
             status_code=403,
             detail="You don't have permission to generate models.",
         )
-
-    group_id = cfg.group_id
-    if not group_id:
-        raise HTTPException(status_code=400, detail="group_id is required")
-
+    from app.infra.group.resolve import resolve_group_impl
+    # Always resolve — resolve_group_impl idempotently upserts when a
+    # client-minted group_id is supplied, or falls back to window-based
+    # auto-create when omitted. Either way the groups_entry row exists
+    # before any FK-referencing run/message insert downstream.
+    group_result = await resolve_group_impl(
+        pool, redis,
+        artifact_type=ARTIFACT_TYPE,
+        profile_id=profile_id,
+        session_id=session_id,
+        group_id=group_id,
+        include_history=False,
+    )
+    group_id = group_result.group_id
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:
         raise HTTPException(status_code=400, detail=f"No config for {ARTIFACT_TYPE}")
@@ -85,11 +99,12 @@ async def generate_model_impl(
     generated_key = idempotency_key or uuid.uuid4()
     payload = GeneratePayload(
         artifact_type=ARTIFACT_TYPE,
-        instructions=request.instructions,
-        operations=cfg.operations,
-        dangerous=cfg.dangerous,
-        modalities=request.modalities,
-        params=cfg.params,
+        instructions=instructions,
+        instructions_role=instructions_role,
+        operations=operations,
+        dangerous=dangerous,
+        modalities=modalities,
+        params=params,
     )
 
     try:
@@ -138,19 +153,24 @@ async def generate_model_impl(
                         },
                     )
 
-        await execute_generation(
-            pool,
-            redis,
+        # ── Run (blocking by default; opt-in fire-and-forget via
+        # ``wait_for_complete=False`` — pair with X_Watch).
+        wait_for_complete = wait_for_complete
+        if wait_for_complete is None:
+            wait_for_complete = True
+
+        run_result = await run_generation_with_refresh(
+            pool, redis,
             prepared=prepared,
             sid=resolved_sid,
             tool_soft=tool_soft,
-        )
-
-        await refresh_model_impl(
-            pool,
-            redis,
+            artifact_type=ARTIFACT_TYPE,
+            refresh_fn=refresh_model_impl,
             profile_id=profile_id,
             session_id=session_id,
+            group_id=group_id,
+            internal_sio=internal_sio,
+            wait_for_complete=wait_for_complete,
             operation_key=generated_key,
         )
 
@@ -160,5 +180,7 @@ async def generate_model_impl(
 
     return ArtifactGenerateResponse(
         group_id=str(group_id),
+        run_id=str(prepared.run_id),
         idempotency_key=generated_key,
+        produced_media=run_result.produced_media if run_result else [],
     )

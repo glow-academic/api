@@ -1,9 +1,17 @@
 """Resolve settings theme — composes canonical black boxes.
 
-Given a settings_id (artifact), fetches:
-  1. Setting artifact with colors, thresholds, flags junctions
-  2. Colors, thresholds, flags resources in parallel
-  3. Maps by type in Python → theme primitives + thresholds
+Given a settings *resource* id (the canonical pointer carried on
+``ProfileIdentityContext.settings_id``), fetches:
+  1. Resource → artifact translation via ``search_settings`` (walks
+     the ``setting_settings_junction`` black-box).
+  2. Setting artifact with colors, thresholds, flags junctions.
+  3. Colors, thresholds, flags resources in parallel.
+  4. Maps by ``type`` in Python → light + dark ``ThemePrimitives`` + thresholds.
+
+Color row ``type`` field is the canonical token name (snake_case):
+``primary``, ``background``, ``card_foreground``, …, ``sidebar_ring``,
+optionally prefixed with ``dark_`` for dark mode rows. So the resolver
+just builds a ``{type: hex}`` map and dispatches by name.
 
 No inline SQL.
 """
@@ -11,7 +19,7 @@ No inline SQL.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from uuid import UUID
 
 import asyncpg
@@ -20,9 +28,11 @@ from redis.asyncio import Redis
 from app.tools.artifacts.setting.get import (
     get_settings as get_setting_artifacts,
 )
+from app.tools.artifacts.setting.search import search_settings
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.thresholds.get import get_thresholds
+from app.utils.settings.theme import ThemePrimitives
 
 
 @dataclass(frozen=True)
@@ -30,21 +40,29 @@ class SettingsThemeResult:
     """Resolved theme data from a setting artifact."""
 
     is_active: bool
-    primary_color: str | None = None
-    accent: str | None = None
-    background: str | None = None
-    surface: str | None = None
-    success: str | None = None
-    warning: str | None = None
-    error: str | None = None
-    chart1: str | None = None
-    chart2: str | None = None
-    chart3: str | None = None
-    chart4: str | None = None
-    chart5: str | None = None
+    light: ThemePrimitives = field(default_factory=ThemePrimitives)
+    dark: ThemePrimitives = field(default_factory=ThemePrimitives)
     success_threshold: int | None = None
     warning_threshold: int | None = None
     danger_threshold: int | None = None
+
+
+def _primitives_from_map(
+    color_map: dict[str, str], *, dark: bool = False
+) -> ThemePrimitives:
+    """Build a ThemePrimitives by reading each token name from color_map.
+
+    The canonical mapping is 1:1 — the color row's ``type`` field is the
+    primitive's field name (optionally with ``dark_`` prefix for dark
+    mode). Anything not in the map stays empty ('').
+    """
+    prefix = "dark_" if dark else ""
+    return ThemePrimitives(
+        **{
+            field_name: color_map.get(f"{prefix}{field_name}", "")
+            for field_name in ThemePrimitives.model_fields
+        }
+    )
 
 
 async def resolve_settings_theme(
@@ -53,15 +71,30 @@ async def resolve_settings_theme(
     settings_id: UUID,
     bypass_cache: bool = False,
 ) -> SettingsThemeResult | None:
-    """Resolve theme primitives + thresholds from a setting artifact.
+    """Resolve theme primitives + thresholds for a settings_resource id.
 
-    Composes canonical black boxes — no inline SQL.
+    ``settings_id`` is the resource id (the canonical pointer carried on
+    ``ProfileIdentityContext.settings_id``). The first step translates to
+    the owning ``setting_artifact`` id via the ``search_settings``
+    black-box, which walks ``setting_settings_junction`` for us — no
+    inline SQL in this module.
     """
-    # Step 1: Get setting artifact with junction IDs
+    # Step 1a: resource id → artifact id via the canonical search black-box
+    async with pool.acquire() as conn:
+        artifact_ids, _ = await search_settings(
+            conn,
+            setting_ids=[settings_id],
+            limit_count=1,
+        )
+    if not artifact_ids:
+        return None
+    artifact_id = artifact_ids[0]
+
+    # Step 1b: Get setting artifact with junction IDs
     async with pool.acquire() as conn:
         artifacts = await get_setting_artifacts(
             conn,
-            [settings_id],
+            [artifact_id],
             colors=True,
             thresholds=True,
             flags=True,
@@ -98,30 +131,14 @@ async def resolve_settings_theme(
     if not is_active:
         return SettingsThemeResult(is_active=False)
 
-    # Step 4: Map colors by type
-    color_map: dict[str, str] = {}
-    for c in colors_res:
-        color_map[c.type] = c.hex_code
-
-    # Step 5: Map thresholds by type
-    threshold_map: dict[str, int] = {}
-    for t in thresholds_res:
-        threshold_map[t.type] = t.value
+    # Step 4: Map colors by type → field-name
+    color_map: dict[str, str] = {c.type: c.hex_code for c in colors_res}
+    threshold_map: dict[str, int] = {t.type: t.value for t in thresholds_res}
 
     return SettingsThemeResult(
         is_active=True,
-        primary_color=color_map.get("primary"),
-        accent=color_map.get("accent"),
-        background=color_map.get("background"),
-        surface=color_map.get("surface"),
-        success=color_map.get("success"),
-        warning=color_map.get("warning"),
-        error=color_map.get("error"),
-        chart1=color_map.get("chart1"),
-        chart2=color_map.get("chart2"),
-        chart3=color_map.get("chart3"),
-        chart4=color_map.get("chart4"),
-        chart5=color_map.get("chart5"),
+        light=_primitives_from_map(color_map, dark=False),
+        dark=_primitives_from_map(color_map, dark=True),
         success_threshold=threshold_map.get("success"),
         warning_threshold=threshold_map.get("warning"),
         danger_threshold=threshold_map.get("danger"),

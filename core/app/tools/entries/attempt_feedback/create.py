@@ -1,5 +1,6 @@
 """Entry CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
@@ -19,6 +20,7 @@ async def create_attempt_feedback(
     standard_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptFeedbackResponse:
     """Create an attempt_feedback entry.
 
@@ -27,8 +29,8 @@ async def create_attempt_feedback(
     """
     entry_id = await conn.fetchval(
         """
-        INSERT INTO attempt_feedback_entry (id, grade_id, session_id, total, feedback, active, mcp, generated)
-        VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, $5, $6, true)
+        INSERT INTO attempt_feedback_entry (id, grade_id, session_id, total, feedback, active, mcp, generated, created_at)
+        VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, $5, $6, true, COALESCE($8, NOW()))
         RETURNING id
         """,
         grade_id,
@@ -38,6 +40,7 @@ async def create_attempt_feedback(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if standard_ids:

@@ -19,7 +19,7 @@ from app.routes.persona.group import router as group_router
 from app.routes.persona.problem import router as problem_router
 from app.routes.persona.refresh import router as refresh_router
 from app.routes.persona.search import router as search_router
-from app.routes.persona.stream import router as stream_router
+from app.routes.persona.watch import router as watch_router
 from app.routes.persona.text_download import router as text_download_router
 from app.routes.persona.update import router as update_router
 from app.routes.persona.title import router as title_router
@@ -44,7 +44,7 @@ router.include_router(generations_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

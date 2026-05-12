@@ -20,7 +20,7 @@ from app.routes.tool.preview import router as preview_router
 from app.routes.tool.problem import router as problem_router
 from app.routes.tool.refresh import router as refresh_router
 from app.routes.tool.search import router as search_router
-from app.routes.tool.stream import router as stream_router
+from app.routes.tool.watch import router as watch_router
 from app.routes.tool.update import router as update_router
 from app.routes.tool.text_download import router as text_download_router
 from app.routes.tool.call_download import router as call_download_router
@@ -46,7 +46,7 @@ router.include_router(group_router)
 router.include_router(preview_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

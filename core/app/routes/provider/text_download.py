@@ -66,7 +66,7 @@ async def download_text(
             session_id=session_id,
             group_id=group_id,
             operation="text_download",
-            arguments={{"text_id": str(request.text_id)}},
+            arguments={"text_id": str(request.text_id)},
             response_model=TextDownloadProviderApiResult,
             runner=_runner,
             upload_folder=get_upload_folder(),
@@ -74,16 +74,16 @@ async def download_text(
 
         encoded = urllib.parse.quote(result.filename, safe="")
         content_disposition = (
-            f"inline; filename=\"{{encoded}}\"; filename*=UTF-8\'\'{{encoded}}"
+            f"inline; filename=\"{encoded}\"; filename*=UTF-8\'\'{encoded}"
         )
 
         return FileResponse(
             path=result.file_path,
             media_type=result.content_type,
-            headers={{
+            headers={
                 "Content-Disposition": content_disposition,
                 "Cache-Control": "private, max-age=0, must-revalidate",
-            }},
+            },
         )
     except HTTPException:
         raise

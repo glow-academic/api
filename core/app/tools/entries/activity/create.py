@@ -1,5 +1,6 @@
 """Activity CREATE — insert into activity_entry with profile link."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -14,18 +15,20 @@ async def create_activity(
     profile_id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateActivityResponse:
     """Create an activity entry and optionally link to a profile."""
     activity_id = await conn.fetchval(
         """
-        INSERT INTO activity_entry (id, session_id, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        INSERT INTO activity_entry (id, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, COALESCE($5, NOW()))
         RETURNING id
         """,
         session_id,
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if activity_id is None:

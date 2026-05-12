@@ -117,6 +117,23 @@ INFRA_OPS.update({
     ("attempt", "chat_response"): (f"{_I}.attempt.response", "attempt_response_internal_impl"),
     # chat_grade, chat_feedback, chat_strengths, chat_improvements, chat_analyses, chat_hints
     # are auto-discovered from app/infra/attempt/chat_*.py
+    # Draft/drafts impls live nested under app/infra/attempt/chat/ — alias so
+    # the canonical (attempt, draft/drafts) tools route through them.
+    ("attempt", "draft"): (f"{_I}.attempt.chat.draft", "patch_chat_draft_impl"),
+    ("attempt", "drafts"): (f"{_I}.attempt.chat.drafts", "list_chat_drafts_impl"),
+})
+
+# --- System media aliases ---
+# System media routes reuse the group/* media impls (a single chat-group is
+# the unit of media; the system route is just a flat alias under /system/).
+INFRA_OPS.update({
+    ("system", "audio_download"): (f"{_I}.group.audio_download", "audio_download_group_impl"),
+    ("system", "call_download"):  (f"{_I}.group.call_download",  "call_download_group_impl"),
+    ("system", "file_download"):  (f"{_I}.group.file_download",  "file_download_group_impl"),
+    ("system", "image_download"): (f"{_I}.group.image_download", "image_download_group_impl"),
+    ("system", "text_download"):  (f"{_I}.group.text_download",  "text_download_group_impl"),
+    ("system", "video_download"): (f"{_I}.group.video_download", "video_download_group_impl"),
+    ("system", "file_preview"):   (f"{_I}.group.file_preview",   "file_preview_group_impl"),
 })
 
 # --- Test overrides (non-standard function names) ---

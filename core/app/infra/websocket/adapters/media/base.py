@@ -13,6 +13,13 @@ class MediaResult(BaseModel):
     ``videos_id`` — the resource-level IDs produced by the full save chain
     (uploads_entry → {images,videos}_resource → {images,videos}_entry →
     {images,videos}_{images,videos}_connection → {image,video}_uploads_entry).
+
+    ``message_id`` is the ``messages_entry.id`` the upload was attributed
+    to (via ``media_upload_impl(attribute_to_run=True)``). Surfaced so
+    the ``on_complete`` emit can include it, letting the FE listener
+    locate the optimistic skeleton bubble (keyed on ``image.start``) and
+    swap in the rendered ``<img>`` in-place without flicker. ``None``
+    when no run-attribution happened (e.g. manual user uploads).
     """
 
     file_path: str
@@ -21,6 +28,8 @@ class MediaResult(BaseModel):
     upload_id: str
     images_id: str | None = None
     videos_id: str | None = None
+    audios_id: str | None = None
+    message_id: str | None = None
 
 
 class MediaEventEmitter(Protocol):

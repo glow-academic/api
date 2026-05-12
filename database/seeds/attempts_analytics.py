@@ -1,17 +1,15 @@
 """Analytical seed — attempt history (Track A).
 
-Inserts ~12 simulation attempts so the dashboards (Activity, Reports,
+Inserts four attempts per day across the last week so the dashboards (Activity, Reports,
 Pricing, Leaderboard, Dashboard, per-Persona/Simulation pages) have
-data on first load.
+trend data on first load.
 
 **Canonical-only**: this seed uses ONLY the black-box functions in
 ``app/tools/resources/<x>/search.py`` and
 ``app/tools/entries/<x>/create.py``. No inline SELECT or UPDATE — and
 in particular no ``UPDATE ... SET created_at = ...`` hacks. As a
-trade-off, every row lands at ``now()`` because the canonical create
-functions don't currently accept a ``created_at`` override; if/when
-they do, this seed should pass per-attempt offsets to spread the
-timeline. For now the demo time distribution is "all today".
+trade-off, time distribution is created through optional ``created_at``
+arguments on those canonical helpers rather than post-insert mutation.
 
 Runner ordering: this runs AFTER cohorts + benchmark sync as part
 of "Phase 3 — analytical seeds". By that point everything we need
@@ -41,6 +39,7 @@ UUID short-circuit at the DB layer).
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -98,7 +97,9 @@ from database.seeds.setups.university.parameters import (
     P_TIME_RESOURCE,
 )
 
-ATTEMPT_COUNT = 12
+SEED_DAYS = 7
+ATTEMPTS_PER_DAY = 4
+ATTEMPT_COUNT = SEED_DAYS * ATTEMPTS_PER_DAY
 TURNS_PER_ATTEMPT = 6
 COMPLETED_RATIO = 0.7
 RUNS_PER_ATTEMPT = 3
@@ -126,6 +127,67 @@ _PERSONA_LINES = [
 _SCORE_PCTS = [88, 76, 92, 65, 81, 73, 95, 58, 84, 32, 71, 89]
 _TIME_TAKEN_SECONDS = [780, 1240, 540, 980, 1430, 720, 460, 1820, 690, 920, 1350, 600]
 _TOKEN_ENVELOPES = [(1850, 720), (1200, 1100), (640, 380)]
+
+_LOCATION_LABELS = [
+    "Lawson Computer Science Building",
+    "Felix Haas Hall",
+    "Data Science and AI Building",
+]
+_TIME_LABELS = [
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
+    "5:00 PM",
+]
+_CROWDEDNESS_LABELS = [
+    "almost empty",
+    "very few students nearby",
+    "sparse",
+    "some students nearby",
+    "moderately busy",
+    "busy",
+    "very busy",
+    "crowded",
+    "extremely crowded",
+    "hectic",
+]
+_DEADLINE_LABELS = [
+    "no immediate deadline",
+    "an end-of-week deadline",
+    "a deadline in a couple of days",
+    "a next-day deadline",
+    "a deadline in a few hours",
+]
+
+
+def _attempt_created_at(idx: int) -> datetime:
+    """Spread deterministic attempt rows over a rolling seven-day window."""
+    now = datetime.now(UTC).replace(second=0, microsecond=0)
+    day_idx = idx // ATTEMPTS_PER_DAY
+    slot_idx = idx % ATTEMPTS_PER_DAY
+    created_at = (now - timedelta(days=SEED_DAYS - 1 - day_idx)).replace(
+        hour=14 + (slot_idx * 2),
+        minute=(idx * 7) % 45,
+    )
+    latest_safe_time = now - timedelta(minutes=15)
+    if created_at > latest_safe_time:
+        created_at = latest_safe_time - timedelta(minutes=15 * (ATTEMPT_COUNT - idx))
+    return created_at
+
+
+def _attempt_context(idx: int) -> dict[str, str]:
+    """Readable labels matching the canonical parameter field rotation."""
+    return {
+        "location": _LOCATION_LABELS[idx % len(_LOCATION_LABELS)],
+        "time": _TIME_LABELS[idx % len(_TIME_LABELS)],
+        "crowdedness": _CROWDEDNESS_LABELS[idx % len(_CROWDEDNESS_LABELS)],
+        "deadline": _DEADLINE_LABELS[idx % len(_DEADLINE_LABELS)],
+    }
 
 
 def _score_from_percent(total_points: int | None, percent: int) -> int:
@@ -199,15 +261,18 @@ async def _create_attempt_problem_statement(
     """
     problem_statement_id = sid(f"{slug}/problem-statement")
     scenario_label = f"{type_label} attempt #{idx + 1}"
+    context = _attempt_context(idx)
     await _create_or_reuse_id(
         conn,
         lambda: create_problem_statement(
             conn,
             name=f"{scenario_label} context",
             problem_statement=(
-                "The assistant persona is asking for help in a training "
-                "conversation. The user must listen, clarify the issue, and "
-                "provide concrete next steps aligned with the rubric."
+                f"The assistant persona asks for help at {context['time']} in "
+                f"{context['location']}. The setting is {context['crowdedness']} "
+                f"and the situation has {context['deadline']}. The user must "
+                "listen, clarify the issue, and provide concrete next steps "
+                "aligned with the rubric."
             ),
             redis=redis,
             id=problem_statement_id,
@@ -218,7 +283,7 @@ async def _create_attempt_problem_statement(
 
 
 # Canonical scenario parameters we rotate across attempts. Each attempt
-# picks ONE field per parameter via index modulo, so all 12 attempts get a
+# picks ONE field per parameter via index modulo, so attempts get a
 # distinct combo of (Location, Time, Crowdedness, Deadline). These IDs come
 # from ``database/seeds/setups/university`` — never invented per-attempt.
 _CANONICAL_SCENARIO_PARAMETERS: list[tuple[UUID, list[UUID]]] = [
@@ -289,6 +354,7 @@ async def _seed_grade_feedback(
     session_id: UUID,
     slug: str,
     selected_standards: list[GetStandardResponse],
+    created_at: datetime,
 ) -> None:
     """Create per-standard feedback rows whose totals sum to the grade score."""
     for index, standard in enumerate(selected_standards):
@@ -306,6 +372,7 @@ async def _seed_grade_feedback(
                 f"{'s' if points != 1 else ''} based on the demonstrated response."
             ),
             standard_ids=[standard.id],
+            created_at=created_at + timedelta(seconds=index + 1),
         )
 
 
@@ -355,10 +422,9 @@ async def _seed_one_attempt(
     fallback_option_ids_by_question: dict[UUID, list[UUID]],
     video_id: UUID | None,
     is_practice: bool,
+    created_at: datetime,
 ) -> None:
-    """Walk the canonical chain for one attempt. All rows are stamped
-    at now() — the canonical creates don't currently accept created_at
-    overrides, and this seed deliberately avoids inline UPDATEs."""
+    """Walk the canonical chain for one attempt through canonical creates."""
     completed = idx < int(ATTEMPT_COUNT * COMPLETED_RATIO)
 
     slug = f"attempts-analytics/{idx}"
@@ -367,6 +433,8 @@ async def _seed_one_attempt(
     group_id = sid(f"{slug}/group")
     group_name_id = sid(f"{slug}/group-name")
     type_label = "Practice" if is_practice else "Home"
+    session_created_at = created_at - timedelta(minutes=5)
+    attempt_chat_created_at = created_at + timedelta(minutes=1)
     seeded_session = await ensure_activity_session(
         conn,
         slug=slug,
@@ -375,6 +443,7 @@ async def _seed_one_attempt(
         include_problem=idx in {2, 7},
         include_grant=idx % 4 == 0,
         include_emulation=idx % 6 == 0,
+        created_at=session_created_at,
     )
     session_id = seeded_session.session_id
     chat_id = chat.id
@@ -385,6 +454,7 @@ async def _seed_one_attempt(
         session_id=session_id,
         artifact_type="attempt",
         id=group_id,
+        created_at=created_at - timedelta(minutes=2),
     )
     await create_group_name(
         conn,
@@ -393,6 +463,7 @@ async def _seed_one_attempt(
         session_id=session_id,
         id=group_name_id,
         generated=True,
+        created_at=created_at - timedelta(minutes=1),
     )
 
     # 2. attempt_entry (writes attempt_profiles_connection inside).
@@ -410,6 +481,7 @@ async def _seed_one_attempt(
         description=f"Seeded {type_label.lower()} attempt for analytics dashboards",
         practice=is_practice,
         num_chats=1,
+        created_at=created_at,
     )
     if is_practice:
         await create_attempt_practice(
@@ -417,6 +489,7 @@ async def _seed_one_attempt(
             attempt_id=attempt_id,
             practice_id=parent_id,
             session_id=session_id,
+            created_at=created_at + timedelta(seconds=15),
         )
     else:
         await create_attempt_home(
@@ -424,6 +497,7 @@ async def _seed_one_attempt(
             attempt_id=attempt_id,
             home_id=parent_id,
             session_id=session_id,
+            created_at=created_at + timedelta(seconds=15),
         )
 
     # 3. attempt_chat_entry pointing at the simulation's pre-seeded
@@ -493,6 +567,7 @@ async def _seed_one_attempt(
         names_ids=chat.name_ids or None,
         descriptions_ids=chat.description_ids or None,
         parameters_ids=canonical_parameter_ids or None,
+        created_at=attempt_chat_created_at,
     )
 
     # 4. attempt ↔ attempt_chat bridge.
@@ -501,6 +576,7 @@ async def _seed_one_attempt(
         attempt_id=attempt_id,
         attempt_chat_id=attempt_chat_id,
         session_id=session_id,
+        created_at=attempt_chat_created_at + timedelta(seconds=15),
     )
 
     # 5. The visible interaction. The app has two canonical shapes:
@@ -523,6 +599,8 @@ async def _seed_one_attempt(
                 id=sid(f"{slug}/response/{q_idx}"),
                 question_ids=[question_id],
                 option_ids=option_ids,
+                created_at=attempt_chat_created_at
+                + timedelta(minutes=2 + q_idx),
             )
     elif not has_question_flow:
         for t in range(TURNS_PER_ATTEMPT):
@@ -541,6 +619,7 @@ async def _seed_one_attempt(
                 chat_id=attempt_chat_id,
                 session_id=session_id,
                 id=msg_id,
+                created_at=attempt_chat_created_at + timedelta(minutes=t + 1),
             )
             await create_attempt_content(
                 conn,
@@ -549,6 +628,8 @@ async def _seed_one_attempt(
                 content=line,
                 persona_id=turn_persona_entry,
                 id=content_id,
+                created_at=attempt_chat_created_at
+                + timedelta(minutes=t + 1, seconds=5),
             )
 
     # 6. Agent activity — runs + tokens + run_pricing. Drives Pricing
@@ -564,6 +645,7 @@ async def _seed_one_attempt(
                 session_id=session_id,
                 id=run_id,
                 agent_ids=[agent_id],
+                created_at=created_at + timedelta(minutes=20 + r),
             )
             inp_tokens, out_tokens = _TOKEN_ENVELOPES[r % len(_TOKEN_ENVELOPES)]
             await create_token(
@@ -573,6 +655,7 @@ async def _seed_one_attempt(
                 id=sid(f"{slug}/token/{r}"),
                 input_tokens=inp_tokens,
                 output_tokens=out_tokens,
+                created_at=created_at + timedelta(minutes=20 + r, seconds=10),
             )
             if input_pricing_id is not None:
                 await create_run_pricing_entry_internal(
@@ -582,6 +665,7 @@ async def _seed_one_attempt(
                     run_id=run_id,
                     pricing_id=input_pricing_id,
                     count=inp_tokens,
+                    created_at=created_at + timedelta(minutes=20 + r, seconds=20),
                 )
             if output_pricing_id is not None:
                 await create_run_pricing_entry_internal(
@@ -591,6 +675,7 @@ async def _seed_one_attempt(
                     run_id=run_id,
                     pricing_id=output_pricing_id,
                     count=out_tokens,
+                    created_at=created_at + timedelta(minutes=20 + r, seconds=30),
                 )
 
     # 7. Completions + grade — only for the completed slice.
@@ -601,6 +686,7 @@ async def _seed_one_attempt(
             session_id=session_id,
             id=sid(f"{slug}/chat-completion"),
             stop=True,
+            created_at=created_at + timedelta(minutes=35),
         )
         await create_attempt_completion(
             conn,
@@ -608,6 +694,7 @@ async def _seed_one_attempt(
             session_id=session_id,
             id=sid(f"{slug}/completion"),
             stop=True,
+            created_at=created_at + timedelta(minutes=36),
         )
         score_pct = _SCORE_PCTS[idx % len(_SCORE_PCTS)]
         target_score = _score_from_percent(rubric_total_points, score_pct)
@@ -639,6 +726,7 @@ async def _seed_one_attempt(
             # downstream rubric_score / standard_group rollups can't
             # tie back to the chat's rubric.
             rubric_ids=rubrics_ids,
+            created_at=created_at + timedelta(minutes=37),
         )
         await _seed_grade_feedback(
             conn,
@@ -646,6 +734,7 @@ async def _seed_one_attempt(
             session_id=session_id,
             slug=slug,
             selected_standards=selected_standards,
+            created_at=created_at + timedelta(minutes=38),
         )
 
 
@@ -891,6 +980,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                         fallback_option_ids_by_question=fallback_option_ids_by_question,
                         video_id=video_id,
                         is_practice=is_practice,
+                        created_at=_attempt_created_at(idx),
                     )
                 inserted += 1
             except Exception as e:

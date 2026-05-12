@@ -5,7 +5,7 @@ Two paths:
      a historical run. Used per-card after a row has been materialized.
   2. trace_id absent → attempt-style kicker. Resolves the test group via
      the canonical ``resolve_group_impl``, then prepare + execute the
-     LLM with ``cfg.operations`` as tools (e.g. ``test.invocation_create``).
+     LLM with ``operations`` as tools (e.g. ``test.invocation_create``).
      The model creates one test_invocation per call (one card at a time),
      mirroring how /attempt/generate drives /attempt/chat/create.
 
@@ -23,15 +23,14 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.generation.execute import execute_generation
+from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.test.trace_context import resolve_trace_context
 from app.infra.websocket.generation_types import (
-    ArtifactGenerateRequest,
     ArtifactGenerateResponse,
-    GenerateConfig,
     GeneratePayload,
 )
 from app.infra.websocket.socket_event import make_emit
@@ -46,7 +45,16 @@ ARTIFACT_TYPE = "test"
 async def _build_trace_payload(
     conn: asyncpg.Connection,
     *,
-    request: ArtifactGenerateRequest,
+    instructions: list[str] | None = None,
+    modalities: list[str] | None = None,
+    audios_id: UUID | None = None,
+    conversation_id: UUID | None = None,
+    trace_id: UUID | None = None,
+    operations: list[str] | None = None,
+    dangerous: bool = False,
+    params: dict | None = None,
+    group_id: UUID | str | None = None,
+    wait_for_complete: bool | None = None,
     profile_id: UUID,
     profiles_id: UUID,
     session_id: UUID,
@@ -56,8 +64,8 @@ async def _build_trace_payload(
 
     Returns (payload_dict, group_id, is_dynamic, historical_run_id).
     """
-    assert request.trace_id is not None
-    if request.config and request.config.operations:
+    assert trace_id is not None
+    if operations:
         raise HTTPException(
             status_code=422,
             detail=(
@@ -66,21 +74,23 @@ async def _build_trace_payload(
             ),
         )
 
-    trace_ctx = await resolve_trace_context(conn, request.trace_id)
+    trace_ctx = await resolve_trace_context(conn, trace_id)
 
     # Group is the test's canonical group; the historical run lives there.
-    group_id: UUID | None = None
+    resolved_group_id: UUID | None = None
     if trace_ctx.historical_run_id:
         from app.tools.entries.runs.get import get_run as _get_run
         run = await _get_run(conn, trace_ctx.historical_run_id)
         if run:
-            group_id = run.group_id
-    if group_id is None and request.config and request.config.group_id:
+            resolved_group_id = run.group_id
+    if resolved_group_id is None and group_id is not None:
         try:
-            group_id = UUID(request.config.group_id)
+            resolved_group_id = (
+                group_id if isinstance(group_id, UUID) else UUID(str(group_id))
+            )
         except Exception:
-            group_id = None
-    if group_id is None:
+            resolved_group_id = None
+    if resolved_group_id is None:
         raise HTTPException(
             status_code=400,
             detail="Cannot derive group_id from trace; provide config.group_id.",
@@ -92,12 +102,12 @@ async def _build_trace_payload(
         "profile_id": str(profile_id),
         "profiles_id": str(profiles_id),
         "session_id": str(session_id),
-        "group_id": str(group_id),
-        "instructions": request.instructions or [],
+        "group_id": str(resolved_group_id),
+        "instructions": instructions or [],
         "operations": [],
         "modalities": ["text"],
         "params": {
-            "trace_id": str(request.trace_id),
+            "trace_id": str(trace_id),
             "test_invocation_id": str(trace_ctx.test_invocation_id),
             "test_id": str(trace_ctx.test_id),
             "historical_run_id": (
@@ -108,7 +118,7 @@ async def _build_trace_payload(
         "metadata": {
             "test_id": str(trace_ctx.test_id),
             "test_invocation_id": str(trace_ctx.test_invocation_id),
-            "trace_id": str(request.trace_id),
+            "trace_id": str(trace_id),
             "historical_run_id": (
                 str(trace_ctx.historical_run_id)
                 if trace_ctx.historical_run_id else None
@@ -121,7 +131,7 @@ async def _build_trace_payload(
             "trace_voice_ids": [str(v) for v in trace_ctx.voice_ids],
         },
     }
-    return payload, group_id, trace_ctx.is_dynamic, trace_ctx.historical_run_id
+    return payload, resolved_group_id, trace_ctx.is_dynamic, trace_ctx.historical_run_id
 
 
 async def generate_test_impl(
@@ -130,7 +140,17 @@ async def generate_test_impl(
     *,
     profile_id: UUID,
     session_id: UUID,
-    request: ArtifactGenerateRequest,
+    instructions: list[str] | None = None,
+    modalities: list[str] | None = None,
+    audios_id: UUID | None = None,
+    conversation_id: UUID | None = None,
+    trace_id: UUID | None = None,
+    operations: list[str] | None = None,
+    dangerous: bool = False,
+    params: dict | None = None,
+    group_id: UUID | str | None = None,
+    wait_for_complete: bool | None = None,
+    instructions_role: str = "user",
     sid: str | None = None,
     soft: bool = False,
     accept: bool | None = None,
@@ -156,21 +176,29 @@ async def generate_test_impl(
     else:
         from app.infra.websocket.get_socket_owner import get_socket_owner
         resolved_sid = await get_socket_owner(str(profile_id)) or ""
-    cfg = request.config or GenerateConfig()
 
     # ── trace-driven path (per-card replay/generation) ──────────────────
-    if request.trace_id is not None:
+    if trace_id is not None:
         if profile.profiles_id is None:
             raise HTTPException(status_code=400, detail="Profile resource not found.")
         async with pool.acquire() as conn:
             (
                 trace_payload,
-                group_id,
+                resolved_group_id,
                 is_dynamic,
                 historical_run_id,
             ) = await _build_trace_payload(
                 conn,
-                request=request,
+                instructions=instructions,
+                modalities=modalities,
+                audios_id=audios_id,
+                conversation_id=conversation_id,
+                trace_id=trace_id,
+                operations=operations,
+                dangerous=dangerous,
+                params=params,
+                group_id=group_id,
+                wait_for_complete=wait_for_complete,
                 profile_id=profile_id,
                 profiles_id=profile.profiles_id,
                 session_id=session_id,
@@ -181,7 +209,7 @@ async def generate_test_impl(
         # via /test/run is the historical run's existing assistant turn.
         if not is_dynamic:
             return ArtifactGenerateResponse(
-                group_id=str(group_id),
+                group_id=str(resolved_group_id),
                 run_id=(str(historical_run_id) if historical_run_id else None),
             )
 
@@ -194,21 +222,18 @@ async def generate_test_impl(
         await run_generation_from_payload(
             trace_payload, emit=emit, pool=pool, redis=redis,
         )
-        return ArtifactGenerateResponse(group_id=str(group_id))
+        return ArtifactGenerateResponse(group_id=str(resolved_group_id))
 
     # ── kicker path (post-start; mirrors /attempt/generate) ─────────────
     if profile.profiles_id is None:
         raise HTTPException(status_code=400, detail="Profile resource not found.")
 
     # dangerous=False → tool calls are soft (pending). dangerous=True → immediate.
-    tool_soft = not cfg.dangerous
+    tool_soft = not dangerous
 
-    idempotency_key = idempotency_key or request.idempotency_key
-    if idempotency_key and accept is None:
-        accept = request.accept
 
     # Canonical group resolve — same shape attempt uses.
-    group_id_str = cfg.group_id
+    group_id_str = group_id
     if not group_id_str:
         from app.infra.group.resolve import resolve_group_impl
         group_result = await resolve_group_impl(
@@ -227,11 +252,12 @@ async def generate_test_impl(
     generated_key = idempotency_key or uuid.uuid4()
     payload = GeneratePayload(
         artifact_type=ARTIFACT_TYPE,
-        instructions=request.instructions,
-        operations=cfg.operations,
-        dangerous=cfg.dangerous,
-        params=cfg.params,
-        modalities=request.modalities,
+        instructions=instructions,
+        instructions_role=instructions_role,
+        operations=operations,
+        dangerous=dangerous,
+        params=params,
+        modalities=modalities,
     )
 
     try:
@@ -279,11 +305,24 @@ async def generate_test_impl(
                         },
                     )
 
-        await execute_generation(
+        # ── Run (blocking by default; opt-in fire-and-forget via
+        # ``wait_for_complete=False`` — pair with X_Watch).
+        wait_for_complete = wait_for_complete
+        if wait_for_complete is None:
+            wait_for_complete = True
+
+        run_result = await run_generation_with_refresh(
             pool, redis,
             prepared=prepared,
             sid=resolved_sid,
             tool_soft=tool_soft,
+            artifact_type=ARTIFACT_TYPE,
+            refresh_fn=None,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            internal_sio=internal_sio,
+            wait_for_complete=wait_for_complete,
         )
     except Exception as e:
         logger.exception(f"Test generation failed: {e}")
@@ -293,4 +332,5 @@ async def generate_test_impl(
         group_id=str(group_id_str),
         run_id=str(prepared.run_id),
         idempotency_key=str(generated_key),
+        produced_media=run_result.produced_media if run_result else [],
     )

@@ -21,14 +21,12 @@ Pass these to your tools:
 
 ## What To Do
 
-Retrieve the data the user is asking about with one or more Record tool calls, then answer in plain text.
+Retrieve the data the user is asking about by calling `Attempt_Report` with the right filter args, then answer in plain text.
 
-- For any query (headline OR filtered), call `Record_Get` — Get takes the filter args directly here.
-- Use `Record_Search` only when you need pagination beyond what Get returns.
-- For exports, call `Record_Export(target_profile_id: "...")` against a specific id.
+- For the overall headline (no filters), call `Attempt_Report()`.
+- For any slice (date range, department, cohort, etc.), pass the relevant filter args: `start_date`, `end_date`, `cohort_ids`, `simulation_ids`, `department_ids`, `roles`, `simulation_filters`, `actor_profile_id`, `target_profile_id`, `profile_ids`, `scenario_ids`, `search`, `sort_by`, `sort_order`, `page_limit`, `page_offset`.
 
-**Note:** Record_Get takes ~26 args including a full `history_*` sub-namespace for the embedded history view. **Only pass the args you need** — omit everything else; the server fills in sensible defaults.
 
-**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent Record tool result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
+**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent `Attempt_Report` result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
 
 Cite specific numbers from the data. Do not invent values. Answer the question asked, not adjacent ones.

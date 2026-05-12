@@ -381,22 +381,9 @@ async def _context_profile_build(
             identity.settings_id,
             bypass_cache=bypass_cache,
         )
-        if not theme or not theme.is_active or not theme.primary_color:
+        if not theme or not theme.is_active or not theme.light.primary:
             return None
-        return ThemePrimitives(
-            primary=theme.primary_color,
-            accent=theme.accent,
-            background=theme.background,
-            surface=theme.surface,
-            success=theme.success,
-            warning=theme.warning,
-            error=theme.error,
-            chart1=theme.chart1,
-            chart2=theme.chart2,
-            chart3=theme.chart3,
-            chart4=theme.chart4,
-            chart5=theme.chart5,
-        )
+        return theme.light
 
     roles_raw, theme = await asyncio.gather(_fetch_roles(), _fetch_theme())
 

@@ -353,6 +353,13 @@ async def resolve_scenario_context(
 
     async def _search_images() -> list:
         async with pool.acquire() as conn:
+            # No ``scenario=True`` junction filter: that excluded any
+            # image without a row in ``scenario_images_junction``, which
+            # silently dropped LLM-generated images (the media pipeline
+            # writes the resource + message junction but not the
+            # scenario one). The picker should show every image the
+            # user has access to, then attaching to the scenario is the
+            # draft-save step's job.
             return await search_images(
                 conn,
                 redis,
@@ -361,7 +368,6 @@ async def resolve_scenario_context(
                 offset_count=0,
                 exclude_ids=merged.image_ids,
                 bypass_cache=bypass_cache,
-                scenario=True,
             )
 
     async def _get_videos() -> list:

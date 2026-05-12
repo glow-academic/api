@@ -2123,12 +2123,18 @@ async def sync_keycloak(
         try:
             from app.infra.identity.keycloak_theme import (
                 generate_keycloak_theme_providers,
+                generate_keycloak_theme_styles,
             )
 
             await generate_keycloak_theme_providers(pool)
             logger.info(
                 "✅ Theme provider mapping generated with all clientId and IdP combinations"
             )
+            # Generate per-department CSS-variable palettes alongside the
+            # provider map. Same data source (the setting's resolved
+            # theme bundle), same delivery (FreeMarker include in head.ftl).
+            await generate_keycloak_theme_styles(pool)
+            logger.info("✅ Theme CSS-variable palettes generated for login page")
         except Exception as e:
             logger.warning(f"Failed to generate theme mapping: {e}", exc_info=True)
 

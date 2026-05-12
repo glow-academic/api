@@ -1,214 +1,288 @@
 """Theme derivation utilities for settings.
 
-This module provides functions to derive full ThemeTokens from user-editable ThemePrimitives.
-These functions are used across multiple endpoints (documents, scenarios, etc.) for consistent
-theme handling.
+``ThemePrimitives`` carries the **essential 17** an org-admin needs to set
+(plus 23 optional overrides for fine-tuning). ``derive_theme_tokens``
+expands them into the full 40-token palette consumed by the client.
+
+The 17 essentials, with the tokens each one drives:
+  - ``background``    → card, popover (light only — dark elevates), border tones
+  - ``primary``       → primary_foreground, sidebar_primary, *_foreground on accent surfaces (when accent is light)
+  - ``accent``        → secondary, muted, sidebar_accent
+  - ``card``          → popover (always tied), elevated surface in dark
+  - ``sidebar``       → sidebar_foreground via foreground
+  - ``muted_foreground``  hand-tuned mid-tone
+  - ``ring``          → sidebar_ring
+  - ``border``        → input, sidebar_border
+  - ``destructive``   → danger
+  - ``success``       (its _foreground hardcoded to near-white)
+  - ``warning``       (its _foreground hardcoded to near-black)
+  - ``info``          (its _foreground hardcoded to near-white)
+  - ``chart1..5``     5 chart series colors
+
+Everything else derives. Empty-in → empty-out: a token whose source
+primitive is missing remains empty so ``globals.css`` defaults paint.
+The other 23 fields (``foreground``, ``card_foreground``,
+``secondary_foreground``, etc.) are still respected when explicitly set
+— they win over derivation.
 """
 
 from pydantic import BaseModel
 
+# Standard text colors on chromatic backgrounds — invariant across themes.
+# Status colors (success/error/info) are vibrant mid-tones designed to
+# pair with white-ish text; warning (yellow) always pairs with dark text.
+_LIGHT_TEXT = "oklch(0.985 0 0)"
+_DARK_TEXT = "oklch(0.145 0 0)"
+# Brand-on-brand text: the "soft dark" globals.css uses for
+# primary_foreground when primary is a light tone (dark-mode pattern).
+# Globally 0.205, picked to feel like a softer version of body text.
+_SOFT_DARK_TEXT = "oklch(0.205 0 0)"
+
 
 class ThemePrimitives(BaseModel):
-    """User-editable theme color primitives.
+    """40 optional fields. The 17 essentials drive the rest; the other 23
+    are overrides for fine-tuning when derivation isn't what you want.
 
-    These are the colors that users can edit in the settings UI.
-    Colors can be in hex (#RRGGBB) or oklch format.
+    Empty primitive → empty token → client falls back to globals.css.
     """
 
+    # ── The Essential 17 ──
+    background: str = ""
     primary: str = ""
     accent: str = ""
-    background: str = ""
-    surface: str = ""
+    card: str = ""
+    sidebar: str = ""
+    muted_foreground: str = ""
+    ring: str = ""
+    border: str = ""
+    destructive: str = ""
     success: str = ""
     warning: str = ""
-    error: str = ""
-    sidebarBackground: str = ""
-    sidebarPrimary: str = ""
+    info: str = ""
     chart1: str = ""
     chart2: str = ""
     chart3: str = ""
     chart4: str = ""
     chart5: str = ""
 
+    # ── Optional overrides (auto-derived when empty) ──
+    foreground: str = ""
+    card_foreground: str = ""
+    popover: str = ""
+    popover_foreground: str = ""
+    primary_foreground: str = ""
+    secondary: str = ""
+    secondary_foreground: str = ""
+    muted: str = ""
+    accent_foreground: str = ""
+    destructive_foreground: str = ""
+    danger: str = ""
+    danger_foreground: str = ""
+    input: str = ""
+    success_foreground: str = ""
+    warning_foreground: str = ""
+    info_foreground: str = ""
+    sidebar_foreground: str = ""
+    sidebar_primary: str = ""
+    sidebar_primary_foreground: str = ""
+    sidebar_accent: str = ""
+    sidebar_accent_foreground: str = ""
+    sidebar_border: str = ""
+    sidebar_ring: str = ""
+
 
 class ThemeTokens(BaseModel):
-    """Full internal design tokens derived from ThemePrimitives.
-
-    These are the computed theme values used throughout the application.
-    All colors are in oklch format for consistency.
-    """
+    """40 fully-resolved CSS variable values (snake_case 1:1 with vars)."""
 
     background: str = ""
     foreground: str = ""
     card: str = ""
-    cardForeground: str = ""
+    card_foreground: str = ""
     popover: str = ""
-    popoverForeground: str = ""
+    popover_foreground: str = ""
     primary: str = ""
-    primaryForeground: str = ""
+    primary_foreground: str = ""
     secondary: str = ""
-    secondaryForeground: str = ""
+    secondary_foreground: str = ""
     muted: str = ""
-    mutedForeground: str = ""
+    muted_foreground: str = ""
     accent: str = ""
-    accentForeground: str = ""
+    accent_foreground: str = ""
     destructive: str = ""
+    destructive_foreground: str = ""
+    danger: str = ""
+    danger_foreground: str = ""
     border: str = ""
     input: str = ""
     ring: str = ""
     success: str = ""
-    successForeground: str = ""
+    success_foreground: str = ""
     warning: str = ""
-    warningForeground: str = ""
+    warning_foreground: str = ""
     info: str = ""
-    infoForeground: str = ""
+    info_foreground: str = ""
     chart1: str = ""
     chart2: str = ""
     chart3: str = ""
     chart4: str = ""
     chart5: str = ""
     sidebar: str = ""
-    sidebarForeground: str = ""
-    sidebarPrimary: str = ""
-    sidebarPrimaryForeground: str = ""
-    sidebarAccent: str = ""
-    sidebarAccentForeground: str = ""
-    sidebarBorder: str = ""
-    sidebarRing: str = ""
+    sidebar_foreground: str = ""
+    sidebar_primary: str = ""
+    sidebar_primary_foreground: str = ""
+    sidebar_accent: str = ""
+    sidebar_accent_foreground: str = ""
+    sidebar_border: str = ""
+    sidebar_ring: str = ""
 
 
 def derive_theme_tokens(primitives: ThemePrimitives) -> ThemeTokens:
-    """Derive full ThemeTokens from user-editable ThemePrimitives.
+    """Expand essentials into the full 40-token palette.
 
-    This function performs complex color math to derive all theme tokens
-    from the user-editable primitives. It handles contrast calculations,
-    color tinting/shading, and ensures accessibility.
-
-    Args:
-        primitives: User-editable theme primitives
-
-    Returns:
-        Full ThemeTokens object with all derived colors
+    Resolution order per field: explicit primitive → derived value →
+    empty. Anything still empty falls through to globals.css.
     """
-    # Import color utilities (same as profile/context.py)
-    from app.utils.theme.color_utils import ensure_contrast, shade, tint
+    from app.utils.theme.color_utils import ensure_contrast, parse_oklch
     from app.utils.theme.oklch_to_hex import hex_to_oklch
 
-    def normalize_color_to_oklch(color: str) -> str:
-        """Normalize color input to oklch format."""
-        color_trimmed = color.strip()
-        if not color_trimmed:
-            return "oklch(0.5 0 0)"  # Default gray
+    def to_oklch(color: str) -> str:
+        c = (color or "").strip()
+        if not c:
+            return ""
+        if c.startswith("oklch("):
+            return c
+        h = c.lstrip("#")
+        if len(h) != 6 or not all(ch in "0123456789ABCDEFabcdef" for ch in h):
+            return ""
+        return hex_to_oklch(f"#{h}")
 
-        if color_trimmed.startswith("oklch("):
-            return color_trimmed
+    def pick(explicit: str, fallback: str) -> str:
+        return explicit or fallback
 
-        hex_clean = color_trimmed.lstrip("#")
-        if len(hex_clean) != 6 or not all(
-            c in "0123456789ABCDEFabcdef" for c in hex_clean
-        ):
-            return "oklch(0.5 0 0)"  # Default gray
+    def lightness(c: str) -> float:
+        try:
+            return parse_oklch(c)[0]
+        except Exception:
+            return 0.5
 
-        return hex_to_oklch(f"#{hex_clean}")
+    def is_light(c: str) -> bool:
+        return bool(c) and lightness(c) > 0.5
 
-    # Normalize all color inputs to oklch format
-    background = normalize_color_to_oklch(primitives.background or "")
-    surface = normalize_color_to_oklch(primitives.surface or "")
-    primary = normalize_color_to_oklch(primitives.primary or "")
-    accent = normalize_color_to_oklch(primitives.accent or "")
-    sidebar_bg = normalize_color_to_oklch(primitives.sidebarBackground or "")
-    sidebar_primary = normalize_color_to_oklch(primitives.sidebarPrimary or "")
-    success = normalize_color_to_oklch(primitives.success or "")
-    warning = normalize_color_to_oklch(primitives.warning or "")
-    error = normalize_color_to_oklch(primitives.error or "")
+    # Normalize all primitives to oklch
+    p = {f: to_oklch(getattr(primitives, f)) for f in ThemePrimitives.model_fields}
 
-    # Foregrounds based on contrast
-    foreground = ensure_contrast(background, "oklch(0.145 0 0)")
-    primary_fg = ensure_contrast(primary, "oklch(0.985 0 0)")
-    accent_fg = ensure_contrast(accent, "oklch(0.205 0 0)")
-    surface_fg = ensure_contrast(surface, foreground)
+    # === Surfaces ===
+    background = p["background"]
+    foreground = pick(p["foreground"], ensure_contrast(background, _DARK_TEXT) if background else "")
+    card = pick(p["card"], background)
+    popover = pick(p["popover"], card)
+    sidebar = pick(p["sidebar"], card)
 
-    # Status foregrounds
-    success_fg = ensure_contrast(success, "oklch(0.985 0 0)")
-    warning_fg = ensure_contrast(warning, "oklch(0.145 0 0)")
-    error_fg = ensure_contrast(error, "oklch(0.985 0 0)")
+    # Foregrounds on background-tier surfaces always use `foreground`
+    card_fg = pick(p["card_foreground"], foreground)
+    popover_fg = pick(p["popover_foreground"], foreground)
+    sidebar_fg = pick(p["sidebar_foreground"], foreground)
 
-    # Info derived from primary
-    info_color = tint(primary, 0.05)
-    info_fg = ensure_contrast(info_color, foreground)
+    # === Brand ===
+    primary = p["primary"]
+    # When primary is light (dark-theme pattern), text is soft-dark
+    # (0.205) — matches globals' --primary-foreground in .dark. When
+    # primary is dark (light-theme pattern), text is near-white (0.985).
+    primary_fg_default = _SOFT_DARK_TEXT if is_light(primary) else _LIGHT_TEXT
+    primary_fg = pick(p["primary_foreground"], primary_fg_default if primary else "")
 
-    # Derived colors
-    muted_color = shade(background, 0.03)
-    muted_fg = shade(foreground, 0.2)
-    border_color = shade(background, 0.078)
-    input_color = shade(background, 0.078)
-    ring_color = shade(primary, 0.05)
+    accent = p["accent"]
+    # Accent / secondary / muted are the same neutral-elevated tone.
+    secondary = pick(p["secondary"], accent)
+    muted = pick(p["muted"], accent)
+    sidebar_accent = pick(p["sidebar_accent"], accent)
 
-    # Sidebar derived colors
-    sidebar_fg = ensure_contrast(sidebar_bg, surface_fg)
-    sidebar_primary_fg = ensure_contrast(sidebar_primary, surface_fg)
-    sidebar_accent = shade(sidebar_bg, 0.015)
-    sidebar_accent_fg = ensure_contrast(sidebar_accent, surface_fg)
-    sidebar_border = shade(sidebar_bg, 0.064)
-    sidebar_ring = shade(sidebar_primary, 0.05)
+    # Foreground on accent-tier surfaces:
+    #   - When accent is light (light theme), use `primary` (a soft dark
+    #     that matches globals' 0.205, not the body text 0.145).
+    #   - When accent is dark (dark theme), use `foreground` (near-white,
+    #     same as body text).
+    accent_fg_default = primary if is_light(accent) else foreground
+    accent_fg = pick(p["accent_foreground"], accent_fg_default)
+    secondary_fg = pick(p["secondary_foreground"], accent_fg_default)
+    sidebar_accent_fg = pick(p["sidebar_accent_foreground"], accent_fg_default)
 
-    # Card colors (derived from surface)
-    card = surface
-    card_fg = surface_fg
-    popover = surface
-    popover_fg = surface_fg
+    # === Sidebar primary (mirrors primary unless overridden) ===
+    # Sidebar_primary can be a different hue from `primary` (globals
+    # uses a blue accent for dark-mode sidebar nav), so derive its
+    # foreground from sidebar_primary itself, not from primary_fg.
+    sidebar_primary = pick(p["sidebar_primary"], primary)
+    sidebar_primary_fg_default = (
+        _SOFT_DARK_TEXT if is_light(sidebar_primary) else _LIGHT_TEXT
+    )
+    sidebar_primary_fg = pick(
+        p["sidebar_primary_foreground"],
+        sidebar_primary_fg_default if sidebar_primary else "",
+    )
 
-    # Secondary colors (derived from muted)
-    secondary = muted_color
-    secondary_fg = muted_fg
+    # === Status — chromatic colors with fixed text-color pairings ===
+    # White text on saturated success/error/info; dark text on yellow.
+    destructive = p["destructive"]
+    destructive_fg = pick(p["destructive_foreground"], _LIGHT_TEXT if destructive else "")
+    danger = pick(p["danger"], destructive)
+    danger_fg = pick(p["danger_foreground"], _LIGHT_TEXT if danger else "")
 
-    # Destructive (derived from error)
-    destructive = error
-    destructive_fg = error_fg
+    success = p["success"]
+    success_fg = pick(p["success_foreground"], _LIGHT_TEXT if success else "")
+    warning = p["warning"]
+    warning_fg = pick(p["warning_foreground"], _DARK_TEXT if warning else "")
+    info = p["info"]
+    info_fg = pick(p["info_foreground"], _LIGHT_TEXT if info else "")
 
-    # Chart colors
-    chart1 = normalize_color_to_oklch(primitives.chart1 or "")
-    chart2 = normalize_color_to_oklch(primitives.chart2 or "")
-    chart3 = normalize_color_to_oklch(primitives.chart3 or "")
-    chart4 = normalize_color_to_oklch(primitives.chart4 or "")
-    chart5 = normalize_color_to_oklch(primitives.chart5 or "")
+    # === Borders / inputs / ring ===
+    border = p["border"]
+    input_ = pick(p["input"], border)
+    sidebar_border = pick(p["sidebar_border"], border)
+    ring = p["ring"]
+    sidebar_ring = pick(p["sidebar_ring"], ring)
+
+    # === Hand-tuned ===
+    muted_fg = p["muted_foreground"]
 
     return ThemeTokens(
         background=background,
         foreground=foreground,
         card=card,
-        cardForeground=card_fg,
+        card_foreground=card_fg,
         popover=popover,
-        popoverForeground=popover_fg,
+        popover_foreground=popover_fg,
         primary=primary,
-        primaryForeground=primary_fg,
+        primary_foreground=primary_fg,
         secondary=secondary,
-        secondaryForeground=secondary_fg,
-        muted=muted_color,
-        mutedForeground=muted_fg,
+        secondary_foreground=secondary_fg,
+        muted=muted,
+        muted_foreground=muted_fg,
         accent=accent,
-        accentForeground=accent_fg,
+        accent_foreground=accent_fg,
         destructive=destructive,
-        border=border_color,
-        input=input_color,
-        ring=ring_color,
+        destructive_foreground=destructive_fg,
+        danger=danger,
+        danger_foreground=danger_fg,
+        border=border,
+        input=input_,
+        ring=ring,
         success=success,
-        successForeground=success_fg,
+        success_foreground=success_fg,
         warning=warning,
-        warningForeground=warning_fg,
-        info=info_color,
-        infoForeground=info_fg,
-        chart1=chart1,
-        chart2=chart2,
-        chart3=chart3,
-        chart4=chart4,
-        chart5=chart5,
-        sidebar=sidebar_bg,
-        sidebarForeground=sidebar_fg,
-        sidebarPrimary=sidebar_primary,
-        sidebarPrimaryForeground=sidebar_primary_fg,
-        sidebarAccent=sidebar_accent,
-        sidebarAccentForeground=sidebar_accent_fg,
-        sidebarBorder=sidebar_border,
-        sidebarRing=sidebar_ring,
+        warning_foreground=warning_fg,
+        info=info,
+        info_foreground=info_fg,
+        chart1=p["chart1"],
+        chart2=p["chart2"],
+        chart3=p["chart3"],
+        chart4=p["chart4"],
+        chart5=p["chart5"],
+        sidebar=sidebar,
+        sidebar_foreground=sidebar_fg,
+        sidebar_primary=sidebar_primary,
+        sidebar_primary_foreground=sidebar_primary_fg,
+        sidebar_accent=sidebar_accent,
+        sidebar_accent_foreground=sidebar_accent_fg,
+        sidebar_border=sidebar_border,
+        sidebar_ring=sidebar_ring,
     )

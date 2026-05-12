@@ -22,7 +22,15 @@ router = APIRouter()
 class CreateGradeApiRequest(BaseModel):
     invocation_id: UUID = Field(..., description="Test invocation to grade")
     run_id: UUID | None = Field(None, description="Run ID for audit linkage")
-    score: int = Field(0, description="Overall score")
+    score: int = Field(0, description="Overall score (ignored when full=True)")
+    full: bool = Field(
+        False,
+        description=(
+            "When true, server resolves the rubric and assigns score=total_points "
+            "(max marks). Callers don't need to know the rubric ceiling ahead of "
+            "time. Overrides any caller-supplied score."
+        ),
+    )
 
 
 @router.post("/grade")
@@ -59,6 +67,7 @@ async def create_grade(
                 invocation_id=request.invocation_id,
                 run_id=request.run_id,
                 score=request.score,
+                full=request.full,
             )
 
         result = await run_artifact_operation_with_audit(

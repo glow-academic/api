@@ -5,6 +5,8 @@ Core logic lives in app.infra.parameter.group.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -43,13 +45,14 @@ async def group_parameter(
         pool = get_pool()
         redis = get_redis_client()
 
-        async def _runner() -> GroupParameterApiResponse:
+        async def _runner(group_id: UUID) -> GroupParameterApiResponse:
+            scoped_request = request.model_copy(update={'group_id': group_id})
             return await group_parameter_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                request=request,
+                request=scoped_request,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -60,6 +63,8 @@ async def group_parameter(
             session_id=session_id,
             operation="group",
             group_id=request.group_id,
+
+            mint_group_id_if_missing=True,
             arguments=request.model_dump(mode="json"),
             response_model=GroupParameterApiResponse,
             runner=_runner,

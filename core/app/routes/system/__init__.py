@@ -27,7 +27,7 @@ from app.routes.system.refresh import router as refresh_router
 from app.routes.system.resolve import router as resolve_router
 from app.routes.system.session import router as session_router
 from app.routes.system.sessions import router as sessions_router
-from app.routes.system.stream import router as stream_router
+from app.routes.system.watch import router as watch_router
 from app.routes.system.text_download import router as text_download_router
 from app.routes.system.video_download import router as video_download_router
 
@@ -44,7 +44,7 @@ router.include_router(sessions_router)    # paginated sessions list (was /activi
 router.include_router(resolve_router)     # problem resolve (was /activity/resolve)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Child sub-routers
 router.include_router(group_router)      # prefix="/group"

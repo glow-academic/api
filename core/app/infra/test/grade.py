@@ -34,20 +34,28 @@ async def create_grade_impl(
     session_id: UUID,
     invocation_id: UUID | None = None,
     score: int = 0,
+    full: bool = False,
     **kwargs: object,
 ) -> dict:
     """Create a test grade entry.
 
-    Model passes: invocation_id, score.
+    Model passes: invocation_id, score (or full=True for max marks).
     Infra derives everything else from invocation_id:
       - run_id (test → call → run chain)
       - passed (score vs rubric threshold)
       - time_taken (now - invocation created_at)
+
+    ``full=True`` shortcut — server resolves the rubric and fills in
+    ``score = total_points`` so callers don't need to know the max
+    ahead of time. Useful for "full marks" workflows where the client
+    just wants to promote a candidate without computing the rubric.
     """
     if invocation_id is None and "invocation_id" in kwargs:
         invocation_id = UUID(kwargs["invocation_id"])
     if isinstance(score, str):
         score = int(score)
+    if isinstance(full, str):
+        full = full.lower() in ("true", "1", "yes")
 
     if not invocation_id:
         raise ValueError("invocation_id is required")
@@ -83,6 +91,13 @@ async def create_grade_impl(
             if rubrics:
                 total_points = rubrics[0].total_points or 0
                 pass_points = rubrics[0].pass_points
+
+        # ``full=True`` shortcut — fill in max marks now that we know
+        # the rubric's total_points. Caller-supplied ``score`` is
+        # ignored when ``full`` is set.
+        if full:
+            score = total_points
+
         if total_points > 0 and score > total_points:
             raise ValueError(
                 f"Score {score} exceeds maximum of {total_points}. "

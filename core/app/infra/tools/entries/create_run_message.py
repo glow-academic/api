@@ -7,6 +7,7 @@ Used by create_tool_call (tool output) and persist_run_message (generation input
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg
@@ -34,13 +35,26 @@ async def create_run_message(
     upload_id: UUID,
     mcp: bool = False,
     agent_ids: list[UUID] | None = None,
+    created_at: "datetime | None" = None,
+    id: UUID | None = None,
 ) -> CreateRunMessageResult:
     """Create a message on a run linked to a text upload.
 
     Chain: create_message → create_text → create_text_upload → create_message_upload.
+
+    ``created_at`` overrides the message row's timestamp — used by the
+    audit framework so the tool-call message sorts at dispatch time
+    rather than completion time. ``None`` (default) stamps ``now()``.
+
+    ``id`` lets the caller pre-mint the ``messages_entry.id`` so a
+    pre-rendered FE skeleton (created on a ``*.image.start`` event keyed
+    by this id) can be located and replaced when ``*.image.complete``
+    arrives carrying the same id. ``None`` (default) lets the underlying
+    INSERT generate a fresh ``uuidv7()``.
     """
     message = await create_message(
-        conn, run_id=run_id, role=role, mcp=mcp, agent_ids=agent_ids
+        conn, run_id=run_id, role=role, mcp=mcp, agent_ids=agent_ids,
+        created_at=created_at, id=id,
     )
 
     text = await create_text(conn, session_id=session_id, mcp=mcp)

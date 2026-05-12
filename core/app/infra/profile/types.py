@@ -12,6 +12,7 @@ from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
 from app.infra.shared_types import QGetProfileContextV4RoleResource
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
+from app.utils.settings.theme import ThemeTokens
 
 # ---------------------------------------------------------------------------
 # Handcrafted resource types (replaces Q types from app.sql.types)
@@ -673,25 +674,48 @@ class ListProfilesApiResponse(BaseModel):
 # ========== Context Endpoint Types ==========
 
 
-class ThemePrimitives(BaseModel):
-    """Raw theme color primitives (hex values) from settings.
+# Re-export the canonical 40-field ThemePrimitives from utils so the wire
+# type and the derivation input are the same model. Every field maps 1:1
+# to a CSS variable in globals.css; all are optional (empty = inherit
+# from globals.css default). ``destructive`` is the general error
+# chrome (--destructive); ``danger`` is the analytics threshold color
+# (--danger) — they're intentionally separate primitives.
+from app.utils.settings.theme import ThemePrimitives  # noqa: E402,F401
 
-    General-purpose — not CSS-specific. Clients derive their own
-    presentation tokens (oklch, CSS variables, etc.) from these.
+
+class Thresholds(BaseModel):
+    """Numeric score thresholds resolved from the active setting.
+
+    Server pre-buckets dashboard metrics into ``success | warning | danger |
+    neutral`` already, so most components don't need these values. Surface
+    them for chart reference lines, tooltips, and any client-side bucketing.
     """
 
-    primary: str | None = Field(None, description="Primary color hex value")
-    accent: str | None = Field(None, description="Accent color hex value")
-    background: str | None = Field(None, description="Background color hex value")
-    surface: str | None = Field(None, description="Surface color hex value")
-    success: str | None = Field(None, description="Success state color hex value")
-    warning: str | None = Field(None, description="Warning state color hex value")
-    error: str | None = Field(None, description="Error state color hex value")
-    chart1: str | None = Field(None, description="Chart color 1 hex value")
-    chart2: str | None = Field(None, description="Chart color 2 hex value")
-    chart3: str | None = Field(None, description="Chart color 3 hex value")
-    chart4: str | None = Field(None, description="Chart color 4 hex value")
-    chart5: str | None = Field(None, description="Chart color 5 hex value")
+    success: int = Field(..., description="Score >= this counts as success")
+    warning: int = Field(..., description="Score >= this counts as warning")
+    danger: int = Field(..., description="Score < success threshold but >= this counts as danger; below is neutral/no-data")
+
+
+class ThemeBundle(BaseModel):
+    """Full theme payload for a page bootstrap.
+
+    Riding along on every ``/{artifact}/context`` response via
+    ``ProfileSummary.theme``. Layers:
+      - ``primitives`` / ``dark_primitives`` — hex inputs the settings
+        editor reads/writes (light + dark palettes).
+      - ``tokens`` / ``dark_tokens`` — oklch tokens the client paints with.
+        ``ThemeStyle`` emits two ``<style>`` blocks: one scoped to
+        ``:root:not(.dark)`` (light) and one to ``:root.dark`` (dark).
+      - ``thresholds`` — numeric score thresholds for analytics components.
+    Empty-in → empty-out per token: missing values fall through to the
+    matching ``globals.css`` default.
+    """
+
+    primitives: ThemePrimitives | None = Field(None, description="Hex inputs from the setting (light palette, for the theme editor)")
+    tokens: ThemeTokens | None = Field(None, description="Derived oklch tokens for light mode (SSR CSS-var injection)")
+    dark_primitives: ThemePrimitives | None = Field(None, description="Hex inputs from the setting (dark palette, for the theme editor)")
+    dark_tokens: ThemeTokens | None = Field(None, description="Derived oklch tokens for dark mode (SSR CSS-var injection)")
+    thresholds: Thresholds | None = Field(None, description="Score thresholds resolved from the setting")
 
 
 class ProfileContextApiResponse(BaseModel):

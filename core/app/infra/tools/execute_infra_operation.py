@@ -482,10 +482,29 @@ async def execute_infra_operation(
                     "session_id": ctx.session_id,
                     "group_id": ctx.group_id,
                     "run_id": ctx.run_id,
+                    # Parent's live socket id. Nested impls (notably
+                    # ``generate_*_impl``) thread ``sid`` into the
+                    # ``prepare → execute → media-emit`` chain so emitted
+                    # events carry the originating socket. Without this
+                    # the nested impl falls back to
+                    # ``get_socket_owner(profile_id)``, which picks a
+                    # non-deterministic sid from the profile's multi-
+                    # socket set — frequently a stale/ghost socket that
+                    # the WS fan-out then targets, silently bypassing
+                    # the user's actual connections.
+                    "sid": ctx.sid,
                     "soft": soft,
                     "accept": accept,
                     # Canonical ack key — see structured-path comment above.
                     "idempotency_key": ctx.call_id,
+                    # Override for generate impls. In the tool-driven path
+                    # the parent LLM crafted ``instructions`` as a tool
+                    # argument — the persisted messages should be
+                    # role=assistant, not role=user (the default for
+                    # FE-direct flows). Only generate impls declare this
+                    # kwarg; the ``_filter_ctx_kwargs_to_signature`` step
+                    # below drops it for everyone else.
+                    "instructions_role": "assistant",
                 }
                 # Only pass context kwargs the handler's signature actually
                 # declares. Handlers vary in which context they take — some
@@ -506,6 +525,14 @@ async def execute_infra_operation(
                         **kwargs,
                     )
 
+            # WS fan-out targets the profile_id room every socket joined
+            # at connect time (``ws/connect.py``: ``sio.enter_room(sid,
+            # profile_id)``), not a single sid. A user may have multiple
+            # tabs/reloads sharing one profile room; emitting to one sid
+            # silently misses the others (and any stale/ghost sid would
+            # miss everyone). Profile-room broadcast keeps every active
+            # connection in sync for free.
+            rooms = [str(ctx.profile_id)] if ctx.profile_id else []
             result = await run_artifact_operation_with_audit(
                 ctx.pool,
                 ctx.redis,
@@ -517,7 +544,7 @@ async def execute_infra_operation(
                 draft_id=ctx.draft_id,
                 run_id=ctx.run_id,
                 sid=ctx.sid,
-                rooms=[ctx.sid] if ctx.sid else [],
+                rooms=rooms,
                 runner=_runner,
                 # Recorded arguments are the LLM's own kwargs only.
                 # Lifecycle flags (soft / accept) live in

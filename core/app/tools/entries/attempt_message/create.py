@@ -1,5 +1,6 @@
 """Attempt message CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -16,14 +17,15 @@ async def create_attempt_message(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptMessageResponse:
     """Create an attempt_message_entry row. Text-only — audio attaches
     are separate entries created via ``create_attempt_audio``.
     """
     entry_id = await conn.fetchval(
         """
-        INSERT INTO attempt_message_entry (id, chat_id, session_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO attempt_message_entry (id, chat_id, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, NOW()))
         RETURNING id
         """,
         chat_id,
@@ -31,6 +33,7 @@ async def create_attempt_message(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if entry_id is None:

@@ -18,7 +18,7 @@ from app.routes.eval.group import router as group_router
 from app.routes.eval.problem import router as problem_router
 from app.routes.eval.refresh import router as refresh_router
 from app.routes.eval.search import router as search_router
-from app.routes.eval.stream import router as stream_router
+from app.routes.eval.watch import router as watch_router
 from app.routes.eval.update import router as update_router
 from app.routes.eval.text_download import router as text_download_router
 from app.routes.eval.call_download import router as call_download_router
@@ -44,7 +44,7 @@ router.include_router(context_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(text_download_router)

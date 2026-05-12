@@ -263,6 +263,7 @@ async def get_group_impl(
                 GroupDetailMessageItem(
                     id=message.message_id,
                     role=message.role,
+                    created_at=getattr(message, "message_created_at", None),
                     text_ids=list(message.text_ids or []),
                     audio_ids=list(message.audio_ids or []),
                     image_ids=list(message.image_ids or []),

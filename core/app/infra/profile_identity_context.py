@@ -50,7 +50,11 @@ class ProfileIdentityContext:
     emails: list[str]  # all emails
     primary_department_id: UUID | None
     department_ids: list[UUID]  # all department IDs
-    settings_id: UUID | None  # from primary department's setting_ids[0]
+    # ``settings_resource.id`` (the resource id), NOT ``setting_artifact.id``.
+    # Comes from ``primary_dept.setting_ids[0]`` which is itself a resource id.
+    # Consumers needing the artifact id (e.g. theme path) translate internally
+    # via ``setting_settings_junction``.
+    settings_id: UUID | None
     request_limit: int | None  # rate limit from role's request_limit_ids
     request_limit_interval: str | None  # interval (e.g. "1 day") from request_limits_resource
     is_active: bool
@@ -205,8 +209,17 @@ async def resolve_profile_identity_context(
                 request_limit_interval = rl_items[0].interval
 
     # Primary department: read from profile_primary_departments_junction →
-    # primary_departments_resource → departments_resource. settings_id falls
-    # out of the primary department's first setting.
+    # primary_departments_resource → departments_resource. The dept's
+    # ``setting_ids`` array stores the canonical setting *resource* id
+    # (the denormalized snapshot pointer), and ``ProfileIdentityContext.
+    # settings_id`` is documented to be that resource id — every direct
+    # consumer here passes it to a ``settings_resource``-keyed getter
+    # (``resolve_tool_graph`` → ``get_settings`` resource version,
+    # ``mcp/resolve.py`` → same). The one consumer that needs the
+    # artifact id (``resolve_settings_theme``, for the theme/colors
+    # path) does the resource→artifact translation internally via the
+    # ``setting_settings_junction`` black-box, so we don't need to do
+    # it here.
     primary_department_id: UUID | None = None
     settings_id: UUID | None = None
     if primary_depts_res:

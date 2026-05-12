@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XN8ThPFNNFzQtaI6OlfqGWtaMp0LjTPebf6tQnFlAr69u0egrs77jMnDcQjxNgp
+\restrict auy8INbdHtzl4u7d0deqFiTlCkcQpaHcDzpo61ZcIWxsmnPbhI1zh3pQVPs0JBs
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -11153,9 +11153,7 @@ CREATE TABLE public.systems_resource (
     mcp boolean DEFAULT false NOT NULL,
     name text,
     description text,
-    agent_ids uuid[] DEFAULT ARRAY[]::uuid[],
-    resolution_strategy text,
-    resolution_threshold numeric
+    agent_ids uuid[] DEFAULT ARRAY[]::uuid[]
 );
 
 
@@ -36059,5 +36057,5 @@ ALTER TABLE ONLY public.videos_videos_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XN8ThPFNNFzQtaI6OlfqGWtaMp0LjTPebf6tQnFlAr69u0egrs77jMnDcQjxNgp
+\unrestrict auy8INbdHtzl4u7d0deqFiTlCkcQpaHcDzpo61ZcIWxsmnPbhI1zh3pQVPs0JBs
 

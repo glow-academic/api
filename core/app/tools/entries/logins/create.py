@@ -1,5 +1,6 @@
 """Logins CREATE — insert into logins_entry with profile link."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -14,18 +15,20 @@ async def create_login(
     profile_id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateLoginResponse:
     """Create a login entry and optionally link to a profile."""
     login_id = await conn.fetchval(
         """
-        INSERT INTO logins_entry (id, session_id, active, mcp, generated)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
+        INSERT INTO logins_entry (id, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, COALESCE($5, NOW()))
         RETURNING id
         """,
         session_id,
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if login_id is None:

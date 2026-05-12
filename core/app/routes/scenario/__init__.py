@@ -21,8 +21,8 @@ from app.routes.scenario.image_upload import router as image_upload_router
 from app.routes.scenario.problem import router as problem_router
 from app.routes.scenario.refresh import router as refresh_router
 from app.routes.scenario.search import router as search_router
-from app.routes.scenario.stream import router as stream_router
 from app.routes.scenario.text_download import router as text_download_router
+from app.routes.scenario.watch import router as watch_router
 from app.routes.scenario.update import router as update_router
 from app.routes.scenario.video_download import router as video_download_router
 from app.routes.scenario.video_upload import router as video_upload_router
@@ -49,7 +49,7 @@ router.include_router(context_router)
 router.include_router(group_router)
 router.include_router(problem_router)
 router.include_router(refresh_router)
-router.include_router(stream_router)
+router.include_router(watch_router)
 
 # Typed media operations
 router.include_router(image_download_router)

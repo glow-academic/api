@@ -52,6 +52,7 @@ async def ensure_activity_session(
     include_problem: bool = False,
     include_grant: bool = False,
     include_emulation: bool = False,
+    created_at: datetime | None = None,
 ) -> SeedActivitySession:
     """Create a real session plus Activity-page metadata.
 
@@ -63,8 +64,15 @@ async def ensure_activity_session(
     activity_id = sid(f"{slug}/activity")
     login_id = sid(f"{slug}/login")
 
+    base_created_at = created_at or datetime.now(UTC)
+
     await _ignore_existing(
-        create_session(conn, profile_id=profile_id, id=session_id)
+        create_session(
+            conn,
+            profile_id=profile_id,
+            id=session_id,
+            created_at=base_created_at,
+        )
     )
     await _ignore_existing(
         create_activity(
@@ -72,6 +80,7 @@ async def ensure_activity_session(
             session_id=session_id,
             profile_id=profile_id,
             id=activity_id,
+            created_at=base_created_at + timedelta(seconds=5),
         )
     )
     await _ignore_existing(
@@ -80,6 +89,7 @@ async def ensure_activity_session(
             session_id=session_id,
             profile_id=profile_id,
             id=login_id,
+            created_at=base_created_at + timedelta(seconds=10),
         )
     )
 
@@ -92,7 +102,8 @@ async def ensure_activity_session(
                 session_id=session_id,
                 profiles_id=profile_id,
                 id=grant_id,
-                expires_at=datetime.now(UTC) + timedelta(days=7),
+                expires_at=base_created_at + timedelta(days=7),
+                created_at=base_created_at + timedelta(seconds=20),
             )
         )
 
@@ -104,6 +115,7 @@ async def ensure_activity_session(
                 session_id=session_id,
                 profile_id=profile_id,
                 id=sid(f"{slug}/emulation"),
+                created_at=base_created_at + timedelta(seconds=30),
             )
         )
 
@@ -117,6 +129,7 @@ async def ensure_activity_session(
                 session_id=session_id,
                 artifact_type="activity",
                 id=group_id,
+                created_at=base_created_at + timedelta(seconds=40),
             )
         )
         await _ignore_existing(
@@ -127,13 +140,26 @@ async def ensure_activity_session(
                 session_id=session_id,
                 id=sid(f"{slug}/problem-group-name"),
                 generated=True,
+                created_at=base_created_at + timedelta(seconds=45),
             )
         )
         await _ignore_existing(
-            create_run(conn, group_id=group_id, session_id=session_id, id=run_id)
+            create_run(
+                conn,
+                group_id=group_id,
+                session_id=session_id,
+                id=run_id,
+                created_at=base_created_at + timedelta(seconds=50),
+            )
         )
         await _ignore_existing(
-            create_call(conn, run_id=run_id, session_id=session_id, id=call_id)
+            create_call(
+                conn,
+                run_id=run_id,
+                session_id=session_id,
+                id=call_id,
+                created_at=base_created_at + timedelta(seconds=55),
+            )
         )
         await _ignore_existing(
             create_problem(
@@ -145,6 +171,7 @@ async def ensure_activity_session(
                 id=sid(f"{slug}/problem"),
                 message=f"Seeded issue while reviewing {label}.",
                 profile_id=profile_id,
+                created_at=base_created_at + timedelta(minutes=1),
             )
         )
 

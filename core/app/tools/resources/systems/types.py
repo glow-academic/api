@@ -11,8 +11,6 @@ class GetSystemResponse(BaseModel):
     name: str | None
     description: str | None
     agent_ids: list[UUID]
-    resolution_strategy: str | None
-    resolution_threshold: float | None
     created_at: datetime
     active: bool
     mcp: bool

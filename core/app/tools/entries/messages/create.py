@@ -1,5 +1,6 @@
 """Messages CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -15,12 +16,22 @@ async def create_message(
     mcp: bool = False,
     soft: bool = False,
     agent_ids: list[UUID] | None = None,
+    created_at: datetime | None = None,
 ) -> CreateMessageResponse:
-    """Create a messages entry with optional agent connections."""
+    """Create a messages entry with optional agent connections.
+
+    ``created_at`` lets callers override the row timestamp. Needed so the
+    audit-side tool-call message (written by ``create_tool_call`` AFTER
+    ``await runner()`` completes) can sort at *dispatch* time rather than
+    the audit-write completion time. Without the override the row is
+    stamped ``now()``, which sorts after the nested run's outputs and
+    renders the tool-call indicator below its own produced media in the
+    FE chat panel.
+    """
     row = await conn.fetchrow(
         """
-        INSERT INTO messages_entry (id, run_id, role, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO messages_entry (id, run_id, role, active, mcp, generated, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, now()))
         RETURNING id, created_at
     """,
         run_id,
@@ -28,6 +39,7 @@ async def create_message(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if row is None:

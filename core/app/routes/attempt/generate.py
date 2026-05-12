@@ -14,6 +14,7 @@ from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 
@@ -39,7 +40,10 @@ async def generate_attempt(
 
         async def _runner() -> ArtifactGenerateResponse:
             return await generate_attempt_impl(
-                pool, redis, profile_id=profile_id, session_id=session_id, request=request,
+                pool, redis,
+                profile_id=profile_id, session_id=session_id,
+                **request.model_dump(exclude={"config"}, exclude_none=True),
+                **(request.config or GenerateConfig()).model_dump(exclude_none=True),
             )
 
         return await run_artifact_operation_with_audit(

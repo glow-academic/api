@@ -339,10 +339,16 @@ def score_tools(
         set().union(*agent_modalities.values()) if agent_modalities else set()
     )
 
-    # Group agents by system
+    # Group agents by system — walk ``graph.agents`` (the canonical
+    # surface), NOT ``graph.tools``. Tool-less agents (image/video media
+    # generators, STT/TTS specialists) are full members of their system
+    # for modality eligibility. Picking from ``graph.tools`` would miss
+    # them — a system whose only image-capable agent has no tools would
+    # be silently rejected for modality=["image"], even though that
+    # agent is exactly the one that should run a pure media dispatch.
     system_agents: dict[UUID, set[UUID]] = {}
-    for t in graph.tools:
-        system_agents.setdefault(t.system_id, set()).add(t.agent_id)
+    for a in graph.agents:
+        system_agents.setdefault(a.system_id, set()).add(a.agent_id)
 
     # If modalities specified, filter to systems where ALL agents support ALL modalities
     eligible_systems: set[UUID] | None = None

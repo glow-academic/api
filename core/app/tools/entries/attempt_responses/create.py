@@ -1,5 +1,6 @@
 """Entry CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -18,13 +19,14 @@ async def create_attempt_responses(
     option_ids: list[UUID] | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateAttemptResponsesResponse:
     """Create an attempt_responses entry."""
     entry_id = await conn.fetchval(
         """
         INSERT INTO attempt_responses_entry
-            (id, chat_id, session_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+            (id, chat_id, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, NOW()))
         RETURNING id
         """,
         chat_id,
@@ -32,6 +34,7 @@ async def create_attempt_responses(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if question_ids:

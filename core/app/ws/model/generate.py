@@ -8,6 +8,7 @@ from app.infra.identity.socket import resolve_socket_identity
 from app.infra.model.generate import generate_model_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
+    GenerateConfig,
     GenerateErrorApiRequest,
 )
 from app.infra.websocket.typed_emit import emit_to_internal
@@ -57,8 +58,9 @@ async def model_generate(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            request=payload,
             sid=sid,
+            **payload.model_dump(exclude={'config'}, exclude_none=True),
+            **(payload.config or GenerateConfig()).model_dump(exclude_none=True),
         ),
         arguments=payload.model_dump(mode="json"),
     )

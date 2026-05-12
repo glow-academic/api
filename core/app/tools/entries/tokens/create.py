@@ -1,5 +1,6 @@
 """Tokens CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -18,12 +19,13 @@ async def create_token(
     cached_input_tokens: int = 0,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateTokenResponse:
     """Create a tokens entry."""
     token_id = await conn.fetchval(
         """
-        INSERT INTO tokens_entry (id, run_id, input_tokens, output_tokens, cached_input_tokens, session_id, active, mcp, generated)
-        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
+        INSERT INTO tokens_entry (id, run_id, input_tokens, output_tokens, cached_input_tokens, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true, COALESCE($9, NOW()))
         RETURNING id
         """,
         run_id,
@@ -34,6 +36,7 @@ async def create_token(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if token_id is None:

@@ -1,5 +1,6 @@
 """Groups CREATE — reusable data-access layer."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -15,6 +16,7 @@ async def create_group(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateGroupResponse:
     """Create a groups entry.
 
@@ -22,8 +24,8 @@ async def create_group(
     """
     row = await conn.fetchrow(
         """
-        INSERT INTO groups_entry (id, session_id, active, mcp, generated, artifact_type)
-        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5)
+        INSERT INTO groups_entry (id, session_id, active, mcp, generated, artifact_type, created_at)
+        VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true, $5, COALESCE($6, NOW()))
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
         RETURNING id, (xmax = 0) AS inserted
     """,
@@ -32,6 +34,7 @@ async def create_group(
         mcp,
         id,
         artifact_type,
+        created_at,
     )
 
     if row is None or row["id"] is None:

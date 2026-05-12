@@ -1276,6 +1276,7 @@ async def _run_color_seeds(
                 hex_code=c["hex_code"],
                 redis=redis,
                 id=c.get("id"),
+                color_type=c.get("type", "primary"),
             )
             created_ids.append(result.id)
             print("  OK: Color created successfully")

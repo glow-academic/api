@@ -1,5 +1,6 @@
 """Emulations CREATE — insert into emulations_entry with profile link."""
 
+from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -15,12 +16,13 @@ async def create_emulation(
     profile_id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateEmulationResponse:
     """Create an emulation entry and optionally link to a profile."""
     emulation_id = await conn.fetchval(
         """
-        INSERT INTO emulations_entry (id, grant_id, session_id, active, mcp, generated)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
+        INSERT INTO emulations_entry (id, grant_id, session_id, active, mcp, generated, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, NOW()))
         RETURNING id
         """,
         grant_id,
@@ -28,6 +30,7 @@ async def create_emulation(
         not soft,
         mcp,
         id,
+        created_at,
     )
 
     if emulation_id is None:

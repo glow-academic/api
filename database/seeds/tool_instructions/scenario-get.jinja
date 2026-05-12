@@ -12,6 +12,18 @@
 - **Videos:** {% set sel = r.videos | selectattr('selected') | list %}{{ sel | length }}
 - **Questions:** {% set sel = r.questions | selectattr('selected') | list %}{{ sel | length }}
 - **Parameter Fields:** {% set sel = r.parameter_fields | selectattr('selected') | list %}{{ sel | length }}
+{% if r.flags %}
+
+### Flag Toggles
+Each toggle below has a `true` id and a `false` id. To **enable** a toggle, include the `true` id in `flag_ids` on `Scenario_Draft`; to **disable**, include the `false` id. Toggles whose state is `not set` default to disabled. When you change a related resource (e.g. add image ids), flip the matching toggle in the same `Scenario_Draft` call so the UI surfaces it — adding `image_ids` without also setting `images_enabled = true` leaves the images section hidden.
+
+{% for type, items in (r.flags | groupby('type')) %}
+{% set true_opt = items | selectattr('value', 'equalto', true) | list | first %}
+{% set false_opt = items | selectattr('value', 'equalto', false) | list | first %}
+{% set state = 'true' if (true_opt and true_opt.selected) else ('false' if (false_opt and false_opt.selected) else 'not set') %}
+- **{{ (true_opt.name if true_opt else (false_opt.name if false_opt else type)) }}** (`{{ type }}`): **{{ state }}** — set true: `{{ true_opt.id if true_opt else '—' }}` · set false: `{{ false_opt.id if false_opt else '—' }}`
+{% endfor %}
+{% endif %}
 
 ## Available Options
 {% if r.departments %}

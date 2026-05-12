@@ -39,17 +39,25 @@ _DOWNLOAD_ARTIFACTS = [
     "test", "tool",
 ]
 
-# VIEW children consolidated under parent artifacts
-_ATTEMPT_VIEWS = ["home", "practice", "chat", "dashboard", "leaderboard", "reports", "record"]
-_TEST_VIEWS = ["invocation", "benchmark"]
-_SYSTEM_VIEWS = ["activity", "session", "pricing", "group", "health"]
+# VIEW artifacts collapsed under parent artifacts (single op per view post-flatten).
+# Old shape ("home" → many ops like home_get, home_search, ...) is gone — each
+# view is now ONE route under the parent (e.g. /attempt/home, /system/activity).
+_ATTEMPT_VIEW_OPS = ["home", "practice", "dashboard", "leaderboard", "report"]
+_TEST_VIEW_OPS = ["benchmark", "invocations"]
+_SYSTEM_VIEW_OPS = ["activity", "session", "pricing", "group", "groups", "sessions", "health"]
 
-# Broad superset of VIEW operations — _pids filter keeps only valid combos
-_VIEW_ALL_OPS = [
-    "context", "create", "export", "generate", "generations", "get", "group", "problem", "refresh", "search",
-    "draft", "drafts", "decrypt", "resolve", "name",
-    "audio_download", "call_download", "file_download", "file_preview",
-    "image_download", "text_download", "video_download",
+# Compound child operations that remain real after the flatten. Chat lives
+# nested under /attempt/chat_* as multiple endpoints; invocation lives under
+# /test/invocation_* the same way. Each entry corresponds 1:1 to a route.
+_ATTEMPT_CHAT_OPS = [
+    "chat_get", "chat_create", "chat_message", "chat_audio", "chat_complete",
+    "chat_grade", "chat_voice", "chat_silence", "chat_response", "chat_speak",
+    "chat_feedback", "chat_strengths", "chat_improvements", "chat_analyses",
+    "chat_hints",
+]
+_TEST_INVOCATION_OPS = [
+    "invocation_get", "invocation_create", "invocation_run",
+    "invocation_complete", "invocation_terminate", "invocation_trace",
 ]
 
 # Request limit IDs (from request_limits seeds)
@@ -71,16 +79,6 @@ def _pids(artifact_names: list[str], ops: list[str] | None = None) -> list:
     ]
 
 
-def _child_ops(children: list[str], ops: list[str] | None = None) -> list[str]:
-    """Compound operation names for VIEW children under a parent artifact.
-
-    _child_ops(["home", "practice"]) → ["home_context", ..., "practice_context", ...]
-    _child_ops(["chat"], _READ_OPS)  → ["chat_get", "chat_search", ...]
-    """
-    base = ops or _VIEW_ALL_OPS
-    return [f"{child}_{op}" for child in children for op in base]
-
-
 roles = [
     # ── Superadmin (level 0): full CRUD on everything ──
     dict(
@@ -100,10 +98,10 @@ roles = [
             ], _ALL_CRUD)
             # All direct ops on parent artifacts
             + _pids(["attempt", "test"], _ALL_CRUD)
-            # All compound child ops under each parent
-            + _pids(["attempt"], _child_ops(_ATTEMPT_VIEWS))
-            + _pids(["test"], _child_ops(_TEST_VIEWS))
-            + _pids(["system"], _child_ops(_SYSTEM_VIEWS))
+            # Collapsed view ops (one per view, post-flatten)
+            + _pids(["attempt"], _ATTEMPT_VIEW_OPS + _ATTEMPT_CHAT_OPS)
+            + _pids(["test"], _TEST_VIEW_OPS + _TEST_INVOCATION_OPS)
+            + _pids(["system"], _SYSTEM_VIEW_OPS)
             # Media ops
             + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
@@ -125,10 +123,10 @@ roles = [
             ], _ALL_CRUD)
             # Read-only on parent artifacts (direct ops)
             + _pids(["attempt", "test"], _READ_OPS)
-            # Read-only compound child ops
-            + _pids(["attempt"], _child_ops(_ATTEMPT_VIEWS, _READ_OPS))
-            + _pids(["test"], _child_ops(_TEST_VIEWS, _READ_OPS))
-            + _pids(["system"], _child_ops(_SYSTEM_VIEWS, _READ_OPS))
+            # Collapsed view ops (READ-ONLY — admin can see all dashboards)
+            + _pids(["attempt"], _ATTEMPT_VIEW_OPS + _ATTEMPT_CHAT_OPS)
+            + _pids(["test"], _TEST_VIEW_OPS + _TEST_INVOCATION_OPS)
+            + _pids(["system"], _SYSTEM_VIEW_OPS)
             # Media ops (group media now under system via compound ops)
             + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
@@ -149,10 +147,10 @@ roles = [
             ], _ALL_CRUD)
             # Read-only on parent artifacts (direct ops)
             + _pids(["attempt", "test"], _READ_OPS)
-            # Read-only compound child ops (no health for instructional)
-            + _pids(["attempt"], _child_ops(_ATTEMPT_VIEWS, _READ_OPS))
-            + _pids(["test"], _child_ops(_TEST_VIEWS, _READ_OPS))
-            + _pids(["system"], _child_ops(["activity", "session", "pricing", "group"], _READ_OPS))
+            # Collapsed view ops (instructional: no health)
+            + _pids(["attempt"], _ATTEMPT_VIEW_OPS + _ATTEMPT_CHAT_OPS)
+            + _pids(["test"], _TEST_VIEW_OPS + _TEST_INVOCATION_OPS)
+            + _pids(["system"], ["activity", "session", "pricing", "group", "groups", "sessions"])
             # Media ops
             + _pids(_DOWNLOAD_ARTIFACTS, _MEDIA_OPS)
         ),
@@ -168,8 +166,8 @@ roles = [
         permission_ids=(
             # Read ops on attempt (direct)
             _pids(["attempt"], _READ_OPS)
-            # Read compound ops for home, practice, leaderboard, chat
-            + _pids(["attempt"], _child_ops(["home", "practice", "leaderboard", "chat"], _READ_OPS))
+            # Collapsed view ops + chat compound ops (GTA needs home/practice/leaderboard)
+            + _pids(["attempt"], ["home", "practice", "leaderboard"] + _ATTEMPT_CHAT_OPS)
             # Media ops on attempt
             + _pids(["attempt"], _MEDIA_OPS)
         ),
@@ -184,7 +182,7 @@ roles = [
         color_id=None,
         permission_ids=(
             _pids(["attempt"], _READ_OPS)
-            + _pids(["attempt"], _child_ops(["home", "practice", "leaderboard", "chat"], _READ_OPS))
+            + _pids(["attempt"], ["home", "practice", "leaderboard"] + _ATTEMPT_CHAT_OPS)
             + _pids(["attempt"], _MEDIA_OPS)
         ),
     ),
@@ -198,7 +196,7 @@ roles = [
         color_id=sid("color/gray"),
         permission_ids=(
             _pids(["attempt"], _READ_OPS)
-            + _pids(["attempt"], _child_ops(["practice", "chat"], _READ_OPS))
+            + _pids(["attempt"], ["practice"] + _ATTEMPT_CHAT_OPS)
             + _pids(["attempt"], _MEDIA_OPS)
         ),
         request_limit_ids=[DAILY_LIMIT_10],
@@ -213,7 +211,7 @@ roles = [
         color_id=sid("color/orange"),
         permission_ids=(
             _pids(["test"], _ALL_CRUD)
-            + _pids(["test"], _child_ops(_TEST_VIEWS))
+            + _pids(["test"], _TEST_VIEW_OPS + _TEST_INVOCATION_OPS)
         ),
     ),
 ]

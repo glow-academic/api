@@ -12,7 +12,7 @@
 
 /* Override Keycloak's page structure */
 .login-pf-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%) !important;
+  background: linear-gradient(135deg, var(--background, #0f172a) 0%, var(--accent, #1e3a8a) 50%, var(--background, #0f172a) 100%) !important;
   padding: 0 !important;
   margin: 0 !important;
   min-height: 100vh !important;
@@ -56,14 +56,14 @@ html, body {
 }
 
 body.login-pf {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%) !important;
+  background: linear-gradient(135deg, var(--background, #0f172a) 0%, var(--accent, #1e3a8a) 50%, var(--background, #0f172a) 100%) !important;
   min-height: 100vh;
   overflow-x: hidden;
   font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
 }
 
 body.login-pf .login-pf-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%) !important;
+  background: linear-gradient(135deg, var(--background, #0f172a) 0%, var(--accent, #1e3a8a) 50%, var(--background, #0f172a) 100%) !important;
   font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
 }
 
@@ -91,7 +91,7 @@ body.login-pf .login-pf-page {
 
 .sparkle {
   position: absolute;
-  color: rgba(253, 224, 71, 0.6);
+  color: color-mix(in srgb, var(--warning, #fde047) 60%, transparent);
   pointer-events: none;
   z-index: 0;
 }
@@ -104,17 +104,17 @@ body.login-pf .login-pf-page {
 
 .sparkle-static {
   animation: sparkle-twinkle 2s ease-in-out infinite;
-  color: rgba(253, 224, 71, 0.5);
+  color: color-mix(in srgb, var(--warning, #fde047) 50%, transparent);
 }
 
 .sparkle-moving {
   animation: sparkle-move 3s ease-in-out infinite;
-  color: rgba(253, 224, 71, 0.45);
+  color: color-mix(in srgb, var(--warning, #fde047) 45%, transparent);
 }
 
 .sparkle-floating {
   animation: sparkle-float 4s ease-in-out infinite;
-  color: rgba(253, 224, 71, 0.4);
+  color: color-mix(in srgb, var(--warning, #fde047) 40%, transparent);
 }
 
 @keyframes sparkle-twinkle {
@@ -153,12 +153,12 @@ body.login-pf .login-pf-page {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
+  color: var(--foreground, white) !important;
   text-decoration: none !important;
   font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   overflow: hidden;
 }
 
@@ -195,7 +195,7 @@ body.login-pf .login-pf-page {
 .back-button:hover {
   background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.15) 100%);
   border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /* Centered card */
@@ -210,7 +210,7 @@ body.login-pf .login-pf-page {
   -webkit-backdrop-filter: blur(12px);
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   overflow: visible !important; /* Critical: allow dropdown menus to escape */
 }
 
@@ -327,9 +327,9 @@ body.login-pf .login-pf-page {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 0.75rem; /* Match React's rounded-xl */
-  color: white !important;
+  color: var(--foreground, white) !important;
   transition: all 0.3s ease; /* Match React's transition-all duration-300 */
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   overflow: hidden;
   cursor: pointer;
   display: flex;
@@ -375,7 +375,7 @@ body.login-pf .login-pf-page {
 
 .department-select-value {
   flex: 1 1 auto; /* Take available space but allow shrinking */
-  color: white;
+  color: var(--foreground, white);
   position: relative;
   z-index: 2;
   text-align: left; /* Ensure text aligns left */
@@ -387,7 +387,7 @@ body.login-pf .login-pf-page {
   height: 1rem !important;
   min-width: 1rem !important; /* Ensure minimum width */
   min-height: 1rem !important; /* Ensure minimum height */
-  color: white !important;
+  color: var(--foreground, white) !important;
   opacity: 1 !important; /* Fully opaque chevron */
   transition: transform 0.2s ease;
   flex-shrink: 0 !important;
@@ -409,7 +409,7 @@ body.login-pf .login-pf-page {
 .department-select-custom:hover {
   background: rgba(255,255,255,0.22) !important; /* Slightly lighter on hover */
   border-color: rgba(255, 255, 255, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .department-select-custom.open .department-select-chevron {
@@ -420,7 +420,7 @@ body.login-pf .login-pf-page {
   outline: none;
   background: rgba(255,255,255,0.22) !important; /* Slightly lighter on focus */
   border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 /* Custom dropdown menu */
@@ -431,7 +431,7 @@ body.login-pf .login-pf-page {
   right: 0;
   
   /* SOLID-ish base: this is what stops the see-through */
-  background: rgba(15, 23, 42, 0.92) !important; /* slate-900 - mostly opaque */
+  background: color-mix(in srgb, var(--card, rgb(15 23 42)) 92%, transparent) !important; /* themed glass surface */
   border: 1px solid rgba(255,255,255,0.14) !important;
   border-radius: 0.75rem;
   
@@ -458,7 +458,7 @@ body.login-pf .login-pf-page {
 .department-select-option {
   position: relative; /* For absolute positioning of checkmark */
   padding: 0.5rem 2.5rem 0.5rem 0.875rem; /* Right padding for checkmark space */
-  color: white;
+  color: var(--foreground, white);
   cursor: pointer;
   transition: background 0.2s ease;
   font-size: 0.9375rem; /* Smaller font - 15px, matching button */
@@ -467,11 +467,12 @@ body.login-pf .login-pf-page {
 }
 
 .department-select-option:hover {
-  background: rgba(255,255,255,0.08); /* Toned down for darker base */
+  background: color-mix(in srgb, var(--accent, rgba(255,255,255,0.08)) 60%, transparent);
 }
 
 .department-select-option.selected {
-  background: rgba(255,255,255,0.06); /* Toned down for darker base */
+  background: var(--accent, rgba(255,255,255,0.06));
+  color: var(--accent-foreground, var(--foreground, white));
   font-weight: 600;
 }
 
@@ -492,7 +493,7 @@ body.login-pf .login-pf-page {
 .department-select-checkmark svg {
   width: 1rem;
   height: 1rem;
-  color: white;
+  color: var(--foreground, white);
 }
 
 /* Action buttons section (all buttons styled consistently) */
@@ -517,13 +518,13 @@ body.login-pf .login-pf-page {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 0.75rem;
-  color: white;
+  color: var(--foreground, white);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   /* Exact border styling from Login.tsx: box-shadow with inset border */
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   overflow: hidden;
   text-decoration: none;
   font-family: inherit;
@@ -559,7 +560,7 @@ body.login-pf .login-pf-page {
 .action-button-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: white;
+  color: var(--foreground, white);
 }
 
 .action-button-icon-inline {
@@ -571,7 +572,7 @@ body.login-pf .login-pf-page {
 .action-button-icon-inline svg {
   width: 1.25rem;
   height: 1.25rem;
-  color: white;
+  color: var(--foreground, white);
   stroke: currentColor;
   fill: none;
 }
@@ -582,22 +583,22 @@ body.login-pf .login-pf-page {
 
 .action-button i {
   font-size: 1.25rem;
-  color: white;
+  color: var(--foreground, white);
 }
 
 .action-button:hover {
   background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.15) 100%);
   border-color: rgba(255, 255, 255, 0.3) !important;
   /* Exact hover border styling from Login.tsx */
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
-  color: white !important;
+  color: var(--foreground, white) !important;
 }
 
 .action-button:hover .action-button-text,
 .action-button:hover .action-button-icon,
 .action-button:hover i {
-  color: white !important;
+  color: var(--foreground, white) !important;
 }
 
 .action-button:active {
@@ -609,13 +610,19 @@ body.login-pf .login-pf-page {
   cursor: not-allowed;
 }
 
-/* Remove button underlines - override Keycloak defaults */
+/* Remove button underlines + force theme color across all anchor
+   states. Browser ``a:link`` / ``a:visited`` pseudo-classes paint
+   the default blue/purple at specificity (0,0,1,1) — higher than the
+   base ``.action-button`` rule (0,0,1,0). Including the same
+   pseudo-classes here brings the specificity up to (0,0,1,1) too and
+   the later-cascade rule wins. */
 .action-button,
 .action-button:link,
 .action-button:visited,
 .action-button:hover,
 .action-button:active,
 .action-button:focus {
+  color: var(--foreground, white) !important;
   text-decoration: none !important;
   border-bottom: none !important;
   /* DO NOT override box-shadow here - it breaks the inset border styling */
@@ -637,7 +644,7 @@ a.action-button {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.5rem;
-  color: white;
+  color: var(--foreground, white);
   padding: 0.625rem 0.75rem;
   font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
 }
@@ -659,14 +666,14 @@ a.action-button {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
-  color: white;
+  color: var(--foreground, white);
 }
 
 .kc-button-primary:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.9) 0%, rgba(37, 99, 235, 0.9) 100%);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -731,7 +738,7 @@ label {
 .or-divider-text span {
   background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
   padding: 0.25rem 1rem;
-  color: white;
+  color: var(--foreground, white);
   font-weight: 500;
   letter-spacing: 0.05em;
   border-radius: 0.25rem;
@@ -748,7 +755,7 @@ label {
   width: 1.25rem;
   height: 1.25rem;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border-top-color: var(--foreground, white);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   display: none;
@@ -907,4 +914,92 @@ button.action-button {
     top: 1rem;
     left: 1rem;
   }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   Theme-aware accents (additive — preserve the iconic glass aesthetic of
+   the form card; only theme the spots that benefit from a brand pop).
+   Each rule consumes a CSS variable with a sane fallback so the page
+   stays usable when theme-vars.ftl hasn't been generated.
+   ──────────────────────────────────────────────────────────────────── */
+
+/* GLOW wordmark — themed 3-stop gradient using color-mix to create
+   lighter/darker variants of --primary on the fly. Gives the same
+   tonal-shift feel as the original blue gradient but stays in the
+   active brand color family.
+     - stop 0%   = primary mixed with foreground-contrast (lighter)
+     - stop 50%  = primary
+     - stop 100% = primary mixed with surrounding bg (subtle fade)
+   Solid `color:` fallback covers browsers without color-mix support
+   AND clients that haven't run the generator yet (no --primary set —
+   uses the literal blue fallback so the original brand mark renders).
+   All properties carry !important to beat the line-~270 origin rule. */
+.glow-title,
+.logo-link .glow-title {
+  color: var(--primary, #60a5fa) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary, #93c5fd) 70%, var(--primary-foreground, white)) 0%,
+    var(--primary, #60a5fa) 50%,
+    color-mix(in srgb, var(--primary, #3b82f6) 80%, var(--background, transparent)) 100%
+  ) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Submit / primary CTA buttons (narrowly scoped — does NOT catch IdP
+   buttons, which keep their existing translucent-white aesthetic). */
+.pf-c-button.pf-m-primary,
+button[type="submit"]:not(.glow-button-static-bridge):not(.glow-idp-button) {
+  background-color: var(--primary, #1e3a8a);
+  color: var(--primary-foreground, #ffffff);
+  border-color: var(--primary, #1e3a8a);
+}
+
+.pf-c-form__helper-text.pf-m-error,
+.kc-feedback-text {
+  color: var(--destructive, #ef4444);
+}
+
+/* Theme-aware focus rings — replace browser default blue focus outline
+   with var(--ring). Applied broadly to buttons and form controls so
+   tab-navigation stays visible without the off-brand Chrome blue. */
+.action-button:focus,
+.action-button:focus-visible,
+.kc-button-primary:focus,
+.kc-button-primary:focus-visible,
+.department-select-custom:focus-visible,
+.kc-input:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--ring, rgba(255, 255, 255, 0.5)) !important;
+  outline-offset: 2px !important;
+}
+/* Suppress the blue focus border that some browsers still paint
+   even when outline is set. */
+.action-button:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Suppress browser default tap-highlight (the blue/black flash on
+   tap/click on touch devices and some desktop Chrome) so clicks don't
+   paint an off-brand color before our themed :active styles apply. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mouse-click focus (where :focus-visible is FALSE in Chrome by
+   heuristic) — explicitly suppress all outlines on these elements so
+   we never see the browser default blue. Keyboard focus still gets
+   the themed --ring outline via the :focus-visible rule above. */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+.kc-input:focus:not(:focus-visible),
+.department-select-custom:focus:not(:focus-visible),
+.glow-idp-button:focus:not(:focus-visible),
+.kc-social-link:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }
