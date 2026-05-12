@@ -319,37 +319,30 @@ class LitellmMediaAdapter(BaseMediaAdapter):
         while True:
             poll_index += 1
             try:
+                # The id we got from ``avideo_generation`` is opaque to
+                # us; the SDK decodes its own routing envelope to find
+                # the provider. The LearnLoop core gateway re-wraps the
+                # id one extra layer (see ``ai_video.py``) so this chain
+                # round-trips cleanly without us pinning the provider.
                 status_response = await litellm.avideo_status(
                     video_id=generation_id,
                     api_key=api_key,
                     api_base=base_url if base_url else None,
-                    # Pin the provider transformer. ``avideo_status`` has
-                    # no ``model`` argument to anchor inference on, so
-                    # without this litellm guesses — and a wrong guess
-                    # would route to the wrong transformer and surface
-                    # as a malformed-response error. We always speak the
-                    # OpenAI-compatible protocol against the LearnLoop
-                    # proxy, mirroring the generation call.
-                    custom_llm_provider="openai",
                 )
             except Exception as e:
-                # Surface the raw upstream error so we can diagnose the
-                # actual failure (e.g. proxy 500, missing route). Without
-                # this the only signal is litellm's pydantic validation
-                # error against the canned VideoObject shape — useless.
                 logger.error(
                     "avideo_status failed: video_id=%s api_base=%s err_type=%s err=%.500s",
                     generation_id, base_url, type(e).__name__, repr(e),
                 )
                 raise
 
-            # Normalize the status payload the same way we did for the
-            # initial generation response — object / pydantic / dict all
-            # collapse to ``status_dict`` so we don't fight three shapes.
-            if isinstance(status_response, dict):
-                status_dict = status_response
-            elif hasattr(status_response, "model_dump"):
+            # ``avideo_status`` returns a typed ``VideoObject`` on
+            # success. Fall back to the dict / generic-attr shapes only
+            # for robustness against future SDK changes.
+            if hasattr(status_response, "model_dump"):
                 status_dict = status_response.model_dump()
+            elif isinstance(status_response, dict):
+                status_dict = status_response
             else:
                 status_dict = {
                     attr: getattr(status_response, attr, None)

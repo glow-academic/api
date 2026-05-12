@@ -375,6 +375,13 @@ async def resolve_scenario_context(
 
     async def _search_videos() -> list:
         async with pool.acquire() as conn:
+            # Mirror of ``_search_images`` above: no ``scenario=True``
+            # junction filter, because LLM-generated videos persist via
+            # the media pipeline (resource + message junction) and don't
+            # get a ``scenario_videos_junction`` row until they're
+            # explicitly attached to a scenario draft. The picker should
+            # show every video the user has access to; attaching is the
+            # draft-save step's job.
             return await search_videos(
                 conn,
                 redis,
@@ -383,7 +390,6 @@ async def resolve_scenario_context(
                 offset_count=0,
                 exclude_ids=merged.video_ids,
                 bypass_cache=bypass_cache,
-                scenario=True,
             )
 
     async def _get_questions() -> list:
