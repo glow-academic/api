@@ -23,6 +23,7 @@ class ProfileSearchPayload(BaseModel):
     cohort_search: str | None = Field(None)
     department_search: str | None = Field(None)
     role_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -65,6 +66,7 @@ async def profile_search(sid: str, data: dict[str, Any]) -> None:
             cohort_search=payload.cohort_search,
             department_search=payload.department_search,
             role_search=payload.role_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

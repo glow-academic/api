@@ -23,6 +23,7 @@ class FieldSearchPayload(BaseModel):
     parameter_search: str | None = Field(None)
     persona_search: str | None = Field(None)
     department_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -65,6 +66,7 @@ async def field_search(sid: str, data: dict[str, Any]) -> None:
             parameter_search=payload.parameter_search,
             persona_search=payload.persona_search,
             department_search=payload.department_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

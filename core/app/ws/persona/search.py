@@ -27,6 +27,7 @@ class PersonaSearchPayload(BaseModel):
     icon_search: str | None = Field(None)
     voice_search: str | None = Field(None)
     instruction_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -73,6 +74,7 @@ async def persona_search(sid: str, data: dict[str, Any]) -> None:
             icon_search=payload.icon_search,
             voice_search=payload.voice_search,
             instruction_search=payload.instruction_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

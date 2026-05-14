@@ -19,6 +19,7 @@ class AuthSearchPayload(BaseModel):
     search: str | None = Field(None)
     filter_department_ids: list[UUID] | None = Field(None)
     department_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(1000)
     page_offset: int = Field(0)
 
@@ -57,6 +58,7 @@ async def auth_search(sid: str, data: dict[str, Any]) -> None:
             search=payload.search,
             filter_department_ids=payload.filter_department_ids,
             department_search=payload.department_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

@@ -16,6 +16,7 @@ class DepartmentSearchPayload(BaseModel):
     """Payload for department.search socket event."""
 
     search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -52,6 +53,7 @@ async def department_search(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             search=payload.search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

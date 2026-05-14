@@ -56,7 +56,7 @@ _ATTEMPT_CHAT_OPS = [
     "chat_hints",
 ]
 _TEST_INVOCATION_OPS = [
-    "invocation_get", "invocation_create", "invocation_run",
+    "invocation_get", "invocation_create", "invocation_draft", "invocation_run",
     "invocation_complete", "invocation_terminate", "invocation_trace",
 ]
 

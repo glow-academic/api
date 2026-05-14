@@ -23,6 +23,7 @@ class AgentSearchPayload(BaseModel):
     department_search: str | None = Field(None)
     model_search: str | None = Field(None)
     tool_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -65,6 +66,7 @@ async def agent_search(sid: str, data: dict[str, Any]) -> None:
             department_search=payload.department_search,
             model_search=payload.model_search,
             tool_search=payload.tool_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

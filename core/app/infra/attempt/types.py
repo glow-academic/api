@@ -924,20 +924,41 @@ class ExportAttemptApiRequest(BaseModel):
 
 
 class SearchAttemptApiRequest(BaseModel):
-    """Request model for attempt search."""
+    """Request model for attempt search.
 
-    search: str | None = None
-    simulation_ids: list[UUID] | None = None
+    Canonical shape — field names match ``search_attempt_impl``'s keyword
+    args one-for-one (and the inline model in ``routes/attempt/search.py``).
+    The previous definition had drifted (``is_archived``/``page_offset``/
+    ``search``/``department_search`` that the impl never accepted), so the
+    WS handler couldn't forward filters even if it tried.
+    """
+
+    # Visibility / scoping
+    target_profile_id: UUID | None = None
+    profile_ids: list[UUID] | None = None
+
+    # Filters
+    cohort_ids: list[UUID] | None = None
     department_ids: list[UUID] | None = None
+    role_ids: list[UUID] | None = None
+    simulation_ids: list[UUID] | None = None
+    scenario_ids: list[UUID] | None = None
     practice: bool | None = None
-    is_archived: bool | None = None
     infinite_mode: bool | None = None
+    show_archived: bool = False
     start_date: str | None = None
     end_date: str | None = None
+
+    # Text search
     simulation_search: str | None = None
-    department_search: str | None = None
+    scenario_search: str | None = None
+    profile_search: str | None = None
+
+    # Sort / pagination
+    sort_by: str = "date"
+    sort_order: str = "desc"
+    page: int = 0
     page_size: int = 20
-    page_offset: int = 0
 
 
 # Alias for ws handler compatibility

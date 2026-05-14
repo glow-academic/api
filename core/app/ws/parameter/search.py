@@ -23,6 +23,7 @@ class ParameterSearchPayload(BaseModel):
     scenario_search: str | None = Field(None)
     field_search: str | None = Field(None)
     department_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -65,6 +66,7 @@ async def parameter_search(sid: str, data: dict[str, Any]) -> None:
             scenario_search=payload.scenario_search,
             field_search=payload.field_search,
             department_search=payload.department_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

@@ -22,6 +22,7 @@ class ToolSearchPayload(BaseModel):
     filter_creatable: list[str] | None = Field(None)
     department_search: str | None = Field(None)
     agent_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -63,6 +64,7 @@ async def tool_search(sid: str, data: dict[str, Any]) -> None:
             filter_creatable=payload.filter_creatable,
             department_search=payload.department_search,
             agent_search=payload.agent_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),

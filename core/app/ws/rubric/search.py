@@ -21,6 +21,7 @@ class RubricSearchPayload(BaseModel):
     filter_simulation_ids: list[UUID] | None = Field(None)
     department_search: str | None = Field(None)
     simulation_search: str | None = Field(None)
+    flag_search: str | None = Field(None)
     page_size: int = Field(12)
     page_offset: int = Field(0)
 
@@ -61,6 +62,7 @@ async def rubric_search(sid: str, data: dict[str, Any]) -> None:
             filter_simulation_ids=payload.filter_simulation_ids,
             department_search=payload.department_search,
             simulation_search=payload.simulation_search,
+            flag_search=payload.flag_search,
             page_size=payload.page_size,
             page_offset=payload.page_offset,
         ),
