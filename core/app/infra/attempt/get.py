@@ -587,6 +587,10 @@ async def get_attempt_internal(
                 parent_message_id=msg.parent_message_id,
                 sibling_index=msg.sibling_index,
                 sibling_count=msg.sibling_count,
+                # ``attempt_message_mv`` projects ``audios_id`` via a
+                # LATERAL join on ``attempt_audio_entry``; surface it
+                # on the API row so the FE renders a playback bubble.
+                audios_id=getattr(msg, "audios_id", None),
             )
         )
 

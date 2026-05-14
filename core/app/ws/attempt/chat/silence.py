@@ -1,4 +1,4 @@
-"""Input: attempt.chat.silence"""
+"""Input: attempt.chat_silence"""
 
 from typing import Any
 
@@ -10,7 +10,7 @@ from app.infra.websocket.attempt.chat.silence import (
 )
 
 
-@sio.on("attempt.chat.silence")  # type: ignore
+@sio.on("attempt.chat_silence")  # type: ignore
 async def attempt_chat_silence(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

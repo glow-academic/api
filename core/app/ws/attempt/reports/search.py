@@ -12,7 +12,7 @@ from app.infra.reports.types import ReportsRequest
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.reports.search")  # type: ignore
+@sio.on("attempt.reports_search")  # type: ignore
 async def reports_search(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

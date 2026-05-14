@@ -87,6 +87,11 @@ async def generate_attempt_impl(
     tool_soft = not dangerous
 
     # -- Merge ack fields from request (HTTP) or params (generation pipeline)
+    # Note: the conditional ``"generate"`` op injection for voice-out
+    # turns lives client-side now (in ``use-attempt-generate.ts``).
+    # The server trusts whatever the FE passes — gating intent here
+    # over-reached and broke the STT round-trip (which legitimately
+    # rides with ``audios_id`` but doesn't want the audio-gen tool).
 
     # -- Step 1: Profile context -----------------------------------------------
 
@@ -138,8 +143,12 @@ async def generate_attempt_impl(
         dangerous=dangerous,
         params=params,
         modalities=modalities,
-        audios_id=str(request.audios_id) if request.audios_id else None,
-        conversation_id=str(request.conversation_id) if request.conversation_id else None,
+        # Local kwargs, not a request object — generate_attempt_impl
+        # was flattened when we collapsed the ``request`` parameter
+        # across all generate impls. Referencing ``request.audios_id``
+        # would NameError on any call that actually sets these fields.
+        audios_id=str(audios_id) if audios_id else None,
+        conversation_id=str(conversation_id) if conversation_id else None,
     )
 
     try:

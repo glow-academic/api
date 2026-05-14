@@ -132,6 +132,10 @@ class PricingGroupItem(BaseModel):
     profile_ids: list[UUID] | None = Field(None, description="Profile IDs (human users) who triggered runs in this group")
     agent_names: list[str] | None = Field(None, description="Associated agent names")
     model_names: list[str] | None = Field(None, description="Associated model names")
+    profile_names: list[str] | None = Field(
+        None,
+        description="Display names of the profiles (human users) who triggered runs in this group",
+    )
 
 
 class ListPricingResponse(BaseModel):

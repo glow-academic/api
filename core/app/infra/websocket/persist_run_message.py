@@ -6,6 +6,7 @@ Used by prepare_generation to persist system/developer/user messages.
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -28,11 +29,19 @@ async def persist_run_message(
     content: str,
     upload_folder: Path | None = None,
     agent_ids: list[UUID] | None = None,
+    reasoning: bool = False,
+    created_at: datetime | None = None,
 ) -> CreateRunMessageResult:
     """Write text to disk, create upload record, and link to a message on a run.
 
     When upload_folder is None, resolves from globals (production path).
     Pass explicitly for testing.
+
+    ``reasoning`` flags the resulting ``messages_entry`` row as a
+    chain-of-thought trace. Default false — normal message. Pass true
+    when persisting the model's reasoning channel separately from its
+    final answer (e.g. Gemma 4 ``<|channel>thought`` block, GPT-5
+    reasoning content). The text/upload chain is identical either way.
     """
     if upload_folder is None:
         from app.infra.globals import UPLOAD_FOLDER
@@ -61,5 +70,7 @@ async def persist_run_message(
         session_id=session_id,
         role=role,
         upload_id=upload_result.id,
+        reasoning=reasoning,
         agent_ids=agent_ids,
+        created_at=created_at,
     )

@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any, cast
 
 from app.infra.artifacts import (
@@ -143,6 +144,7 @@ class ExecuteGenerationResult:
     total_output_tokens: int = 0
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     assistant_output: str = ""
+    reasoning_output: str = ""
     # Media artifacts produced by image/video dispatches in this run.
     # Populated by ``execute_media_dispatch`` and surfaced on
     # ``ArtifactGenerateResponse.produced_media`` so the calling LLM tool
@@ -266,9 +268,11 @@ async def execute_generation(
             )
             return None
         if executor == "tts":
-            await execute_tts_dispatch(
+            produced = await execute_tts_dispatch(
                 dispatch=dispatch, prepared=prepared, sid=sid, emit=emit,
             )
+            if produced is not None:
+                total_result.produced_media.append(produced)
             return None
         if executor == "stt":
             await execute_stt_dispatch(
@@ -327,6 +331,7 @@ async def execute_generation(
             total_result.total_output_tokens += agent_result.total_output_tokens
             total_result.tool_results.extend(agent_result.tool_results)
             total_result.assistant_output = agent_result.assistant_output
+            total_result.reasoning_output = agent_result.reasoning_output
     elif prepared.dispatches:
         agent_result = await _run_one(prepared.dispatches[0])
         if agent_result is not None:
@@ -334,6 +339,7 @@ async def execute_generation(
             total_result.total_output_tokens += agent_result.total_output_tokens
             total_result.tool_results.extend(agent_result.tool_results)
             total_result.assistant_output = agent_result.assistant_output
+            total_result.reasoning_output = agent_result.reasoning_output
 
     return total_result
 
@@ -434,6 +440,13 @@ async def _execute_agent_dispatch(
     total_output_tokens = 0
     all_tool_results: list[dict[str, Any]] = []
     final_assistant_output = ""
+    final_reasoning_output = ""
+    # Stamped at the moment the first reasoning delta arrives so the
+    # persisted ``messages_entry.created_at`` reflects when the model
+    # actually started thinking — not when the row was written at
+    # run-complete time. The FE pairs this with the assistant row's
+    # ``created_at`` to render a real "Thought for Xs" duration.
+    final_reasoning_started_at: "datetime | None" = None
 
     iteration = 0
     while iteration < max_iterations:
@@ -484,6 +497,7 @@ async def _execute_agent_dispatch(
 
         # Process stream events
         assistant_output = ""
+        reasoning_output = ""
         input_tokens = 0
         output_tokens = 0
         tool_call_states: dict[str, dict[str, Any]] = {}
@@ -522,6 +536,48 @@ async def _execute_agent_dispatch(
                         "group_id": str(group_id),
                         "role": "assistant",
                         "text": assistant_output,
+                    },
+                )
+
+            elif event_type == "reasoning_delta":
+                # Chain-of-thought channel. Accumulated separately from
+                # assistant_output so we can persist it as a distinct
+                # ``messages_entry`` row with reasoning=True. As of vLLM
+                # 0.19.0+nv26.04 these events do not fire — Gemma 4's
+                # <|channel>thought blocks leak into the regular text
+                # stream (vLLM issue #38855). Handler is wired up so
+                # reasoning will start persisting automatically once
+                # upstream emits a proper channel.
+                delta = event.get("delta", "")
+                if delta:
+                    if final_reasoning_started_at is None:
+                        final_reasoning_started_at = datetime.now(UTC)
+                    reasoning_output += delta
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.reasoning.progress",
+                        {
+                            "sid": sid,
+                            "rooms": [str(profile_id)],
+                            "artifact_type": artifact_type,
+                            "run_id": str(run_id),
+                            "group_id": str(group_id),
+                            "agent_id": str(dispatch.agent_id),
+                            "delta": delta,
+                        },
+                    )
+
+            elif event_type == "reasoning_complete":
+                reasoning_output = event.get("text", reasoning_output)
+                await internal_sio.emit(
+                    f"{artifact_type}.generate.reasoning.complete",
+                    {
+                        "sid": sid,
+                        "rooms": [str(profile_id)],
+                        "artifact_type": artifact_type,
+                        "run_id": str(run_id),
+                        "group_id": str(group_id),
+                        "role": "assistant",
+                        "text": reasoning_output,
                     },
                 )
 
@@ -802,6 +858,7 @@ async def _execute_agent_dispatch(
         total_output_tokens += output_tokens
         all_tool_results.extend(tool_results)
         final_assistant_output = assistant_output
+        final_reasoning_output = reasoning_output
 
         if not tool_results:
             break
@@ -809,6 +866,26 @@ async def _execute_agent_dispatch(
         # Update conversation state for next iteration
         if api_mode == "responses":
             for item in output_items:
+                # Defensive filter: vLLM 0.19's Responses API rejects
+                # bare assistant messages with empty output_text content
+                # (no union variant matches — see stream_litellm_events
+                # comment). Should already be skipped at emit time, but
+                # keep the check here so a stray item from any other
+                # source can't 400 the whole next iteration.
+                if (
+                    isinstance(item, dict)
+                    and item.get("type") == "message"
+                    and item.get("role") == "assistant"
+                ):
+                    content = item.get("content") or []
+                    has_text = any(
+                        isinstance(c, dict)
+                        and c.get("type") in ("output_text", "input_text")
+                        and (c.get("text") or "").strip()
+                        for c in content
+                    )
+                    if not has_text:
+                        continue
                 responses_input.append(item)
             for tr in tool_results:
                 responses_input.append({
@@ -913,6 +990,12 @@ async def _execute_agent_dispatch(
         "input_text_tokens": total_input_tokens,
         "output_text_tokens": total_output_tokens,
         "assistant_output": final_assistant_output,
+        "reasoning_output": final_reasoning_output,
+        "reasoning_started_at": (
+            final_reasoning_started_at.isoformat()
+            if final_reasoning_started_at is not None
+            else None
+        ),
         "tool_results": all_tool_results,
         "metadata": dispatch.metadata or {},
     }
@@ -934,4 +1017,5 @@ async def _execute_agent_dispatch(
         total_output_tokens=total_output_tokens,
         tool_results=all_tool_results,
         assistant_output=final_assistant_output,
+        reasoning_output=final_reasoning_output,
     )

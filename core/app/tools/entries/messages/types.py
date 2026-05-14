@@ -33,3 +33,4 @@ class SearchMessageResponse(BaseModel):
     video_ids: list[UUID] = Field(..., description="UUIDs of video resources")
     file_ids: list[UUID] = Field(..., description="UUIDs of file resources")
     call_ids: list[UUID] = Field(..., description="UUIDs of call resources")
+    reasoning: bool = Field(False, description="Chain-of-thought trace row")

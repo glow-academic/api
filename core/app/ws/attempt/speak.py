@@ -1,4 +1,4 @@
-"""Input: attempt.chat.speak — push audio bytes into a conversation buffer.
+"""Input: attempt.chat_speak — push audio bytes into a conversation buffer.
 
 No audit, no DB. Just pushes bytes into the session's inbound queue.
 Keyed on conversation_id (or chat_id to resolve it).
@@ -15,7 +15,7 @@ from app.infra.websocket.session_store import (
 )
 
 
-@sio.on("attempt.chat.speak")  # type: ignore
+@sio.on("attempt.chat_speak")  # type: ignore
 async def attempt_chat_speak(sid: str, data: dict[str, Any]) -> None:
     conversation_id = data.get("conversation_id")
     chat_id = data.get("chat_id")

@@ -11,7 +11,7 @@ from app.infra.pricing.types import PricingRequest
 internal_sio = get_internal_sio()
 
 
-@sio.on("system.pricing.get")  # type: ignore
+@sio.on("system.pricing")  # type: ignore
 async def pricing_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

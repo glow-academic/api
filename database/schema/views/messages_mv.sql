@@ -28,6 +28,7 @@ CREATE MATERIALIZED VIEW public.messages_mv AS
  SELECT m.id AS message_id,
     m.run_id,
     m.role,
+    m.reasoning,
     m.created_at AS message_created_at,
     COALESCE(ua.text_ids, ARRAY[]::uuid[]) AS text_ids,
     COALESCE(ua.audio_ids, ARRAY[]::uuid[]) AS audio_ids,

@@ -58,9 +58,17 @@ async def file_download_group_impl(
             detail="You don't have permission to download group files.",
         )
 
-    # -- Step 3: Resolve files_id -> file metadata via files_mv ----------------
+    # -- Step 3: Resolve id -> file metadata via files_mv ----------------------
+    # ``file_id`` may arrive as either a ``files_entry.id`` (what
+    # ``messages_mv.file_ids`` aggregates from ``file_uploads_entry``
+    # — the chat MV path used by the Group panel bubbles) or a
+    # ``files_resource.id`` (what ``MediaResult.files_id`` and the
+    # document picker surface). ``search_files`` accepts both filter
+    # slots; try the entry path first, fall back to the resource path.
     async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+        results = await search_files(conn, file_ids=[file_id], limit=1)
+        if not results:
+            results = await search_files(conn, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

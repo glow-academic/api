@@ -85,6 +85,7 @@ async def callback(code: str | None = None, error: str | None = None):
 
 @router.get("/logout")
 async def logout(
+    request: Request,
     post_logout_redirect_uri: str | None = None,
     client_id: str | None = None,
     id_token_hint: str | None = None,
@@ -94,8 +95,32 @@ async def logout(
     The client sends a Glow-signed id_token_hint. We look up the
     corresponding KC-signed id_token (stored during login) and pass
     that to Keycloak so it can do a silent logout without confirmation.
+
+    Also writes a ``logouts_entry`` row when the caller includes a
+    valid bearer token, so the session resolver mints a fresh session
+    on the next request. FE flows that fetch ``/logout`` with the
+    access token attached get this immediately; raw browser
+    navigations (no header) fall through to the 10-min idle gap.
     """
+    from app.infra.globals import get_pool
     from app.infra.identity.default_idp import get_kc_id_token_for_logout
+    from app.infra.identity.resolve_identity import resolve_identity
+    from app.tools.entries.logouts.create import create_logout
+
+    # Best-effort logout signal — never block the redirect.
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            pool = get_pool()
+            identity = await resolve_identity(auth_header[7:], pool)
+            async with pool.acquire() as conn:
+                await create_logout(
+                    conn,
+                    session_id=identity.session_id,
+                    profile_id=identity.profile_id,
+                )
+        except Exception as e:
+            logger.warning(f"Could not write logout entry: {e}")
 
     redirect_uri = post_logout_redirect_uri or f"{_origin}{_app_prefix}/login"
     logout_url = (

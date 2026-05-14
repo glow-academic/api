@@ -1,4 +1,12 @@
-"""Input: attempt.chat.get"""
+"""Input: attempt.chat_get
+
+Event name uses the canonical ``<artifact>.<operation>`` convention
+where ``operation`` is the single-token key from the operations
+registry (``chat_get`` — underscore, not ``chat.get`` with a second
+dot). The FE transport converts ``/attempt/chat_get`` to this exact
+event name; the prior ``attempt.chat.get`` registration was a stale
+regression that left every page load timing out on the chat hydrate.
+"""
 
 from typing import Any
 
@@ -8,7 +16,7 @@ from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 
 
-@sio.on("attempt.chat.get")  # type: ignore
+@sio.on("attempt.chat_get")  # type: ignore
 async def attempt_chat_get(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     """Ack-based handler — returns chat data directly via socket.io acknowledgement."""
     identity = await resolve_socket_identity(sid)

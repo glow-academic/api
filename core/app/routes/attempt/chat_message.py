@@ -41,6 +41,12 @@ class ChatMessageRequest(BaseModel):
     # Fork callers pass False to force an explicit root (parent stays
     # null) when the fork target has no parent of its own.
     auto_link_parent: bool = True
+    # Optional audio attachment. Set when the user message was
+    # transcribed from a mic recording — the audios_id rides along so
+    # the persisted message row carries a playback affordance. Server
+    # links via ``attempt_audio_entry`` (same junction the realtime
+    # path uses for assistant audio).
+    audios_id: UUID | None = None
 
 
 class ChatMessageResponse(BaseModel):
@@ -99,6 +105,7 @@ async def chat_message(
             persona_id=request.persona_id,
             parent_message_id=request.parent_message_id,
             auto_link_parent=request.auto_link_parent,
+            audios_id=request.audios_id,
         )
 
     try:

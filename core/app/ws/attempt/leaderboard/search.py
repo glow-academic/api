@@ -26,7 +26,7 @@ class LeaderboardSearchPayload(BaseModel):
     cohort_id: UUID | None = Field(None)
 
 
-@sio.on("attempt.leaderboard.search")  # type: ignore
+@sio.on("attempt.leaderboard_search")  # type: ignore
 async def leaderboard_search(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

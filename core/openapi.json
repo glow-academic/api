@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.35"
+    "version": "2.15.36"
   },
   "paths": {
     "/persona/title": {
@@ -24260,7 +24260,7 @@
     "/logout": {
       "get": {
         "summary": "Logout",
-        "description": "OIDC end_session_endpoint \u2014 proxy logout to Keycloak.\n\nThe client sends a Glow-signed id_token_hint. We look up the\ncorresponding KC-signed id_token (stored during login) and pass\nthat to Keycloak so it can do a silent logout without confirmation.",
+        "description": "OIDC end_session_endpoint \u2014 proxy logout to Keycloak.\n\nThe client sends a Glow-signed id_token_hint. We look up the\ncorresponding KC-signed id_token (stored during login) and pass\nthat to Keycloak so it can do a silent logout without confirmation.\n\nAlso writes a ``logouts_entry`` row when the caller includes a\nvalid bearer token, so the session resolver mints a fresh session\non the next request. FE flows that fetch ``/logout`` with the\naccess token attached get this immediately; raw browser\nnavigations (no header) fall through to the 10-min idle gap.",
         "operationId": "logout_logout_get",
         "parameters": [
           {
@@ -31191,6 +31191,18 @@
             "type": "boolean",
             "title": "Auto Link Parent",
             "default": true
+          },
+          "audios_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audios Id"
           }
         },
         "type": "object",
@@ -72930,6 +72942,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73019,6 +73112,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73108,6 +73282,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73291,6 +73546,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73380,24 +73716,20 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
-          }
-        },
-        "type": "object",
-        "required": [
-          "group_id"
-        ],
-        "title": "GroupDepartmentApiResponse",
-        "description": "Response body for POST /department/group."
-      },
-      "GroupDetailCallItem": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id",
-            "description": "UUID of the call"
           },
-          "template_name": {
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -73406,302 +73738,10 @@
                 "type": "null"
               }
             ],
-            "title": "Template Name",
-            "description": "Name of the call template"
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
           },
-          "file_path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File Path",
-            "description": "File path associated with the call"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Timestamp when the call was made"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "created_at"
-        ],
-        "title": "GroupDetailCallItem",
-        "description": "A tool/function call made during the run."
-      },
-      "GroupDetailMessageItem": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id",
-            "description": "UUID of the message"
-          },
-          "role": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Role",
-            "description": "Role of the message sender"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At",
-            "description": "Timestamp the message row was inserted"
-          },
-          "text_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Text Ids",
-            "description": "Text resource UUIDs"
-          },
-          "audio_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Audio Ids",
-            "description": "Audio resource UUIDs"
-          },
-          "image_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Image Ids",
-            "description": "Image resource UUIDs"
-          },
-          "video_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Video Ids",
-            "description": "Video resource UUIDs"
-          },
-          "file_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "File Ids",
-            "description": "File resource UUIDs"
-          },
-          "call_ids": {
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "type": "array",
-            "title": "Call Ids",
-            "description": "Call resource UUIDs"
-          },
-          "calls": {
-            "items": {
-              "$ref": "#/components/schemas/GroupDetailCallItem"
-            },
-            "type": "array",
-            "title": "Calls",
-            "description": "Tool calls in this message"
-          }
-        },
-        "type": "object",
-        "title": "GroupDetailMessageItem",
-        "description": "A message with resource IDs by media type."
-      },
-      "GroupDetailResourceItem": {
-        "properties": {
-          "model_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Id",
-            "description": "UUID of the model"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "UUID of the agent"
-          },
-          "profile_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Profile Id",
-            "description": "UUID of the profile"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name",
-            "description": "Display name of the resource"
-          }
-        },
-        "type": "object",
-        "title": "GroupDetailResourceItem",
-        "description": "A named resource (model, agent, or profile)."
-      },
-      "GroupDetailRunItem": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id",
-            "description": "UUID of the run"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Timestamp when the run was created"
-          },
-          "input_tokens": {
-            "type": "integer",
-            "title": "Input Tokens",
-            "description": "Number of input tokens consumed",
-            "default": 0
-          },
-          "output_tokens": {
-            "type": "integer",
-            "title": "Output Tokens",
-            "description": "Number of output tokens generated",
-            "default": 0
-          },
-          "cached_input_tokens": {
-            "type": "integer",
-            "title": "Cached Input Tokens",
-            "description": "Number of cached input tokens",
-            "default": 0
-          },
-          "cost": {
-            "type": "number",
-            "title": "Cost",
-            "description": "Cost of the run",
-            "default": 0
-          },
-          "model_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Id",
-            "description": "UUID of the model used"
-          },
-          "agent_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Agent Id",
-            "description": "UUID of the agent used"
-          },
-          "profile_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Profile Id",
-            "description": "UUID of the user profile"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "created_at"
-        ],
-        "title": "GroupDetailRunItem",
-        "description": "Run metadata for the detail response."
-      },
-      "GroupDetailRunWithMessages": {
-        "properties": {
-          "run": {
-            "$ref": "#/components/schemas/GroupDetailRunItem",
-            "description": "Run metadata"
-          },
-          "messages": {
-            "items": {
-              "$ref": "#/components/schemas/GroupDetailMessageItem"
-            },
-            "type": "array",
-            "title": "Messages",
-            "description": "Messages in this run"
-          },
-          "previous_context_start_index": {
+          "total_message_count": {
             "anyOf": [
               {
                 "type": "integer"
@@ -73710,16 +73750,61 @@
                 "type": "null"
               }
             ],
-            "title": "Previous Context Start Index",
-            "description": "Index where previous context starts"
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
         "required": [
-          "run"
+          "group_id"
         ],
-        "title": "GroupDetailRunWithMessages",
-        "description": "A run with its messages and context boundary."
+        "title": "GroupDepartmentApiResponse",
+        "description": "Response body for POST /department/group."
       },
       "GroupDocumentApiRequest": {
         "properties": {
@@ -73801,6 +73886,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73890,6 +74056,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -73979,6 +74226,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74065,6 +74393,12 @@
             },
             "type": "array",
             "title": "Calls"
+          },
+          "reasoning": {
+            "type": "boolean",
+            "title": "Reasoning",
+            "description": "True when this row is a chain-of-thought trace persisted alongside the assistant answer (rendered as a collapsed accordion).",
+            "default": false
           },
           "in_context": {
             "type": "boolean",
@@ -74167,6 +74501,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74256,6 +74671,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74345,6 +74841,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74434,6 +75011,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74523,6 +75181,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74531,6 +75270,32 @@
         ],
         "title": "GroupProviderApiResponse",
         "description": "Response body for POST /provider/group."
+      },
+      "GroupResource": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GroupResource",
+        "description": "Lightweight `{id, name}` for cross-referencing run-level ids\n(``model_id`` / ``agent_id`` / ``profile_id``) against human-readable\nnames on the analytics panel. Names come from the canonical\n``get_models`` / ``get_agents`` / ``get_profiles`` black boxes."
       },
       "GroupRubricApiRequest": {
         "properties": {
@@ -74612,6 +75377,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74640,6 +75486,74 @@
             ],
             "title": "Created At"
           },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "cached_input_tokens": {
+            "type": "integer",
+            "title": "Cached Input Tokens",
+            "default": 0
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "default": 0.0
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "previous_context_start_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Context Start Index",
+            "description": "Index in ``messages`` where the current run's own messages begin; earlier rows are previous-context replay. ``None`` when the run has no previous context attached."
+          },
           "messages": {
             "items": {
               "$ref": "#/components/schemas/GroupMessage"
@@ -74653,7 +75567,7 @@
           "id"
         ],
         "title": "GroupRun",
-        "description": "Run within a group, with its messages."
+        "description": "Run within a group, with its messages.\n\nCarries token / cost / model / agent / profile attribution so the\nanalytics view can render per-run cost + actor info without a\nparallel detail shape. ``profile_id`` is the authoring profile\n(human user), ``agent_id`` is the LLM-side actor, ``model_id`` is\nthe model used by that agent. All optional \u2014 runs predating these\ncolumns or with unresolved attributions surface ``None``."
       },
       "GroupScenarioApiRequest": {
         "properties": {
@@ -74735,6 +75649,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74824,6 +75819,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -74913,6 +75989,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -75022,7 +76179,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GroupDetailRunWithMessages"
+                  "$ref": "#/components/schemas/GroupRun"
                 },
                 "type": "array"
               },
@@ -75031,7 +76188,7 @@
               }
             ],
             "title": "Runs",
-            "description": "(detail) Runs with their messages"
+            "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
           },
           "group_exists": {
             "anyOf": [
@@ -75043,7 +76200,7 @@
               }
             ],
             "title": "Group Exists",
-            "description": "(detail) Whether the group exists in storage"
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
           },
           "actor_name": {
             "anyOf": [
@@ -75055,7 +76212,7 @@
               }
             ],
             "title": "Actor Name",
-            "description": "(detail) Display name of the current actor"
+            "description": "(detail) Display name of the current actor (caller profile)"
           },
           "total_message_count": {
             "anyOf": [
@@ -75073,7 +76230,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GroupDetailResourceItem"
+                  "$ref": "#/components/schemas/GroupResource"
                 },
                 "type": "array"
               },
@@ -75088,7 +76245,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GroupDetailResourceItem"
+                  "$ref": "#/components/schemas/GroupResource"
                 },
                 "type": "array"
               },
@@ -75103,7 +76260,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/GroupDetailResourceItem"
+                  "$ref": "#/components/schemas/GroupResource"
                 },
                 "type": "array"
               },
@@ -75112,7 +76269,7 @@
               }
             ],
             "title": "Profiles",
-            "description": "(detail) Profiles in the group"
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -75120,7 +76277,7 @@
           "group_id"
         ],
         "title": "GroupSystemApiResponse",
-        "description": "Response body for POST /system/group.\n\nLean fields (``group_id``, ``name``, ``snapshot_key``) are always populated.\nDetail fields below are populated only when the request set\n``include_detail=True``."
+        "description": "Response body for POST /system/group.\n\nAll fields come straight from the parent ``GroupResolveResponse`` \u2014\nthe lean ``{group_id, name, snapshot_key, runs}`` plus the optional\ndetail set (``group_exists``, ``actor_name``, ``total_message_count``,\n``models``, ``agents``, ``profiles``) that ``resolve_group_impl``\npopulates when called with ``include_resources=True``."
       },
       "GroupTestApiRequest": {
         "properties": {
@@ -75202,6 +76359,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -75291,6 +76529,87 @@
             ],
             "title": "Runs",
             "description": "Conversation history \u2014 populated when resolving an existing group for fetch"
+          },
+          "group_exists": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Exists",
+            "description": "(detail) Whether the group exists in storage \u2014 populated when ``include_resources=True``"
+          },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name",
+            "description": "(detail) Display name of the current actor (caller profile)"
+          },
+          "total_message_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Message Count",
+            "description": "(detail) Total number of messages in the group"
+          },
+          "models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models",
+            "description": "(detail) Models used in the group"
+          },
+          "agents": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agents",
+            "description": "(detail) Agents used in the group"
+          },
+          "profiles": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/GroupResource"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profiles",
+            "description": "(detail) Profiles that authored runs in this group"
           }
         },
         "type": "object",
@@ -85865,6 +87184,19 @@
             ],
             "title": "Sibling Count",
             "description": "Total number of sibling messages"
+          },
+          "audios_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audios Id",
+            "description": "UUID of the attached audios_resource, if any"
           }
         },
         "type": "object",
@@ -96847,6 +98179,21 @@
             ],
             "title": "Model Names",
             "description": "Associated model names"
+          },
+          "profile_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Names",
+            "description": "Display names of the profiles (human users) who triggered runs in this group"
           }
         },
         "type": "object",
@@ -107131,6 +108478,12 @@
             "type": "array",
             "title": "Call Ids",
             "description": "UUIDs of call resources"
+          },
+          "reasoning": {
+            "type": "boolean",
+            "title": "Reasoning",
+            "description": "Chain-of-thought trace row",
+            "default": false
           }
         },
         "type": "object",

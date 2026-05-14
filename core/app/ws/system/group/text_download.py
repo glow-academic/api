@@ -20,7 +20,7 @@ from app.infra.identity.socket import resolve_socket_identity
 internal_sio = get_internal_sio()
 
 
-@sio.on("system.group.text_download")  # type: ignore
+@sio.on("system.text_download")  # type: ignore
 async def group_text_download(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

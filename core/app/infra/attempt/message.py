@@ -43,6 +43,7 @@ async def attempt_message_internal_impl(
     contents: list[dict] | None = None,
     parent_message_id: UUID | None = None,
     auto_link_parent: bool = True,
+    audios_id: UUID | None = None,
     **_kwargs,
 ) -> AttemptMessageInternalResult:
     """Create an attempt message with content entries.
@@ -163,6 +164,25 @@ async def attempt_message_internal_impl(
             session_id=effective_session_id,
         )
 
+        # Optional audio attachment: when the caller transcribed a mic
+        # recording, the ``audios_id`` rides on the create request and we
+        # link it to this fresh message via ``attempt_audio_entry`` — the
+        # same junction the realtime adapter uses for assistant audio.
+        # Keeping this inline (instead of a separate post-hoc call) gives
+        # us a single atomic write and avoids the message briefly
+        # existing without its audio in the MV.
+        if audios_id is not None:
+            audios_uuid = audios_id if isinstance(audios_id, UUID) else UUID(str(audios_id))
+            from app.tools.entries.attempt_audio.create import (
+                create_attempt_audio,
+            )
+            await create_attempt_audio(
+                conn,
+                message_id=message_result.id,
+                audios_id=audios_uuid,
+                session_id=effective_session_id,
+            )
+
     # Refresh MVs so messages appear in the UI
     from app.tools.entries.attempt_content.refresh import refresh_attempt_content
     from app.tools.entries.attempt_message.refresh import refresh_attempt_message
@@ -173,6 +193,17 @@ async def attempt_message_internal_impl(
         await refresh_attempt_content(conn)
         await refresh_attempt_message_completion(conn)
         await refresh_attempt_message(conn)
+        # Refresh the audio-link MV too when we attached an audio, so
+        # the user-bubble's playback affordance lands on the same UI
+        # tick as the message text.
+        if audios_id is not None:
+            try:
+                from app.tools.entries.attempt_audio.refresh import (
+                    refresh_attempt_audio,
+                )
+                await refresh_attempt_audio(conn)
+            except ImportError:
+                pass
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

@@ -11,7 +11,7 @@ from app.infra.invocation.types import GetSuiteRequest
 internal_sio = get_internal_sio()
 
 
-@sio.on("test.invocation.get")  # type: ignore
+@sio.on("test.invocation_get")  # type: ignore
 async def invocation_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

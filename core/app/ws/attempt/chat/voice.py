@@ -1,4 +1,4 @@
-"""Input: attempt.chat.voice"""
+"""Input: attempt.chat_voice"""
 
 from typing import Any
 
@@ -10,7 +10,7 @@ from app.infra.websocket.attempt.chat.voice import (
 )
 
 
-@sio.on("attempt.chat.voice")  # type: ignore
+@sio.on("attempt.chat_voice")  # type: ignore
 async def attempt_chat_voice(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     identity = await resolve_socket_identity(sid)
     if not identity:

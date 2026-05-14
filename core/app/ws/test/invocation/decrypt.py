@@ -11,7 +11,7 @@ from app.infra.invocation.types import DecryptInvocationKeyApiRequest
 internal_sio = get_internal_sio()
 
 
-@sio.on("test.invocation.decrypt")  # type: ignore
+@sio.on("test.invocation_decrypt")  # type: ignore
 async def invocation_decrypt(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

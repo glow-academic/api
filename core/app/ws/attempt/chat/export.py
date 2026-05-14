@@ -22,7 +22,7 @@ class ChatExportPayload(BaseModel):
     draft_id: UUID | None = Field(None)
 
 
-@sio.on("attempt.chat.export")  # type: ignore
+@sio.on("attempt.chat_export")  # type: ignore
 async def attempt_chat_export(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

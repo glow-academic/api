@@ -1,0 +1,727 @@
+diff --git a/tests/reasoning/test_gemma4_reasoning_parser.py b/tests/reasoning/test_gemma4_reasoning_parser.py
+index 699fc509d828..98c5e0a03651 100644
+--- a/tests/reasoning/test_gemma4_reasoning_parser.py
++++ b/tests/reasoning/test_gemma4_reasoning_parser.py
+@@ -273,3 +273,198 @@ def test_gemma4_previous_turn_reasoning_is_reasoning_end(generic_tokenizer):
+     )
+     is_reasoning_end = parser.is_reasoning_end(output_tokens)
+     assert not is_reasoning_end
++
++
++# ---------------------------------------------------------------------------
++# Unit tests for is_reasoning_end with a mock tokenizer (no network access)
++# These directly test the fix for #39885 without requiring the real tokenizer.
++# ---------------------------------------------------------------------------
++
++# Stable synthetic token IDs for the mock vocab
++_CHANNEL_START = 10  # <|channel>
++_CHANNEL_END = 11  # <channel|>
++_TURN = 12  # <|turn>
++_TOOL_CALL = 13  # <|tool_call>
++_TOOL_RESP = 14  # <|tool_response>
++_TEXT_A = 20  # generic text token
++_TEXT_B = 21  # generic text token
++
++
++@pytest.fixture(scope="module")
++def mock_gemma4_tokenizer():
++    """Mock tokenizer with synthetic Gemma4 special tokens."""
++    from unittest.mock import MagicMock
++
++    tokenizer = MagicMock()
++    tokenizer.get_vocab.return_value = {
++        "<|channel>": _CHANNEL_START,
++        "<channel|>": _CHANNEL_END,
++        "<|turn>": _TURN,
++        "<|tool_call>": _TOOL_CALL,
++        "<|tool_response>": _TOOL_RESP,
++    }
++    return tokenizer
++
++
++@pytest.fixture(scope="module")
++def mock_parser(mock_gemma4_tokenizer):
++    return ReasoningParserManager.get_reasoning_parser(parser_name)(
++        mock_gemma4_tokenizer
++    )
++
++
++@pytest.mark.parametrize(
++    "input_ids, expected, description",
++    [
++        # Single tool_call with no prior context → current-turn tool call
++        ([_TOOL_CALL], True, "bare tool_call (current turn)"),
++        # Active reasoning followed by tool_call → True
++        ([_CHANNEL_START, _TEXT_A, _TOOL_CALL], True, "channel start + tool_call"),
++        # Turn boundary before tool_call → prior-turn tool call → False
++        (
++            [_TURN, _TEXT_A, _TOOL_CALL, _TEXT_B],
++            False,
++            "prior-turn tool_call (turn boundary)",
++        ),
++        # Tool response before tool_call → prior-turn → False
++        (
++            [_TOOL_CALL, _TEXT_A, _TOOL_RESP, _TEXT_B],
++            False,
++            "prior-turn tool_call (tool_response boundary)",
++        ),
++        # Channel end token in sequence → reasoning ended → True
++        ([_CHANNEL_START, _TEXT_A, _CHANNEL_END], True, "channel end"),
++        # Channel start without end → reasoning active → False
++        ([_CHANNEL_START, _TEXT_A], False, "active reasoning"),
++        # Empty sequence → False
++        ([], False, "empty"),
++        # Regular text only → False
++        ([_TEXT_A, _TEXT_B], False, "plain text"),
++        # Multi-turn: prior tool call then turn then model text → False
++        # (This is the exact #39885 A4B scenario: prompt ends with
++        #  <|turn>model\n<|tool_call> where turn boundary comes before tool_call
++        #  in the backwards scan, i.e. <|tool_call> is to the right of <|turn>)
++        (
++            [_TURN, _TEXT_A, _TOOL_CALL, _TEXT_B, _TURN, _TEXT_B],
++            False,
++            "A4B-style: tool_call inside prior turn, new turn at end",
++        ),
++    ],
++)
++def test_is_reasoning_end_mock(mock_parser, input_ids, expected, description):
++    """Test is_reasoning_end with synthetic token IDs (no real tokenizer needed).
++
++    Covers the #39885 regression: prior-turn <|tool_call> in the prompt must
++    not cause is_reasoning_end to return True prematurely.
++    """
++    result = mock_parser.is_reasoning_end(input_ids)
++    assert result == expected, (
++        f"is_reasoning_end({input_ids}) expected {expected} for case: {description}"
++    )
++
++
++# ---------------------------------------------------------------------------
++# Unit tests for no-start-token fallback in extract_reasoning_streaming
++# Exercises the MoE A4B scenario: <|channel> never emitted, model outputs
++# "thought\n...reasoning...<channel|>answer" directly. (#39885)
++# ---------------------------------------------------------------------------
++
++
++def _run_streaming_no_start_token(
++    mock_parser,
++    chunks: list[tuple[list[int], str]],
++) -> tuple[str | None, str | None]:
++    """Feed token/text chunks through extract_reasoning_streaming.
++
++    Returns (accumulated_reasoning, accumulated_content).
++    """
++    from tests.reasoning.utils import StreamingReasoningReconstructor
++
++    rec = StreamingReasoningReconstructor()
++    previous_token_ids: list[int] = []
++    previous_text = ""
++
++    for delta_token_ids, delta_text in chunks:
++        current_token_ids = previous_token_ids + delta_token_ids
++        current_text = previous_text + delta_text
++        result = mock_parser.extract_reasoning_streaming(
++            previous_text=previous_text,
++            current_text=current_text,
++            delta_text=delta_text,
++            previous_token_ids=previous_token_ids,
++            current_token_ids=current_token_ids,
++            delta_token_ids=delta_token_ids,
++        )
++        if result is not None:
++            rec.append_delta(result)
++        previous_token_ids = current_token_ids
++        previous_text = current_text
++
++    return rec.reasoning, rec.other_content
++
++
++@pytest.fixture
++def fresh_mock_parser(mock_gemma4_tokenizer):
++    """Return a fresh parser instance for each test (resets streaming state)."""
++    cls = ReasoningParserManager.get_reasoning_parser(parser_name)
++    return cls(mock_gemma4_tokenizer)
++
++
++def test_no_start_token_reasoning_routed_correctly(fresh_mock_parser):
++    """With no <|channel>, reasoning must not leak into content (#39885 A4B case)."""
++    # Simulate: thought\nActual reasoning<channel|>Final answer
++    # No _CHANNEL_START token ever appears in the stream.
++    chunks = [
++        ([_TEXT_A], "thought\n"),
++        ([_TEXT_B], "Actual reasoning"),
++        ([_CHANNEL_END], ""),  # <channel|> as special token (text empty)
++        ([_TEXT_A], "Final answer"),
++    ]
++    reasoning, content = _run_streaming_no_start_token(fresh_mock_parser, chunks)
++    assert "thought" not in (content or ""), (
++        f"reasoning leaked into content: {content!r}"
++    )
++    assert "Actual reasoning" in (reasoning or ""), (
++        f"reasoning not found in reasoning field: {reasoning!r}"
++    )
++    assert "Final answer" in (content or ""), (
++        f"post-reasoning content missing: {content!r}"
++    )
++
++
++def test_no_start_token_thought_prefix_stripped(fresh_mock_parser):
++    """The thought\\n role label is stripped from reasoning in the fallback path."""
++    chunks = [
++        ([_TEXT_A], "thought\n"),
++        ([_TEXT_B], "My actual thought"),
++        ([_CHANNEL_END], ""),
++    ]
++    reasoning, content = _run_streaming_no_start_token(fresh_mock_parser, chunks)
++    assert reasoning == "My actual thought", f"got: {reasoning!r}"
++    assert not (content or ""), f"unexpected content: {content!r}"
++
++
++def test_no_start_token_thought_prefix_split_across_chunks(fresh_mock_parser):
++    """thought\\n split across deltas is still stripped correctly."""
++    chunks = [
++        ([_TEXT_A], "tho"),
++        ([_TEXT_B], "ught\n"),
++        ([_TEXT_A], "Deep insight"),
++        ([_CHANNEL_END], ""),
++    ]
++    reasoning, content = _run_streaming_no_start_token(fresh_mock_parser, chunks)
++    assert reasoning == "Deep insight", f"got: {reasoning!r}"
++
++
++def test_with_start_token_still_works(fresh_mock_parser):
++    """Normal path (with <|channel>) is unaffected by the fallback."""
++    chunks = [
++        ([_CHANNEL_START], ""),  # <|channel>
++        ([_TEXT_A], "thought\n"),
++        ([_TEXT_B], "Some reasoning"),
++        ([_CHANNEL_END], ""),  # <channel|>
++        ([_TEXT_A], "Answer"),
++    ]
++    reasoning, content = _run_streaming_no_start_token(fresh_mock_parser, chunks)
++    assert "Some reasoning" in (reasoning or ""), f"got: {reasoning!r}"
++    assert "Answer" in (content or ""), f"got: {content!r}"
+diff --git a/tests/tool_parsers/test_gemma4_tool_parser.py b/tests/tool_parsers/test_gemma4_tool_parser.py
+index 16450c6a8d01..4c9b67e4cd54 100644
+--- a/tests/tool_parsers/test_gemma4_tool_parser.py
++++ b/tests/tool_parsers/test_gemma4_tool_parser.py
+@@ -16,6 +16,26 @@
+     _parse_gemma4_array,
+ )
+ 
++# ---------------------------------------------------------------------------
++# Real-tokenizer fixture (requires network access to download model weights)
++# Used only by tests that need actual Gemma4 token IDs.
++# ---------------------------------------------------------------------------
++try:
++    from vllm.tokenizers.registry import get_tokenizer as _get_tokenizer
++
++    @pytest.fixture(scope="module")
++    def gemma4_tokenizer():
++        try:
++            return _get_tokenizer("google/gemma-4-E2B-it")
++        except Exception:
++            pytest.skip("Gemma4 tokenizer unavailable (network or version issue)")
++
++except Exception:
++
++    @pytest.fixture(scope="module")
++    def gemma4_tokenizer():
++        pytest.skip("Gemma4 tokenizer unavailable")
++
+ # ---------------------------------------------------------------------------
+ # Fixtures
+ # ---------------------------------------------------------------------------
+@@ -684,3 +704,229 @@ def test_streaming_trailing_bare_bool_not_duplicated(self, parser, mock_request)
+         }
+ 
+         assert args_text.count("replace_all") == 1
++
++
++# ---------------------------------------------------------------------------
++# Regression tests for issue #39885
++# ---------------------------------------------------------------------------
++
++
++class TestStreamingReasoningAutoToolIssue39885:
++    """Regression tests for #39885.
++
++    Verifies that reasoning tokens don't leak into delta.content when
++    tool_choice='auto' is used in a multi-turn conversation that has a
++    prior tool result. The auto-tool streaming branch (elif parser is
++    not None in serving.py) must run reasoning extraction before passing
++    text to the tool parser, same as the required and named tool branches.
++    """
++
++    def _run_fixed_streaming_path(
++        self,
++        reasoning_parser,
++        tool_parser,
++        prompt_token_ids: list[int],
++        model_chunks: list[tuple[list[int], str]],
++        mock_request,
++    ) -> tuple[str, str]:
++        """Simulate the auto-tool streaming branch from serving.py.
++
++        Mirrors the logic in the elif parser is not None block:
++        run reasoning extraction first, then hand off to the tool parser
++        once reasoning has ended.
++
++        Returns (accumulated_content, accumulated_reasoning).
++        """
++        reasoning_ended = reasoning_parser.is_reasoning_end(prompt_token_ids)
++
++        content_acc = ""
++        reasoning_acc = ""
++        previous_text = ""
++        previous_token_ids: list[int] = []
++
++        for delta_token_ids, delta_text in model_chunks:
++            current_text = previous_text + delta_text
++            current_token_ids = previous_token_ids + delta_token_ids
++
++            if not reasoning_ended:
++                delta_message = reasoning_parser.extract_reasoning_streaming(
++                    previous_text,
++                    current_text,
++                    delta_text,
++                    previous_token_ids,
++                    current_token_ids,
++                    delta_token_ids,
++                )
++                if reasoning_parser.is_reasoning_end(delta_token_ids):
++                    reasoning_ended = True
++                    if delta_message and delta_message.content:
++                        current_text = delta_message.content
++                        delta_message.content = None
++                    else:
++                        current_text = ""
++            else:
++                delta_message = tool_parser.extract_tool_calls_streaming(
++                    previous_text=previous_text,
++                    current_text=current_text,
++                    delta_text=delta_text,
++                    previous_token_ids=previous_token_ids,
++                    current_token_ids=current_token_ids,
++                    delta_token_ids=delta_token_ids,
++                    request=mock_request,
++                )
++
++            if delta_message:
++                if delta_message.content:
++                    content_acc += delta_message.content
++                if delta_message.reasoning:
++                    reasoning_acc += delta_message.reasoning
++
++            previous_text = current_text
++            previous_token_ids = current_token_ids
++
++        return content_acc, reasoning_acc
++
++    def test_reasoning_not_leaked_into_content_multiturn(self, gemma4_tokenizer):
++        """Reasoning must not appear in delta.content in multi-turn tool streaming.
++
++        When the prompt has a prior tool call token, is_reasoning_end could
++        return True before the generation even starts, skipping reasoning
++        extraction and leaking thought tokens into content. Regression for
++        #39885.
++        """
++        from vllm.reasoning import ReasoningParserManager
++
++        reasoning_parser_cls = ReasoningParserManager.get_reasoning_parser("gemma4")
++        reasoning_parser = reasoning_parser_cls(gemma4_tokenizer)
++        tool_parser = Gemma4ToolParser(gemma4_tokenizer)
++
++        vocab = gemma4_tokenizer.get_vocab()
++        channel_start_id = vocab["<|channel>"]
++        channel_end_id = vocab["<channel|>"]
++        tool_call_start_id = vocab["<|tool_call>"]
++        tool_response_id = vocab["<|tool_response>"]
++        new_turn_id = vocab["<|turn>"]
++
++        def enc(text: str) -> list[int]:
++            tok = getattr(gemma4_tokenizer, "tokenizer", gemma4_tokenizer)
++            try:
++                return tok.encode(text, add_special_tokens=False)
++            except TypeError:
++                return tok.encode(text)
++
++        # prompt ends with a prior tool call + tool response + new turn,
++        # which is the pattern that exposed the bug in is_reasoning_end
++        prompt_token_ids = (
++            enc("user\nSearch for something\n")
++            + [new_turn_id]
++            + enc("model\n")
++            + [tool_call_start_id]  # prior tool call in prompt
++            + enc("call:ToolA{x:<|")
++            + [tool_response_id]
++            + enc("response:ToolA{content:Success}")
++            + [new_turn_id]  # generation prompt boundary
++            + enc("model\n")
++        )
++
++        # model output: reasoning block followed by a tool call
++        tool_call_content = 'call:ToolB{query:<|"|>find data protection laws<|"|>}'
++        model_chunks: list[tuple[list[int], str]] = [
++            # <|channel> arrives as a special token; with
++            # skip_special_tokens=False the text render is "" here.
++            ([channel_start_id], ""),
++            (enc("thought\n"), "thought\n"),
++            (enc("Actual reasoning"), "Actual reasoning"),
++            ([channel_end_id], ""),  # <channel|>
++            ([tool_call_start_id], TOOL_CALL_START),
++            (enc(tool_call_content), tool_call_content),
++            (enc(TOOL_CALL_END), TOOL_CALL_END),
++        ]
++
++        mock_req = MagicMock(spec=ChatCompletionRequest)
++        mock_req.tools = []
++        mock_req.tool_choice = "auto"
++
++        content_acc, reasoning_acc = self._run_fixed_streaming_path(
++            reasoning_parser,
++            tool_parser,
++            prompt_token_ids,
++            model_chunks,
++            mock_req,
++        )
++
++        assert "thought" not in content_acc, (
++            f"reasoning leaked into content: {content_acc!r}"
++        )
++        assert "Actual reasoning" not in content_acc, (
++            f"reasoning leaked into content: {content_acc!r}"
++        )
++        assert "Actual reasoning" in reasoning_acc, (
++            f"expected reasoning in reasoning field, got: {reasoning_acc!r}"
++        )
++
++    def test_no_reasoning_parser_still_works(self):
++        """Tool streaming without a reasoning parser still works correctly.
++
++        When there is no reasoning parser, the auto-tool path falls straight
++        through to extract_tool_calls_streaming with no reasoning checks.
++        """
++        mock_tokenizer = MagicMock()
++        mock_tokenizer.encode.return_value = [1, 2, 3]
++        mock_tokenizer.get_vocab.return_value = {
++            TOOL_CALL_START: 48,
++            TOOL_CALL_END: 49,
++        }
++
++        tool_parser = Gemma4ToolParser(mock_tokenizer)
++        mock_req = MagicMock(spec=ChatCompletionRequest)
++        mock_req.tools = []
++        mock_req.tool_choice = "auto"
++
++        # no reasoning prefix, tool call arrives immediately
++        chunks = [
++            TOOL_CALL_START,
++            'call:MyTool{param:<|"|>hello<|"|>}',
++            TOOL_CALL_END,
++        ]
++        previous_text = ""
++        previous_token_ids: list[int] = []
++        func_name: str | None = None
++        args_acc = ""
++        for chunk in chunks:
++            current_text = previous_text + chunk
++            delta_token_ids = (
++                [48]
++                if TOOL_CALL_START in chunk
++                else [49]
++                if TOOL_CALL_END in chunk
++                else [0]
++            )
++            current_token_ids = previous_token_ids + delta_token_ids
++            delta = tool_parser.extract_tool_calls_streaming(
++                previous_text=previous_text,
++                current_text=current_text,
++                delta_text=chunk,
++                previous_token_ids=previous_token_ids,
++                current_token_ids=current_token_ids,
++                delta_token_ids=delta_token_ids,
++                request=mock_req,
++            )
++            if delta and delta.tool_calls:
++                for tc in delta.tool_calls:
++                    fn = tc.function
++                    name = fn.name if hasattr(fn, "name") else (fn or {}).get("name")
++                    if name:
++                        func_name = name
++                    arg = (
++                        fn.arguments
++                        if hasattr(fn, "arguments")
++                        else (fn or {}).get("arguments", "")
++                    )
++                    if arg:
++                        args_acc += arg
++            previous_text = current_text
++            previous_token_ids = list(current_token_ids)
++
++        assert func_name == "MyTool"
++        parsed = json.loads(args_acc)
++        assert parsed == {"param": "hello"}
+diff --git a/vllm/parser/abstract_parser.py b/vllm/parser/abstract_parser.py
+index b87455ab6f71..b91dd153cf6b 100644
+--- a/vllm/parser/abstract_parser.py
++++ b/vllm/parser/abstract_parser.py
+@@ -563,6 +563,13 @@ def is_reasoning_end(self, input_ids: list[int]) -> bool:
+             return False
+         return self._reasoning_parser.is_reasoning_end(input_ids)
+ 
++    def is_reasoning_end_streaming(
++        self, input_ids: list[int], delta_ids: list[int]
++    ) -> bool:
++        if self._reasoning_parser is None:
++            return False
++        return self._reasoning_parser.is_reasoning_end_streaming(input_ids, delta_ids)
++
+     def extract_content_ids(self, input_ids: list[int]) -> list[int]:
+         if self._reasoning_parser is None:
+             return input_ids
+@@ -611,7 +618,9 @@ def parse_delta(
+                 delta_token_ids=delta_token_ids,
+             )
+             # Hand off remaining content to tool parser
+-            if self._tool_parser and self.is_reasoning_end(delta_token_ids):
++            if self._tool_parser and self.is_reasoning_end_streaming(
++                current_token_ids, delta_token_ids
++            ):
+                 state.reasoning_ended = True
+                 current_token_ids = self.extract_content_ids(delta_token_ids)
+                 if delta_message and delta_message.content:
+diff --git a/vllm/reasoning/gemma4_reasoning_parser.py b/vllm/reasoning/gemma4_reasoning_parser.py
+index 6f2241603f9a..b1645ab6af30 100644
+--- a/vllm/reasoning/gemma4_reasoning_parser.py
++++ b/vllm/reasoning/gemma4_reasoning_parser.py
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ 
+-from collections.abc import Sequence
++from collections.abc import Iterable, Sequence
+ from typing import TYPE_CHECKING
+ 
+ from vllm.entrypoints.openai.engine.protocol import DeltaMessage
+@@ -85,7 +85,32 @@ def is_reasoning_end(self, input_ids: Sequence[int]) -> bool:
+             if input_ids[i] == start_token_id:
+                 return False
+             if input_ids[i] == tool_call_token_id:
+-                # We're generating a tool call, so reasoning must be ended.
++                # A <|tool_call> token ends reasoning only when it belongs to
++                # the current generation turn. Scan further back to check:
++                # - if we find a <|channel> start → active reasoning is
++                #   ending (return True).
++                # - if we find a turn boundary (<|turn> or <|tool_response>)
++                #   before any channel start → this is a prior-turn tool call
++                #   in the prompt, not the current generation (return False).
++                # - if we find neither → the tool call is in the current
++                #   context with no prior reasoning block (return True).
++                # This avoids false positives from prior-turn tool calls in
++                # multi-turn prompts, which is the root cause of #39885 on
++                # the MoE A4B model variant where the generation prefix ends
++                # with a priming <|tool_call> token and the backwards scan
++                # finds the prior-turn <|tool_call> before hitting <|turn>.
++                for j in range(i - 1, -1, -1):
++                    if input_ids[j] == start_token_id:
++                        # found the channel start — tool call ends reasoning
++                        return True
++                    if input_ids[j] in (
++                        new_turn_token_id,
++                        tool_response_token_id,
++                    ):
++                        # hit a turn boundary before finding channel start —
++                        # this is a prior-turn tool call, not the current one
++                        return False
++                # no turn boundary found — tool call is in the current context
+                 return True
+             if input_ids[i] in (new_turn_token_id, tool_response_token_id):
+                 # We found a new turn or tool response token so don't consider
+@@ -96,6 +121,15 @@ def is_reasoning_end(self, input_ids: Sequence[int]) -> bool:
+                 return True
+         return False
+ 
++    def is_reasoning_end_streaming(
++        self, input_ids: Sequence[int], delta_ids: Iterable[int]
++    ) -> bool:
++        # During streaming we are already confirmed to be in the reasoning
++        # phase (the caller tracks this). Any channel-end or tool-call token
++        # in the current delta ends reasoning without needing further context.
++        delta_list = list(delta_ids)
++        return self.end_token_id in delta_list or self.tool_call_token_id in delta_list
++
+     # ------------------------------------------------------------------
+     # Non-streaming path
+     # ------------------------------------------------------------------
+@@ -120,67 +154,31 @@ def extract_reasoning(
+     # Streaming path
+     # ------------------------------------------------------------------
+ 
+-    def extract_reasoning_streaming(
+-        self,
+-        previous_text: str,
+-        current_text: str,
+-        delta_text: str,
+-        previous_token_ids: Sequence[int],
+-        current_token_ids: Sequence[int],
+-        delta_token_ids: Sequence[int],
++    def _apply_prefix_stripping(
++        self, result: DeltaMessage | None
+     ) -> DeltaMessage | None:
+-        """Extract streaming reasoning, stripping ``thought\\n`` from the
+-        first reasoning delta(s).
++        """Strip the ``thought\\n`` role label from streaming reasoning deltas.
+ 
+-        The ``thought\\n`` prefix may arrive as a single delta or split
+-        across multiple deltas (e.g. ``"thought"`` then ``"\\n"``). We
+-        buffer early reasoning tokens until we can determine whether the
+-        prefix is present, then emit the buffered content minus the
+-        prefix.
+-
+-        Unlike the previous implementation which reconstructed accumulated
+-        reasoning from ``current_text``, this uses instance state
+-        (``_reasoning_text``) to track only the reasoning content returned
+-        by the base parser. This is necessary because
+-        ``skip_special_tokens=True`` (the vLLM default) causes the
+-        ``<|channel>`` delimiter to be invisible in ``current_text``,
+-        making it impossible to separate pre-reasoning content from
+-        reasoning content via string matching.
++        Accumulates reasoning text in ``_reasoning_text`` across calls and
++        suppresses or trims the leading ``thought\\n`` label, which may
++        arrive split across multiple deltas.
+         """
+-        result = super().extract_reasoning_streaming(
+-            previous_text,
+-            current_text,
+-            delta_text,
+-            previous_token_ids,
+-            current_token_ids,
+-            delta_token_ids,
+-        )
+         if result is None:
+             return None
+-
+         if result.reasoning is None:
+             return result
+ 
+-        # Accumulate ONLY the reasoning text from base parser results.
+-        # This is immune to pre-reasoning content pollution.
+         self._reasoning_text += result.reasoning
+ 
+-        # Once the prefix has been handled, all subsequent reasoning
+-        # deltas pass through unchanged.
+         if self._prefix_stripped:
+             return result
+ 
+-        # ---- Prefix stripping logic ----
+-
+-        # Case 1: We've accumulated enough to confirm the prefix is
+-        # present. Strip it and pass through the remainder.
++        # Case 1: accumulated text starts with the full prefix — strip it.
+         if self._reasoning_text.startswith(_THOUGHT_PREFIX):
+             prefix_len = len(_THOUGHT_PREFIX)
+-            # How much reasoning was accumulated before this delta?
+             prev_reasoning_len = len(self._reasoning_text) - len(result.reasoning)
+             if prev_reasoning_len >= prefix_len:
+-                # Prefix was already consumed by prior deltas; this
+-                # delta is entirely real content — pass through.
++                # Prefix already consumed by prior deltas; pass through.
+                 self._prefix_stripped = True
+                 return result
+             else:
+@@ -194,25 +192,84 @@ def extract_reasoning_streaming(
+                 else:
+                     if len(self._reasoning_text) >= prefix_len:
+                         self._prefix_stripped = True
+-                        result.reasoning = ""
+-                        return result
+                     return None
+ 
+-        # Case 2: Accumulated text is a strict prefix of
+-        # _THOUGHT_PREFIX (e.g. we've only seen "thou" so far).
+-        # Buffer by suppressing — we can't yet tell if this will
+-        # become the full prefix or diverge.
++        # Case 2: accumulated text is a strict prefix of _THOUGHT_PREFIX
++        # (e.g. only "thou" so far). Buffer — can't tell yet if it diverges.
+         if _THOUGHT_PREFIX.startswith(self._reasoning_text):
+             return None
+ 
+-        # Case 3: Accumulated text doesn't match the thought prefix
+-        # at all. This means prior deltas were buffered (suppressed
+-        # by Case 2) but the text diverged. Re-emit the full
+-        # accumulated text to avoid data loss.
++        # Case 3: text diverged from thought prefix. Re-emit everything
++        # buffered so far to avoid data loss.
+         self._prefix_stripped = True
+         result.reasoning = self._reasoning_text
+         return result
+ 
++    def extract_reasoning_streaming(
++        self,
++        previous_text: str,
++        current_text: str,
++        delta_text: str,
++        previous_token_ids: Sequence[int],
++        current_token_ids: Sequence[int],
++        delta_token_ids: Sequence[int],
++    ) -> DeltaMessage | None:
++        """Extract streaming reasoning, stripping ``thought\\n`` from the
++        first reasoning delta(s).
++
++        On Gemma 4 MoE (A4B) models, the chat template does not emit a
++        ``<|channel>`` start token when the previous message is a tool
++        response — the model continues the same turn and outputs the
++        ``thought\\n`` role label directly. The base-class implementation
++        has no fallback for this case and routes every delta as
++        ``content``, causing the reasoning leak (#39885).
++
++        When neither ``<|channel>`` (start_token_id) appears in
++        ``previous_token_ids`` nor ``delta_token_ids``, we mirror the
++        sync ``extract_reasoning`` fallback: assume we are in the
++        reasoning phase and treat each delta as reasoning until
++        ``<channel|>`` (end_token_id) is seen.
++        """
++        start_seen = (
++            self.start_token_id in previous_token_ids
++            or self.start_token_id in delta_token_ids
++        )
++
++        if not start_seen:
++            # Fallback path: no <|channel> token has been emitted.
++            # Assume reasoning phase and route deltas accordingly.
++            if self.end_token_id in previous_token_ids:
++                # Past the end token — this is post-reasoning content.
++                return DeltaMessage(content=delta_text)
++            if self.end_token_id in delta_token_ids:
++                # End token arrives in this delta; split at it.
++                end_index = delta_text.find(self.end_token)
++                if end_index == -1:
++                    # Token present but text empty (e.g. special token
++                    # rendered as empty string with skip_special_tokens=False)
++                    # — nothing to emit, just mark the phase transition.
++                    return None
++                reasoning_part = delta_text[:end_index]
++                content_part = delta_text[end_index + len(self.end_token) :]
++                result = DeltaMessage(
++                    reasoning=reasoning_part if reasoning_part else None,
++                    content=content_part if content_part else None,
++                )
++                return self._apply_prefix_stripping(result)
++            # Still inside reasoning with no start token seen yet.
++            return self._apply_prefix_stripping(DeltaMessage(reasoning=delta_text))
++
++        # Normal path: <|channel> token present — delegate to base class.
++        base_result = super().extract_reasoning_streaming(
++            previous_text,
++            current_text,
++            delta_text,
++            previous_token_ids,
++            current_token_ids,
++            delta_token_ids,
++        )
++        return self._apply_prefix_stripping(base_result)
++
+ 
+ def _strip_thought_label(text: str) -> str:
+     """Remove the ``thought\\n`` role label from the beginning of text.

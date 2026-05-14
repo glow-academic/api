@@ -1,4 +1,4 @@
-"""Input: attempt.chat.message — unified text and audio input.
+"""Input: attempt.chat_message — unified text and audio input.
 
 Accepts text, audio (raw bytes), or audio_id (uploaded file reference).
 Routes through voice pipeline when a voice session is active,
@@ -19,7 +19,7 @@ from app.infra.websocket.session_store import get_session_by_chat_id
 from app.tools.entries.uploads.get import get_upload
 
 
-@sio.on("attempt.chat.message")  # type: ignore
+@sio.on("attempt.chat_message")  # type: ignore
 async def attempt_message(sid: str, data: dict[str, Any]) -> dict[str, Any] | None:
     identity = await resolve_socket_identity(sid)
     if not identity:
@@ -93,6 +93,14 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> dict[str, Any] | No
             contents=data.get("contents"),
             parent_message_id=data.get("parent_message_id"),
             auto_link_parent=data.get("auto_link_parent", True),
+            # Ride-along audios_id from a mic-input transcription —
+            # forwards through to ``attempt_audio_entry`` so the user
+            # bubble's playback affordance lands on the same UI tick
+            # as the message text. Without this passthrough the FE
+            # green-attached indicator shows but the persisted row
+            # has no audio (Part 1 voice wiring becomes a silent
+            # no-op).
+            audios_id=data.get("audios_id"),
             sid=sid,
         )
         return result.model_dump(mode="json")

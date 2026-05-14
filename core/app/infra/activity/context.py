@@ -30,8 +30,8 @@ from app.tools.entries.runs.search import search_runs
 from app.tools.entries.sessions.search import search_sessions
 
 # Resource get fetchers
-from app.tools.resources.names.get import get_names
 from app.tools.resources.pricing.get import get_pricing
+from app.tools.resources.profiles.get import get_profiles
 
 
 async def _resolve_profile_ids(
@@ -78,7 +78,7 @@ async def resolve_activity_context(
       - sessions, activity, logins, problems, grants, emulations
 
     Resources (hydrated from IDs derived from entries):
-      - names (for profile display)
+      - profiles (for profile display name lookup keyed on profile_id)
     """
     # Step 1: Resolve department/role filters to profile_ids
     filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
@@ -166,22 +166,29 @@ async def resolve_activity_context(
         if p.profile_id:
             all_profile_ids.add(p.profile_id)
 
-    # Step 4: Hydrate resources
-    async def _fetch_names() -> list:
+    # Step 4: Hydrate profile names from the canonical profiles
+    # black box. ``get_profiles`` queries ``profiles_resource WHERE
+    # id = ANY(...)`` so the returned items' ``.id`` is the
+    # profile_id readers key on. Previously this used ``get_names``
+    # which queries ``names_resource`` (tools/agents/models
+    # namespace) — that lookup never hit on profile_ids, so every
+    # ``name_map.get(profile_id)`` came back ``None`` (blank
+    # Profile column on the activity table).
+    async def _fetch_profiles() -> list:
         if not all_profile_ids:
             return []
-        return await get_names(
+        return await get_profiles(
             pool, list(all_profile_ids), redis, bypass_cache=bypass_cache
         )
 
-    names_selected = await _fetch_names()
+    profiles_selected = await _fetch_profiles()
 
     return ArtifactContext(
         artifact_id=None,
         active=True,
         group_id=None,  # type: ignore[arg-type]
         resources={
-            "names": ResourcePair(selected=names_selected, suggestions=[]),
+            "profiles": ResourcePair(selected=profiles_selected, suggestions=[]),
         },
         entries={
             "sessions": sessions,
@@ -218,7 +225,8 @@ async def resolve_activity_search_context(
       - runs: runs_mv rows (for groups, token/cost aggregation)
 
     Resources (hydrated from IDs derived from entries):
-      - names (profile display), pricing (cost computation)
+      - profiles (display name lookup keyed on profile_id),
+        pricing (cost computation)
     """
     # Step 1: Resolve department/role filters
     filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
@@ -294,11 +302,15 @@ async def resolve_activity_search_context(
             if p.pricing_id:
                 pricing_ids_set.add(p.pricing_id)
 
-    # Step 6: Parallel hydrate resources
-    async def _fetch_names_res() -> list:
+    # Step 6: Parallel hydrate resources. ``get_profiles`` is the
+    # canonical profile_id → name fetcher (queries
+    # ``profiles_resource``); ``get_names`` would silently return
+    # empty here because profile_ids don't live in
+    # ``names_resource``.
+    async def _fetch_profiles_res() -> list:
         if not profile_ids_set:
             return []
-        return await get_names(
+        return await get_profiles(
             pool, list(profile_ids_set), redis, bypass_cache=bypass_cache
         )
 
@@ -308,8 +320,8 @@ async def resolve_activity_search_context(
         async with pool.acquire() as c:
             return await get_pricing(c, list(pricing_ids_set), redis, bypass_cache)
 
-    names_selected, pricing_selected = await asyncio.gather(
-        _fetch_names_res(),
+    profiles_selected, pricing_selected = await asyncio.gather(
+        _fetch_profiles_res(),
         _fetch_pricing_res(),
     )
 
@@ -318,7 +330,7 @@ async def resolve_activity_search_context(
         active=True,
         group_id=None,  # type: ignore[arg-type]
         resources={
-            "names": ResourcePair(selected=names_selected, suggestions=[]),
+            "profiles": ResourcePair(selected=profiles_selected, suggestions=[]),
             "pricing": ResourcePair(selected=pricing_selected, suggestions=[]),
         },
         entries={

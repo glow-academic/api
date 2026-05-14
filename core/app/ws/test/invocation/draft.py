@@ -11,7 +11,7 @@ from app.infra.invocation.types import PatchInvocationDraftApiRequest
 internal_sio = get_internal_sio()
 
 
-@sio.on("test.invocation.draft")  # type: ignore
+@sio.on("test.invocation_draft")  # type: ignore
 async def invocation_draft(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

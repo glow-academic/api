@@ -26,7 +26,7 @@ class PricingSearchPayload(BaseModel):
     sort_order: str = Field("desc")
 
 
-@sio.on("system.pricing.search")  # type: ignore
+@sio.on("system.pricing_search")  # type: ignore
 async def pricing_search(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

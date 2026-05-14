@@ -1,4 +1,4 @@
-"""Input: attempt.chat.audio — attach audio to a persisted chat message."""
+"""Input: attempt.chat_audio — attach audio to a persisted chat message."""
 
 from typing import Any
 from uuid import UUID
@@ -8,7 +8,7 @@ from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 
 
-@sio.on("attempt.chat.audio")  # type: ignore
+@sio.on("attempt.chat_audio")  # type: ignore
 async def attempt_chat_audio(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     identity = await resolve_socket_identity(sid)
     if not identity:

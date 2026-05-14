@@ -6,6 +6,8 @@ tree alongside the lean resolve. Internal audit-linking callers leave
 ``include_detail`` at the default ``False`` for the cheap path.
 """
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit

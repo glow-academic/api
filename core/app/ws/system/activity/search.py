@@ -36,7 +36,7 @@ class ActivitySearchPayload(BaseModel):
     sort_order: str = Field("desc")
 
 
-@sio.on("system.activity.search")  # type: ignore
+@sio.on("system.activity_search")  # type: ignore
 async def activity_search(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

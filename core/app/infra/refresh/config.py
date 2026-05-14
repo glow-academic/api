@@ -87,6 +87,7 @@ MV_REGISTRY: dict[str, tuple[str, str, float]] = {
     "invocation_drafts_mv": ("invocation_drafts", "refresh_invocation_drafts", _COOL_S),
     "invocation_mv": ("invocation", "refresh_invocations", _COOL_S),
     "logins_mv": ("logins", "refresh_logins", _GLACIAL_S),
+    "logouts_mv": ("logouts", "refresh_logouts", _GLACIAL_S),
     "message_uploads_mv": ("message_uploads", "refresh_message_uploads", _COOL_S),
     "messages_mv": ("messages", "refresh_messages_internal", _HOT_S),
     "metrics_mv": ("metrics", "refresh_metrics_internal", _GLACIAL_S),

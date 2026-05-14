@@ -92,8 +92,8 @@ async def search_sessions(
         runs = ctx.entries.get("runs", [])
         problems = ctx.entries.get("problems", [])
 
-        names_rp = ctx.resources.get("names")
-        name_list = names_rp.selected if names_rp else []
+        profiles_rp = ctx.resources.get("profiles")
+        profile_list = profiles_rp.selected if profiles_rp else []
         pricing_rp = ctx.resources.get("pricing")
         pricing_list = pricing_rp.selected if pricing_rp else []
 
@@ -108,7 +108,10 @@ async def search_sessions(
                     "unit_value": p.unit_value or 1,
                 }
 
-        name_map = {item.id: item.name for item in name_list if item.id and item.name}
+        # profile_id → display name. ``profile_list`` comes from
+        # ``profiles_resource`` (via ``get_profiles``) so ``.id`` is the
+        # profile_id used by the session/problem rows below.
+        name_map = {item.id: item.name for item in profile_list if item.id and item.name}
 
         # --- Phase 4: Build group_id → session_id mapping ---
         group_to_session: dict[UUID, UUID] = {}

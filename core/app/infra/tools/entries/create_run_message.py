@@ -34,6 +34,7 @@ async def create_run_message(
     role: str,
     upload_id: UUID,
     mcp: bool = False,
+    reasoning: bool = False,
     agent_ids: list[UUID] | None = None,
     created_at: "datetime | None" = None,
     id: UUID | None = None,
@@ -51,10 +52,14 @@ async def create_run_message(
     by this id) can be located and replaced when ``*.image.complete``
     arrives carrying the same id. ``None`` (default) lets the underlying
     INSERT generate a fresh ``uuidv7()``.
+
+    ``reasoning`` flags the underlying ``messages_entry`` row as a
+    chain-of-thought trace (default false — normal message). The text +
+    upload junctions are written the same way regardless.
     """
     message = await create_message(
-        conn, run_id=run_id, role=role, mcp=mcp, agent_ids=agent_ids,
-        created_at=created_at, id=id,
+        conn, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
+        agent_ids=agent_ids, created_at=created_at, id=id,
     )
 
     text = await create_text(conn, session_id=session_id, mcp=mcp)

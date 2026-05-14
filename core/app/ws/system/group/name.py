@@ -8,7 +8,7 @@ from app.infra.group.name import name_group_impl
 from app.infra.identity.socket import resolve_socket_identity
 
 
-@sio.on("system.group.name")  # type: ignore
+@sio.on("system.group_name")  # type: ignore
 async def group_name(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

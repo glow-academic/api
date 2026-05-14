@@ -11,7 +11,7 @@ from app.routes.attempt.home import get_home_internal
 internal_sio = get_internal_sio()
 
 
-@sio.on("attempt.home.get")  # type: ignore
+@sio.on("attempt.home")  # type: ignore
 async def home_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

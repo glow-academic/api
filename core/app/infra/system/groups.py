@@ -15,12 +15,17 @@ Routes/system/groups.py is a thin HTTP adapter over
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from decimal import Decimal
 from uuid import UUID
 
 import asyncpg
 from redis.asyncio import Redis
+
+from app.tools.resources.agents.get import get_agents
+from app.tools.resources.models.get import get_models
+from app.tools.resources.profiles.get import get_profiles
 
 from app.infra.common_context import resolve_common_context
 from app.infra.pricing.context import resolve_pricing_search_context
@@ -138,6 +143,40 @@ async def groups_system_impl(
 
     name_map = {item.id: item.name for item in name_list if item.id and item.name}
 
+    # --- Phase 3a: Collect the union of model / agent / profile ids ---
+    # across every run so we can batch-fetch their canonical names. The
+    # generic ``name_map`` above is built from the ``names_resource``
+    # selected pool (scenario/persona-style names attached to the
+    # artifact) and does NOT contain model / agent / profile names —
+    # those live in their own resource tables. Without the explicit
+    # fetches below, ``model_names`` / ``agent_names`` come back as
+    # ``None`` and the Profile column has no name source at all.
+    union_model_ids: set[UUID] = set()
+    union_agent_ids: set[UUID] = set()
+    union_profile_ids: set[UUID] = set()
+    for run in runs:
+        if run.model_ids:
+            union_model_ids.update(run.model_ids)
+        if run.agent_ids:
+            union_agent_ids.update(run.agent_ids)
+        if run.profiles_id:
+            union_profile_ids.add(run.profiles_id)
+
+    models_rows, agents_rows, profiles_rows = await asyncio.gather(
+        get_models(pool, list(union_model_ids), redis, bypass_cache=False),
+        get_agents(pool, list(union_agent_ids), redis, bypass_cache=False),
+        get_profiles(pool, list(union_profile_ids), redis, bypass_cache=False),
+    )
+    model_name_map: dict[UUID, str | None] = {
+        getattr(m, "id", None): getattr(m, "name", None) for m in models_rows
+    }
+    agent_name_map: dict[UUID, str | None] = {
+        getattr(a, "id", None): getattr(a, "name", None) for a in agents_rows
+    }
+    profile_name_map: dict[UUID, str | None] = {
+        getattr(p, "id", None): getattr(p, "name", None) for p in profiles_rows
+    }
+
     # --- Phase 4: Aggregate runs per group ---
     group_stats: dict[UUID, dict] = defaultdict(
         lambda: {
@@ -203,11 +242,25 @@ async def groups_system_impl(
         agent_id_list = list(stats.get("agent_ids", set()))
         model_id_list = list(stats.get("model_ids", set()))
         profile_id_list = list(stats.get("profile_ids", set()))
+        # Per-resource name lookups (see Phase 3a above) — the generic
+        # ``name_map`` doesn't carry model/agent/profile names. Filter
+        # out ``None`` so the FE doesn't render literal "None" strings
+        # when a resource row is missing (e.g. a model id from a run
+        # whose model resource was deleted).
         a_names = [
-            name_map[aid] for aid in agent_id_list if aid in name_map
+            agent_name_map[aid]
+            for aid in agent_id_list
+            if agent_name_map.get(aid)
         ] or None
         m_names = [
-            name_map[mid] for mid in model_id_list if mid in name_map
+            model_name_map[mid]
+            for mid in model_id_list
+            if model_name_map.get(mid)
+        ] or None
+        p_names = [
+            profile_name_map[pid]
+            for pid in profile_id_list
+            if profile_name_map.get(pid)
         ] or None
 
         items.append(
@@ -227,6 +280,7 @@ async def groups_system_impl(
                 profile_ids=profile_id_list or None,
                 agent_names=a_names,
                 model_names=m_names,
+                profile_names=p_names,
             )
         )
 

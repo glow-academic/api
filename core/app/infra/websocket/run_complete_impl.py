@@ -123,11 +123,42 @@ async def run_complete_impl(
     run_uuid = uuid.UUID(run_id)
     session_id = uuid.UUID(session_id_str)
     assistant_output = data.get("assistant_output") or ""
+    reasoning_output = data.get("reasoning_output") or ""
+    # ISO-8601 timestamp marking the first reasoning delta. Used to
+    # back-date the reasoning ``messages_entry.created_at`` so the FE
+    # can derive "Thought for Xs" from (answer.created_at − reasoning.created_at).
+    # Without this, both rows land at run-complete time and the gap
+    # collapses to ~ms.
+    reasoning_started_at_raw = data.get("reasoning_started_at")
+    reasoning_started_at = None
+    if isinstance(reasoning_started_at_raw, str):
+        from datetime import datetime as _dt
+        try:
+            reasoning_started_at = _dt.fromisoformat(reasoning_started_at_raw)
+        except ValueError:
+            reasoning_started_at = None
     input_tokens = data.get("input_text_tokens", 0)
     output_tokens = data.get("output_text_tokens", 0)
 
-    # Step 1: Save assistant message + token counts
+    # Step 1: Save assistant message + token counts. When the model
+    # emitted a chain-of-thought trace, persist it as its OWN
+    # messages_entry row (flagged reasoning=True) *before* the regular
+    # assistant message so the two sort in the natural reasoning →
+    # answer order. Each row is independently inactivatable / collapsible
+    # by the FE.
     try:
+        if reasoning_output:
+            await persist_run_message(
+                conn,
+                run_id=run_uuid,
+                session_id=session_id,
+                role="assistant",
+                content=reasoning_output,
+                upload_folder=upload_folder,
+                reasoning=True,
+                created_at=reasoning_started_at,
+            )
+
         if assistant_output:
             await persist_run_message(
                 conn,

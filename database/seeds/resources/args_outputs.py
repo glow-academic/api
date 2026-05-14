@@ -159,6 +159,18 @@ SHARED_ARGS_OUTPUTS = {
         # "one of: image, video" hint, the rendered value is always valid.
         template='["{% if modality == \'video\' %}video{% else %}image{% endif %}"]',
     ),
+    # Hardcoded ``["audio"]`` — used by ``Attempt Audio Generate`` so
+    # the model never picks the modality. The tool only ever produces
+    # TTS audio; everything else is rejected. ``args_id`` points at
+    # ``arg/modality`` only so the unique key shape stays compatible
+    # with the other modality wrappers; the template ignores the
+    # model's input and always emits ``["audio"]``.
+    "modalities_wrapped_audio": dict(
+        id=sid("args_output/modalities_wrapped_audio"),
+        args_id=sid("arg/modality"),
+        name="modalities",
+        template='["audio"]',
+    ),
     "instructions_wrapped": dict(
         id=sid("args_output/instructions_wrapped"),
         args_id=sid("arg/instructions"),
@@ -553,11 +565,11 @@ SHARED_ARGS_OUTPUTS = {
         name="video_id",
         template="{{ video_id }}",
     ),
-    "audio_id": dict(
-        id=sid("args_output/audio_id"),
-        args_id=sid("arg/audio_id"),
-        name="audio_id",
-        template="{{ audio_id }}",
+    "audios_id": dict(
+        id=sid("args_output/audios_id"),
+        args_id=sid("arg/audios_id"),
+        name="audios_id",
+        template="{{ audios_id }}",
     ),
     "text_id": dict(
         id=sid("args_output/text_id"),
@@ -3415,6 +3427,15 @@ SHARED_ARGS_OUTPUTS = {
         args_id=sid("arg/quality"),
         name="quality",
         template="{{ quality }}",
+    ),
+    # Passthrough — mirror of ``quality``. Lets ``Attempt Audio Generate``
+    # surface ``voice`` as a model-facing arg that flows straight through
+    # to the generation payload (and onward to the TTS executor).
+    "voice": dict(
+        id=sid("args_output/voice"),
+        args_id=sid("arg/voice"),
+        name="voice",
+        template="{{ voice }}",
     ),
     "question_resources": dict(
         id=sid("args_output/question_resources"),

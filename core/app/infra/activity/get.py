@@ -146,11 +146,14 @@ async def get_activity_impl_cached(
     problems = ctx.entries.get("problems", [])
     grants = ctx.entries.get("grants", [])
     emulations = ctx.entries.get("emulations", [])
-    names_rp = ctx.resources.get("names")
-    name_list = names_rp.selected if names_rp else []
+    profiles_rp = ctx.resources.get("profiles")
+    profile_list = profiles_rp.selected if profiles_rp else []
 
+    # Map profile_id → display name. ``profiles_rp.selected`` items
+    # come from ``profiles_resource`` (via ``get_profiles``) so
+    # ``.id`` is the profile_id readers key on.
     name_map: dict[UUID, str] = {
-        item.id: item.name for item in name_list if item.id and item.name
+        item.id: item.name for item in profile_list if item.id and item.name
     }
 
     profile_summary = _build_profile_summary(

@@ -4,6 +4,7 @@ Handles both completions() API (choices-based) and responses() API (response-bas
 Pure parsing/transformation only - no AI calls, no DB, no emits.
 """
 
+import json
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -13,11 +14,55 @@ from app.utils.logging.db_logger import get_logger
 logger = get_logger(__name__)
 
 
+def _sanitize_tool_arguments(raw: str) -> str:
+    """Return a clean JSON-encoded args object, dropping any trailing garbage.
+
+    Gemma 4 (vLLM 0.19+nv26.04) intermittently leaks reasoning-channel
+    markers (``<channel|>``, ``<|channel>...``) into the tail of a
+    tool-call arguments stream. Sending that raw string back through
+    the Responses API trips strict JSON validation upstream
+    ("Extra data: line 1 column 3 (char 2)"). ``json.JSONDecoder.raw_decode``
+    consumes the longest valid leading JSON value and reports where
+    parsing stopped — we keep that prefix and re-serialize. Returns
+    ``"{}"`` when there's no salvageable object so the next iteration's
+    request body stays well-formed; the route's own field validator
+    then surfaces a clean missing-field error instead of a generic 400.
+    """
+    if not raw:
+        return "{}"
+    stripped = raw.strip()
+    if not stripped:
+        return "{}"
+    try:
+        decoder = json.JSONDecoder()
+        value, _end = decoder.raw_decode(stripped)
+    except json.JSONDecodeError:
+        return "{}"
+    if not isinstance(value, dict):
+        return "{}"
+    return json.dumps(value)
+
+
 # ----------------------------
 # Streaming parser state classes
 # ----------------------------
 @dataclass
 class TextState:
+    started: bool = False
+    buffer: str = ""
+
+
+@dataclass
+class ReasoningState:
+    """Mirror of TextState for the reasoning/thinking channel.
+
+    Populated when an upstream model emits chain-of-thought separately
+    from its final answer — Responses API delivers it as
+    ``response.output_reasoning_text.delta`` / ``.done``, Chat Completions
+    delivers it as ``delta.reasoning`` (current vLLM convention) or
+    ``delta.reasoning_content`` (older ecosystem). Both modes route to
+    the same ``reasoning_*`` event types so downstream consumers don't
+    need to know which API mode produced them."""
     started: bool = False
     buffer: str = ""
 
@@ -38,6 +83,7 @@ class ToolCallState:
 @dataclass
 class ChoiceState:
     text: TextState = field(default_factory=TextState)
+    reasoning: ReasoningState = field(default_factory=ReasoningState)
     tool_calls: dict[int, ToolCallState] = field(default_factory=dict)
     finish_reason: str | None = None
 
@@ -405,6 +451,50 @@ async def _parse_responses_chunk(
                 response_items[temp_id]["buffer"] += delta
                 yield {"type": "text_delta", "delta": delta}
 
+    # Handle response.output_reasoning_text.delta — reasoning/thinking
+    # channel on the Responses API. Mirrors the output_text.delta branch
+    # above but routes to reasoning_* events so consumers can persist
+    # the chain-of-thought separately from the final answer.
+    #
+    # Note: as of vLLM 0.19.0+nv26.04 this event does NOT fire — the
+    # gemma4 reasoning parser still leaks <|channel>thought blocks into
+    # the regular output_text stream (vLLM issue #38855). The handler
+    # is wired up so that when upstream emits a proper channel it just
+    # starts working. Defensive on event-name aliases (different vLLM
+    # versions / providers have used both forms).
+    elif chunk_type in (
+        "response.output_reasoning_text.delta",
+        "response.reasoning_text.delta",
+    ):
+        item_id = (
+            getattr(chunk, "item_id", None)
+            if hasattr(chunk, "item_id")
+            else (chunk.get("item_id") if isinstance(chunk, dict) else None)
+        )
+        delta = (
+            getattr(chunk, "delta", None)
+            if hasattr(chunk, "delta")
+            else (chunk.get("delta") if isinstance(chunk, dict) else None)
+        )
+        if delta:
+            yield {"type": "reasoning_delta", "delta": delta, "item_id": item_id}
+
+    elif chunk_type in (
+        "response.output_reasoning_text.done",
+        "response.reasoning_text.done",
+    ):
+        item_id = (
+            getattr(chunk, "item_id", None)
+            if hasattr(chunk, "item_id")
+            else (chunk.get("item_id") if isinstance(chunk, dict) else None)
+        )
+        text = (
+            getattr(chunk, "text", None)
+            if hasattr(chunk, "text")
+            else (chunk.get("text") if isinstance(chunk, dict) else None)
+        )
+        yield {"type": "reasoning_complete", "text": text or "", "item_id": item_id}
+
     # Handle response.function_call_arguments.delta (for tool call arguments)
     elif chunk_type == "response.function_call_arguments.delta":
         item_id = None
@@ -455,15 +545,26 @@ async def _parse_responses_chunk(
                     "type": "text_complete",
                     "text": final_text,
                 }
-                # Also yield the raw output item for Responses API conversation history
-                yield {
-                    "type": "output_item",
-                    "item": {
-                        "type": "message",
-                        "role": "assistant",
-                        "content": [{"type": "output_text", "text": final_text}],
-                    },
-                }
+                # Round-trip into responses_input for the next iteration —
+                # but only when there's actual text. vLLM 0.19's Responses
+                # API rejects ``{type: "message", role: "assistant",
+                # content: [{type: "output_text", text: ""}]}`` because it
+                # doesn't match any union variant (output_text content
+                # implies ``ResponseOutputMessage``, which requires ``id``
+                # and ``status``; without them, no variant fits). The
+                # model legitimately emits empty text items right before
+                # function_call items — just don't echo those back.
+                if final_text:
+                    yield {
+                        "type": "output_item",
+                        "item": {
+                            "type": "message",
+                            "id": item_id,
+                            "status": "completed",
+                            "role": "assistant",
+                            "content": [{"type": "output_text", "text": final_text}],
+                        },
+                    }
 
     # Handle response.function_call_arguments.done (function call complete)
     elif chunk_type == "response.function_call_arguments.done":
@@ -488,6 +589,18 @@ async def _parse_responses_chunk(
                     if arguments is not None
                     else item_state.get("arguments", "")
                 )
+                # Sanitize: Gemma 4 (vLLM 0.19+nv26.04) intermittently
+                # leaks ``<channel|>`` / reasoning markers into the tail
+                # of the tool-call arguments stream. Round-tripping that
+                # raw string into the next Responses API call hits
+                # strict JSON validation upstream and 400s with
+                # "Extra data: line 1 column 3 (char 2)" — the dirty
+                # tail trips json.loads as soon as the valid prefix
+                # ends. Keep only the first complete JSON value; fall
+                # back to "{}" if even that fails (route handler will
+                # then surface a clean field-required error instead of
+                # silently dispatching with an empty dict).
+                final_arguments = _sanitize_tool_arguments(final_arguments)
                 # call_id is the model's function call ID (for Responses API conversation history)
                 call_id = item_state.get("call_id") or item_id
                 # Mark as done to prevent duplicate emission in cleanup loop
@@ -671,6 +784,25 @@ async def _parse_completions_chunk(
             st.text.buffer += content_piece
             yield {"type": "text_delta", "choice_index": i, "delta": content_piece}
 
+        # -------- REASONING: start/delta
+        # Chat Completions reasoning channel — vLLM ≥0.19 emits
+        # ``delta.reasoning``; older ecosystem code uses
+        # ``delta.reasoning_content``. Accept either. Mirrors the
+        # text branch so downstream consumers see the same shape of
+        # reasoning_start / reasoning_delta events regardless of
+        # which API path produced them.
+        reasoning_piece = delta.get("reasoning") or delta.get("reasoning_content")
+        if reasoning_piece:
+            if not st.reasoning.started:
+                st.reasoning.started = True
+                yield {"type": "reasoning_start", "choice_index": i}
+            st.reasoning.buffer += reasoning_piece
+            yield {
+                "type": "reasoning_delta",
+                "choice_index": i,
+                "delta": reasoning_piece,
+            }
+
         # -------- TOOLS: start/delta
         # Check both delta and choice object for tool_calls
         # When finish_reason is "tool_calls", tool_calls might be in the choice object, not delta
@@ -755,4 +887,14 @@ async def _parse_completions_chunk(
                     "type": "text_complete",
                     "choice_index": i,
                     "text": st.text.buffer,
+                }
+
+            # reasoning_complete — mirrors text_complete on the
+            # reasoning channel. Only fires if at least one
+            # reasoning delta was seen during the stream.
+            if st.reasoning.started:
+                yield {
+                    "type": "reasoning_complete",
+                    "choice_index": i,
+                    "text": st.reasoning.buffer,
                 }

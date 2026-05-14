@@ -11,7 +11,7 @@ from app.infra.identity.socket import resolve_socket_identity
 internal_sio = get_internal_sio()
 
 
-@sio.on("system.activity.get")  # type: ignore
+@sio.on("system.activity")  # type: ignore
 async def activity_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

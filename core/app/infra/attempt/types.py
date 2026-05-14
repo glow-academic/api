@@ -476,6 +476,12 @@ class MessageData(BaseModel):
     parent_message_id: UUID | None = Field(None, description="UUID of the parent message in tree")
     sibling_index: int | None = Field(None, description="Index among sibling messages")
     sibling_count: int | None = Field(None, description="Total number of sibling messages")
+    # Optional audio attachment. Surfaced by ``attempt_message_mv`` via
+    # a LATERAL join on ``attempt_audio_entry``; set when the user
+    # message was transcribed from a mic recording (or when the
+    # realtime adapter attached assistant audio post-hoc). The FE
+    # renders a playback affordance keyed by this id.
+    audios_id: UUID | None = Field(None, description="UUID of the attached audios_resource, if any")
 
 
 class GradeData(BaseModel):

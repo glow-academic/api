@@ -1,27 +1,28 @@
 """TTS dispatch executor — one-shot text → audio via litellm /audio/speech.
 
 Takes the dispatch's last user-role instruction as input text, calls the
-configured TTS model, writes the audio bytes to the upload store, and
-emits ``generate_audio_complete`` with the ``upload_id`` so downstream
-handlers can attach it to an entry.
+configured TTS model, runs the canonical media-upload pipeline (uploads
+→ audios_resource → audios_entry → links), emits the complete event, and
+returns a ``ProducedMedia`` so the outer ``execute_generation`` bubbles
+the ``audios_id`` (resource handle — the canonical plural-named public
+asset id) onto ``ArtifactGenerateResponse``. Matches the image/video
+path so the model gets ``produced_media`` in the tool response and can
+forward the ``audios_id`` to ``Attempt_Chat_Message``.
 """
 
 from __future__ import annotations
 
-import uuid
-from pathlib import Path
-from typing import Any
 from uuid import UUID
-
-import asyncpg  # type: ignore
 
 from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.types import AgentDispatch, PrepareGenerationResult
-from app.infra.globals import UPLOAD_FOLDER, get_pool
-from app.infra.upload_paths import ensure_upload_subdir
-from app.infra.websocket.generation_types import GenerateErrorApiRequest
+from app.infra.globals import get_pool, get_redis_client
+from app.infra.media.upload import media_upload_impl
+from app.infra.websocket.generation_types import (
+    GenerateErrorApiRequest,
+    ProducedMedia,
+)
 from app.infra.websocket.socket_event import EmitFn
-from app.tools.entries.uploads.create import create_upload
 
 try:
     import litellm  # type: ignore
@@ -48,39 +49,21 @@ def _extract_prompt(dispatch: AgentDispatch) -> str:
     return ""
 
 
-async def _write_audio_upload(
-    session_id: UUID,
-    audio_bytes: bytes,
-    *,
-    pool: Any,
-    upload_folder: Path = UPLOAD_FOLDER,
-    mime_type: str = "audio/mpeg",
-    extension: str = "mp3",
-) -> UUID:
-    folder = ensure_upload_subdir("audio", upload_folder=upload_folder)
-    file_id = str(uuid.uuid4())
-    filename = f"{file_id}.{extension}"
-    relative_path = f"audio/{filename}"
-    (folder / filename).write_bytes(audio_bytes)
-    async with pool.acquire() as conn:
-        upload = await create_upload(
-            conn,
-            session_id=session_id,
-            file_path=relative_path,
-            mime_type=mime_type,
-            size=len(audio_bytes),
-        )
-    return upload.id
-
-
 async def execute_tts_dispatch(
     *,
     dispatch: AgentDispatch,
     prepared: PrepareGenerationResult,
     sid: str,
     emit: EmitFn,
-) -> None:
-    """Synthesize audio from the dispatch's input text and emit the result."""
+) -> ProducedMedia | None:
+    """Synthesize audio from the dispatch's input text and emit the result.
+
+    Returns a ``ProducedMedia`` carrying the freshly minted
+    ``audios_resource.id`` (surfaced as ``audios_id`` to the model via
+    ``ArtifactGenerateResponse.produced_media`` — canonical plural form
+    matching ``images_id`` / ``videos_id``). Mirrors the image/video
+    return contract so ``execute_generation`` can collect it uniformly.
+    """
     artifact_type = prepared.artifact_type
     group_id = str(prepared.group_id)
     run_id = str(prepared.run_id)
@@ -97,7 +80,7 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        return None
 
     llm_config = dispatch.llm_config
     api_key = llm_config.get("api_key")
@@ -111,7 +94,7 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        return None
 
     prompt = _extract_prompt(dispatch)
     if not prompt:
@@ -124,15 +107,25 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        return None
 
     voice = llm_config.get("voice") or "alloy"
     model = llm_config.get("model")
     base_url = llm_config.get("base_url")
 
+    # litellm needs the ``openai/`` prefix when routing through a
+    # custom proxy (api_base set) — without it the model name (e.g.
+    # ``glow-audio``) is treated as an unrecognized provider and
+    # ``aspeech`` errors locally before any network hop. Mirrors the
+    # same prefix logic in ``execute.py:167`` / ``execute.py:205``
+    # for the text-generation paths.
+    effective_model = (
+        f"openai/{model}" if model and base_url and "/" not in model else model
+    )
+
     try:
         response = await litellm.aspeech(  # type: ignore[attr-defined]
-            model=model,
+            model=effective_model,
             input=prompt,
             voice=voice,
             api_key=api_key,
@@ -152,11 +145,27 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        return None
 
+    # Run the canonical media pipeline: writes bytes → uploads_entry →
+    # audios_resource → audios_entry → audio_uploads_entry +
+    # audios_audios_connection. Returns the resource id we surface as
+    # ``audios_id`` (canonical plural-named public handle) so the model
+    # can forward it to ``Attempt_Chat_Message``. ``attribute_to_run=False`` because the
+    # tool-call audit layer writes the run↔message↔upload junction
+    # itself; double-attribution would create duplicate assistant
+    # messages.
     try:
-        upload_id = await _write_audio_upload(
-            session_id, audio_bytes, pool=get_pool(),
+        upload_result = await media_upload_impl(
+            get_pool(),
+            get_redis_client(),
+            modality="audio",
+            session_id=session_id,
+            file_bytes=audio_bytes,
+            filename=f"tts-{run_id}.mp3",
+            content_type="audio/mpeg",
+            name=(dispatch.metadata or {}).get("title") or "",
+            description=prompt[:200],
         )
     except Exception as exc:
         await emit_modality_event(
@@ -168,7 +177,10 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        return None
+
+    upload_id = upload_result.upload_id
+    resource_id = upload_result.resource_id
 
     await emit_modality_event(
         emit, "audio", "complete",
@@ -182,11 +194,24 @@ async def execute_tts_dispatch(
             "type": "complete",
             "event_type": "audio_complete",
             "upload_id": str(upload_id),
-            "file_size": len(audio_bytes),
-            "mime_type": "audio/mpeg",
+            "resource_id": str(resource_id),
+            "audios_id": str(resource_id),
+            "file_size": upload_result.file_size,
+            "mime_type": upload_result.mime_type,
             "metadata": dispatch.metadata or None,
         }, artifact_type=artifact_type,
         )
+
+    # Bubble the produced asset onto ``ArtifactGenerateResponse.produced_media``
+    # so the tool-call response template surfaces it back to the LLM as
+    # the ``audios_id`` it needs for ``Attempt_Chat_Message``.
+    return ProducedMedia(
+        modality="audio",
+        resource_id=resource_id,
+        upload_id=upload_id,
+        mime_type=upload_result.mime_type,
+        file_size=upload_result.file_size,
+    )
 
 
 __all__ = ["execute_tts_dispatch"]

@@ -9,9 +9,9 @@ from app.events.types import (
     default_filter_events,
     require_authenticated_profile,
 )
-from app.infra.group.types import (
-    GetGroupDetailRequest,
-    GetGroupDetailResponse,
+from app.infra.group.resolve import (
+    GroupResolveRequest as GetGroupDetailRequest,
+    GroupResolveResponse as GetGroupDetailResponse,
 )
 from app.infra.websocket.generation_types import (
     # Generation lifecycle input payload (client → server)

@@ -1,4 +1,4 @@
-"""Input: test.invocation.complete — canonical per-invocation completion."""
+"""Input: test.invocation_complete — canonical per-invocation completion."""
 
 from typing import Any
 
@@ -12,7 +12,7 @@ from app.infra.test.invocation.complete import (
 )
 
 
-@sio.on("test.invocation.complete")  # type: ignore
+@sio.on("test.invocation_complete")  # type: ignore
 async def test_invocation_complete(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

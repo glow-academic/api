@@ -838,6 +838,7 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         "create_invocation_draft",
     ),
     ("create", "logins"): (f"{_T}.entries.logins.create", "create_login"),
+    ("create", "logouts"): (f"{_T}.entries.logouts.create", "create_logout"),
     ("create", "message_uploads"): (
         f"{_T}.entries.message_uploads.create",
         "create_message_upload",

@@ -1,0 +1,16 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Audio generated.
+{% if r.run_id %}run_id: `{{ r.run_id }}`
+{% endif %}{% if r.group_id %}group_id: `{{ r.group_id }}`
+{% endif %}
+{% if r.produced_media %}
+{% for m in r.produced_media %}{% if m.modality == 'audio' %}audios_id: `{{ m.resource_id }}`
+{% endif %}{% endfor %}
+{% endif %}
+Now call `Attempt_Chat_Message` with the same ``text`` you just narrated **and** the ``audios_id`` above. The user will see the message in the chat and hear your synthesized voice play back alongside it.
+{% elif results and results[0] and results[0].error %}
+Audio generation failed: {{ results[0].error }}. Post the message anyway via `Attempt_Chat_Message` (text only).
+{% else %}
+No result returned.
+{% endif %}

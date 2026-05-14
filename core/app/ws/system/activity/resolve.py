@@ -20,7 +20,7 @@ class ActivityResolvePayload(BaseModel):
     resolved: bool = Field(True)
 
 
-@sio.on("system.activity.resolve")  # type: ignore
+@sio.on("system.activity_resolve")  # type: ignore
 async def activity_resolve(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

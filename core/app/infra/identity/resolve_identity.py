@@ -16,6 +16,7 @@ import os
 import socket
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -578,11 +579,29 @@ async def resolve_emulation_chain(
         return []
 
 
-async def _get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> UUID:
-    """Get the most recent active session for a profile, or create one.
+SESSION_IDLE_MINUTES = 10
 
-    profile_id is a profile_artifact.id. We must resolve to profiles_resource.id
-    because profiles_sessions_connection.profiles_id references profiles_resource.
+
+async def _get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> UUID:
+    """Get the current session for a profile, or mint a new one.
+
+    Sessions are append-only — the ``active`` bool on ``sessions_entry``
+    is reserved for soft-delete only and is **not** flipped on logout.
+    Whether the latest session is still "current" is decided by two
+    append-only signals:
+
+      1. ``logouts_entry`` — an explicit row here means the caller
+         clicked logout; we always mint a new session on the next
+         request regardless of timing.
+      2. ``activity_entry`` — the middleware writes one row per minute
+         per profile while requests are flowing. If the latest
+         activity (or the session's own created_at, for brand-new
+         sessions with no activity yet) is older than
+         ``SESSION_IDLE_MINUTES`` minutes, we mint a new session.
+
+    profile_id is a profile_artifact.id. We must resolve to
+    profiles_resource.id because profiles_sessions_connection.profiles_id
+    references profiles_resource.
     """
     from app.tools.artifacts.profile.get import get_profiles
 
@@ -594,27 +613,55 @@ async def _get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> 
         )
     profiles_resource_id = profiles[0].profile_ids[0]
 
-    # Check for recent active session (within last 24h)
-    row = await conn.fetchrow(
-        """
-        SELECT se.id
-        FROM sessions_entry se
-        JOIN profiles_sessions_connection psc ON psc.session_id = se.id
-        WHERE psc.profiles_id = $1
-          AND se.active = true
-          AND se.created_at > now() - interval '24 hours'
-        ORDER BY se.created_at DESC
-        LIMIT 1
-        """,
-        profiles_resource_id,
-    )
-
-    if row:
-        return row["id"]
-
-    # Create new session
+    from app.tools.entries.activity.search import search_activity
+    from app.tools.entries.logouts.search import search_logouts
     from app.tools.entries.sessions.create import create_session
+    from app.tools.entries.sessions.search import search_sessions
 
+    # All three searches run with ``bypass_mv=True`` because this
+    # resolver is on the hot auth path and needs read-after-write
+    # consistency: a fresh ``create_session`` must be visible to the
+    # very next request (which would otherwise mint a duplicate
+    # before the MV's 30s refresh tick).
+    sessions = await search_sessions(
+        conn,
+        profile_ids=[profiles_resource_id],
+        active=True,
+        limit=1,
+        bypass_mv=True,
+    )
+    if sessions:
+        session = sessions[0]
+
+        # Has the session been logged out? One row is enough — we
+        # always mint a new session after any logout, regardless of
+        # timing.
+        logouts = await search_logouts(
+            conn,
+            session_ids=[session.id],
+            limit=1,
+            bypass_mv=True,
+        )
+        if not logouts:
+            # Idle gate. Latest activity row wins; fall back to the
+            # session's own created_at for brand-new sessions whose
+            # first activity ping hasn't landed yet (or got
+            # throttled by the 60s SETNX in middleware).
+            recent = await search_activity(
+                conn,
+                session_ids=[session.id],
+                limit=1,
+                bypass_mv=True,
+            )
+            last_seen = recent[0].created_at if recent else session.created_at
+            cutoff = datetime.now(timezone.utc) - timedelta(
+                minutes=SESSION_IDLE_MINUTES
+            )
+            if last_seen >= cutoff:
+                return session.id
+
+    # Mint a new session — either no prior, the latest was logged
+    # out, or it idled past the threshold.
     result = await create_session(conn, profile_id=profiles_resource_id)
     return result.id
 

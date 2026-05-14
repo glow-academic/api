@@ -152,7 +152,13 @@ async def patch_chat_draft_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    if not has_permission(profile.role_permissions, "attempt", "chat_draft"):
+    # Operation key was flattened from ``chat_draft`` → ``draft``
+    # in the ``infra/chat/ → infra/attempt/chat/`` refactor; the
+    # permissions seed + role grant moved with it but this in-impl
+    # check was left pointing at the old name. Role grants
+    # ``attempt.draft``; without the rename here every draft patch
+    # 403s even for superadmins.
+    if not has_permission(profile.role_permissions, "attempt", "draft"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to create or edit chat drafts.",

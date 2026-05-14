@@ -11,6 +11,7 @@ OpenAPI schemas remain named per artifact.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections import defaultdict
 from datetime import datetime
@@ -34,6 +35,7 @@ from app.infra.generation.chat_history import (
     combine_keep_reasons,
 )
 from app.infra.group.refresh import refresh_group_impl
+from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.calls.search import search_calls
 from app.tools.entries.soft_calls.search import search_soft_calls
@@ -42,6 +44,9 @@ from app.tools.entries.groups.create import create_group
 from app.tools.entries.groups.get import get_groups
 from app.tools.entries.messages.search import search_messages
 from app.tools.entries.runs.search import search_runs
+from app.tools.resources.agents.get import get_agents
+from app.tools.resources.models.get import get_models
+from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.tools.get import get_tools
 
 DEFAULT_WINDOW_SECONDS = 60
@@ -113,6 +118,11 @@ class GroupMessage(BaseModel):
     file_ids: list[UUID] = Field(default_factory=list)
     call_ids: list[UUID] = Field(default_factory=list)
     calls: list[GroupCall] = Field(default_factory=list)
+    reasoning: bool = Field(
+        False,
+        description="True when this row is a chain-of-thought trace persisted "
+        "alongside the assistant answer (rendered as a collapsed accordion).",
+    )
     in_context: bool = Field(
         True,
         description="Whether this message is included in the LLM context for the next "
@@ -127,11 +137,42 @@ class GroupMessage(BaseModel):
 
 
 class GroupRun(BaseModel):
-    """Run within a group, with its messages."""
+    """Run within a group, with its messages.
+
+    Carries token / cost / model / agent / profile attribution so the
+    analytics view can render per-run cost + actor info without a
+    parallel detail shape. ``profile_id`` is the authoring profile
+    (human user), ``agent_id`` is the LLM-side actor, ``model_id`` is
+    the model used by that agent. All optional — runs predating these
+    columns or with unresolved attributions surface ``None``.
+    """
 
     id: UUID
     created_at: datetime | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_input_tokens: int = 0
+    cost: float = 0.0
+    model_id: UUID | None = None
+    agent_id: UUID | None = None
+    profile_id: UUID | None = None
+    previous_context_start_index: int | None = Field(
+        None,
+        description="Index in ``messages`` where the current run's own "
+        "messages begin; earlier rows are previous-context replay. "
+        "``None`` when the run has no previous context attached.",
+    )
     messages: list[GroupMessage] = Field(default_factory=list)
+
+
+class GroupResource(BaseModel):
+    """Lightweight `{id, name}` for cross-referencing run-level ids
+    (``model_id`` / ``agent_id`` / ``profile_id``) against human-readable
+    names on the analytics panel. Names come from the canonical
+    ``get_models`` / ``get_agents`` / ``get_profiles`` black boxes."""
+
+    id: UUID
+    name: str | None = None
 
 
 class GroupResolveResponse(BaseModel):
@@ -139,6 +180,12 @@ class GroupResolveResponse(BaseModel):
 
     Read-only: returns the resolved group + its current title + history.
     Renaming flows through ``*_Title`` / ``title_group_impl`` (write).
+
+    Optional detail fields (``actor_name``, ``total_message_count``,
+    ``group_exists``, ``models``, ``agents``, ``profiles``) are populated
+    when ``resolve_group_impl(include_resources=True)`` — the canonical
+    analytics fan-out. Lean callers (audit-link resolve) leave them
+    ``None`` to skip the extra fetches.
     """
 
     group_id: UUID = Field(..., description="Resolved or newly created group UUID")
@@ -155,6 +202,27 @@ class GroupResolveResponse(BaseModel):
     runs: list[GroupRun] | None = Field(
         None,
         description="Conversation history — populated when resolving an existing group for fetch",
+    )
+    group_exists: bool | None = Field(
+        None,
+        description="(detail) Whether the group exists in storage — populated when "
+        "``include_resources=True``",
+    )
+    actor_name: str | None = Field(
+        None,
+        description="(detail) Display name of the current actor (caller profile)",
+    )
+    total_message_count: int | None = Field(
+        None, description="(detail) Total number of messages in the group",
+    )
+    models: list[GroupResource] | None = Field(
+        None, description="(detail) Models used in the group",
+    )
+    agents: list[GroupResource] | None = Field(
+        None, description="(detail) Agents used in the group",
+    )
+    profiles: list[GroupResource] | None = Field(
+        None, description="(detail) Profiles that authored runs in this group",
     )
 
 
@@ -175,6 +243,8 @@ async def resolve_group_impl(
     window_seconds: int = DEFAULT_WINDOW_SECONDS,
     snapshot_key: UUID | None = None,
     include_history: bool = True,
+    include_resources: bool = False,
+    bypass_cache: bool = False,
     **_kwargs,
 ) -> GroupResolveResponse:
     """Resolve or create a group, return its current title + history.
@@ -318,8 +388,11 @@ async def resolve_group_impl(
 
     # ── Optional conversation history ────────────────────────────────
     runs_data: list[GroupRun] | None = None
+    run_items_raw: list[Any] = []
     if include_history and not created_new:
-        runs_data = await _load_history(pool, redis, resolved_group_id)
+        runs_data, run_items_raw = await _load_history(
+            pool, redis, resolved_group_id, bypass_cache=bypass_cache,
+        )
 
     # ── Resolve current title from groups_mv ─────────────────────────
     # When the group already existed, surface its latest title so the
@@ -331,24 +404,97 @@ async def resolve_group_impl(
         if existing:
             name = existing[0].name
 
+    # ── Optional resource lookups (analytics fan-out) ────────────────
+    # Opt-in via ``include_resources=True``. Builds the per-type
+    # ``GroupResource`` lists (models / agents / profiles) so the FE
+    # can resolve run-level ids to display names without per-row
+    # round-trips, plus convenience fields (``actor_name``,
+    # ``total_message_count``, ``group_exists``) the analytics panel
+    # surfaces in its run header. Lean callers (audit-link resolve)
+    # leave these ``None`` and never trigger the fetches.
+    models_list: list[GroupResource] | None = None
+    agents_list: list[GroupResource] | None = None
+    profiles_list: list[GroupResource] | None = None
+    actor_name: str | None = None
+    total_message_count: int | None = None
+    group_exists: bool | None = None
+    if include_resources:
+        all_model_ids: set[UUID] = set()
+        all_agent_ids: set[UUID] = set()
+        all_profile_ids: set[UUID] = set()
+        for run in run_items_raw:
+            if run.model_ids:
+                all_model_ids.update(run.model_ids)
+            if run.agent_ids:
+                all_agent_ids.update(run.agent_ids)
+            run_profile_id = getattr(run, "profiles_id", None)
+            if run_profile_id:
+                all_profile_ids.add(run_profile_id)
+
+        models_rows, agents_rows, profiles_rows = await asyncio.gather(
+            get_models(pool, list(all_model_ids), redis, bypass_cache=bypass_cache),
+            get_agents(pool, list(all_agent_ids), redis, bypass_cache=bypass_cache),
+            get_profiles(pool, list(all_profile_ids), redis, bypass_cache=bypass_cache),
+        )
+        models_list = [
+            GroupResource(id=m.id, name=getattr(m, "name", None))
+            for m in models_rows if getattr(m, "id", None)
+        ]
+        agents_list = [
+            GroupResource(id=a.id, name=getattr(a, "name", None))
+            for a in agents_rows if getattr(a, "id", None)
+        ]
+        profiles_list = [
+            GroupResource(id=p.id, name=getattr(p, "name", None))
+            for p in profiles_rows if getattr(p, "id", None)
+        ]
+        # Authoring profile = the caller. ``profile`` was already
+        # resolved above for the auth/access gate; reuse its display
+        # name so we don't re-fetch.
+        actor_name = getattr(profile, "name", None)
+        # Total message count = sum across the loaded runs. Cheap
+        # since runs_data is already constructed.
+        total_message_count = sum(len(r.messages) for r in (runs_data or []))
+        # ``group_exists`` is informational; if we returned, the row
+        # either pre-existed or was just created — either way it
+        # exists from the client's perspective.
+        group_exists = True
+
     return GroupResolveResponse(
         group_id=resolved_group_id,
         name=name,
         snapshot_key=snapshot_key or resolved_group_id,
         runs=runs_data,
+        group_exists=group_exists,
+        actor_name=actor_name,
+        total_message_count=total_message_count,
+        models=models_list,
+        agents=agents_list,
+        profiles=profiles_list,
     )
 
 
 async def _load_history(
-    pool: asyncpg.Pool, redis: Redis, group_id: UUID,
-) -> list[GroupRun]:
-    """Return runs→messages→calls shaped for GenerationPanel.flattenMessages."""
+    pool: asyncpg.Pool,
+    redis: Redis,
+    group_id: UUID,
+    bypass_cache: bool = False,
+) -> tuple[list[GroupRun], list[Any]]:
+    """Return runs→messages→calls shaped for GenerationPanel.flattenMessages,
+    plus the raw ``run_items`` so the caller can build resource lists
+    without re-running ``search_runs``.
+
+    The lean callers ignore the second element; the
+    ``include_resources=True`` path uses it to collect
+    ``all_model_ids`` / ``all_agent_ids`` / ``all_profile_ids`` for
+    name lookups.
+    """
     async with pool.acquire() as conn:
         run_items, _ = await search_runs(
             conn, group_ids=[group_id], sort_order="asc", limit=10000,
         )
     if not run_items:
-        return []
+        return [], []
 
     run_ids = [r.run_id for r in run_items]
     async with pool.acquire() as conn:
@@ -434,10 +580,23 @@ async def _load_history(
     dedup_anns = annotate_read_dedup(tool_ids_per_msg, is_write_by_tool)
     annotations = combine_keep_reasons(audit_anns, dedup_anns)
 
+    # Run cost — uses the canonical pricing helper that walks each
+    # run's ``RunPricingItem`` rows against the pricing resource table.
+    # Cached because pricing rarely changes.
+    async with pool.acquire() as conn:
+        run_costs = await compute_costs_from_runs(conn, run_items, bypass_cache)
+
     runs_data: list[GroupRun] = [
         GroupRun(
             id=run_item.run_id,
             created_at=getattr(run_item, "run_created_at", None),
+            input_tokens=run_item.input_tokens,
+            output_tokens=run_item.output_tokens,
+            cached_input_tokens=run_item.cached_input_tokens,
+            cost=float(run_costs.get(run_item.run_id, 0)),
+            model_id=(run_item.model_ids[0] if run_item.model_ids else None),
+            agent_id=(run_item.agent_ids[0] if run_item.agent_ids else None),
+            profile_id=getattr(run_item, "profiles_id", None),
             messages=[],
         )
         for run_item in run_items
@@ -456,8 +615,9 @@ async def _load_history(
                 file_ids=list(m.file_ids or []),
                 call_ids=call_ids,
                 calls=[calls_by_id[cid] for cid in call_ids if cid in calls_by_id],
+                reasoning=bool(getattr(m, "reasoning", False)),
                 in_context=in_context,
                 in_context_reason=reason,
             )
         )
-    return runs_data
+    return runs_data, run_items

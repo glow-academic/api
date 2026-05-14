@@ -62,6 +62,21 @@ CREATE TABLE public.profiles_logins_connection (
 
 --
 
+-- Name: profiles_logouts_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profiles_logouts_connection (
+    profiles_id uuid NOT NULL,
+    logout_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL
+);
+
+
+--
+
 -- Name: profiles_problems_connection; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -124,6 +139,15 @@ ALTER TABLE ONLY public.profiles_grants_connection
 
 ALTER TABLE ONLY public.profiles_logins_connection
     ADD CONSTRAINT profiles_logins_connection_pkey PRIMARY KEY (profiles_id, login_id);
+
+
+--
+
+-- Name: profiles_logouts_connection profiles_logouts_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles_logouts_connection
+    ADD CONSTRAINT profiles_logouts_connection_pkey PRIMARY KEY (profiles_id, logout_id);
 
 
 --

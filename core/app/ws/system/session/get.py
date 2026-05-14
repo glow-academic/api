@@ -19,7 +19,7 @@ class SessionGetPayload(BaseModel):
     session_id: UUID = Field(...)
 
 
-@sio.on("system.session.get")  # type: ignore
+@sio.on("system.session")  # type: ignore
 async def session_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

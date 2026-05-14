@@ -58,9 +58,19 @@ async def video_download_group_impl(
             detail="You don't have permission to download group videos.",
         )
 
-    # -- Step 3: Resolve videos_id -> file metadata via videos_mv ---------------
+    # -- Step 3: Resolve id -> file metadata via videos_mv ----------------------
+    # ``video_id`` may arrive as either an ``videos_entry.id`` (what
+    # ``messages_mv.video_ids`` aggregates from ``video_uploads_entry``
+    # — the chat MV path used by the Group panel bubbles) or a
+    # ``videos_resource.id`` (what ``MediaResult.videos_id`` /
+    # ``Scenario_Generate`` surface to the LLM). ``search_videos``
+    # accepts both filter slots; try the entry path first, fall back
+    # to the resource path. Mirrors how the FE bubble doesn't know
+    # which id-flavor the upstream surfaced it as.
     async with pool.acquire() as conn:
-        results = await search_videos(conn, videos_ids=[video_id], limit=1)
+        results = await search_videos(conn, video_ids=[video_id], limit=1)
+        if not results:
+            results = await search_videos(conn, videos_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

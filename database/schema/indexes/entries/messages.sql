@@ -25,3 +25,11 @@ CREATE INDEX idx_messages_entry_run_id ON public.messages_entry USING btree (run
 
 
 --
+
+-- Name: idx_messages_entry_run_id_no_reasoning; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_messages_entry_run_id_no_reasoning ON public.messages_entry USING btree (run_id, created_at) WHERE ((active = true) AND (reasoning = false));
+
+
+--

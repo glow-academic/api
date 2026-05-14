@@ -83,11 +83,20 @@ async def upload_audio(
 
             filename = file.filename
             content_type = file.content_type or get_content_type(filename)
-            if content_type not in ALLOWED_AUDIO_TYPES:
+            # ``MediaRecorder`` returns codec-tagged content types like
+            # ``audio/webm;codecs=opus`` — valid HTTP but a literal
+            # string mismatch against the bare ``audio/webm`` in
+            # ALLOWED_AUDIO_TYPES. Normalize by stripping parameters
+            # before the membership check; persist the bare base type
+            # so the upload row matches what other consumers (entry
+            # search, MV) expect.
+            base_content_type = content_type.split(";", 1)[0].strip().lower()
+            if base_content_type not in ALLOWED_AUDIO_TYPES:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Unsupported audio type: {content_type}",
                 )
+            content_type = base_content_type
 
             file_bytes = await file.read()
             if not file_bytes:

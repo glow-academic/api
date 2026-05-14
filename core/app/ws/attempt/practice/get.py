@@ -8,7 +8,7 @@ from app.infra.identity.socket import resolve_socket_identity
 from app.routes.attempt.practice import get_practice_internal
 
 
-@sio.on("attempt.practice.get")  # type: ignore
+@sio.on("attempt.practice")  # type: ignore
 async def practice_get(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

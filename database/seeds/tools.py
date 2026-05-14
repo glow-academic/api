@@ -103,10 +103,10 @@ tools = [
         id=sid("tool/attempt/audio_download"),
         resource_id=sid("tool-resource/attempt/audio_download"),
         name="Attempt Audio Download",
-        description="Download an audio resource by audio_id",
+        description="Download an audio resource by audios_id (the public resource handle).",
         permission_ids=[sid("permission/attempt/audio_download")],
-        args=["audio_id"],
-        args_outputs=["artifact_attempt", "operation_audio_download", "audio_id"],
+        args=["audios_id"],
+        args_outputs=["artifact_attempt", "operation_audio_download", "audios_id"],
         instruction_id=_iid("Attempt Audio Download"),
     ),
     dict(
@@ -633,10 +633,10 @@ tools = [
         id=sid("tool/system/audio_download"),
         resource_id=sid("tool-resource/system/audio_download"),
         name="System Audio Download",
-        description="Download an audio resource by audio_id",
+        description="Download an audio resource by audios_id (the public resource handle).",
         permission_ids=[sid("permission/system/audio_download")],
-        args=["audio_id"],
-        args_outputs=["artifact_system", "operation_audio_download", "audio_id"],
+        args=["audios_id"],
+        args_outputs=["artifact_system", "operation_audio_download", "audios_id"],
         instruction_id=_iid("System Audio Download"),
     ),
     dict(
@@ -1931,14 +1931,33 @@ tools = [
         instruction_id=_iid("Attempt Drafts"),
     ),
     dict(
-        id="b77181f7-91fc-5783-bcc1-de4c432b6ac3",
-        resource_id=sid("tool-resource/attempt/generate"),
-        name="Attempt Generate",
-        description="Trigger blocking attempt-chat generation. Returns when the assistant turn is complete with `run_id` + `group_id`; events also stream live via the watch route. Set `wait_for_complete=false` (advanced) to fire-and-forget and pair with `Attempt_Watch`.",
+        id=sid("tool/attempt/audio_generate"),
+        resource_id=sid("tool-resource/attempt/audio_generate"),
+        name="Attempt Audio Generate",
+        description=(
+            "Synthesize an audio version of the assistant's next chat message. "
+            "Pass ``instructions`` (the exact text the assistant intends to say — "
+            "TTS will speak these words verbatim) and ``voice`` (e.g. ``alloy``, "
+            "``echo``, ``onyx``, ``nova``, ``shimmer``). Returns ``run_id`` + "
+            "``group_id`` when the audio asset is rendered; the produced "
+            "``audios_id`` (the public audios_resource handle) is in the response. "
+            "Then call ``Attempt_Chat_Message`` with the same text plus that "
+            "``audios_id`` so the message in the chat carries the matching voice "
+            "playback. Modalities are hardcoded to ``[\"audio\"]`` — the model "
+            "cannot override."
+        ),
         permission_ids=[sid("permission/attempt/generate")],
-        args=[],
-        args_outputs=["artifact_attempt", "operation_generate", "wait_for_complete_true", "instructions_role_assistant"],
-        instruction_id=_iid("Attempt Generate"),
+        args=["instructions", "voice"],
+        args_outputs=[
+            "artifact_attempt",
+            "operation_generate",
+            "modalities_wrapped_audio",
+            "instructions_wrapped",
+            "voice",
+            "wait_for_complete_true",
+            "instructions_role_assistant",
+        ],
+        instruction_id=_iid("Attempt Audio Generate"),
     ),
     dict(
         id="c4ad3d88-e1ba-5827-9d3e-312189413fd2",
@@ -4894,8 +4913,8 @@ tools = [
         name="Attempt Chat Message",
         description="Create a message in an attempt chat with text and persona_id",
         permission_ids=[sid("permission/attempt/chat_message")],
-        args=["chat_id", "text", "persona_id", "audio_id", "parent_message_id"],
-        args_outputs=["artifact_attempt", "operation_chat_message", "chat_id", "text", "persona_id", "audio_id", "parent_message_id"],
+        args=["chat_id", "text", "persona_id", "audios_id", "parent_message_id"],
+        args_outputs=["artifact_attempt", "operation_chat_message", "chat_id", "text", "persona_id", "audios_id", "parent_message_id"],
         instruction_id=_iid("Attempt Chat Message"),
     ),
     dict(

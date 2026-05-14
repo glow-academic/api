@@ -25,21 +25,38 @@
 
 {% if "chat_message" in operations and "chat_create" not in operations %}
 {# ── MESSAGE MODE ── #}
+{% set voice_mode = "generate" in operations %}
 
 ## Steps
 
 1. Call **Attempt_Get**(attempt_id: "{{ params.attempt_id }}") to get persona context
 2. Read the personas and find your `persona_id` from "Your Persona ID"
+{% if voice_mode %}
+3. Compose your in-character response text (the exact words you'll say).
+4. Call **Attempt_Audio_Generate** with:
+   - `instructions`: the exact text from step 3
+   - `voice`: a TTS voice name (e.g. `alloy`, `echo`, `onyx`, `nova`, `shimmer`)
+   It returns an `audios_id` (the public audios_resource handle).
+5. Call **Attempt_Chat_Message** with:
+   - `chat_id`: `"{{ params.chat_id }}"`
+   - `persona_id`: your persona ID from step 2
+   - `text`: the same response text from step 3
+   - `audios_id`: the `audios_id` returned in step 4
+{% else %}
 3. Call **Attempt_Chat_Message** with:
    - `chat_id`: `"{{ params.chat_id }}"`
-   - `persona_id`: your persona ID from step 1
+   - `persona_id`: your persona ID from step 2
    - `text`: your in-character response
+{% endif %}
 
 **Rules:**
 - Stay in character — you are the persona assigned to this chat
 - Respond naturally to what the user said
 - Always pass `persona_id` — get it from `Attempt_Get`
 - Do NOT output plain text — use the tool call
+{% if voice_mode %}
+- **Voice mode is ON** — the audio step is required, not optional. Call **Attempt_Audio_Generate** BEFORE **Attempt_Chat_Message**, and forward the returned `audios_id`. Exactly 3 tool calls per turn.
+{% endif %}
 
 {% elif "chat_create" in operations %}
 {# ── SETUP MODE ── #}

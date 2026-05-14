@@ -36,6 +36,7 @@ async def search_messages(
         SELECT DISTINCT {source_alias}.message_id, {source_alias}.run_id, {source_alias}.role, {source_alias}.message_created_at,
                {source_alias}.text_ids, {source_alias}.audio_ids, {source_alias}.image_ids,
                {source_alias}.video_ids, {source_alias}.file_ids, {source_alias}.call_ids,
+               {source_alias}.reasoning,
                COUNT(*) OVER() AS total_count
         FROM {from_source}
         LEFT JOIN messages_agents_connection mac ON mac.message_id = {source_alias}.message_id

@@ -85,6 +85,7 @@ COMPOSER_AGENT = sid("agent/composer")
 ACTIVITY_AGENT_RESOURCE = sid("agent-resource/activity")
 AGENT_AGENT_RESOURCE = sid("agent-resource/agent")
 ATTEMPT_AGENT_RESOURCE = sid("agent-resource/attempt")
+ATTEMPT_AUDIO_AGENT_RESOURCE = sid("agent-resource/attempt-audio")
 ATTEMPT_REALTIME_AGENT_RESOURCE = sid("agent-resource/attempt-realtime")
 # TODO: Remove after cleanup
 ATTEMPT_CHAT_AGENT_RESOURCE = sid("agent-resource/attempt-chat")
@@ -182,7 +183,7 @@ agents = [
             sid("tool-resource/attempt/draft"),
             sid("tool-resource/attempt/drafts"),
             sid("tool-resource/attempt/export"),
-            sid("tool-resource/attempt/generate"),
+            sid("tool-resource/attempt/audio_generate"),
             sid("tool-resource/attempt/generations"),
             sid("tool-resource/attempt/get"),
             sid("tool-resource/attempt/title"),
@@ -733,6 +734,23 @@ agents = [
         description="Image generation agent for creating scenario visuals",
         flag_ids=[AGENT_ACTIVE_FLAG],
         model_id=_role_model("image"),
+        tool_ids=[
+        ],
+    ),
+    dict(
+        # Picked by the score_agents dispatcher when an attempt chat
+        # turn calls ``Attempt_Audio_Generate`` (output modalities =
+        # ``["audio"]``). The narrowest audio-out agent — beats
+        # Scenario Video (audio+video) and Attempt Realtime (audio+
+        # call+text) on least-privilege ranking, so TTS routing lands
+        # here cleanly. Model is the dedicated one-shot ``glow-audio``
+        # role; the tts executor calls ``litellm.aspeech`` against it.
+        id=sid("agent/attempt-audio"),
+        resource_id=sid("agent-resource/attempt-audio"),
+        name="Attempt Audio",
+        description="One-shot text→audio TTS agent for the chat panel (Attempt_Audio_Generate).",
+        flag_ids=[AGENT_ACTIVE_FLAG],
+        model_id=_role_model("audio"),
         tool_ids=[
         ],
     ),

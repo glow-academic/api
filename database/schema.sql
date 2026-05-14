@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict auy8INbdHtzl4u7d0deqFiTlCkcQpaHcDzpo61ZcIWxsmnPbhI1zh3pQVPs0JBs
+\restrict AakKjg92zZislZgaX5U8a1iQFKh07l1t0ygGkz2VyfaR2eYR8AceMVboCn3y5UH
 
 -- Dumped from database version 18.1 (Homebrew)
 -- Dumped by pg_dump version 18.1 (Homebrew)
@@ -6744,6 +6744,51 @@ CREATE TABLE public.logins_resource (
 
 
 --
+-- Name: logouts_entry; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.logouts_entry (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    session_id uuid NOT NULL
+);
+
+
+--
+-- Name: profiles_logouts_connection; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profiles_logouts_connection (
+    profiles_id uuid NOT NULL,
+    logout_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    generated boolean DEFAULT false NOT NULL,
+    mcp boolean DEFAULT false NOT NULL,
+    active boolean DEFAULT true NOT NULL
+);
+
+
+--
+-- Name: logouts_mv; Type: MATERIALIZED VIEW; Schema: public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW public.logouts_mv AS
+ SELECT l.id AS logout_id,
+    plc.profiles_id AS profile_id,
+    l.session_id,
+    l.created_at,
+    l.active,
+    l.mcp,
+    l.generated
+   FROM (public.logouts_entry l
+     LEFT JOIN public.profiles_logouts_connection plc ON (((plc.logout_id = l.id) AND (plc.active = true))))
+  WITH NO DATA;
+
+
+--
 -- Name: mcp_resource; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -6818,7 +6863,8 @@ CREATE TABLE public.messages_entry (
     role text NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
+    active boolean DEFAULT true NOT NULL,
+    reasoning boolean DEFAULT false NOT NULL
 );
 
 
@@ -6881,6 +6927,7 @@ CREATE MATERIALIZED VIEW public.messages_mv AS
  SELECT m.id AS message_id,
     m.run_id,
     m.role,
+    m.reasoning,
     m.created_at AS message_created_at,
     COALESCE(ua.text_ids, ARRAY[]::uuid[]) AS text_ids,
     COALESCE(ua.audio_ids, ARRAY[]::uuid[]) AS audio_ids,
@@ -15071,6 +15118,14 @@ ALTER TABLE ONLY public.logins_resource
 
 
 --
+-- Name: logouts_entry logouts_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.logouts_entry
+    ADD CONSTRAINT logouts_entry_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: mcp_resource mcp_resource_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -16060,6 +16115,14 @@ ALTER TABLE ONLY public.profiles_grants_connection
 
 ALTER TABLE ONLY public.profiles_logins_connection
     ADD CONSTRAINT profiles_logins_connection_pkey PRIMARY KEY (profiles_id, login_id);
+
+
+--
+-- Name: profiles_logouts_connection profiles_logouts_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profiles_logouts_connection
+    ADD CONSTRAINT profiles_logouts_connection_pkey PRIMARY KEY (profiles_id, logout_id);
 
 
 --
@@ -21954,6 +22017,20 @@ CREATE INDEX idx_logins_entry_mcp ON public.logins_entry USING btree (mcp);
 
 
 --
+-- Name: idx_logouts_entry_generated; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_logouts_entry_generated ON public.logouts_entry USING btree (generated);
+
+
+--
+-- Name: idx_logouts_entry_mcp; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_logouts_entry_mcp ON public.logouts_entry USING btree (mcp);
+
+
+--
 -- Name: idx_message_uploads_entry_message_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -21993,6 +22070,13 @@ CREATE INDEX idx_messages_entry_role ON public.messages_entry USING btree (role)
 --
 
 CREATE INDEX idx_messages_entry_run_id ON public.messages_entry USING btree (run_id);
+
+
+--
+-- Name: idx_messages_entry_run_id_no_reasoning; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_messages_entry_run_id_no_reasoning ON public.messages_entry USING btree (run_id, created_at) WHERE ((active = true) AND (reasoning = false));
 
 
 --
@@ -25549,6 +25633,20 @@ CREATE INDEX logins_entry_session_id_idx ON public.logins_entry USING btree (ses
 --
 
 CREATE UNIQUE INDEX logins_mv_login_id_idx ON public.logins_mv USING btree (login_id);
+
+
+--
+-- Name: logouts_entry_session_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX logouts_entry_session_id_idx ON public.logouts_entry USING btree (session_id);
+
+
+--
+-- Name: logouts_mv_logout_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX logouts_mv_logout_id_idx ON public.logouts_mv USING btree (logout_id);
 
 
 --
@@ -36057,5 +36155,5 @@ ALTER TABLE ONLY public.videos_videos_connection
 -- PostgreSQL database dump complete
 --
 
-\unrestrict auy8INbdHtzl4u7d0deqFiTlCkcQpaHcDzpo61ZcIWxsmnPbhI1zh3pQVPs0JBs
+\unrestrict AakKjg92zZislZgaX5U8a1iQFKh07l1t0ygGkz2VyfaR2eYR8AceMVboCn3y5UH
 

@@ -8,7 +8,7 @@ from app.infra.identity.socket import resolve_socket_identity
 from app.infra.invocation.drafts import list_invocation_drafts_impl
 
 
-@sio.on("test.invocation.drafts")  # type: ignore
+@sio.on("test.invocation_drafts")  # type: ignore
 async def invocation_drafts(sid: str, data: dict[str, Any]) -> None:
     identity = await resolve_socket_identity(sid)
     if not identity:

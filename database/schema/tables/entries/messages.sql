@@ -12,7 +12,8 @@ CREATE TABLE public.messages_entry (
     role text NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
-    active boolean DEFAULT true NOT NULL
+    active boolean DEFAULT true NOT NULL,
+    reasoning boolean DEFAULT false NOT NULL
 );
 
 

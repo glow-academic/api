@@ -15,6 +15,7 @@ async def create_message(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    reasoning: bool = False,
     agent_ids: list[UUID] | None = None,
     created_at: datetime | None = None,
 ) -> CreateMessageResponse:
@@ -27,11 +28,17 @@ async def create_message(
     stamped ``now()``, which sorts after the nested run's outputs and
     renders the tool-call indicator below its own produced media in the
     FE chat panel.
+
+    ``reasoning`` flags the row as a chain-of-thought trace. Defaults to
+    false so all existing callers keep producing normal messages. Set to
+    true only when persisting the model's intermediate thinking output
+    (e.g. Gemma 4 / GPT-5 reasoning channels) — the FE can collapse such
+    rows independently of the final answer.
     """
     row = await conn.fetchrow(
         """
-        INSERT INTO messages_entry (id, run_id, role, active, mcp, generated, created_at)
-        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, now()))
+        INSERT INTO messages_entry (id, run_id, role, active, mcp, generated, reasoning, created_at)
+        VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, $7, COALESCE($6, now()))
         RETURNING id, created_at
     """,
         run_id,
@@ -40,6 +47,7 @@ async def create_message(
         mcp,
         id,
         created_at,
+        reasoning,
     )
 
     if row is None:
