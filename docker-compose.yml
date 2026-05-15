@@ -249,7 +249,8 @@ services:
       volume-init:
         condition: service_completed_successfully
     command: >
-      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --log-level info
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+      --log-level info --timeout 300 --graceful-timeout 10
     networks:
       - internal
       - public_net
@@ -308,7 +309,8 @@ services:
       volume-init:
         condition: service_completed_successfully
     command: >
-      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 --log-level info
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+      --log-level info --timeout 300 --graceful-timeout 10
     networks:
       - internal
       - public_net
