@@ -1,0 +1,23 @@
+# Build-context exclusions for `docker build -f core/Dockerfile .`
+#
+# We COPY uploads/ into the api image (seed assets — text excerpts,
+# theme files, etc. — that the seed runner needs at first-deploy time).
+# Skip the heavy / dev-only bits.
+
+# Heavy: ~700MB of recorded call test data, not needed at runtime
+uploads/call/
+
+# Generated at runtime, never seed data
+uploads/audio/
+uploads/video/
+
+# Local dev / VCS noise
+.git/
+.github/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/node_modules/
+core/tests/
+database/history/
+database/node_modules/
