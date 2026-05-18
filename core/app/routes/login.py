@@ -152,33 +152,16 @@ async def me(identity: Identity = Depends(require_auth)):
 async def client_config(request: Request):
     """Return OAuth client credentials for frontend integration.
 
-    Authenticated by deployment token (managed or self-hosted).
-    Any frontend (Next.js, React, mobile) can call this to get
-    the credentials needed to connect to this server's auth.
-
-    Like Google/Microsoft OAuth: you get a client_id + secret,
-    plug them into your app, done.
+    Authenticated by the deployment token (generated on first deploy by
+    the glow CLI and written to the server's .env). Any frontend can call
+    this with the token to fetch the keycloak client_id + secret needed
+    to connect to this server's auth.
     """
-    from fastapi import Request as _  # already imported above
-
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
         raise HTTPException(401, "Missing deployment token")
-
-    token = auth[7:]
-
-    # Accept deployment token (exact match) or admin JWT
-    if token == _deployment_token:
-        pass  # deployment token verified
-    else:
-        # Try verifying as admin JWT
-        try:
-            identity = await require_auth(request=request, authorization=f"Bearer {token}")
-            if identity.role not in ("admin", "owner"):
-                raise HTTPException(403, "Admin access required")
-        except Exception:
-            raise HTTPException(401, "Invalid deployment token or admin credentials")
-
+    if not _deployment_token or auth[7:] != _deployment_token:
+        raise HTTPException(401, "Invalid deployment token")
     if not _auth_client_secret:
         raise HTTPException(500, "Server auth not configured (missing AUTH_CLIENT_SECRET)")
 

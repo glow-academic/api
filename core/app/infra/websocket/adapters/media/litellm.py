@@ -129,7 +129,7 @@ class LitellmMediaAdapter(BaseMediaAdapter):
         # routes ``provider/model``; a bare custom alias like ``glow-image``
         # against a custom ``base_url`` raises ``BadRequestError: LLM Provider
         # NOT provided``. The ``openai/`` prefix tells LiteLLM to speak the
-        # OpenAI-compatible protocol — which is what the LearnLoop proxy
+        # OpenAI-compatible protocol — which is what our gateway proxy
         # implements — using ``base_url`` as the endpoint.
         effective_model = (
             f"openai/{model}" if base_url and "/" not in model else model
@@ -144,7 +144,7 @@ class LitellmMediaAdapter(BaseMediaAdapter):
             # litellm.aimage_generation routes through the OpenAI provider
             # client; that client honors ``api_base``, NOT ``base_url`` —
             # passing ``base_url`` is silently ignored and the request
-            # hits OpenAI's real endpoint with our LearnLoop key, which
+            # hits OpenAI's real endpoint with our gateway key, which
             # OpenAI rejects with ``invalid_api_key``. Same gotcha as
             # ``aresponses()`` in execute.py:_call_responses_api.
             kwargs["api_base"] = base_url
@@ -321,9 +321,9 @@ class LitellmMediaAdapter(BaseMediaAdapter):
             try:
                 # The id we got from ``avideo_generation`` is opaque to
                 # us; the SDK decodes its own routing envelope to find
-                # the provider. The LearnLoop core gateway re-wraps the
-                # id one extra layer (see ``ai_video.py``) so this chain
-                # round-trips cleanly without us pinning the provider.
+                # the provider. Our upstream gateway re-wraps the id
+                # one extra layer so this chain round-trips cleanly
+                # without us pinning the provider.
                 status_response = await litellm.avideo_status(
                     video_id=generation_id,
                     api_key=api_key,
@@ -388,7 +388,7 @@ class LitellmMediaAdapter(BaseMediaAdapter):
             await asyncio.sleep(interval)
 
         # Get video content. The shape depends on the backend:
-        #   - LearnLoop/OpenAI ``/v1/videos/{id}/content`` returns the
+        #   - OpenAI ``/v1/videos/{id}/content`` returns the
         #     raw mp4 bytes inline → we get ``bytes`` (or an httpx-
         #     style object with ``.content`` / ``.read()``).
         #   - Some clients return a JSON envelope with a signed URL

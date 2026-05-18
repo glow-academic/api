@@ -14,7 +14,6 @@ from database.seeds.logins import (
     build_profile_logins,
 )
 from database.seeds.mcps import MCP_COMPOSER
-from database.seeds.providers import PROVIDER_IDS
 from database.seeds.setups.university.departments import (
     UNIVERSITY_DEPT,
     UNIVERSITY_DEPT_RESOURCE,
@@ -75,10 +74,12 @@ UNIVERSITY_SETTING_RESOURCE = sid("uni/setting-resource/university")
 
 _UNI_AUTH_IDS = [
     AUTH_RESOURCE_IDS[name]
-    for name in ("microsoft", "google", "learnloop")
+    for name in ("microsoft", "google")
     if name in AUTH_RESOURCE_IDS
 ]
-_UNI_PROVIDER_IDS = [PROVIDER_IDS[name] for name in ("learnloop",) if name in PROVIDER_IDS]
+# AI provider for this default setting is whatever the deploy yaml seeds —
+# no hardcoded fallback (was previously pinned to a 'learnloop' provider).
+_UNI_PROVIDER_IDS: list = []
 
 settings = [
     dict(

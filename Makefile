@@ -1,5 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure deploy deploy-clean seed-gen sync-types
-.PHONY: deploy-target switch-traffic switch-kc-traffic rollback monitor deploy-status detect-env pull-images stage-release
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure seed-gen migrate-docker
 
 # Default Python interpreter
 PYTHON := python3.11
@@ -40,19 +39,6 @@ setup-venv: check-python
 
 # Alias for setup
 configure: setup
-
-# Deploy: start services (uses templates from history/)
-deploy:
-	@echo "🚀 Deploying Glow..."
-	@docker compose up -d --build
-	@echo "✅ Deploy complete"
-
-# Deploy clean: wipe volumes, start fresh
-deploy-clean:
-	@echo "🚀 Deploying Glow (clean)..."
-	@docker compose down -v
-	@docker compose up -d --build
-	@echo "✅ Clean deploy complete"
 
 # Install all dependencies
 install: check-venv
@@ -143,37 +129,6 @@ import pathlib; \
 p.write_text(json.dumps(get_openapi(title=fastapi_app.title, version='0.1.0', routes=fastapi_app.routes, description='Auto-generated OpenAPI schema'), indent=2)); \
 print('✅ openapi.json written to', p.resolve())"
 
-# Provision a deployment token from the LearnLoop API (local dev only).
-# Creates a fresh provision token in the learnloop DB, claims it via HTTP,
-# and exports DEPLOYMENT_TOKEN for the server process.
-# Requires: learnloop-api running on AUTH_ISSUER (default http://localhost:8100).
-provision-token:
-	@LEARNLOOP_DB=$${LEARNLOOP_DB_NAME:-learnloopapi}; \
-	LEARNLOOP_URL=$${AUTH_ISSUER:-http://localhost:8100}; \
-	DB_U=$${DB_USER:-myuser}; \
-	DB_P=$${DB_PASSWORD:-mypassword}; \
-	DB_H=$${DB_HOST:-localhost}; \
-	DB_PT=$${DB_PORT:-5432}; \
-	TOKEN=$$(PGPASSWORD=$$DB_P psql -h $$DB_H -p $$DB_PT -U $$DB_U -d $$LEARNLOOP_DB -tAqc " \
-		INSERT INTO provision_tokens (organization_id, deployment_id, token, expires_at) \
-		SELECT d.organization_id, d.id, 'pt_' || encode(gen_random_bytes(32), 'hex'), \
-		       NOW() + interval '1 hour' \
-		FROM deployments d WHERE d.name = 'glow-api' AND d.active = true \
-		RETURNING token" 2>/dev/null | head -1 | tr -d '[:space:]'); \
-	if [ -z "$$TOKEN" ]; then \
-		echo "⚠️  Could not create provision token (is learnloop DB seeded?)"; \
-		echo "   Continuing without DEPLOYMENT_TOKEN..."; \
-	else \
-		DT=$$(printf '{"token":"%s"}' "$$TOKEN" | curl -sf -X POST "$$LEARNLOOP_URL/provision/claim" \
-			-H 'Content-Type: application/json' \
-			-d @- | $(VENV_PYTHON) -c "import sys,json; print(json.load(sys.stdin).get('deployment_token',''))" 2>/dev/null); \
-		if [ -n "$$DT" ]; then \
-			echo "$$DT"; \
-		else \
-			echo "⚠️  Could not claim provision token (is learnloop-api running on $$LEARNLOOP_URL?)"; \
-		fi; \
-	fi
-
 # Start all services in foreground with combined logs
 run: check-venv
 	@echo "🚀 Starting GLOW API services..."
@@ -185,14 +140,7 @@ run: check-venv
 	@echo "Press Ctrl+C to stop all services"
 	@echo "----------------------------------------"
 	@psql postgresql://$${DB_USER:-myuser}:$${DB_PASSWORD:-mypassword}@localhost:$(DATABASE_PORT)/$${DB_NAME:-glowapi} -c "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;" 2>/dev/null || true
-	@DEPLOYMENT_TOKEN=$$($(MAKE) -s provision-token 2>/dev/null); \
-	if [ -n "$$DEPLOYMENT_TOKEN" ]; then \
-		echo "✅ Deployment token provisioned"; \
-	else \
-		echo "⚠️  No deployment token (learnloop-api not running?)"; \
-	fi; \
-	export DEPLOYMENT_TOKEN; \
-	trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; echo "✅ All services stopped (run make stop to also stop Keycloak)"; exit 0' INT; \
+	@trap 'echo ""; echo "🛑 Stopping all services..."; pkill -f "redis-server.*$(REDIS_PORT)" 2>/dev/null || true; pkill -f "uvicorn.*$(SERVER_PORT)" 2>/dev/null || true; pkill -f "stream-logs.js" 2>/dev/null || true; pkill -f "docker logs.*glow-keycloak" 2>/dev/null || true; echo "✅ All services stopped (run make stop to also stop Keycloak)"; exit 0' INT; \
 	exec 2>/dev/null; \
 	if docker ps --filter name=glow-keycloak --format "{{.Names}}" | grep -q "^glow-keycloak$$"; then \
 		echo "✅ Keycloak already running, attaching to logs..."; \
@@ -399,42 +347,10 @@ down:
 docker-logs:
 	docker compose logs -f
 
-# ── Deployment ───────────────────────────────────────────────
-deploy-target:
-	./scripts/deploy-target.sh $(ENV)
-
-switch-traffic:
-	./scripts/switch-traffic.sh $(ENV)
-
-switch-kc-traffic:
-	./scripts/switch-kc-traffic.sh $(KC_ENV)
-
-rollback:
-	./scripts/switch-traffic.sh $(ROLLBACK_ENV)
-
-monitor:
-	./scripts/monitor.sh $(ENV) $(ROLLBACK_ENV) $(GRACE)
-
-detect-env:
-	./scripts/detect-env.sh
-
-pull-images:
-	./scripts/pull-images.sh
-
-stage-release:
-	./scripts/stage-release.sh . $(DEST) $(SHA)
-
+# Invoked inside the api container by the CLI's orchestrator to run
+# additive / destructive migrations during a blue/green swap.
 migrate-docker:
 	./scripts/migrate-docker.sh $(TYPE)
-
-# Sync upstream API version for compat tracking
-LEARNLOOP_API_URL ?= http://localhost:8100
-sync-types: ## Record LearnLoop API version this glow-api integrates with
-	@echo "Fetching LearnLoop API version from $(LEARNLOOP_API_URL)..."
-	@curl -sf $(LEARNLOOP_API_URL)/openapi.json -o /tmp/ll-openapi.json
-	@echo "{\"learnloop-api\":{\"version\":\"$$(jq -r '.info.version' /tmp/ll-openapi.json)\",\"synced_at\":\"$$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}}" | jq . > api-versions.json
-	@rm -f /tmp/ll-openapi.json
-	@echo "✅ api-versions.json updated"
 
 # Show help
 help:
@@ -442,8 +358,7 @@ help:
 	@echo ""
 	@echo "Getting started:"
 	@echo "  setup          - Copy .env.example to .env"
-	@echo "  deploy         - Start all Docker services"
-	@echo "  deploy-clean   - Wipe volumes and start fresh"
+	@echo "  (production deploys are handled by the glow CLI)"
 	@echo ""
 	@echo "Environment setup:"
 	@echo "  setup-venv   - Create virtual environment at .venv"

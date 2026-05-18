@@ -205,11 +205,7 @@ class TestAttemptRoute:
         redis_client,
         attempt_route_client,
         attempt_route_actor,
-        monkeypatch,
     ):
-        async def _noop_gate(*a, **kw):
-            pass
-        monkeypatch.setattr("app.infra.ledger.gate.ledger_gate", _noop_gate)
         graph = await _create_attempt_start_home(
             pool, redis_client, attempt_route_actor
         )

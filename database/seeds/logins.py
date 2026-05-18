@@ -29,7 +29,6 @@ _auth_providers = get_auth_providers(_config)
 _AUTH_ICON_MAP: dict[str, str] = {
     "google": "globe",
     "microsoft": "grid",
-    "learnloop": "sparkles",
 }
 
 _DEFAULT_AUTH_ICON_SLUG = "key"

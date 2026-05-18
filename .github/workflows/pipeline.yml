@@ -2,9 +2,9 @@ name: Pipeline
 
 on:
   push:
-    branches: [main, beta, v1]
+    branches: [main, beta]
   pull_request:
-    branches: [main, beta, v1]
+    branches: [main, beta]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ env:
 jobs:
   # ── Stage 1: Test ───────────────────────────────────────────
   test:
-    runs-on: [self-hosted, Linux, X64, deploy]
+    runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip tests]')"
     steps:
       - uses: actions/checkout@v5
@@ -51,10 +51,8 @@ jobs:
           fi
 
   schema-check:
-    runs-on: [self-hosted, Linux, X64, deploy]
-    if: |
-      github.ref != 'refs/heads/v1' &&
-      !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     env:
       # Per-run container name so concurrent schema-check jobs on the
       # same self-hosted runner don't collide. Previously every job
@@ -109,7 +107,7 @@ jobs:
   # ── Stage 2: Release ────────────────────────────────────────
   release:
     needs: [test, schema-check]
-    runs-on: [self-hosted, Linux, X64, deploy]
+    runs-on: ubuntu-latest
     if: |
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
@@ -137,16 +135,11 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
 
-      - name: Validate version matches branch
+      - name: Validate version
         run: |
-          MAJOR=$(echo "${{ steps.version.outputs.version }}" | cut -d. -f1)
-          BRANCH="${{ github.ref_name }}"
-          if [ "$BRANCH" = "v1" ] && [ "$MAJOR" != "1" ]; then
-            echo "::error::v1 branch must have 1.x.x version, got ${{ steps.version.outputs.version }}"
-            exit 1
-          fi
-          if [ "$BRANCH" = "main" ] && [ "$MAJOR" = "1" ]; then
-            echo "::error::main branch must not have 1.x.x version, got ${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "::error::version must be semver (got '$VERSION')"
             exit 1
           fi
 
@@ -190,18 +183,18 @@ jobs:
           file: ./core/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }}
-            ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
+            ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/glow-academic/api:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
           labels: |
-            org.opencontainers.image.source=https://github.com/learnloopllc/glow-api
+            org.opencontainers.image.source=https://github.com/glow-academic/api
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Export Docker image tarball
         if: steps.check.outputs.released == 'true'
         run: |
-          docker pull ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }}
-          docker tag ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }} glow-api:${{ steps.version.outputs.tag }}
+          docker pull ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }}
+          docker tag ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }} glow-api:${{ steps.version.outputs.tag }}
           docker save glow-api:${{ steps.version.outputs.tag }} | gzip > glow-api-${{ steps.version.outputs.tag }}.tar.gz
           echo "Exported $(du -h glow-api-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
 
@@ -209,7 +202,7 @@ jobs:
         if: steps.check.outputs.released == 'true'
         run: |
           docker run --rm --user root --tmpfs /uploads \
-            ${{ env.REGISTRY }}/learnloopllc/glow-api:${{ steps.version.outputs.tag }} \
+            ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }} \
             python -c "
           import json
           from app.server import fastapi_app
@@ -222,18 +215,31 @@ jobs:
 
       - name: Generate compat.json
         if: steps.check.outputs.released == 'true'
+        # The compat.json asset is published alongside every release and
+        # consumed by sibling repos (CLI today; client + docs once they
+        # exist) to refuse incompatible combinations before a deploy.
+        # Shape: {component, version, requires: {<sibling>: {min_version}}}.
+        # Source of truth for the `requires` map is `api-versions.json`
+        # in this repo's root — edit there to bump the floor.
         run: |
           python3 -c "
           import json, os
-          compat = {'component': 'glow-api', 'version': '${{ steps.version.outputs.version }}'}
+          compat = {
+              'component': 'api',
+              'version': '${{ steps.version.outputs.version }}',
+              'requires': {},
+          }
           if os.path.exists('api-versions.json'):
               with open('api-versions.json') as f:
-                  versions = json.load(f)
-              compat['min_learnloop_api'] = versions.get('learnloop-api', {}).get('version', '2.0.0')
-          else:
-              compat['min_learnloop_api'] = '2.0.0'
+                  pins = json.load(f)
+              for sibling, entry in pins.items():
+                  if sibling.startswith('_'):
+                      continue  # skip _comment etc.
+                  if isinstance(entry, dict) and 'min_version' in entry:
+                      compat['requires'][sibling] = {'min_version': entry['min_version']}
           with open('compat.json', 'w') as f:
               json.dump(compat, f, indent=2)
+          print('compat.json:', json.dumps(compat, indent=2))
           "
 
       - name: Create release

@@ -2,7 +2,7 @@
 
 Each row's ``type`` is the canonical CSS-variable name (snake_case,
 optionally ``dark_``-prefixed). Hex codes are computed from the oklch
-values in ``learnloopllc-glow-client/app/globals.css`` so the seeded
+values in the Glow client's ``app/globals.css`` so the seeded
 theme reproduces the unthemed page within hex↔oklch rounding (visually
 identical) in both light and dark modes.
 

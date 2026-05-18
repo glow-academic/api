@@ -627,14 +627,12 @@ from app.routes import router as root_router  # noqa: E402
 fastapi_app.include_router(root_router)
 
 import app.ws  # noqa: E402, F401 — registers ws input/output handlers
-from app.routes.docs_proxy import router as docs_proxy_router  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # MCP mount
 # ---------------------------------------------------------------------------
 from app.routes.mcp import mcp_app  # noqa: E402
 
-fastapi_app.include_router(docs_proxy_router)
 fastapi_app.mount("/mcp", mcp_app, name="Artifacts-Resources-MCP")
 
 

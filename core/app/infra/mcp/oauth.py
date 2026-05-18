@@ -3,20 +3,16 @@
 Handles:
   - OAuth discovery endpoints (RFC 8414, RFC 9728)
   - Bearer token verification (delegates to resolve_identity.verify_jwt)
-  - LearnLoop-signed MCP proxy token verification (for external MCP access)
   - Profile resolution from JWT claims (delegates to resolve_identity._resolve_profile_id)
   - Feature flag gating (is_mcp_enabled)
   - Path rewriting for Cursor/ChatGPT compatibility
 """
 
 import os
-import time
 from typing import Any
 
-import httpx
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
-from jose import jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.utils.logging.db_logger import get_logger
@@ -27,125 +23,6 @@ logger = get_logger(__name__)
 ORIGIN = os.getenv("ORIGIN", "http://localhost")
 APP_PREFIX = os.getenv("APP_PREFIX", "")
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "master")
-
-# LearnLoop proxy token configuration
-LEARNLOOP_API_URL = (os.getenv("LEARNLOOP_API_URL", "").rstrip("/") or None)
-DEPLOYMENT_ID = (
-    os.getenv("DEPLOYMENT_ID")
-    or os.getenv("COMPOSE_PROJECT_NAME")
-    or None
-)
-
-# LearnLoop JWKS cache (1 hour TTL)
-_learnloop_jwks_cache: dict[str, Any] = {"keys": None, "ts": 0.0}
-_LEARNLOOP_JWKS_TTL = 3600  # 1 hour
-
-
-async def _get_learnloop_jwks() -> list[dict[str, Any]]:
-    """Fetch JWKS from LearnLoop API with 1-hour caching."""
-    now = time.time()
-    if (
-        _learnloop_jwks_cache["keys"] is not None
-        and now - _learnloop_jwks_cache["ts"] <= _LEARNLOOP_JWKS_TTL
-    ):
-        return _learnloop_jwks_cache["keys"]
-
-    jwks_url = f"{LEARNLOOP_API_URL}/jwks"
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(jwks_url)
-            resp.raise_for_status()
-            keys = resp.json().get("keys", [])
-            if keys:
-                _learnloop_jwks_cache["keys"] = keys
-                _learnloop_jwks_cache["ts"] = now
-                logger.debug(
-                    f"Fetched {len(keys)} keys from LearnLoop JWKS"
-                )
-                return keys
-    except Exception as e:
-        logger.warning(f"Failed to fetch LearnLoop JWKS from {jwks_url}: {e}")
-
-    # Fall back to cached keys if available
-    if _learnloop_jwks_cache["keys"] is not None:
-        logger.warning("Failed to refresh LearnLoop JWKS, using cached keys")
-        return _learnloop_jwks_cache["keys"]
-
-    raise RuntimeError(f"Failed to fetch LearnLoop JWKS from {jwks_url}")
-
-
-async def _verify_learnloop_proxy_token(
-    token: str,
-) -> dict[str, Any] | None:
-    """Verify a LearnLoop-signed MCP proxy token.
-
-    Returns the claims dict if valid, or None if the token is not a
-    LearnLoop proxy token (so the caller should fall through to Keycloak).
-
-    Raises ValueError if the token IS a LearnLoop proxy token but is invalid.
-    """
-    if not LEARNLOOP_API_URL or not DEPLOYMENT_ID:
-        return None
-
-    # Peek at claims without verification to check issuer + type
-    try:
-        unverified = jwt.get_unverified_claims(token)
-    except Exception:
-        return None
-
-    # Only handle tokens issued by LearnLoop with type=mcp_proxy
-    if unverified.get("iss") != LEARNLOOP_API_URL:
-        return None
-    if unverified.get("type") != "mcp_proxy":
-        return None
-
-    # This IS a LearnLoop proxy token — now verify it strictly
-    try:
-        headers = jwt.get_unverified_header(token)
-        kid = headers.get("kid")
-        if not kid:
-            raise ValueError("LearnLoop proxy token missing kid header")
-
-        keys = await _get_learnloop_jwks()
-        key = next((k for k in keys if k.get("kid") == kid), None)
-        if not key:
-            raise ValueError(
-                f"No matching LearnLoop JWK for kid={kid}"
-            )
-
-        claims = jwt.decode(
-            token,
-            key,
-            algorithms=[headers.get("alg", "RS256")],
-            options={
-                "verify_aud": False,
-                "verify_at_hash": False,
-            },
-            issuer=LEARNLOOP_API_URL,
-        )
-
-        # Verify deployment_id matches this instance
-        token_deployment_id = claims.get("deployment_id")
-        if token_deployment_id != DEPLOYMENT_ID:
-            raise ValueError(
-                f"deployment_id mismatch: token has {token_deployment_id!r}, "
-                f"expected {DEPLOYMENT_ID!r}"
-            )
-
-        return claims
-
-    except ValueError:
-        raise
-    except jwt.ExpiredSignatureError as e:
-        raise ValueError("LearnLoop proxy token expired") from e
-    except jwt.JWTClaimsError as e:
-        raise ValueError(
-            f"LearnLoop proxy token claims invalid: {e}"
-        ) from e
-    except Exception as e:
-        raise ValueError(
-            f"LearnLoop proxy token verification failed: {e}"
-        ) from e
 
 
 # Detect local dev environment
@@ -309,7 +186,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
 
         # --- Only process /mcp paths from here ---
 
-        if not path.startswith(mcp_path) and not path.startswith("/mcp") and not path.startswith("/docs-mcp"):
+        if not path.startswith(mcp_path) and not path.startswith("/mcp"):
             return await call_next(request)
 
         # Rewrite /mcp/sse/ → /mcp for FastMCP
@@ -351,71 +228,44 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
             )
             return oauth_401(request)
 
-        # --- Try LearnLoop-signed MCP proxy token first ---
+        # --- Keycloak OAuth verification ---
 
-        is_learnloop_proxy = False
         try:
-            proxy_claims = await _verify_learnloop_proxy_token(token)
-            if proxy_claims is not None:
-                # Valid LearnLoop proxy token — treat as authenticated
-                # external user (no Glow profile required)
-                is_learnloop_proxy = True
-                claims = proxy_claims
-                request.state.mcp_proxy = True
-                request.state.mcp_proxy_sub = claims.get("sub", "")
-                request.state.mcp_proxy_name = claims.get("name", "")
-                logger.info(
-                    f"MCP LearnLoop proxy token accepted: "
-                    f"sub={claims.get('sub')}, name={claims.get('name')}, "
-                    f"deployment_id={claims.get('deployment_id')}"
-                )
+            claims = verify_jwt(token)
+            logger.debug(
+                f"MCP OAuth token validated: "
+                f"sub={claims.get('sub')}, azp={claims.get('azp')}"
+            )
         except ValueError as e:
-            # Token IS a LearnLoop proxy token but failed verification
-            logger.warning(f"MCP LearnLoop proxy token rejected: {e}")
+            logger.warning(
+                f"MCP OAuth token validation failed: {e} | "
+                f"token_shape={_token_shape(token)}"
+            )
             return oauth_401(request)
 
-        # --- Fall through to Keycloak OAuth verification ---
-
-        if not is_learnloop_proxy:
-            try:
-                claims = verify_jwt(token)
-                logger.debug(
-                    f"MCP OAuth token validated: "
-                    f"sub={claims.get('sub')}, azp={claims.get('azp')}"
-                )
-            except ValueError as e:
-                logger.warning(
-                    f"MCP OAuth token validation failed: {e} | "
-                    f"token_shape={_token_shape(token)}"
-                )
-                return oauth_401(request)
-
         # --- Profile resolution (reuses resolve_identity._resolve_profile_id) ---
-        # Skip profile resolution for LearnLoop proxy tokens — they don't
-        # need a local Glow profile.
 
-        if not is_learnloop_proxy:
-            from app.infra.globals import get_pool
+        from app.infra.globals import get_pool
 
-            pool = get_pool()
-            if pool:
-                try:
-                    profile_id = await _resolve_profile_id(claims, pool)
-                    if profile_id:
-                        request.state.profile_id = str(profile_id)
-                        from app.utils.logging.db_logger import set_profile_id
+        pool = get_pool()
+        if pool:
+            try:
+                profile_id = await _resolve_profile_id(claims, pool)
+                if profile_id:
+                    request.state.profile_id = str(profile_id)
+                    from app.utils.logging.db_logger import set_profile_id
 
-                        set_profile_id(str(profile_id))
-                        logger.debug(f"MCP profile resolved: {profile_id}")
-                    else:
-                        logger.warning(
-                            f"MCP token valid but no profile for email: "
-                            f"{claims.get('email')}"
-                        )
-                except Exception as e:
-                    logger.error(
-                        f"Failed to resolve MCP profile: {e}", exc_info=True
+                    set_profile_id(str(profile_id))
+                    logger.debug(f"MCP profile resolved: {profile_id}")
+                else:
+                    logger.warning(
+                        f"MCP token valid but no profile for email: "
+                        f"{claims.get('email')}"
                     )
+            except Exception as e:
+                logger.error(
+                    f"Failed to resolve MCP profile: {e}", exc_info=True
+                )
 
         # Rewrite Cursor-style paths → /mcp for FastMCP
         if path in [

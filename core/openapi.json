@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "2.15.36"
+    "version": "2.15.38"
   },
   "paths": {
     "/persona/title": {
@@ -24359,7 +24359,7 @@
     "/auth/client-config": {
       "get": {
         "summary": "Client Config",
-        "description": "Return OAuth client credentials for frontend integration.\n\nAuthenticated by deployment token (managed or self-hosted).\nAny frontend (Next.js, React, mobile) can call this to get\nthe credentials needed to connect to this server's auth.\n\nLike Google/Microsoft OAuth: you get a client_id + secret,\nplug them into your app, done.",
+        "description": "Return OAuth client credentials for frontend integration.\n\nAuthenticated by the deployment token (generated on first deploy by\nthe glow CLI and written to the server's .env). Any frontend can call\nthis with the token to fetch the keycloak client_id + secret needed\nto connect to this server's auth.",
         "operationId": "client_config_auth_client_config_get",
         "responses": {
           "200": {
@@ -24387,29 +24387,6 @@
             }
           }
         }
-      }
-    },
-    "/docs-mcp": {
-      "post": {
-        "tags": [
-          "docs-proxy"
-        ],
-        "summary": "Docs Mcp Proxy",
-        "description": "Forward an MCP request to the Glow docs sibling.\n\nThis route is behind McpOAuthMiddleware, so the user is already\nauthenticated. We re-sign with the Glow API's key so the docs\ncan verify against our /jwks.",
-        "operationId": "docs_mcp_proxy_docs_mcp_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        },
-        "x-cache-tags": [
-          "docs-proxy"
-        ]
       }
     }
   },

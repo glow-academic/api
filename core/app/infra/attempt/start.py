@@ -9,7 +9,6 @@ reads attempt/get and calls attempt/chat/create via generate.
 
 from __future__ import annotations
 
-import uuid
 from uuid import UUID
 
 import asyncpg
@@ -45,8 +44,6 @@ async def attempt_start_impl(
     request: AttemptStartRequest,
 ) -> AttemptStartResponse:
     """Create an attempt from a home or practice entry."""
-    from app.infra.ledger.gate import LedgerDenied, ledger_gate, record_start
-    from app.infra.ledger.types import AttemptContext
     from app.tools.entries.attempt.create import create_attempt
     from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
@@ -102,62 +99,7 @@ async def attempt_start_impl(
     parent_entry = entries[0]
     simulation_ids = parent_entry.simulation_ids or []
 
-    # ── Step 3: Ledger gate ──────────────────────────────────────────────────
-
-    _sim_id: str | None = None
-    _sim_name: str | None = None
-    _pass_pct: float | None = None
-
-    if simulation_ids:
-        try:
-            from app.infra.attempt.chat.permissions import compute_pass_pct
-            from app.tools.artifacts.rubric.get import get_rubrics
-            from app.tools.artifacts.rubric.search import search_rubrics
-            from app.tools.resources.points.get import get_points
-
-            async with pool.acquire() as conn:
-                sims = await get_simulations(conn, simulation_ids[:1], redis, bypass_cache=True)
-                if sims:
-                    _sim_id = str(simulation_ids[0])
-                    _sim_name = sims[0].name
-
-                rubric_ids, _ = await search_rubrics(conn, simulation_ids=simulation_ids[:1], limit_count=1)
-                if rubric_ids:
-                    rubrics = await get_rubrics(conn, rubric_ids, points=True)
-                    if rubrics and rubrics[0].point_ids:
-                        points = await get_points(conn, rubrics[0].point_ids, redis, bypass_cache=True)
-                        total_pts = sum(p.value for p in points if p.type == "total")
-                        pass_pts = sum(p.value for p in points if p.type == "pass")
-                        pct = compute_pass_pct(total_pts, pass_pts)
-                        if pct is not None:
-                            _pass_pct = round(pct / 100.0, 2)
-        except Exception:
-            pass  # Non-fatal
-
-    try:
-        await ledger_gate(
-            attempt_id=str(uuid.uuid4()),
-            profile_id=str(profile_id),
-            email=identity.primary_email,
-            name=identity.name,
-            attempt_context=AttemptContext(
-                simulation_id=_sim_id,
-                simulation_name=_sim_name,
-                passing_threshold=_pass_pct,
-            ) if _sim_id else None,
-        )
-        record_start(
-            profile_id=str(profile_id),
-            email=identity.primary_email,
-            name=identity.name,
-            role=identity.role_name,
-            simulation_id=_sim_id,
-            simulation_name=_sim_name,
-        )
-    except LedgerDenied as e:
-        raise HTTPException(status_code=429, detail=f"Usage limit reached: {e.reason}") from e
-
-    # ── Step 4: Resolve persona + chats ──────────────────────────────────────
+    # ── Step 3: Resolve persona + chats ──────────────────────────────────────
 
     profile_ids = parent_entry.profile_ids or []
     if not profile_ids:
@@ -218,7 +160,7 @@ async def attempt_start_impl(
             sim_name = simulations[0].name
             sim_desc = simulations[0].description
 
-    # ── Step 5: Create attempt ───────────────────────────────────────────────
+    # ── Step 4: Create attempt ───────────────────────────────────────────────
 
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -254,7 +196,7 @@ async def attempt_start_impl(
                     session_id=session_id,
                 )
 
-    # ── Step 6: Refresh MVs ─────────────────────────────────────────────────
+    # ── Step 5: Refresh MVs ─────────────────────────────────────────────────
 
     async with pool.acquire() as conn:
         await refresh_attempt(conn)

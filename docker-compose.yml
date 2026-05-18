@@ -199,7 +199,7 @@ services:
   # API Server (Blue)
   # --------------------
   server-blue:
-    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api:${API_VERSION:?API_VERSION is required}
+    image: ${API_REGISTRY:-ghcr.io/glow-academic}/api:${API_VERSION:?API_VERSION is required}
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
@@ -213,15 +213,11 @@ services:
       - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
-      - DEPLOYMENT_ID=${COMPOSE_PROJECT_NAME:-}
-      - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - AI_PROVIDER=${AI_PROVIDER:-direct}
       - AI_API_KEY=${AI_API_KEY:-}
-      - AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
+      - AI_BASE_URL=${AI_BASE_URL:-}
       - AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
       - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
-      - LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID:-}
-      - LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET:-}
       - AUTH_ISSUER=${AUTH_ISSUER:-}
       - AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
       - INTERNAL_API_BASE=http://server-blue:8000
@@ -259,7 +255,7 @@ services:
   # API Server (Green)
   # --------------------
   server-green:
-    image: ${API_REGISTRY:-ghcr.io/learnloopllc}/glow-api:${API_VERSION:?API_VERSION is required}
+    image: ${API_REGISTRY:-ghcr.io/glow-academic}/api:${API_VERSION:?API_VERSION is required}
     environment:
       - DB_USER=${DB_USER:-myuser}
       - DB_PASSWORD=${DB_PASSWORD:-mypassword}
@@ -273,15 +269,11 @@ services:
       - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
-      - DEPLOYMENT_ID=${COMPOSE_PROJECT_NAME:-}
-      - LEARNLOOP_API_URL=${LEARNLOOP_API_URL:-}
       - AI_PROVIDER=${AI_PROVIDER:-direct}
       - AI_API_KEY=${AI_API_KEY:-}
-      - AI_BASE_URL=${AI_BASE_URL:-https://api.learn-loop.org/ai/v1}
+      - AI_BASE_URL=${AI_BASE_URL:-}
       - AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
       - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
-      - LEARNLOOP_CLIENT_ID=${LEARNLOOP_CLIENT_ID:-}
-      - LEARNLOOP_CLIENT_SECRET=${LEARNLOOP_CLIENT_SECRET:-}
       - AUTH_ISSUER=${AUTH_ISSUER:-}
       - AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
       - INTERNAL_API_BASE=http://server-green:8000
