@@ -41,6 +41,10 @@ COPY --from=deps /install /usr/local
 # the live stock postgres at first deploy.
 COPY core/app/ ./app/
 COPY database/ ./database/
+# Bake seed assets (text excerpts, themes) so first-deploy db-init can
+# resolve them from /app/uploads. uploads/call (700MB of test data)
+# and uploads/audio|video (runtime artifacts) are pruned via .dockerignore.
+COPY uploads/ ./uploads/
 
 # non-root for prod
 ARG APP_UID=1001
