@@ -2022,11 +2022,12 @@ async def _start_containers() -> tuple:
 async def _load_schema(conn: asyncpg.Connection) -> None:
     """Load schema into the database."""
     print("Loading schema...")
-    await conn.execute("""
-        CREATE SCHEMA IF NOT EXISTS keycloak;
-        CREATE TABLE IF NOT EXISTS keycloak.org (id text PRIMARY KEY, alias text);
-        CREATE TABLE IF NOT EXISTS keycloak.realm (name text PRIMARY KEY, ssl_required text);
-    """)
+    # Create the keycloak schema (its JDBC URL uses ?currentSchema=keycloak,
+    # which fails at connect time if the schema doesn't exist). Don't
+    # pre-create realm/org tables — keycloak's liquibase migrations
+    # create them itself on first boot, and stub tables here cause
+    # `relation "realm" already exists` failures under F2 in-place mode.
+    await conn.execute("CREATE SCHEMA IF NOT EXISTS keycloak;")
     schema_sql = _filter_meta_commands(_concat_schema(SCHEMA_DIR))
     await conn.execute(schema_sql)
     print("  Schema loaded.")
