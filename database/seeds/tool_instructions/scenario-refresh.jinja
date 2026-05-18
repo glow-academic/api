@@ -1,0 +1,5 @@
+{% if success %}
+Scenario materialized views refreshed successfully.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

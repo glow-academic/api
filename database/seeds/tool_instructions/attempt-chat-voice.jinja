@@ -1,0 +1,12 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Voice session started.
+- **Chat ID:** `{{ r.chat_id }}`
+- **Run ID:** `{{ r.run_id }}`
+- **Group ID:** `{{ r.group_id }}`
+- **Attempt ID:** `{{ r.attempt_id }}`
+{% elif results and results[0] and results[0].error %}
+Error starting voice: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

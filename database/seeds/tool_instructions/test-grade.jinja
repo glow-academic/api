@@ -1,0 +1,12 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Grade Created
+- **Grade ID:** `{{ r.grade_id }}`
+- **Passed:** {{ r.passed }}
+- **Score:** {{ r.score }}
+- **Time Taken:** {{ r.time_taken }}s
+{% elif results and results[0] and results[0].error %}
+Error creating grade: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

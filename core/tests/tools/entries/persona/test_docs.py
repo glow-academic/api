@@ -1,0 +1,46 @@
+"""Tests for get_persona_docs."""
+
+import pytest
+
+from app.tools.entries.persona.docs import get_persona_docs
+
+pytestmark = pytest.mark.asyncio
+
+
+async def test_returns_docs_response(conn):
+    result = await get_persona_docs(conn)
+
+    assert result.name == "persona"
+    assert result.type == "entry"
+    assert len(result.description) > 0
+
+
+async def test_has_materialized_view(conn):
+    result = await get_persona_docs(conn)
+
+    assert result.materialized_view is not None
+
+
+async def test_includes_source_tables(conn):
+    result = await get_persona_docs(conn)
+
+    table_names = [t.name for t in result.tables]
+    assert "personas_entry" in table_names
+    assert "personas_personas_connection" in table_names
+
+
+async def test_includes_all_operations(conn):
+    result = await get_persona_docs(conn)
+
+    op_names = [op.name for op in result.operations]
+    assert "create_persona" in op_names
+    assert "get_persona_entries_internal" in op_names
+    assert "search_personas" in op_names
+
+
+async def test_create_operation_has_params(conn):
+    result = await get_persona_docs(conn)
+
+    create_op = next(op for op in result.operations if op.name == "create_persona")
+    param_names = [p.name for p in create_op.params]
+    assert "simulation_id" in param_names or len(param_names) > 0

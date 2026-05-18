@@ -1,0 +1,82 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Attempt Detail
+{% if r.attempt %}- **Attempt ID:** `{{ r.attempt.id }}`
+{% endif %}
+{% if r.simulation %}- **Simulation:** {{ r.simulation.name }}{% endif %}
+{% if r.current_chat_id %}- **Current Chat ID:** `{{ r.current_chat_id }}`{% endif %}
+
+{% if r.resources and r.resources.personas -%}
+### Personas
+{% for pid, p in r.resources.personas.items() -%}
+- **{{ p.name }}**{% if p.entry_id %} (entry_id: `{{ p.entry_id }}`){% endif %}{% if p.color %} [{{ p.color }}]{% endif %}
+{% if p.instructions %}  Instructions: {{ p.instructions[:300] }}{% endif %}
+{% if p.examples %}  Examples: {{ p.examples | join(', ') }}{% endif %}
+{% endfor -%}
+{% endif %}
+
+{% if r.attempt and r.attempt.user_persona_id -%}
+**User persona (human trainee):** `{{ r.attempt.user_persona_id }}`
+{% endif -%}
+{% if r.resources and r.resources.personas -%}
+{% for pid, p in r.resources.personas.items() -%}
+{% if p.entry_id and p.entry_id != (r.attempt.user_persona_id | string if r.attempt and r.attempt.user_persona_id else '') -%}
+**You are:** **{{ p.name }}** — pass `persona_id: "{{ p.entry_id }}"` when calling Attempt_Chat_Message
+{% endif -%}
+{% endfor -%}
+{% endif %}
+
+{% if r.entries and r.entries.attempt_message -%}
+### Conversation
+{% for msg in r.entries.attempt_message -%}
+{% set msg_type = msg.type or "unknown" -%}
+- **[{{ msg_type | upper }}]** `{{ msg.id }}`{% if msg.contents %} — {% for c in msg.contents %}{% if c.name %}**{{ c.name }}**: {% endif %}{{ c.content[:500] if c.content else "" }}{% if not loop.last %} | {% endif %}{% endfor %}{% endif %}
+
+{% endfor -%}
+{% endif %}
+
+{% if r.entries and r.entries.attempt_chat and r.resources and (r.resources.questions or {}) -%}
+### Quiz Responses
+{% for chat in r.entries.attempt_chat -%}
+{% set chat_qids = chat.question_ids or [] -%}
+{% if chat_qids -%}
+**Chat `{{ chat.id }}`:**
+{% set response_map = {} -%}
+{% for resp in (chat.responses or []) -%}
+{% if response_map.update({ (resp.question_id | string): (resp.option_id | string) }) -%}{% endif -%}
+{% endfor -%}
+{% for qid in chat_qids -%}
+{% set q = r.resources.questions.get(qid | string) if r.resources.questions else none -%}
+{% if q -%}
+- `{{ qid }}` — {{ q.question_text }}{% if q.times %} [t={{ q.times | join(',') }}s]{% endif %}
+{% set picked_oid = response_map.get(qid | string) -%}
+{% for oid, opt in (r.resources.options or {}).items() -%}
+{% if (opt.question_id | string) == (qid | string) -%}
+  - `{{ oid }}` — {{ opt.option_text }} {% if opt.is_correct %}**(correct)**{% else %}(incorrect){% endif %}{% if oid == picked_oid %} **← user picked**{% endif %}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
+{% endfor %}
+{% endif -%}
+
+{% if r.rubric_structure and r.rubric_structure.standard_groups -%}
+### Rubric
+{% for group_id, standard_ids in r.rubric_structure.standard_groups.items() -%}
+{% set gm = r.rubric_structure.standard_groups_mapping[group_id] if r.rubric_structure.standard_groups_mapping and group_id in r.rubric_structure.standard_groups_mapping else none -%}
+#### {{ gm.name if gm and gm.name else "Standard Group" }} {% if gm and gm.points %}({{ gm.points | int }} pts{% if gm.pass_points %}, pass: {{ gm.pass_points | int }}{% endif %}){% endif %}
+
+{% if gm and gm.description %}{{ gm.description }}{% endif %}
+{% for sid in standard_ids -%}
+{% set sm = r.rubric_structure.standards_mapping[sid] if r.rubric_structure.standards_mapping and sid in r.rubric_structure.standards_mapping else none -%}
+- `{{ sid }}` — **{{ sm.name if sm and sm.name else "Standard" }}**{% if sm and sm.points %} ({{ sm.points | int }} pts){% endif %}{% if sm and sm.description %}: {{ sm.description }}{% endif %}
+
+{% endfor -%}
+{% endfor -%}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching attempt: {{ results[0].error }}
+{% else %}
+No attempt data returned.
+{% endif %}

@@ -1,0 +1,77 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Invocation Template Bundle
+{% if r.test_id %}- **Test ID:** `{{ r.test_id }}`{% endif %}
+{% if r.invocation_id %}- **Invocation Template ID:** `{{ r.invocation_id }}`{% endif %}
+{% if r.group_id %}- **Group ID:** `{{ r.group_id }}`{% endif %}
+
+{% macro section_status(items) %}{% if items is none %}disabled{% elif items | selectattr('selected') | list and not items | selectattr('suggested') | list %}locked{% elif items | selectattr('suggested') | list %}needs_input{% else %}empty{% endif %}{% endmacro -%}
+### Setup Summary
+{% set sections = [
+  (r.names, 'name_ids', 'Names'),
+  (r.descriptions, 'description_ids', 'Descriptions'),
+  (r.modalities, 'modality_ids', 'Modalities'),
+  (r.reasoning_levels, 'reasoning_level_ids', 'Reasoning Levels'),
+  (r.temperature_levels, 'temperature_level_ids', 'Temperature Levels'),
+  (r.qualities, 'quality_ids', 'Qualities'),
+  (r.voices, 'voice_ids', 'Voices'),
+  (r.departments, 'department_ids', 'Departments'),
+  (r.flags, 'flag_ids', 'Flags'),
+] -%}
+**Needs input:**
+{% for items, arg, label in sections %}{% if section_status(items) == 'needs_input' %}- {{ label }} → `{{ arg }}`
+{% endif %}{% endfor -%}
+{% set has_locked = [] %}{% for items, arg, label in sections %}{% if section_status(items) == 'locked' %}{% if has_locked.append(1) %}{% endif %}{% endif %}{% endfor %}{% if has_locked -%}
+**Locked (already set on template — inherit):**
+{% for items, arg, label in sections %}{% if section_status(items) == 'locked' %}- {{ label }}
+{% endif %}{% endfor -%}
+{% endif -%}
+**Auto-resolved server-side:** agent_ids (from model_ids), rubric_ids (from model_rubric_ids) — never pass unless `use_custom=true`
+
+---
+{% macro render_compressed(items, label, display_field, display_truncate) -%}
+{% if items is not none -%}
+{% set suggested = items | selectattr('suggested') | list -%}
+{% set selected = items | selectattr('selected') | list -%}
+{% if suggested -%}
+**{{ label }} (Available — pick when overriding):** {% for item in suggested %}{{ item[display_field] | string | truncate(display_truncate, True) if item[display_field] is not none else '(no value)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif selected -%}
+**{{ label }} (locked — inherited from template):** {% for item in selected %}{{ item[display_field] | string | truncate(display_truncate, True) if item[display_field] is not none else '(no value)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif -%}
+{% endif -%}
+{% endmacro -%}
+{% macro render_with_ids(items, label, id_field, display_field, display_truncate) -%}
+{% if items is not none -%}
+{% set suggested = items | selectattr('suggested') | list -%}
+{% set selected = items | selectattr('selected') | list -%}
+{% if suggested -%}
+**{{ label }} (Available — pick UUIDs when overriding):**
+{% for item in suggested %}- `{{ item[id_field] }}` — {{ item[display_field] | string | truncate(display_truncate, True) if item[display_field] is not none else '(no value)' }}
+{% endfor -%}
+{% elif selected -%}
+**{{ label }} (locked — inherited from template):**
+{% for item in selected %}- `{{ item[id_field] }}` — {{ item[display_field] | string | truncate(display_truncate, True) if item[display_field] is not none else '(no value)' }}
+{% endfor -%}
+{% endif -%}
+{% endif -%}
+{% endmacro -%}
+{{ render_compressed(r.names, 'Model Names', 'name', 60) -}}
+{{ render_compressed(r.descriptions, 'Descriptions', 'description', 200) -}}
+{{ render_with_ids(r.modalities, 'Modalities', 'id', 'modality', 40) -}}
+{{ render_with_ids(r.reasoning_levels, 'Reasoning Levels', 'id', 'reasoning_level', 40) -}}
+{{ render_with_ids(r.temperature_levels, 'Temperature Levels', 'id', 'temperature', 40) -}}
+{{ render_with_ids(r.qualities, 'Qualities', 'id', 'quality', 40) -}}
+{{ render_with_ids(r.voices, 'Voices', 'id', 'voice', 40) -}}
+{{ render_with_ids(r.departments, 'Departments', 'department_id', 'name', 60) -}}
+{{ render_compressed(r.flags, 'Flags', 'name', 60) -}}
+
+**Decision rule:** if no section above is flagged "needs input" or `use_custom=true` is not in your params, pass ONLY `test_id` + `invocation_id` to `Test_Invocation_Create` and let the server inherit the rest. Override only when a section is explicitly flagged for input or the caller opted into custom configuration.
+{% elif results and results[0] and results[0].error %}
+Error fetching benchmark invocation template: {{ results[0].error }}
+
+**Troubleshooting:**
+- `invocation_entry_id` must reference an active benchmark `invocation_entry` (the template), not a `test_invocation_entry` (the materialized row)
+- `test_id` must reference an active test on this profile/session
+{% else %}
+No invocation data returned.
+{% endif %}

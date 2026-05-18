@@ -1,0 +1,1 @@
+"""Registry generators package."""

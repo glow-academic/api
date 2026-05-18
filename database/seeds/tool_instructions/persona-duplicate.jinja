@@ -1,0 +1,5 @@
+{% if success %}
+Persona duplicated successfully.{% if persona_id %} New ID: `{{ persona_id }}`.{% endif %}
+{% else %}
+Duplicate failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

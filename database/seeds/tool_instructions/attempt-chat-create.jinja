@@ -1,0 +1,19 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Attempt chat created successfully.
+- **Attempt Chat ID:** `{{ r.attempt_chat_id }}`
+{% if r.idempotency_key %}- **Idempotency Key:** `{{ r.idempotency_key }}`{% endif %}
+
+Config flags, rubrics, departments, and scenarios were auto-resolved from the chat template.
+{% elif results and results[0] and results[0].error %}
+Error creating attempt chat: {{ results[0].error }}
+
+**Troubleshooting:**
+- Passing both ID and value for the same field (e.g. `name_id` + `name`)
+- Passing resources for a locked section (already set on template)
+- Passing resources for a disabled section (not enabled by scenario flags)
+- Persona or document not found by name — check spelling
+- Wrong cardinality — `problem_statement`, `video_id`, `image_id` are singular (exactly 1)
+{% else %}
+No result returned.
+{% endif %}

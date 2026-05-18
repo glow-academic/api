@@ -1,0 +1,507 @@
+"""Simulation search logic — composable infra architecture.
+
+Composes existing black-box tools:
+  1. resolve_profile_identity_context — profile (role, departments, name)
+  2. Reverse lookups — scenario_ids -> scenarios_resource IDs, cohort_ids -> cohort artifacts
+  3. search_simulations — core artifact search (IDs + total_count)
+  4. get_simulations — hydrate junction IDs
+  5. Resource get tools — hydrate scenarios, personas
+  6. Permissions — compute per-simulation can_edit, can_delete, can_duplicate
+  7. Facets — parallel resource/artifact searches for filter options
+"""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+from uuid import UUID
+
+import asyncpg
+from redis.asyncio import Redis
+
+from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.simulation.permissions import (
+    compute_can_delete,
+    compute_can_duplicate,
+    compute_can_edit,
+)
+from app.infra.simulation.types import (
+    ListSimulationApiPersona,
+    ListSimulationApiResponse,
+    ListSimulationApiScenario,
+    ListSimulationApiSimulation,
+)
+from app.tools.artifacts.simulation.get import get_simulations
+from app.tools.artifacts.simulation.search import search_simulations
+from app.tools.resources.cohorts.search import (
+    search_cohorts as search_cohorts_resource,
+)
+from app.tools.resources.departments.search import search_departments
+from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
+from app.tools.resources.names.get import get_names
+from app.tools.resources.personas.get import (
+    get_personas as get_personas_resource,
+)
+from app.tools.resources.scenarios.get import (
+    get_scenarios as get_scenarios_resource,
+)
+from app.tools.resources.scenarios.search import (
+    search_scenarios as search_scenarios_resource,
+)
+from app.utils.cache.big import (
+    DEFAULT_BIG_CACHE_TTL_S,
+    big_cache_key,
+    get_or_build,
+)
+
+SIMULATION_IMPORT_FIELDS: list[dict[str, Any]] = [
+    {
+        "key": "name",
+        "label": "Name",
+        "required": True,
+        "example": "Clinical Assessment",
+        "description": "The simulation's display name",
+    },
+    {
+        "key": "description",
+        "label": "Description",
+        "example": "A clinical assessment simulation...",
+        "description": "Optional description",
+    },
+    {
+        "key": "is_inactive",
+        "label": "Inactive",
+        "type": "boolean",
+        "example": "false",
+        "description": "Whether the simulation is inactive (true/false)",
+    },
+    {
+        "key": "practice_flag",
+        "label": "Practice",
+        "type": "boolean",
+        "example": "false",
+        "description": "Whether the simulation is a practice simulation (true/false)",
+    },
+    {
+        "key": "departments",
+        "label": "Departments",
+        "multi": True,
+        "example": "Nursing, Medicine",
+        "description": "Comma-separated department names",
+    },
+    {
+        "key": "scenarios",
+        "label": "Scenarios",
+        "multi": True,
+        "example": "Emergency Triage, Patient Intake",
+        "description": "Comma-separated scenario names",
+    },
+]
+
+
+async def search_simulation_impl(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    search: str | None = None,
+    filter_scenario_ids: list[UUID] | None = None,
+    filter_cohort_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    scenario_search: str | None = None,
+    cohort_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    page_size: int = 10,
+    page_offset: int = 0,
+    bypass_cache: bool = False,
+) -> ListSimulationApiResponse:
+    """simulation search — big-cache wrapped."""
+    return await get_or_build(
+        redis=redis,
+        key=big_cache_key("simulation/search", {
+            "profile_id": str(profile_id),
+            "search": search,
+            "filter_scenario_ids": [str(x) for x in filter_scenario_ids] if filter_scenario_ids else None,
+            "filter_cohort_ids": [str(x) for x in filter_cohort_ids] if filter_cohort_ids else None,
+            "filter_department_ids": [str(x) for x in filter_department_ids] if filter_department_ids else None,
+            "scenario_search": scenario_search,
+            "cohort_search": cohort_search,
+            "department_search": department_search,
+            "flag_search": flag_search,
+            "page_size": page_size,
+            "page_offset": page_offset,
+        }),
+        tags=["search", "simulation", "artifacts"],
+        ttl_s=DEFAULT_BIG_CACHE_TTL_S,
+        response_model=ListSimulationApiResponse,
+        builder=lambda: _search_simulation_build(
+            pool, redis,
+            profile_id=profile_id,
+            search=search,
+            filter_scenario_ids=filter_scenario_ids,
+            filter_cohort_ids=filter_cohort_ids,
+            filter_department_ids=filter_department_ids,
+            scenario_search=scenario_search,
+            cohort_search=cohort_search,
+            department_search=department_search,
+            flag_search=flag_search,
+            page_size=page_size,
+            page_offset=page_offset,
+        ),
+        bypass_cache=bypass_cache,
+    )
+
+
+async def _search_simulation_build(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    # Main filters
+    search: str | None = None,
+    filter_scenario_ids: list[UUID] | None = None,
+    filter_cohort_ids: list[UUID] | None = None,
+    filter_department_ids: list[UUID] | None = None,
+    # Facet search text
+    scenario_search: str | None = None,
+    cohort_search: str | None = None,
+    department_search: str | None = None,
+    flag_search: str | None = None,
+    # Pagination
+    page_size: int = 10,
+    page_offset: int = 0,
+) -> ListSimulationApiResponse:
+    """Simulation search using composable infra functions."""
+    from fastapi import HTTPException
+
+    # -- Step 1: Profile context --
+    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    user_role_level = profile.role_level
+    user_department_ids = profile.department_ids
+    actor_name = profile.name
+
+    # -- Step 2: Reverse lookups --
+
+    # filter_scenario_ids are scenarios_resource IDs — direct junction filter
+    scenario_ids_filter = filter_scenario_ids
+
+    # filter_cohort_ids are cohort_artifact IDs — search_simulations supports cohort_ids
+    cohort_ids_filter = filter_cohort_ids
+
+    # -- Step 3: Search simulations --
+    async with pool.acquire() as conn:
+        simulation_ids_result, total_count = await search_simulations(
+            conn,
+            search=search,
+            department_ids=filter_department_ids,
+            scenario_ids=scenario_ids_filter,
+            cohort_ids=cohort_ids_filter,
+            limit_count=page_size,
+            offset_count=page_offset,
+        )
+
+        from app.tools.entries.soft_calls.search import search_soft_calls
+        pending_entries = await search_soft_calls(
+            conn, artifact="simulation", status="pending", limit=1000,
+        )
+    pending_ledger_ids = [e.artifact_id for e in pending_entries]
+    ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
+
+    merged_ids: list[UUID] = []
+    seen: set[UUID] = set()
+    for sid in [*simulation_ids_result, *pending_ledger_ids]:
+        if sid in seen:
+            continue
+        seen.add(sid)
+        merged_ids.append(sid)
+    added = sum(1 for sid in pending_ledger_ids if sid not in set(simulation_ids_result))
+    total_count = total_count + added
+
+    if not merged_ids:
+        return _empty_response(actor_name, total_count=0)
+
+    # -- Step 4: Get simulation artifacts with junction IDs --
+    async with pool.acquire() as conn:
+        artifacts = await get_simulations(
+            conn,
+            merged_ids,
+            names=True,
+            descriptions=True,
+            departments=True,
+            flags=True,
+            scenarios=True,
+            simulations=True,
+            active=None,
+        )
+
+    # -- Step 5: Parallel hydration + facets --
+
+    all_name_ids: list[UUID] = []
+    all_scenario_resource_ids: set[UUID] = set()
+    all_flag_ids: set[UUID] = set()
+
+    for a in artifacts:
+        all_name_ids.extend(a.name_ids or [])
+        for sid in a.scenario_ids or []:
+            all_scenario_resource_ids.add(sid)
+        for fid in a.flag_ids or []:
+            all_flag_ids.add(fid)
+
+    # Parallel: hydrate resources + facets
+
+    async def _fetch_names() -> list:
+        if not all_name_ids:
+            return []
+        return await get_names(pool, all_name_ids, redis)
+
+    async def _fetch_scenarios() -> list:
+        if not all_scenario_resource_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_scenarios_resource(
+                conn, list(all_scenario_resource_ids), redis
+            )
+
+    async def _fetch_scenario_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_scenarios_resource(
+                conn, redis, search=scenario_search, simulation=True, limit_count=100
+            )
+
+    async def _fetch_cohort_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_cohorts_resource(
+                conn, redis, search=cohort_search, cohort=True, limit_count=100
+            )
+
+    async def _fetch_department_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_departments(
+                conn, redis, search=department_search, simulation=True, limit_count=100
+            )
+
+    async def _fetch_flag_facet() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn, redis, search=flag_search, simulation=True, limit_count=100
+            )
+
+    async def _fetch_flag_rows() -> list:
+        if not all_flag_ids:
+            return []
+        return await get_flags(pool, list(all_flag_ids), redis)
+
+    (
+        names_data,
+        scenarios_data,
+        scenario_facet,
+        cohort_facet,
+        department_facet,
+        flag_facet,
+        flag_rows_data,
+    ) = await asyncio.gather(
+        _fetch_names(),
+        _fetch_scenarios(),
+        _fetch_scenario_facet(),
+        _fetch_cohort_facet(),
+        _fetch_department_facet(),
+        _fetch_flag_facet(),
+        _fetch_flag_rows(),
+    )
+
+    # Build lookup maps
+    name_map = {n.id: n for n in names_data}
+
+    # Flag id -> (type, value)
+    flag_meta_map: dict[UUID, tuple[str | None, bool | None]] = {
+        f.id: (getattr(f, "type", None), getattr(f, "value", None))
+        for f in flag_rows_data
+        if getattr(f, "id", None)
+    }
+
+    # Collect persona IDs from scenarios for color dot rendering
+    all_persona_ids: set[UUID] = set()
+    for s in scenarios_data:
+        for pid in s.persona_ids or []:
+            all_persona_ids.add(pid)
+
+    # Fetch personas for color mapping
+    personas_data = []
+    if all_persona_ids:
+        async with pool.acquire() as conn:
+            personas_data = await get_personas_resource(
+                conn, list(all_persona_ids), redis
+            )
+
+    persona_map: dict[UUID, str] = {
+        p.id: p.color or "" for p in personas_data if p.id
+    }
+
+    # Build scenario mapping with persona colors
+    scenario_mapping: list[ListSimulationApiScenario] = []
+    for s in scenarios_data:
+        p_ids = s.persona_ids or []
+        scenario_mapping.append(
+            ListSimulationApiScenario(
+                scenario_id=s.id,
+                name=s.name,
+                persona_ids=[str(pid) for pid in p_ids],
+                persona_mapping=[
+                    ListSimulationApiPersona(
+                        persona_id=str(pid),
+                        color=persona_map.get(pid, ""),
+                    )
+                    for pid in p_ids
+                    if pid in persona_map
+                ],
+            )
+        )
+
+    # Count cohorts per simulation via simulations_resource junction
+    # We approximate by using the cohort facet data
+    # For now, count cohort links via the simulations_resource IDs
+    cohort_count_map: dict[UUID, int] = {}
+    for a in artifacts:
+        sim_resource_ids = set(a.simulation_ids or [])
+        count = sum(
+            1 for c in cohort_facet if sim_resource_ids & set(c.simulation_ids or [])
+        )
+        cohort_count_map[a.id] = count
+
+    # -- Step 6: Build simulation list with permissions --
+    api_simulations: list[ListSimulationApiSimulation] = []
+    for a in artifacts:
+        name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
+        dept_ids_str = [str(d) for d in (a.department_ids or [])]
+
+        cohort_usage = cohort_count_map.get(a.id, 0)
+
+        can_edit_val = compute_can_edit(
+            role_level=user_role_level, role_permissions=profile.role_permissions,
+            simulation_department_ids=dept_ids_str,
+            cohort_usage_count=cohort_usage,
+            user_department_ids=user_department_ids,
+        )
+        can_delete_val = compute_can_delete(
+            role_level=user_role_level, role_permissions=profile.role_permissions,
+            simulation_department_ids=dept_ids_str,
+            cohort_usage_count=cohort_usage,
+        )
+        can_duplicate_val = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
+
+        # is_inactive mirrors artifact-level active flag.
+        # is_practice comes from the practice flag selected via flag_ids.
+        is_inactive = not a.active
+        is_practice = False
+        for fid in a.flag_ids or []:
+            ftype, fvalue = flag_meta_map.get(fid, (None, None))
+            if ftype == "practice" and fvalue is True:
+                is_practice = True
+                break
+
+        ledger = ledger_by_artifact_id.get(a.id)
+        api_simulations.append(
+            ListSimulationApiSimulation(
+                simulation_id=a.id,
+                name=name_obj.name if name_obj else None,
+                description=None,
+                department_ids=dept_ids_str,
+                flag_ids=list(a.flag_ids or []),
+                is_inactive=is_inactive,
+                is_practice=is_practice,
+                practice_simulation=is_practice,
+                generated=a.generated,
+                mcp=a.mcp,
+                scenario_ids=[str(sid) for sid in (a.scenario_ids or [])],
+                num_cohorts=cohort_usage,
+                cohort_usage_count=cohort_usage,
+                can_edit=can_edit_val,
+                can_delete=can_delete_val,
+                can_duplicate=can_duplicate_val,
+                cohort_ids=None,
+                pending_status=ledger.status if ledger else None,
+                pending_operation=ledger.operation if ledger else None,
+                pending_call_id=ledger.call_id if ledger else None,
+                updated_at=a.updated_at,
+            )
+        )
+
+    # -- Step 7: Build facet sections --
+    scenario_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(s.id), name=s.name, count=0) for s in scenario_facet
+        ],
+        selected_ids=[str(sid) for sid in filter_scenario_ids]
+        if filter_scenario_ids
+        else None,
+        search=scenario_search,
+    )
+
+    cohort_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(c.id), name=c.name, count=0) for c in cohort_facet
+        ],
+        selected_ids=[str(cid) for cid in filter_cohort_ids]
+        if filter_cohort_ids
+        else None,
+        search=cohort_search,
+    )
+
+    department_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(d.id), name=d.name, count=0)
+            for d in department_facet
+        ],
+        selected_ids=[str(did) for did in filter_department_ids]
+        if filter_department_ids
+        else None,
+        search=department_search,
+    )
+
+    flag_filter = ListFilterSection(
+        options=[
+            ListFilterOption(id=str(f.id), name=f.name, type=f.type, count=0)
+            for f in flag_facet
+        ],
+        search=flag_search,
+    )
+
+    return ListSimulationApiResponse(
+        actor_name=actor_name,
+        simulations=api_simulations,
+        scenarios=scenario_mapping,
+        scenario_filter=scenario_filter,
+        cohort_filter=cohort_filter,
+        department_filter=department_filter,
+        flag_filter=flag_filter,
+        total_count=total_count,
+        import_fields=SIMULATION_IMPORT_FIELDS,
+    )
+
+
+# -- Helpers --
+
+
+def _empty_response(
+    actor_name: str | None = None, total_count: int = 0
+) -> ListSimulationApiResponse:
+    return ListSimulationApiResponse(
+        actor_name=actor_name,
+        simulations=[],
+        scenarios=[],
+        total_count=total_count,
+        import_fields=SIMULATION_IMPORT_FIELDS,
+    )
+
+
+async def _empty_list() -> list:
+    return []

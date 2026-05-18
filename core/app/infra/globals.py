@@ -1,0 +1,482 @@
+"""Infrastructure singletons and accessor functions.
+
+This module owns all shared global state: database pool, Redis client,
+Socket.IO instance, internal event bus, upload directories, and in-memory
+stores. Every other module imports from here — never from app.main.
+"""
+
+import asyncio
+import datetime
+import os
+from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+import asyncpg  # type: ignore
+import socketio  # type: ignore
+from dotenv import load_dotenv
+
+from app.utils.logging.db_logger import get_logger
+
+if TYPE_CHECKING:  # pragma: no cover
+    pass
+
+# Redis is nice in production, but optional in dev
+try:
+    from socketio import AsyncRedisManager
+except ImportError:
+    AsyncRedisManager = None  # type: ignore
+
+try:
+    import redis.asyncio as redis  # type: ignore
+except ImportError:
+    redis = None  # type: ignore
+
+load_dotenv()
+
+logger = get_logger(__name__)
+
+
+def get_client_origins() -> list[str]:
+    """Parse CLIENT_ORIGINS (comma-separated). Fall back to ORIGIN or localhost if unset."""
+    raw = os.getenv("CLIENT_ORIGINS", "").strip()
+    if raw:
+        return [o.strip() for o in raw.split(",") if o.strip()]
+    origin = os.getenv("ORIGIN", "http://localhost:3000")
+    return [origin] if origin else ["http://localhost:3000"]
+
+
+# ---------------------------------------------------------------------------
+# Upload directories
+# ---------------------------------------------------------------------------
+IN_DOCKER = os.getenv("DOCKER_ENV") == "1"
+# core/app/infra/globals.py -> infra -> app -> core -> project root
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+BASE_FOLDER = Path("/app") if IN_DOCKER else PROJECT_ROOT
+UPLOAD_FOLDER = BASE_FOLDER / "uploads"
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+def get_upload_folder() -> Path:
+    return UPLOAD_FOLDER
+
+
+AUDIO_FOLDER = UPLOAD_FOLDER / "audio"
+AUDIO_FOLDER.mkdir(parents=True, exist_ok=True)
+
+IMAGE_FOLDER = UPLOAD_FOLDER / "image"
+IMAGE_FOLDER.mkdir(parents=True, exist_ok=True)
+
+VIDEO_FOLDER = UPLOAD_FOLDER / "video"
+VIDEO_FOLDER.mkdir(parents=True, exist_ok=True)
+
+CALL_FOLDER = UPLOAD_FOLDER / "call"
+CALL_FOLDER.mkdir(parents=True, exist_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# Internal event bus
+# ---------------------------------------------------------------------------
+InternalHandler = Callable[[dict[str, Any]], Awaitable[None]]
+CatchAllHandler = Callable[[str, dict[str, Any]], Awaitable[None]]
+
+
+def _json_safe(value: Any) -> Any:
+    """Coerce non-JSON-native values (UUID, datetime, set) to JSON-safe forms.
+
+    Walks dicts/lists/tuples once and replaces leaf values that socketio's
+    default JSON encoder rejects. Internal callers can keep handing UUIDs
+    around freely; this normalizes only at the transport boundary so the
+    SIO emit always succeeds. Pydantic models should already be dumped via
+    ``model_dump(mode="json")`` before placement; nothing here recurses
+    into them.
+    """
+    import uuid as _uuid
+
+    if isinstance(value, _uuid.UUID):
+        return str(value)
+    if isinstance(value, datetime.datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, set):
+        return [_json_safe(v) for v in value]
+    return value
+
+
+class InternalBus:
+    """Simple in-process event bus for triggering handlers internally.
+
+    Two subscription kinds:
+      - Named (``on("event.name")``) — called as ``handler(data)`` for
+        that exact event.
+      - Catch-all (``on("*")``) — called as ``handler(event, data)``
+        for every event. The canonical ``ws/output.py`` forwarder
+        registers here so all WS+SSE fan-out flows through one chokepoint.
+    """
+
+    def __init__(self) -> None:
+        self._handlers: dict[str, list[InternalHandler]] = {}
+        self._catchall: list[CatchAllHandler] = []
+
+    def on(
+        self, event: str
+    ) -> Callable[[InternalHandler | CatchAllHandler], InternalHandler | CatchAllHandler]:
+        def decorator(
+            fn: InternalHandler | CatchAllHandler,
+        ) -> InternalHandler | CatchAllHandler:
+            if event == "*":
+                self._catchall.append(fn)  # type: ignore[arg-type]
+            else:
+                self._handlers.setdefault(event, []).append(fn)  # type: ignore[arg-type]
+            return fn
+
+        return decorator
+
+    async def emit(self, event: str, data: dict[str, Any]) -> None:
+        named = self._handlers.get(event, [])
+        if not named and not self._catchall:
+            logger.warning(f"[InternalBus] No handlers registered for event: {event}")
+            return
+        # Coerce UUIDs / datetimes once at the bus boundary so every
+        # downstream handler — and ultimately ``sio.emit`` — sees only
+        # JSON-native leaves. Cheaper than fixing each emit site.
+        safe_data = _json_safe(data) if isinstance(data, dict) else data
+        for handler in named:
+            try:
+                await handler(safe_data)
+            except Exception as e:
+                logger.error(
+                    f"[InternalBus] Error in handler for event '{event}': {e}",
+                    exc_info=True,
+                )
+        for catchall in self._catchall:
+            try:
+                await catchall(event, safe_data)
+            except Exception as e:
+                logger.error(
+                    f"[InternalBus] Error in catch-all for event '{event}': {e}",
+                    exc_info=True,
+                )
+
+
+internal_sio = InternalBus()
+
+
+def get_internal_sio() -> InternalBus:
+    return internal_sio
+
+
+# ---------------------------------------------------------------------------
+# Socket.IO
+# ---------------------------------------------------------------------------
+origin = os.getenv("ORIGIN", "http://localhost:3000")
+app_prefix = os.getenv("APP_PREFIX", "").strip("/")
+socket_path = f"{app_prefix}/socket.io" if app_prefix else "socket.io"
+
+redis_url = os.getenv("REDIS_URL")
+logger.info(f"redis URL {redis_url}")
+
+if redis_url and AsyncRedisManager:
+    logger.info(f"Socket.IO: clustering via Redis → {redis_url}")
+    redis_manager = AsyncRedisManager(redis_url)
+else:
+    logger.info("Socket.IO: no REDIS_URL - using in-memory manager")
+    redis_manager = None
+
+_sio_kwargs: dict[str, Any] = {}
+if redis_manager is not None:
+    _sio_kwargs["client_manager"] = redis_manager
+
+sio = socketio.AsyncServer(
+    **_sio_kwargs,
+    cors_allowed_origins=["*"],
+    cors_credentials=False,
+    logger=True,
+    # engineio_logger=False — the engineio packet log dumps the full
+    # event payload inline (delta chunks, audio frames, image bytes,
+    # etc.) on every emit. socketio's own logger above still emits
+    # the concise `emitting event "X" to <sid>` line, which is what
+    # we actually want for observability. Flip back to True only when
+    # debugging low-level transport issues.
+    engineio_logger=False,
+    async_mode="asgi",
+    transports=["websocket", "polling"],
+    allow_upgrades=True,
+    ping_timeout=60,
+    ping_interval=25,
+    engineio_options={
+        "max_http_buffer_size": 1000000,
+        "ping_timeout": 60,
+        "ping_interval": 25,
+        "compression": False,
+        "cookie": False,
+    },
+)
+
+
+def get_sio_instance() -> socketio.AsyncServer:
+    return sio
+
+
+# ---------------------------------------------------------------------------
+# Redis client
+# ---------------------------------------------------------------------------
+# Redis is REQUIRED. Set in lifespan via _initialize_redis_client. Callers
+# can rely on the getter returning a live client; it raises if Redis hasn't
+# been initialized yet (boot-order bug) or has been torn down.
+redis_client: Any | None = None
+
+
+def get_redis_client() -> Any:
+    if redis_client is None:
+        raise RuntimeError(
+            "Redis client not initialized — get_redis_client() called before "
+            "lifespan startup or after shutdown."
+        )
+    return redis_client
+
+
+# ---------------------------------------------------------------------------
+# Genuinely per-process in-memory state
+#
+# These are NOT Redis fallbacks — they hold live Python objects (Runner
+# result handles, asyncio.Locks) that can't be serialized to Redis. They
+# stay process-local by design. State that should be shared across
+# replicas lives in Redis exclusively.
+# ---------------------------------------------------------------------------
+active_results: dict[str, dict[str, Any]] = {}
+
+DEFAULT_CATEGORIES = [
+    "homeworks",
+    "projects",
+    "quizzes",
+    "midterms",
+    "labs",
+    "lectures",
+    "syllabi",
+]
+
+_voice_message_ids: dict[str, list[str]] = {}
+_voice_message_ids_lock = asyncio.Lock()
+
+
+def get_active_results_dict() -> dict[str, dict[str, Any]]:
+    return active_results
+
+
+# ---------------------------------------------------------------------------
+# Database pool
+# ---------------------------------------------------------------------------
+_db_pool: asyncpg.Pool | None = None
+_test_container: Any | None = None
+_test_db_url: str | None = None
+
+# Lazily set in lifespan after the pool + redis are ready. Imported via
+# get_mv_refresher() so callers don't take a hard dependency at import time.
+mv_refresher: Any | None = None
+
+_CONTAINER_INFO_FILE = Path("/tmp/glow_test_container.json")  # noqa: S108
+
+
+def get_pool() -> asyncpg.Pool | None:
+    return _db_pool
+
+
+def get_mv_refresher() -> Any | None:
+    """The lifespan-managed MVRefresher singleton, or None pre-startup."""
+    return mv_refresher
+
+
+def _try_reuse_container() -> str | None:
+    import json
+    import subprocess
+
+    if not _CONTAINER_INFO_FILE.exists():
+        return None
+    try:
+        info = json.loads(_CONTAINER_INFO_FILE.read_text())
+        container_id = info["container_id"]
+        db_url = info["db_url"]
+    except (json.JSONDecodeError, KeyError):
+        _CONTAINER_INFO_FILE.unlink(missing_ok=True)
+        return None
+    try:
+        result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", container_id],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip() == "true":
+            return db_url
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    _CONTAINER_INFO_FILE.unlink(missing_ok=True)
+    return None
+
+
+def _save_container_info(db_url: str) -> None:
+    import json
+
+    if _test_container is None:
+        return
+    container_id = _test_container.get_wrapped_container().id
+    _CONTAINER_INFO_FILE.write_text(
+        json.dumps({"container_id": container_id, "db_url": db_url})
+    )
+
+
+async def init_db_pool() -> None:
+    global _db_pool, _test_container
+
+    env_value = os.getenv("ENV", "")
+    env_name = env_value.upper()
+
+    if env_name == "TEST":
+        print("🐳 TEST mode detected: starting disposable Postgres with Testcontainers")
+        from testcontainers.postgres import PostgresContainer  # type: ignore[import]
+
+        reuse = os.getenv("TESTCONTAINERS_REUSE_ENABLE", "false").lower() == "true"
+        global _test_db_url
+        db_url: str | None = None
+
+        if reuse:
+            db_url = _try_reuse_container()
+
+        if db_url:
+            print(f"♻️  Reusing existing container at {db_url}")
+        else:
+            container = PostgresContainer("postgres:18")
+            if reuse:
+                container = container.with_kwargs(remove=False)
+            _test_container = container
+            _test_container.start()
+
+            raw_url = _test_container.get_connection_url()
+            db_url = raw_url.replace("postgresql+psycopg2://", "postgresql://")
+
+            if reuse:
+                _save_container_info(db_url)
+
+        _test_db_url = db_url
+        _db_pool = await asyncpg.create_pool(db_url, min_size=1, max_size=5)
+        print(f"✅ Using test database at {db_url}")
+        return
+
+    in_docker = os.getenv("DOCKER_ENV") == "1"
+    db_user = os.getenv("DB_USER") or (in_docker and "myuser")
+    db_password = os.getenv("DB_PASSWORD") or (in_docker and "mypassword")
+    db_name = os.getenv("DB_NAME") or (in_docker and "glowapi")
+    db_port = os.getenv("DB_PORT") or (in_docker and "5432")
+    db_host = os.getenv("DB_HOST") or (in_docker and "pgbouncer")
+
+    db_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+    if not all([db_user, db_password, db_name, db_port, db_host]):
+        raise ValueError("Database configuration is incomplete")
+
+    using_pgbouncer = db_host == "pgbouncer"
+    pgbouncer_pool_mode = (os.getenv("PGPOOL_MODE") or "transaction").lower()
+
+    print(f"🔌 Initializing asyncpg connection pool to {db_host}:{db_port}/{db_name}")
+
+    pool_config: dict[str, Any] = {
+        "min_size": 10,
+        "max_size": 100,
+        # 60s budget per query. v2.15.14 dropped this to 30s for fail-fast
+        # under stale-conn theory, but in practice the cold-cache burst on
+        # fresh deploys (Redis empty → every /persona/context page-context
+        # call fans out to DB simultaneously) genuinely needs >30s for the
+        # slowest of the 5 parallel queries to clear, especially on a fresh
+        # pgbouncer pool. 60s tolerates the cold spike; max_inactive=30s
+        # still evicts stale conns, so we keep both protections.
+        "command_timeout": 60,
+        "max_queries": 50000,
+        # Aggressive idle eviction: recycle pool conns before the stack
+        # underneath (pgbouncer, docker net, OS TCP) silently drops them.
+        # Symptom pattern: idle >30s → next reuse hangs on DISCARD ALL
+        # because the socket is dead → 60s command_timeout fires → 504.
+        # (We can't use Postgres-level server_settings like tcp_keepalives_*
+        # or statement_timeout here because pgbouncer rejects all startup
+        # parameters outside its narrow allowlist. If we later need server-
+        # side timeouts, wire them through a setup= callback that runs
+        # `SET statement_timeout` as a post-connect SQL statement.)
+        "max_inactive_connection_lifetime": 30,
+    }
+
+    if using_pgbouncer:
+        # Disable prepared-statement cache for BOTH pgbouncer pool modes.
+        # Session mode technically supports prepared statements, but
+        # asyncpg caches statement names client-side and pgbouncer can
+        # silently recycle the underlying server connection (idle timeout,
+        # reconnect, etc). When that happens the cached statement no
+        # longer exists on the new server connection and subsequent
+        # asyncpg protocol.prepare() calls stall → TimeoutError. The
+        # smoking-gun trace bottoms out in protocol.pyx:165 in prepare.
+        # Cost of disabling: Postgres re-parses each query (<1ms for
+        # our simple lookups). Benefit: no more phantom timeouts.
+        pool_config["statement_cache_size"] = 0
+        print(
+            f"   ⚙️  PgBouncer detected ({pgbouncer_pool_mode} mode): "
+            f"Disabling prepared statements"
+        )
+    else:
+        print("   ⚙️  Direct connection: Using prepared statements")
+
+    _db_pool = await asyncpg.create_pool(db_url, **pool_config)
+    print("✅ Database pool initialized")
+
+
+async def close_db_pool() -> None:
+    global _db_pool, _test_container
+    if _db_pool:
+        print("🔌 Closing database pool...")
+        await _db_pool.close()
+        _db_pool = None
+        print("✅ Database pool closed")
+
+    if _test_container:
+        reuse = os.getenv("TESTCONTAINERS_REUSE_ENABLE", "false").lower() == "true"
+        if reuse:
+            print("🐳 Container reuse enabled — keeping test container alive")
+        else:
+            print("🐳 Stopping test database container...")
+            _test_container.stop()
+            print("✅ Test database container stopped")
+        _test_container = None
+
+
+async def get_db() -> AsyncGenerator[asyncpg.Connection, None]:
+    if not _db_pool:
+        raise RuntimeError("Database pool not initialized")
+    async with _db_pool.acquire() as connection:
+        yield connection
+
+
+async def expire_all_connections() -> None:
+    if _db_pool:
+        await _db_pool.expire_connections()
+        print("🔄 All pooled connections expired (schema change detected)")
+
+
+@asynccontextmanager
+async def transaction(
+    conn: asyncpg.Connection,
+) -> AsyncGenerator[asyncpg.Connection, None]:
+    tr = conn.transaction()
+    await tr.start()
+    try:
+        yield conn
+        await tr.commit()
+    except Exception:
+        await tr.rollback()
+        raise
+
+
+__all__ = [
+    "IMAGE_FOLDER",
+]

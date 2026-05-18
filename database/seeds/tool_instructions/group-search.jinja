@@ -1,0 +1,15 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Groups ({{ r.total_count }} total)
+{% if r.items %}
+{% for g in r.items %}- `{{ g.group_id }}` — {{ g.group_name or "Unnamed" }} | {{ g.run_count }} runs | {{ g.total_tokens }} tokens | ${{ g.total_cost }}{% if g.agent_names %} | agents: {{ g.agent_names | join(", ") }}{% endif %}{% if g.model_names %} | models: {{ g.model_names | join(", ") }}{% endif %}
+
+{% endfor %}
+{% else %}
+No groups found.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching groups: {{ results[0].error }}
+{% else %}
+No results returned.
+{% endif %}

@@ -1,0 +1,20 @@
+{# Search Content response template — cross-cutting narration for persona/scenario/document/rubric. #}
+{%- set r = results[0] -%}
+{%- set a = r.artifact -%}
+{%- set body = r.result or {} -%}
+{%- set items = body.get(a ~ "s", []) -%}
+{%- set total = body.get("total_count", items|length) -%}
+{%- if not success -%}
+Search failed: {{ r.error or body.get("detail") or "unknown error" }}
+{%- elif items -%}
+## {{ a|capitalize }}s ({{ total }} result{% if total != 1 %}s{% endif %})
+
+{% for item in items -%}
+- **{{ item.name or "(unnamed)" }}**{% if item.description %} — {{ item.description[:140] }}{% if item.description|length > 140 %}…{% endif %}{% endif %} `{{ a }}_id: {{ item[a ~ "_id"] }}`
+{% endfor -%}
+{% if items|length < total %}
+{{ total - items|length }} more available. Paginate with `page` and `page_size`.
+{%- endif %}
+{%- else -%}
+No {{ a }}s found.
+{%- endif %}

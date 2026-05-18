@@ -1,0 +1,59 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Form State
+- **Name:** {% set sel = r.names | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].name }}{% else %}not set{% endif %}
+- **Description:** {% set sel = r.descriptions | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].description[:100] }}{% else %}not set{% endif %}
+- **Color:** {% set sel = r.colors | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].name }} ({{ sel[0].hex_code }}){% else %}not set{% endif %}
+- **Icon:** {% set sel = r.icons | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].name }} ({{ sel[0].value }}){% else %}not set{% endif %}
+- **Instructions:** {% set sel = r.instructions | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].template[:100] }}{% else %}not set{% endif %}
+- **Departments:** {% set sel = r.departments | selectattr('selected') | list %}{% if sel %}{% for d in sel %}`{{ d.department_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Examples:** {% set sel = r.examples | selectattr('selected') | list %}{{ sel | length }}
+- **Voices:** {% set sel = r.voices | selectattr('selected') | list %}{% if sel %}{% for v in sel %}`{{ v.id }}` — {{ v.voice }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Parameter Fields:** {% set sel = r.parameter_fields | selectattr('selected') | list %}{{ sel | length }}
+
+## Available Options
+{% if r.colors %}
+### Colors
+{% for c in r.colors %}- `{{ c.id }}` — {{ c.name }} ({{ c.hex_code }}){% if c.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.icons %}
+### Icons
+{% for i in r.icons %}- `{{ i.id }}` — {{ i.name }} ({{ i.value }}){% if i.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.flags %}
+### Flags
+{% for f in r.flags %}- `{{ f.flag_option_id }}` — {{ f.label }}{% if f.description %}: {{ f.description }}{% endif %}{% if f.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.departments %}
+### Departments
+{% for d in r.departments %}- `{{ d.department_id }}` — {{ d.name }}{% if d.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.examples %}
+### Examples
+{% for e in r.examples %}- `{{ e.id }}` — {{ e.example[:80] }}{% if e.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.voices %}
+### Voices
+{% for v in r.voices %}- `{{ v.id }}` — {{ v.voice }}{% if v.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameters %}
+### Parameter Groups
+{% for p in r.parameters %}- `{{ p.parameter_id }}` — {{ p.name }}{% if p.description %}: {{ p.description[:60] }}{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameter_fields %}
+### Parameter Fields
+{% for pf in r.parameter_fields %}- `{{ pf.id }}` — {{ pf.name }}{% if pf.description %}: {{ pf.description[:60] }}{% endif %}{% if pf.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching persona: {{ results[0].error }}
+{% else %}
+No persona data returned.
+{% endif %}

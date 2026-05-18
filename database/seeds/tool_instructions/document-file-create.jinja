@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+File attached to document.{% if r.file_id %} File ID: `{{ r.file_id }}`.{% endif %}{% if r.file_name %} Name: **{{ r.file_name }}**.{% endif %}
+{% elif results and results[0] %}
+File attach failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

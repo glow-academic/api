@@ -1,0 +1,240 @@
+:root {
+  --bg: #fafbfc;
+  --pane-bg: #ffffff;
+  --fg: #24292e;
+  --dim: #6a737d;
+  --line: #e1e4e8;
+  --accent: #0366d6;
+  --accent-bg: #f1f8ff;
+  --bar: #0366d6;
+  --bar-bg: #e1e4e8;
+  --good: #28a745;
+  --warn: #e36209;
+  --bad: #d73a49;
+  --code-bg: #f6f8fa;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg); color: var(--fg);
+  font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 16px;
+  background: var(--pane-bg);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar h1 {
+  font-size: 15px; font-weight: 600; margin: 0;
+  letter-spacing: 0.01em;
+}
+.topbar .api-base {
+  font: 11px ui-monospace, SFMono-Regular, monospace;
+  color: var(--dim);
+}
+.topbar .auth {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+}
+.topbar input[type=password] {
+  width: 360px; padding: 5px 8px;
+  font: 12px ui-monospace, monospace;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--code-bg);
+}
+.topbar input[type=password]:focus {
+  outline: none; border-color: var(--accent); background: white;
+}
+button {
+  padding: 5px 12px;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--pane-bg); color: var(--fg);
+  cursor: pointer;
+}
+button:hover { background: var(--code-bg); }
+button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+button.primary:hover { background: #0258b8; }
+button.ghost { color: var(--dim); }
+
+.status {
+  font: 11px ui-monospace, monospace;
+  padding: 3px 8px; border-radius: 10px;
+  background: var(--code-bg); color: var(--dim);
+}
+.status.idle      { background: var(--code-bg); color: var(--dim); }
+.status.connecting{ background: #fff5b1; color: #735c0f; }
+.status.connected { background: #dcffe4; color: #114c1d; }
+.status.error     { background: #ffeef0; color: var(--bad); }
+
+/* ── Main grid ───────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: 0;
+  height: calc(100vh - 49px);
+}
+.pane {
+  background: var(--pane-bg);
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.pane + .pane { border-left: 1px solid var(--line); }
+
+.pane-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.pane h2 {
+  margin: 0; font-size: 14px; font-weight: 600;
+}
+.pane h3 {
+  margin: 20px 0 8px; font-size: 12px; font-weight: 600;
+  color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em;
+  padding-bottom: 4px; border-bottom: 1px solid var(--line);
+}
+.pane h3 .count { color: var(--dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+.filters {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--dim);
+}
+.filters label { display: flex; align-items: center; gap: 4px; }
+.filters label.checkbox { gap: 4px; cursor: pointer; }
+.filters select, .filters input[type=text] {
+  font: 12px ui-monospace, monospace;
+  padding: 3px 6px;
+  border: 1px solid var(--line); border-radius: 4px;
+  background: var(--pane-bg); color: var(--fg);
+}
+.filters input[type=text] { width: 140px; }
+
+.dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--good); margin-left: 6px; vertical-align: middle;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.dot.off { background: var(--dim); animation: none; opacity: 0.5; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+/* ── KPIs ────────────────────────────────────────────────────────────── */
+.kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.kpi {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 12px;
+}
+.kpi-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.kpi-value { font-size: 18px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi-value.fail { color: var(--bad); }
+.kpi-value.tiny { font-size: 12px; font-family: ui-monospace, monospace; padding-top: 4px; }
+
+/* ── Tools table ─────────────────────────────────────────────────────── */
+table.tools {
+  width: 100%; border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+table.tools th, table.tools td {
+  padding: 5px 8px; text-align: left;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+table.tools th {
+  font-weight: 600; font-size: 10px; color: var(--dim);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+table.tools td.num { text-align: right; font-family: ui-monospace, monospace; }
+table.tools td.tool { font-family: ui-monospace, monospace; font-weight: 500; }
+.bar { background: var(--bar-bg); border-radius: 2px; height: 6px; min-width: 80px; max-width: 160px; }
+.bar-fill { background: var(--bar); height: 100%; border-radius: 2px; transition: width 0.3s; }
+.good { color: var(--good); }
+.warn { color: var(--warn); }
+.bad  { color: var(--bad); }
+.dim  { color: var(--dim); }
+
+/* ── Call rows (left pane) ───────────────────────────────────────────── */
+.calls .call {
+  background: var(--pane-bg);
+  border: 1px solid var(--line); border-radius: 5px;
+  margin-bottom: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 12px;
+}
+.calls .call.fail { border-left: 3px solid var(--bad); }
+.calls .call .row {
+  padding: 6px 10px;
+  display: grid;
+  grid-template-columns: 90px 16px 1fr 70px auto 80px;
+  gap: 10px; align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.calls .call .row:hover { background: var(--accent-bg); }
+.calls .call .ts { color: var(--dim); }
+.calls .call .status { text-align: center; font-weight: 600; }
+.calls .call.ok .status { color: var(--good); }
+.calls .call.fail .status { color: var(--bad); }
+.calls .call .tool { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calls .call .latency { color: var(--dim); text-align: right; }
+.calls .call .reason { color: var(--bad); font-size: 11px; }
+.calls .call .call-id { color: var(--dim); text-align: right; }
+.calls .call pre {
+  margin: 0; padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--code-bg);
+  font: 11px ui-monospace, SFMono-Regular, monospace;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 420px; overflow: auto;
+  border-radius: 0 0 5px 5px;
+}
+.calls .call .body-loading { padding: 8px 12px; color: var(--dim); font-style: italic; }
+
+/* ── Live events (right pane) ────────────────────────────────────────── */
+.events-pane {
+  display: flex; flex-direction: column;
+}
+.events-meta {
+  font: 11px ui-monospace, monospace; color: var(--dim);
+  display: flex; gap: 12px; margin-bottom: 8px;
+}
+.events {
+  font: 11px ui-monospace, SFMono-Regular, monospace;
+  flex: 1; min-height: 0;
+}
+.events .event {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 8px; align-items: baseline;
+}
+.events .event:hover { background: var(--accent-bg); }
+.events .event .ts { color: var(--dim); }
+.events .event .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.events .event.failed .name { color: var(--bad); }
+.events .event.completed .name { color: var(--good); }
+.events .event.expanded { background: var(--accent-bg); }
+.events .event pre {
+  grid-column: 1 / -1;
+  margin: 6px 0 4px; padding: 8px;
+  background: white; border: 1px solid var(--line); border-radius: 3px;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 320px; overflow: auto;
+  font-size: 11px;
+}
+.events .system {
+  padding: 4px 6px; color: var(--dim); font-style: italic;
+  border-bottom: 1px dashed var(--line);
+}
+.events .system.error { color: var(--bad); font-style: normal; }

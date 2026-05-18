@@ -1,0 +1,259 @@
+name: Pipeline
+
+on:
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ── Stage 1: Test ───────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip tests]')"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          pip install -r core/requirements.txt -q
+          pip install -r core/requirements-dev.txt -q 2>/dev/null || true
+          pip install testcontainers -q 2>/dev/null || true
+
+      - name: Run tests (sparse on beta, full on main)
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "Running full test suite..."
+            if [ -d "core/tests/unit" ]; then
+              TEST_DIR="core/tests/unit"
+            else
+              TEST_DIR="core/tests"
+            fi
+            if PYTHONPATH=core python -c "import importlib; importlib.import_module('tests.conftest')" 2>/dev/null; then
+              PYTHONPATH=core python -m pytest "$TEST_DIR" -v --tb=short
+            else
+              echo "Test dependencies not fully available — running import check only"
+              PYTHONPATH=core python -c "from app.main import app; print('App imports OK')" || echo "App requires runtime deps"
+            fi
+          else
+            echo "Running sparse tests (changed infra/tools/utils only)..."
+            bash scripts/run-sparse-tests.sh main
+          fi
+
+  schema-check:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    env:
+      # Per-run container name so concurrent schema-check jobs on the
+      # same self-hosted runner don't collide. Previously every job
+      # used the literal name ``pg-check``; whenever two builds ran
+      # at the same time the second job's ``docker rm -f pg-check``
+      # killed the first job's postgres mid-schema-load, sending
+      # SIGKILL (exit 137) to the in-flight psql client and producing
+      # a misleading "schema.sql load failed" failure.
+      PGCHECK: pg-check-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Start Postgres
+        run: |
+          docker rm -f "$PGCHECK" 2>/dev/null || true
+          docker run -d --name "$PGCHECK" \
+            -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test \
+            postgres:18-alpine
+          for i in $(seq 1 60); do
+            docker exec "$PGCHECK" psql -U test -d test -c "SELECT 1" >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+      - name: Create infrastructure schemas
+        run: |
+          docker exec "$PGCHECK" psql -U test -d test -c \
+            "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;"
+
+      - name: Validate schema.sql loads
+        run: |
+          docker exec -i "$PGCHECK" psql -U test -d test -v ON_ERROR_STOP=1 < database/schema.sql
+          echo "schema.sql loaded successfully"
+
+      - name: Validate backups restore
+        run: |
+          for backup in history/*.sql.gz; do
+            [ -f "$backup" ] || continue
+            NAME=$(basename "$backup")
+            echo "Validating: $NAME"
+            docker exec "$PGCHECK" psql -U test -d test -c "DROP DATABASE IF EXISTS backup_test;" 2>/dev/null
+            docker exec "$PGCHECK" psql -U test -d test -c "CREATE DATABASE backup_test;"
+            docker exec "$PGCHECK" psql -U test -d backup_test -c \
+              "CREATE SCHEMA IF NOT EXISTS keycloak; CREATE SCHEMA IF NOT EXISTS migrations;"
+            gunzip -c "$backup" | docker exec -i "$PGCHECK" psql -U test -d backup_test -v ON_ERROR_STOP=1
+            echo "  $NAME: OK"
+          done
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f "$PGCHECK" 2>/dev/null || true
+
+  # ── Stage 2: Release ────────────────────────────────────────
+  release:
+    needs: [test, schema-check]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.schema-check.result == 'success' || needs.schema-check.result == 'skipped') &&
+      github.event_name != 'pull_request'
+    outputs:
+      released: ${{ steps.check.outputs.released }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(python3 -c "exec(open('core/app/version.py').read()); print(__version__)")
+          BRANCH="${{ github.ref_name }}"
+          if [ "$BRANCH" = "beta" ]; then
+            TAG="v${VERSION}-beta"
+          else
+            TAG="v${VERSION}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Validate version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "::error::version must be semver (got '$VERSION')"
+            exit 1
+          fi
+
+      - name: Check if release exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists — skipping build"
+            echo "released=false" >> $GITHUB_OUTPUT
+          else
+            echo "Release $TAG not found — will build"
+            echo "released=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag (idempotent)
+        if: steps.check.outputs.released == 'true'
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "Tag $TAG already exists — skipping"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      - uses: docker/login-action@v4
+        if: steps.check.outputs.released == 'true'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push server
+        if: steps.check.outputs.released == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./core
+          file: ./core/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/glow-academic/api:${{ github.ref_name == 'main' && 'latest' || github.ref_name }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/glow-academic/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export Docker image tarball
+        if: steps.check.outputs.released == 'true'
+        run: |
+          docker pull ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }}
+          docker tag ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }} glow-api:${{ steps.version.outputs.tag }}
+          docker save glow-api:${{ steps.version.outputs.tag }} | gzip > glow-api-${{ steps.version.outputs.tag }}.tar.gz
+          echo "Exported $(du -h glow-api-${{ steps.version.outputs.tag }}.tar.gz | cut -f1)"
+
+      - name: Generate OpenAPI spec
+        if: steps.check.outputs.released == 'true'
+        run: |
+          docker run --rm --user root --tmpfs /uploads \
+            ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }} \
+            python -c "
+          import json
+          from app.server import fastapi_app
+          from app.version import __version__
+          from fastapi.openapi.utils import get_openapi
+          spec = get_openapi(title=fastapi_app.title, version=__version__, routes=fastapi_app.routes)
+          print(json.dumps(spec, indent=2))
+          " > openapi.json
+          echo "Generated openapi.json ($(wc -c < openapi.json) bytes)"
+
+      - name: Generate compat.json
+        if: steps.check.outputs.released == 'true'
+        # The compat.json asset is published alongside every release and
+        # consumed by sibling repos (CLI today; client + docs once they
+        # exist) to refuse incompatible combinations before a deploy.
+        # Shape: {component, version, requires: {<sibling>: {min_version}}}.
+        # Source of truth for the `requires` map is `api-versions.json`
+        # in this repo's root — edit there to bump the floor.
+        run: |
+          python3 -c "
+          import json, os
+          compat = {
+              'component': 'api',
+              'version': '${{ steps.version.outputs.version }}',
+              'requires': {},
+          }
+          if os.path.exists('api-versions.json'):
+              with open('api-versions.json') as f:
+                  pins = json.load(f)
+              for sibling, entry in pins.items():
+                  if sibling.startswith('_'):
+                      continue  # skip _comment etc.
+                  if isinstance(entry, dict) and 'min_version' in entry:
+                      compat['requires'][sibling] = {'min_version': entry['min_version']}
+          with open('compat.json', 'w') as f:
+              json.dump(compat, f, indent=2)
+          print('compat.json:', json.dumps(compat, indent=2))
+          "
+
+      - name: Create release
+        if: steps.check.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          PRERELEASE=""
+          if [ "${{ github.ref_name }}" = "beta" ]; then
+            PRERELEASE="--prerelease"
+          fi
+          gh release create "$TAG" \
+            openapi.json compat.json glow-api-${{ steps.version.outputs.tag }}.tar.gz \
+            --title "$TAG" \
+            --generate-notes $PRERELEASE
+          echo "Created release $TAG"

@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Rubric export ready.{% if r.file_name %} File: **{{ r.file_name }}**.{% endif %}{% if r.file_id %} ID: `{{ r.file_id }}`.{% endif %}
+{% elif results and results[0] %}
+Export failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

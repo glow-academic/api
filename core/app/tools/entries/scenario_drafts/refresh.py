@@ -1,0 +1,9 @@
+"""scenario_drafts refresh — recompute the materialized view."""
+
+import asyncpg
+from redis.asyncio import Redis
+
+
+async def refresh_scenario_drafts(conn: asyncpg.Connection, redis: Redis | None = None) -> None:
+    """Refresh scenario_drafts_mv concurrently."""
+    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY scenario_drafts_mv")

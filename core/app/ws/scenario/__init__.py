@@ -1,0 +1,25 @@
+"""Input: scenario.* events."""
+
+from . import (  # noqa: F401
+    create,
+    delete,
+    draft,
+    drafts,
+    duplicate,
+    export,
+    file_download,
+    file_preview,
+    generate,
+    generations,
+    get,
+    group,
+    image_download,
+    image_upload,
+    problem,
+    refresh,
+    search,
+    text_download,
+    update,
+    video_download,
+    video_upload,
+)

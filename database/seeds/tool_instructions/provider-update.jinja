@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Provider updated successfully.{% if r.id %} ID: `{{ r.id }}`.{% endif %}{% if r.message %} {{ r.message }}{% endif %}
+{% elif results and results[0] %}
+Update failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

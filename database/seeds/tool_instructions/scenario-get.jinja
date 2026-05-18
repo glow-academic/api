@@ -1,0 +1,68 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Form State
+- **Name:** {% set sel = r.names | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].name }}{% else %}not set{% endif %}
+- **Description:** {% set sel = r.descriptions | selectattr('selected') | list %}{% if sel %}`{{ sel[0].id }}` — {{ sel[0].description[:100] }}{% else %}not set{% endif %}
+- **Problem Statement:** {% set sel = r.problem_statements | selectattr('selected') | list %}{% if sel %}`{{ sel[0].problem_statement_id }}` — {{ sel[0].problem_statement[:100] }}{% else %}not set{% endif %}
+- **Departments:** {% set sel = r.departments | selectattr('selected') | list %}{% if sel %}{% for d in sel %}`{{ d.department_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Personas:** {% set sel = r.personas | selectattr('selected') | list %}{% if sel %}{% for p in sel %}`{{ p.persona_id }}` — {{ p.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Documents:** {% set sel = r.documents | selectattr('selected') | list %}{% if sel %}{% for d in sel %}`{{ d.document_id }}` — {{ d.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}0{% endif %}
+- **Objectives:** {% set sel = r.objectives | selectattr('selected') | list %}{{ sel | length }}
+- **Images:** {% set sel = r.images | selectattr('selected') | list %}{{ sel | length }}
+- **Videos:** {% set sel = r.videos | selectattr('selected') | list %}{{ sel | length }}
+- **Questions:** {% set sel = r.questions | selectattr('selected') | list %}{{ sel | length }}
+- **Parameter Fields:** {% set sel = r.parameter_fields | selectattr('selected') | list %}{{ sel | length }}
+{% if r.flags %}
+
+### Flag Toggles
+Each toggle below has a `true` id and a `false` id. To **enable** a toggle, include the `true` id in `flag_ids` on `Scenario_Draft`; to **disable**, include the `false` id. Toggles whose state is `not set` default to disabled. When you change a related resource (e.g. add image ids), flip the matching toggle in the same `Scenario_Draft` call so the UI surfaces it — adding `image_ids` without also setting `images_enabled = true` leaves the images section hidden.
+
+{% for type, items in (r.flags | groupby('type')) %}
+{% set true_opt = items | selectattr('value', 'equalto', true) | list | first %}
+{% set false_opt = items | selectattr('value', 'equalto', false) | list | first %}
+{% set state = 'true' if (true_opt and true_opt.selected) else ('false' if (false_opt and false_opt.selected) else 'not set') %}
+- **{{ (true_opt.name if true_opt else (false_opt.name if false_opt else type)) }}** (`{{ type }}`): **{{ state }}** — set true: `{{ true_opt.id if true_opt else '—' }}` · set false: `{{ false_opt.id if false_opt else '—' }}`
+{% endfor %}
+{% endif %}
+
+## Available Options
+{% if r.departments %}
+### Departments
+{% for d in r.departments %}- `{{ d.department_id }}` — {{ d.name }}{% if d.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.personas %}
+### Personas
+{% for p in r.personas %}- `{{ p.persona_id }}` — {{ p.name }}{% if p.description %} — {{ p.description[:60] }}{% endif %}{% if p.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.documents %}
+### Documents
+{% for d in r.documents %}- `{{ d.document_id }}` — {{ d.name }}{% if d.description %} — {{ d.description[:60] }}{% endif %}{% if d.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameters %}
+### Parameter Groups
+{% for p in r.parameters %}- `{{ p.parameter_id }}` — {{ p.name }}{% if p.description %} — {{ p.description[:60] }}{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.parameter_fields %}
+### Parameter Fields
+{% for pf in r.parameter_fields %}- `{{ pf.id }}` — {{ pf.name }}{% if pf.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.images %}
+### Images
+{% for i in r.images %}- `{{ i.image_id }}` — {{ i.name }}{% if i.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% if r.videos %}
+### Videos
+{% for v in r.videos %}- `{{ v.video_id }}` — {{ v.name }}{% if v.selected %} ✓{% endif %}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error fetching scenario: {{ results[0].error }}
+{% else %}
+No scenario data returned.
+{% endif %}

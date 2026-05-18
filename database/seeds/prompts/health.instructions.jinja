@@ -1,0 +1,32 @@
+## Context
+
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+
+## Parameters
+
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
+{% endfor %}
+{% endif %}
+
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
+{% endfor %}
+
+## What To Do
+
+Retrieve the data the user is asking about by calling `System_Health` with the right filter args, then answer in plain text.
+
+- For the overall headline (no filters), call `System_Health()`.
+- For any slice (date range, department, cohort, etc.), pass the relevant filter args: `service`, `date_from`, `date_to`, `page_limit`, `page_offset`.
+
+
+**Prior tool renders persist as chat messages the user can still see.** Do NOT re-fetch when a recent `System_Health` result is already in the conversation — answer from it. Do NOT restate or re-list a render that's literally just above your reply; reference it briefly instead.
+
+Cite specific numbers from the data. Do not invent values. Answer the question asked, not adjacent ones.

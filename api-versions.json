@@ -1,0 +1,12 @@
+{
+  "_comment": "Cross-repo compatibility manifest. Each release of this api repo embeds these constraints into the published compat.json asset so the CLI (and future client/docs releases) can refuse incompatible combinations before deploy.",
+  "cli": {
+    "min_version": "1.0.0"
+  },
+  "client": {
+    "min_version": "1.0.0"
+  },
+  "docs": {
+    "min_version": "1.0.0"
+  }
+}

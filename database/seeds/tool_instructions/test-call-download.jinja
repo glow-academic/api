@@ -1,0 +1,9 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Call Content
+{{ r.content }}
+{% elif results and results[0] and results[0].error %}
+Error downloading call: {{ results[0].error }}
+{% else %}
+No call data returned.
+{% endif %}

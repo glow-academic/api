@@ -1,0 +1,432 @@
+# Define networks for isolation
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  public_net:
+    driver: bridge
+
+services:
+  # --------------------
+  # Redis – pub/sub bus for Socket.IO
+  # --------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - internal
+
+  # --------------------
+  # Database Service
+  # --------------------
+  # DB_BACKUP env var (optional):
+  #   DB_BACKUP=fresh.sql.gz       Restore from history/fresh.sql.gz
+  #   DB_BACKUP=university.sql.gz  Restore from history/university.sql.gz
+  #   DB_BACKUP=                   Use existing database (default)
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_USER=${DB_USER:-myuser}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-mypassword}
+      - POSTGRES_DB=glowapi
+      - HISTORY_DIR=/database/history
+      - DB_BACKUP=${DB_BACKUP:-}
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - history:/database/history
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    healthcheck:
+      # When DB_BACKUP is set, wait for restore to complete before accepting
+      # connections. Marker lives at $PGDATA/.restore_complete (written by
+      # custom-entrypoint.sh's 99-mark-ready.sh init script in v2.15.10+).
+      # Glob-match across PG major-version subdirs so the path doesn't break
+      # on Postgres upgrades.
+      test: >
+        if [ -n "${DB_BACKUP:-}" ] && ! ls /var/lib/postgresql/*/docker/.restore_complete >/dev/null 2>&1 && ! ls /var/lib/postgresql/.restore_complete >/dev/null 2>&1; then
+          exit 1
+        fi &&
+        pg_isready -U ${DB_USER:-myuser} -d glowapi &&
+        psql -U ${DB_USER:-myuser} -d glowapi -tc 'SELECT 1' >/dev/null 2>&1
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    networks:
+      - internal
+
+  # --------------------
+  # Keycloak (Blue)
+  # --------------------
+  keycloak-blue: &keycloak-base
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    # Symlink themes from Docker volume so server-written updates are picked up live
+    entrypoint: >
+      /bin/sh -c "
+        for d in /opt/keycloak/data/uploads/themes/*/; do
+          name=$$(basename $$d) &&
+          rm -rf /opt/keycloak/themes/$$name &&
+          ln -sf /opt/keycloak/data/uploads/themes/$$name /opt/keycloak/themes/$$name
+        done 2>/dev/null || true &&
+        exec /opt/keycloak/bin/kc.sh start-dev
+      "
+    labels:
+      - "com.docker.compose.service=keycloak-blue"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
+    volumes:
+      - uploads:/opt/keycloak/data/uploads:ro
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://database:5432/glowapi?currentSchema=keycloak
+      KC_DB_USERNAME: ${DB_USER:-myuser}
+      KC_DB_PASSWORD: ${DB_PASSWORD:-mypassword}
+      KC_DB_SCHEMA: keycloak
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: ${APP_PREFIX:-}/auth
+      KC_HOSTNAME: ${ORIGIN:-http://localhost:3000}${APP_PREFIX:-}/auth
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_HEALTH_ENABLED: "true"
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 2>/dev/null && exec 3<&- && exec 3>&- || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 45s
+    networks:
+      - internal
+      - public_net
+
+  # --------------------
+  # Keycloak (Green)
+  # --------------------
+  keycloak-green:
+    <<: *keycloak-base
+    labels:
+      - "com.docker.compose.service=keycloak-green"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
+
+  # --------------------
+  # PgBouncer - Connection Pooler (Session Mode for Prepared Statements)
+  # --------------------
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-myuser}:${DB_PASSWORD:-mypassword}@database:5432/glowapi
+      - POOL_MODE=session
+      - MAX_CLIENT_CONN=1000
+      # In session mode each client conn pins a server conn for its
+      # whole session. The 5-way asyncio.gather in
+      # resolve_profile_identity_context holds 5 server conns per
+      # /context request; with N concurrent /context calls per page
+      # load that's 5N. The previous 25/100 ceiling saturated at
+      # ~5 concurrent /context calls and clients queued past the
+      # nginx 60s upstream timeout → 504s. Bumped to 100/200 to
+      # absorb the fan-out until the gather is collapsed (v2.15.20).
+      - DEFAULT_POOL_SIZE=100
+      - MIN_POOL_SIZE=20
+      - RESERVE_POOL_SIZE=20
+      - RESERVE_POOL_TIMEOUT=3
+      - MAX_DB_CONNECTIONS=200
+      - SERVER_IDLE_TIMEOUT=600
+      - AUTH_TYPE=scram-sha-256
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "pgrep", "pgbouncer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------
+  # Volume Init Service
+  # --------------------
+  volume-init:
+    image: busybox:1.36   # tiny, has cp ‑a
+    volumes:
+      # writable named volumes
+      - uploads:/app/uploads
+      - history:/app/history
+
+      # read‑only seed folders that live in your repo
+      - ./uploads:/seed/uploads:ro
+      - ./history:/seed/history:ro
+    command: >
+      sh -c '
+        set -e
+
+        # Copy uploads if the volume is still empty
+        if [ -z "$$(ls -A /app/uploads 2>/dev/null)" ]; then
+          echo "[init] Seeding uploads volume…"
+          # Only copy if source directory exists and has content
+          if [ -d "/seed/uploads" ] && [ -n "$$(ls -A /seed/uploads 2>/dev/null)" ]; then
+            cp -a /seed/uploads/. /app/uploads/
+          fi
+        fi
+
+        # Always sync history (these are deploy templates, not user data)
+        if [ -d "/seed/history" ] && [ -n "$$(ls -A /seed/history 2>/dev/null)" ]; then
+          echo "[init] Syncing history volume…"
+          cp -a /seed/history/. /app/history/
+        fi
+
+        # Always ensure perms for FastAPI UID/GID 1001
+        chown -R 1001:1001 /app/uploads /app/history
+        chmod -R 775 /app/uploads /app/history
+
+        echo "[init] Volume permissions & seeds ready."
+      '
+    networks:
+      - internal
+
+  # --------------------
+  # API Server (Blue)
+  # --------------------
+  server-blue:
+    image: ${API_REGISTRY:-ghcr.io/glow-academic}/api:${API_VERSION:?API_VERSION is required}
+    environment:
+      - DB_USER=${DB_USER:-myuser}
+      - DB_PASSWORD=${DB_PASSWORD:-mypassword}
+      - DB_NAME=glowapi
+      - DB_PORT=5432
+      - DB_HOST=pgbouncer
+      - PGPOOL_MODE=session
+      - DOCKER_ENV=1
+      - APP_PREFIX=${APP_PREFIX:-}
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
+      - AI_PROVIDER=${AI_PROVIDER:-direct}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
+      - AUTH_ISSUER=${AUTH_ISSUER:-}
+      - AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
+      - INTERNAL_API_BASE=http://server-blue:8000
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
+    labels:
+      - "com.docker.compose.service=server-blue"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
+    volumes:
+      - uploads:/app/uploads
+      - history:/app/history
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      volume-init:
+        condition: service_completed_successfully
+    command: >
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+      --log-level info --timeout 300 --graceful-timeout 10
+    networks:
+      - internal
+      - public_net
+
+  # --------------------
+  # API Server (Green)
+  # --------------------
+  server-green:
+    image: ${API_REGISTRY:-ghcr.io/glow-academic}/api:${API_VERSION:?API_VERSION is required}
+    environment:
+      - DB_USER=${DB_USER:-myuser}
+      - DB_PASSWORD=${DB_PASSWORD:-mypassword}
+      - DB_NAME=glowapi
+      - DB_PORT=5432
+      - DB_HOST=pgbouncer
+      - PGPOOL_MODE=session
+      - DOCKER_ENV=1
+      - APP_PREFIX=${APP_PREFIX:-}
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - CLIENT_ORIGINS=${CLIENT_ORIGINS:-http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DEPLOYMENT_TOKEN=${DEPLOYMENT_TOKEN:-}
+      - AI_PROVIDER=${AI_PROVIDER:-direct}
+      - AI_API_KEY=${AI_API_KEY:-}
+      - AI_BASE_URL=${AI_BASE_URL:-}
+      - AUTH_PROVIDER=${AUTH_PROVIDER:-keycloak}
+      - AUTH_CLIENT_SECRET=${AUTH_CLIENT_SECRET:-}
+      - AUTH_ISSUER=${AUTH_ISSUER:-}
+      - AUTH_ISSUER_INTERNAL=${AUTH_ISSUER_INTERNAL:-}
+      - INTERNAL_API_BASE=http://server-green:8000
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_INTERNAL_URL=http://nginx:80${APP_PREFIX:-}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - GRACE_PERIOD_MINUTES=${GRACE_PERIOD_MINUTES:-60}
+    labels:
+      - "com.docker.compose.service=server-green"
+      - "com.docker.compose.project=${COMPOSE_PROJECT_NAME:-glow-api}"
+    volumes:
+      - uploads:/app/uploads
+      - history:/app/history
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      volume-init:
+        condition: service_completed_successfully
+    command: >
+      gunicorn app.main:app -w 1 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
+      --log-level info --timeout 300 --graceful-timeout 10
+    networks:
+      - internal
+      - public_net
+  # --------------------
+  # Nginx Service
+  # --------------------
+  nginx:
+    image: nginx:1.25
+    container_name: ${COMPOSE_PROJECT_NAME:-glow-api}-nginx
+    environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-glow-api}
+      - APP_PREFIX=${APP_PREFIX:-}
+      - ACTIVE_ENV=${ACTIVE_ENV:-blue}
+      - ACTIVE_KC_ENV=${ACTIVE_KC_ENV:-blue}
+    volumes:
+      - ./web/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./web/generated:/etc/nginx/conf.d/generated:rw
+    depends_on:
+      - server-blue
+      - server-green
+    networks:
+      - internal
+      - public_net
+
+  docker-gen:
+    image: jwilder/docker-gen:0.7.6
+    container_name: ${COMPOSE_PROJECT_NAME:-glow-api}-docker-gen
+    restart: unless-stopped
+    environment:
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-glow-api}
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./web/templates:/etc/docker-gen/templates:ro
+      - ./web/generated:/etc/nginx/conf.d/generated:rw
+    command: >
+      -notify-sighup ${COMPOSE_PROJECT_NAME}-nginx
+      -watch
+      /etc/docker-gen/templates/upstreams.tmpl
+      /etc/nginx/conf.d/generated/upstreams.conf
+    networks:
+      - internal
+      - public_net
+
+  # ── Simulation Expiry ────────────────────────────────────────
+  simulation-expiry:
+    image: alpine/curl:latest
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "[expiry] Starting simulation expiry check (every 60s)"
+        sleep 30
+        while true; do
+          RESULT=$$(curl -sf http://nginx:80/attempt/expire -X POST 2>/dev/null || echo '{"error":"unreachable"}')
+          echo "[expiry] $$(date +%H:%M:%S) $$RESULT"
+          sleep 60
+        done
+    depends_on:
+      - nginx
+    networks:
+      - internal
+
+  # ── Backup Cron ──────────────────────────────────────────────
+  backup-cron:
+    image: postgres:18-alpine
+    environment:
+      - PGUSER=${DB_USER:-myuser}
+      - PGPASSWORD=${DB_PASSWORD:-mypassword}
+      - PGDATABASE=glowapi
+      - PGHOST=database
+      - BACKUP_INTERVAL=${BACKUP_INTERVAL:-604800}
+      - BACKUP_RETENTION=${BACKUP_RETENTION:-4}
+      - INSTANCE_ID=${INSTANCE_ID:-unknown}
+    volumes:
+      - history:/backups
+      - uploads:/uploads:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "[backup-cron] Starting (interval=$${BACKUP_INTERVAL}s, retention=$${BACKUP_RETENTION})"
+        while true; do
+          sleep "$${BACKUP_INTERVAL}"
+          if pg_isready -q; then
+            TIMESTAMP=$$(date +%Y%m%d-%H%M%S)
+            TARBALL="instance-backup-$${TIMESTAMP}.tar.gz"
+            TMPDIR=$$(mktemp -d)
+
+            echo "[backup-cron] Creating instance backup..."
+
+            # 1. Database dump
+            pg_dump --no-owner --no-privileges --exclude-schema=keycloak | gzip > "$${TMPDIR}/database.sql.gz"
+
+            # 2. Manifest
+            cat > "$${TMPDIR}/manifest.json" <<MANIFEST
+        {
+          "instance_id": "$${INSTANCE_ID}",
+          "created_at": "$$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "format": "instance-backup-v1"
+        }
+        MANIFEST
+
+            # 3. Create tarball (database + uploads + manifest)
+            tar czf "/backups/$${TARBALL}" \
+              -C "$${TMPDIR}" database.sql.gz manifest.json \
+              -C / uploads/
+
+            rm -rf "$${TMPDIR}"
+
+            SIZE=$$(du -h "/backups/$${TARBALL}" | cut -f1)
+            echo "[backup-cron] Saved $${TARBALL} ($${SIZE})"
+
+            # Retention — keep N most recent
+            ls -t /backups/instance-backup-*.tar.gz 2>/dev/null | tail -n +$$(($${BACKUP_RETENTION} + 1)) | xargs rm -f 2>/dev/null
+          else
+            echo "[backup-cron] Database not ready — skipping"
+          fi
+        done
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  history:
+  uploads:

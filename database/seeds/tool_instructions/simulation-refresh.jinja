@@ -1,0 +1,5 @@
+{% if success %}
+Simulation list refreshed.
+{% else %}
+Refresh failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

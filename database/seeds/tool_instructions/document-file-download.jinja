@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+File ready for download.{% if r.file_name %} **{{ r.file_name }}**.{% endif %}{% if r.url %} URL: `{{ r.url }}`.{% endif %}
+{% elif results and results[0] %}
+File download failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

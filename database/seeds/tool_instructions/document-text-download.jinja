@@ -1,0 +1,14 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.text %}
+### Text Content{% if r.text_id %} (ID: `{{ r.text_id }}`){% endif %}
+
+{{ r.text }}
+{% else %}
+Text ready for download.{% if r.text_id %} ID: `{{ r.text_id }}`.{% endif %}
+{% endif %}
+{% elif results and results[0] %}
+Text download failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

@@ -1,0 +1,19 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Generation complete.
+{% if r.run_id %}run_id: `{{ r.run_id }}`
+{% endif %}{% if r.group_id %}group_id: `{{ r.group_id }}`
+{% endif %}
+{% if r.produced_media %}
+Produced:
+{% for m in r.produced_media %}- {{ m.modality }} `{{ m.resource_id }}`{% if m.mime_type %} ({{ m.mime_type }}{% if m.file_size %}, {{ m.file_size }} bytes{% endif %}){% endif %}
+{% endfor %}
+Call `Scenario_Image_Download(image_id=...)` for images or `Scenario_Video_Download(video_id=...)` for videos with one of the resource_ids above to fetch.
+{% else %}
+No media produced. Call `Scenario_Get(group_id=...)` to inspect what was added.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Generation failed: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

@@ -1,0 +1,21 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% set rows = r.documents if r.documents is defined else (r.results if r.results is defined else []) %}
+{% if rows and rows|length > 0 %}
+## Documents ({{ rows|length }} results{% if r.has_more %}, more available{% endif %})
+
+{% for item in rows %}
+- **{{ item.name or '(unnamed)' }}**{% if item.description %} — {{ item.description[:80] }}{% if item.description|length > 80 %}…{% endif %}{% endif %} (ID: `{{ item.id or item.document_id }}`)
+{% endfor %}
+
+{% if r.has_more %}
+Use `page_offset` to see more results.
+{% endif %}
+{% else %}
+No documents found matching the search criteria.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching documents: {{ results[0].error }}
+{% else %}
+No document search result returned.
+{% endif %}

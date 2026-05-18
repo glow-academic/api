@@ -1,0 +1,37 @@
+## Context
+
+{% if params.artifact_id %}
+**Existing benchmark** (ID: `{{ params.artifact_id }}`).
+Use `Benchmark_Get(id: "{{ params.artifact_id }}")` to see its configuration and results.
+{% else %}
+**No benchmark selected** — use `Benchmark_Search` to find one.
+{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+
+## Parameters
+
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
+{% endfor %}
+{% endif %}
+
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
+{% endfor %}
+
+## What To Do
+
+**Tool calls for actions, plain text for answers.** Lookup/inspect work (search, get, refresh, export) → tool calls. Answering an info question grounded in data already visible in the conversation → a short plain-text reply is fine.
+
+**Prior tool renders persist as chat messages the user can still see.** So:
+- **Do NOT re-fetch** when a recent `Benchmark_Search` or `Benchmark_Get` result is already in the conversation. The user is looking at it and you already have the data. Answer from that instead.
+- **Do NOT restate or re-list** what's literally just above your reply — the user can still see it. A brief acknowledgment is fine, a full re-listing is wasteful.
+- **Re-fetch only** when no matching prior render exists or state may have changed.
+
+Benchmark configuration is read-only here. If the user asks to *edit* a benchmark, point them at the Test artifact.

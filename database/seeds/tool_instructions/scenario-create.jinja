@@ -1,0 +1,17 @@
+{% if success and results %}
+Scenario created successfully.
+{% for r in results %}
+{% if r.result and r.result.results %}
+{% for item in r.result.results %}
+- **{{ item.message }}**{% if item.scenario_id %} (ID: `{{ item.scenario_id }}`){% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% elif results %}
+Scenario creation failed.
+{% for r in results %}
+- {{ r.error or r.message or 'Unknown error' }}
+{% endfor %}
+{% else %}
+No result returned.
+{% endif %}

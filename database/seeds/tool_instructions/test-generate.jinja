@@ -1,0 +1,12 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Generation complete.
+{% if r.run_id %}run_id: `{{ r.run_id }}`
+{% endif %}{% if r.group_id %}group_id: `{{ r.group_id }}`
+{% endif %}
+Call `Test_Get` (with the group_id) to read the prepared invocations + their candidate outputs.
+{% elif results and results[0] and results[0].error %}
+Generation failed: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

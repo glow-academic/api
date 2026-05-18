@@ -1,0 +1,16 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.entries and r.entries|length > 0 %}
+## Rubric Drafts ({{ r.entries|length }})
+
+{% for d in r.entries %}
+- **{{ d.name or "(unnamed draft)" }}** — {{ d.created_at }} (ID: `{{ d.id }}`)
+{% endfor %}
+{% else %}
+No rubric drafts match the search.
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error searching drafts: {{ results[0].error }}
+{% else %}
+No drafts result returned.
+{% endif %}

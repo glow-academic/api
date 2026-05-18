@@ -1,0 +1,9 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Improvement created.
+- **Improvement ID:** `{{ r.improvement_id }}`
+{% elif results and results[0] and results[0].error %}
+Error creating improvements: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

@@ -1,0 +1,22 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Draft saved. ID: `{{ r.draft_id }}`.
+{% if r.form_state %}
+{% set fs = r.form_state %}
+### Form State
+- **Name:** {% if fs.name_id %}`{{ fs.name_id }}`{% if fs.name %} — {{ fs.name }}{% endif %}{% else %}not set{% endif %}
+- **Description:** {% if fs.description_id %}`{{ fs.description_id }}`{% if fs.description %} — {{ fs.description[:100] }}{% endif %}{% else %}not set{% endif %}
+- **Color:** {% if fs.color_id %}`{{ fs.color_id }}`{% if fs.color %} — {{ fs.color }}{% endif %}{% else %}not set{% endif %}
+- **Icon:** {% if fs.icon_id %}`{{ fs.icon_id }}`{% if fs.icon %} — {{ fs.icon }}{% endif %}{% else %}not set{% endif %}
+- **Instructions:** {% if fs.instructions_id %}`{{ fs.instructions_id }}`{% if fs.instructions %} — {{ fs.instructions[:100] }}{% endif %}{% else %}not set{% endif %}
+- **Flags:** {{ fs.flag_ids | length if fs.flag_ids else 0 }}
+- **Departments:** {{ fs.department_ids | length if fs.department_ids else 0 }}
+- **Examples:** {{ fs.example_ids | length if fs.example_ids else 0 }}
+- **Voices:** {{ fs.voice_ids | length if fs.voice_ids else 0 }}
+- **Parameter Fields:** {{ fs.parameter_field_ids | length if fs.parameter_field_ids else 0 }}
+{% endif %}
+{% elif results and results[0] %}
+Draft save failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

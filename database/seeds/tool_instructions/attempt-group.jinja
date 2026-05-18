@@ -1,0 +1,11 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Group resolved.
+- **Group ID:** `{{ r.group_id }}`
+{% if r.group_name_id %}- **Group Name ID:** `{{ r.group_name_id }}`{% endif %}
+{% if r.name %}- **Name:** {{ r.name }}{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error resolving group: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

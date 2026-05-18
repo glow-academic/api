@@ -1,0 +1,67 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.test %}
+## Test: {{ r.test.test_name }}
+- **Status:** {{ r.status }}
+- **Invocations:** {{ r.invocations | length }}
+{% endif %}
+
+{% if r.resources and r.resources.rubrics %}
+## Rubric
+{% for rid, rubric in r.resources.rubrics.items() %}
+**{{ rubric.name }}**: {{ rubric.description[:200] if rubric.description else '' }}
+- Total Points: {{ rubric.total_points }} | Pass Points: {{ rubric.pass_points }}
+{% if rubric.standard_group_ids and r.resources and r.resources.standard_groups %}
+### Standard Groups
+{% for sgid in rubric.standard_group_ids %}{% set sg = r.resources.standard_groups.get(sgid | string, {}) %}- **{{ sg.name or sgid }}**{% if sg.description %}: {{ sg.description[:200] }}{% endif %} | Points: {{ sg.points or 0 }} | Pass: {{ sg.pass_points or 0 }} | ID: `{{ sgid }}`
+{% endfor %}
+{% elif rubric.standard_group_ids %}
+### Standard Groups
+{% for sgid in rubric.standard_group_ids %}- `{{ sgid }}`
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.invocations %}
+## Invocations
+{% for inv in r.invocations %}
+- **ID:** `{{ inv.invocation_id }}`{% if inv.rubric_id %} | Rubric: `{{ inv.rubric_id }}`{% endif %}{% if inv.agent_ids %} | Agent: {{ inv.agent_ids | join(', ') }}{% endif %}
+  Status: {% if inv.invocation_completed %}completed{% else %}pending{% endif %}{% if inv.grade_score is not none %} | Score: {{ inv.grade_score }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if r.entries and r.entries.messages %}
+## Conversation
+{% set call_map = {} %}{% if r.entries and r.entries.calls %}{% for call in r.entries.calls %}{% set _ = call_map.update({call.id | string: call}) %}{% endfor %}{% endif %}
+{% set referenced_call_ids = [] %}
+{% for msg in r.entries.messages %}
+### {{ msg.role | upper }}
+{% if msg.text_ids %}- Text IDs: {% for tid in msg.text_ids %}`{{ tid }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}{% if msg.call_ids %}
+- **Tool Calls** (use these as `tool_call_id` in Test_Feedback):
+{% for cid in msg.call_ids %}{% set _ = referenced_call_ids.append(cid | string) %}{% set call = call_map.get(cid | string, {}) %}  - Call `{{ cid }}`{% if call and call.tool_id %} | Tool: `{{ call.tool_id }}`{% endif %}
+{% endfor %}{% endif %}
+{% endfor %}
+{% endif %}
+
+
+{% if r.entries and r.entries.grades %}
+## Grades
+{% for g in r.entries.grades %}
+- Grade `{{ g.id }}` | Score: {{ g.score }} | Passed: {{ g.passed }}
+{% endfor %}
+{% endif %}
+
+{% if r.entries and r.entries.feedback %}
+## Feedback
+{% for fb in r.entries.feedback %}
+- Score: {{ fb.total }}/{{ fb.total_points }} | {{ fb.feedback[:100] }}
+{% endfor %}
+{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error: {{ results[0].error }}
+{% else %}
+No test data returned.
+{% endif %}

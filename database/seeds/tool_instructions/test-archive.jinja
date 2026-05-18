@@ -1,0 +1,5 @@
+{% if success %}
+Test archived.{% if count %} {{ count }} archived.{% endif %}
+{% else %}
+Archive failed.{% if message %} {{ message }}{% endif %}
+{% endif %}

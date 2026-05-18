@@ -1,0 +1,471 @@
+"""Generic tool-backed audit wrappers for artifact operations."""
+
+from __future__ import annotations
+
+import inspect
+import uuid
+from collections.abc import Awaitable, Callable
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, TypeVar
+from uuid import UUID
+
+
+def _mint_group_id() -> UUID:
+    """Mint a v7 UUID for a brand-new group when the route opted in.
+    Falls back to v4 on Python builds that don't expose ``uuid.uuid7``.
+    """
+    return uuid.uuid7() if hasattr(uuid, "uuid7") else uuid.uuid4()
+
+
+def _mint_call_id() -> UUID:
+    """Mint a v7 UUID for the audit-event ``call_id``. Same fallback as
+    ``_mint_group_id``. The id is the wire-level identity for the
+    started/completed/failed events; the audit-row branch reuses it via
+    ``pre_minted_call_id`` so the DB row and the events agree.
+    """
+    return uuid.uuid7() if hasattr(uuid, "uuid7") else uuid.uuid4()
+
+import asyncpg
+from redis.asyncio import Redis
+
+from app.infra.common_context import resolve_common_context
+from app.infra.globals import UPLOAD_FOLDER, get_internal_sio
+from app.tools.entries.groups.create import create_group
+from app.tools.resources.tools.get import get_tools
+
+# SSE mirroring is handled centrally by ``ws/output.py`` — every
+# ``internal_sio.emit(...)`` automatically reaches the SSE hub for the
+# event's ``group_id``. No need to call ``emit_artifact_operation_*``
+# helpers here; the catch-all forwarder is the single primitive.
+from app.infra.tool_graph import SettingsToolGraph
+from app.infra.tools.entries.create_tool_call import create_tool_call
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
+T = TypeVar("T")
+
+internal_sio = get_internal_sio()
+
+
+def resolve_artifact_operation_tool(
+    tool_graph: SettingsToolGraph,
+    *,
+    artifact: str,
+    operation: str,
+) -> UUID | None:
+    """Pick the canonical tool for an artifact operation from the tool graph."""
+    matches = [
+        tool
+        for tool in tool_graph.tools
+        if tool.target_type == "artifact"
+        and tool.target == artifact
+        and tool.operation == operation
+    ]
+    if not matches:
+        return None
+
+    best = min(matches, key=lambda tool: (tool.system_id, tool.agent_id, tool.tool_id))
+    return best.tool_id
+
+
+async def run_artifact_operation_with_audit(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    artifact: str,
+    profile_id: UUID,
+    operation: str,
+    runner: Callable[..., Awaitable[T]],
+    arguments: dict[str, Any],
+    sid: str = "",
+    rooms: list[str] | None = None,
+    session_id: UUID | None = None,
+    draft_id: UUID | None = None,
+    group_id: UUID | None = None,
+    run_id: UUID | None = None,
+    attempt_id: UUID | None = None,
+    test_id: UUID | None = None,
+    entity_id: UUID | None = None,
+    bypass_cache: bool = False,
+    response_model: type[T] | None = None,
+    role: str = "user",
+    mcp: bool = False,
+    upload_folder: Path | None = None,
+    instruction_template: str | None = None,
+    operation_key: UUID | None = None,
+    call_id: UUID | None = None,
+    suppress_started: bool = False,
+    mint_group_id_if_missing: bool = False,
+) -> T:
+    """Execute an artifact operation with lifecycle emission and optional audit.
+
+    Emits to internal_sio:
+      - {artifact}.{operation}.started
+      - {artifact}.{operation}.completed (on success)
+      - {artifact}.{operation}.failed (on error)
+
+    Output handlers in ws/output/ pick these up and forward to clients.
+    When the tool graph has a matching tool, a tool-call audit record is persisted.
+
+    Room resolution: events broadcast to ``room=profile_id`` so every
+    socket the profile has open (multi-tab, multi-device, debug panel)
+    receives them. The originating ``sid`` is still threaded through the
+    payload for provenance, but room delivery is profile-scoped.
+    """
+    effective_rooms = rooms or [str(profile_id)]
+    event_prefix = f"{artifact}.{operation}"
+
+    common = await resolve_common_context(
+        pool,
+        redis,
+        profile_id=profile_id,
+        session_id=session_id,
+        group_id=group_id,
+        bypass_cache=bypass_cache,
+    )
+    if common is None:
+        raise PermissionError("Profile not found. Please sign in again.")
+
+    # Permission-driven tool resolution — agent-independent. See
+    # ``infra/tools/resolve_for_operation.py``: walks the global tool
+    # registry by permission overlap, picks the most-specific tool,
+    # attaches its instruction_template if any. Replaces the prior
+    # ``resolve_artifact_operation_tool`` (which is agent-scoped via
+    # tool_graph and stays around for generation-side callers that
+    # need that view).
+    from app.infra.tools.resolve_for_operation import resolve_tool_for_operation
+    async with pool.acquire() as _conn:
+        resolved_op_tool = await resolve_tool_for_operation(
+            _conn, redis, artifact=artifact, operation=operation,
+        )
+    tool_id = resolved_op_tool.tool_id if resolved_op_tool else None
+    resolved_template = (
+        resolved_op_tool.instruction_template if resolved_op_tool else None
+    )
+    # Caller-provided template wins; otherwise use the resolved one.
+    # This keeps the LLM dispatch path's per-tool enrichment in charge
+    # when it explicitly passes a template, and lets every other audit
+    # caller get a template for free via permission-based resolution.
+    if instruction_template is None:
+        instruction_template = resolved_template
+    effective_session_id = session_id or common.profile.session_id
+    effective_group_id = group_id
+    effective_profiles_id = common.profile.profiles_id
+    effective_upload_folder = upload_folder or UPLOAD_FOLDER
+
+    # Opt-in mint: routes for create-the-group operations (e.g. /X/group)
+    # set ``mint_group_id_if_missing=True`` so the framework assigns an id
+    # before any event fires. Without this, ``effective_group_id`` is None
+    # at ``.started`` time and SSE drops the event (only ``.completed``
+    # carries the impl-resolved id), producing the asymmetric "completed
+    # without started" trace that breaks the activity-rail bubble.
+    #
+    # Mint is paired with an idempotent ``create_group`` upsert — the
+    # downstream ``create_tool_call`` insert FK-references ``groups_entry``,
+    # so the row must exist before any audit write. The runner's own
+    # ``create_group`` call later in the impl is then a no-op (ON CONFLICT
+    # DO UPDATE).
+    if mint_group_id_if_missing and effective_group_id is None:
+        # Consult the active-group cache FIRST. Without this, a
+        # concurrent page-load (e.g. /context + /group + /search
+        # firing in parallel) where /group uses mint_if_missing
+        # blindly mints a fresh id, while /context and /search go
+        # through resolve_group_impl which uses Redis SETNX. Result:
+        # /group lands in its own freshly-minted group, the others
+        # converge on the SETNX winner, and audits get fragmented
+        # across two groups — chat-history threading then sees only
+        # one bucket.
+        #
+        # Reading the same Redis key resolve_group_impl uses keeps
+        # all three on the same group. If nothing is there, we mint
+        # a fresh id, claim the slot atomically (SET NX EX), and
+        # whoever wins materializes the group. If we lost the SETNX,
+        # we re-read the winner's id.
+        from app.infra.group.resolve import (
+            DEFAULT_WINDOW_SECONDS,
+            _redis_key,
+        )
+        _key = _redis_key(artifact, profile_id)
+        _existing = await redis.get(_key)
+        if _existing:
+            effective_group_id = UUID(
+                _existing.decode() if isinstance(_existing, bytes) else _existing
+            )
+            await redis.expire(_key, DEFAULT_WINDOW_SECONDS)
+        else:
+            _candidate = _mint_group_id()
+            _claimed = await redis.set(
+                _key, str(_candidate), nx=True, ex=DEFAULT_WINDOW_SECONDS,
+            )
+            if _claimed:
+                effective_group_id = _candidate
+            else:
+                _winner = await redis.get(_key)
+                effective_group_id = UUID(
+                    _winner.decode() if isinstance(_winner, bytes) else _winner
+                ) if _winner else _candidate
+                # Refresh window even when re-using winner's id.
+                await redis.expire(_key, DEFAULT_WINDOW_SECONDS)
+        async with pool.acquire() as conn:
+            await create_group(
+                conn,
+                session_id=effective_session_id,
+                artifact_type=artifact,
+                id=effective_group_id,
+            )
+
+    can_audit = all([
+        tool_id,
+        effective_session_id,
+        effective_group_id,
+        effective_profiles_id,
+    ])
+    if run_id is not None:
+        logger.info("AUDIT_GEN: %s.%s run_id=%s", artifact, operation, run_id)
+
+    # --- Identity for the wire ---
+    # ``emit_call_id`` is the single id every event (.started/.completed
+    # /.failed) carries. The audit-row branch reuses it via
+    # ``pre_minted_call_id`` so the DB row id matches the wire id; the
+    # non-audit branch (no registered tool, no ``can_audit``) still emits
+    # coherent started+completed pairs identified by this same id.
+    # Pre-minted ``call_id`` from the caller (e.g. streaming generate)
+    # wins so its earlier ``.started`` correlates with our ``.completed``.
+    emit_call_id: UUID = call_id or _mint_call_id()
+
+    # Dispatch timestamp — captured BEFORE we await the runner so it
+    # reflects when the tool was invoked, not when audit finished
+    # writing the result row. Passed through to ``create_tool_call`` so
+    # the audit-side ``messages_entry`` row uses this for ``created_at``,
+    # which makes the FE chat panel render the tool-call indicator at
+    # its true position in time — BEFORE the nested run's outputs
+    # (prompt + produced media) that happened between dispatch and the
+    # audit write. See the matching ``created_at`` override on
+    # ``create_run_message`` / ``create_message``.
+    started_at = datetime.now(timezone.utc)
+
+    # --- Tool resource for the wire ---
+    # Resolve via the canonical ``get_tools`` black box (cached). Sent
+    # alongside every event so the client knows whether to render a
+    # tool-call bubble (rich metadata, expandable receipt) or a
+    # lightweight event pill (audit fired but no tool registered).
+    # ``None`` is the discriminator: present ⇒ tool, absent ⇒ event.
+    tool_payload: dict[str, Any] | None = None
+    if tool_id is not None:
+        _tools = await get_tools(pool, [tool_id], redis)
+        if _tools:
+            tool_payload = _tools[0].model_dump(mode="json")
+
+    # --- .started (always, regardless of can_audit) ---
+    # Hoisted out of ``_on_call_created`` so it fires for every operation
+    # the framework wraps, not only audited ones. Without this, ops with
+    # no tool registered (e.g. ``/X/text_download``, ``/X/call_download``)
+    # were silently emitting only ``.completed`` and the client could
+    # never render their started bubble.
+    if not suppress_started:
+        await internal_sio.emit(f"{event_prefix}.started", {
+            "sid": sid,
+            "rooms": effective_rooms,
+            "role": role,
+            **arguments,
+            # Framework-owned identity trails the spread so request bodies
+            # that happen to carry ``call_id``/``group_id`` keys (download
+            # routes, etc.) don't overwrite the audit's own ids.
+            "call_id": str(emit_call_id),
+            "group_id": str(effective_group_id) if effective_group_id else None,
+            "operation_key": str(operation_key) if operation_key else None,
+            "tool": tool_payload,
+        })
+
+    # --- Execute ---
+    call_upload_id: UUID | None = None
+    tool_error: Exception | None = None
+
+    # Check whether the runner accepts orchestration kwargs. Orchestration
+    # runners (closures over ``request``) opt into receiving ``call_id``
+    # and/or ``group_id`` from the framework; plain CRUD lambdas accept
+    # neither. Same signature-inspection pattern, two independent flags.
+    _runner_params = inspect.signature(runner).parameters
+    _runner_accepts_call_id = "call_id" in _runner_params
+    _runner_accepts_group_id = "group_id" in _runner_params
+
+    async def _invoke_runner(call_id: UUID | None = None) -> Any:
+        kwargs: dict[str, Any] = {}
+        if _runner_accepts_call_id:
+            kwargs["call_id"] = call_id
+        if _runner_accepts_group_id:
+            kwargs["group_id"] = effective_group_id
+        return await runner(**kwargs)
+
+    if can_audit:
+        async def _tool_fn(
+            _conn: asyncpg.Connection, *, call_id: UUID | None = None, **_arguments: Any
+        ) -> Any:
+            result = await _invoke_runner(call_id=call_id)
+            if hasattr(result, "model_dump"):
+                return result.model_dump(mode="json")
+            return result
+
+        # ``.started`` already fired at the top of this function with
+        # ``emit_call_id``. We pass ``emit_call_id`` as ``pre_minted_call_id``
+        # so ``create_tool_call`` adopts the same id for the DB row and the
+        # receipt file. The ``on_call_created`` callback is a no-op now —
+        # nothing to fire.
+        async def _on_call_created(_cid: UUID | None) -> None:
+            return
+
+        async with pool.acquire() as conn:
+            audit_result = await create_tool_call(
+                conn,
+                group_id=effective_group_id,  # type: ignore[arg-type]
+                session_id=effective_session_id,  # type: ignore[arg-type]
+                profile_id=effective_profiles_id,  # type: ignore[arg-type]
+                upload_folder=effective_upload_folder,
+                tool_fn=_tool_fn,
+                arguments=arguments,
+                tool_id=tool_id,
+                run_id=run_id,
+                operation_key=operation_key,
+                role=role,
+                mcp=mcp,
+                instruction_template=instruction_template,
+                raise_on_error=False,
+                on_call_created=_on_call_created,
+                pre_minted_call_id=emit_call_id,
+                started_at=started_at,
+            )
+        result_data = audit_result.result
+        call_upload_id = audit_result.call_upload_id
+
+        # Check if the runner failed (captured by create_tool_call)
+        if isinstance(result_data, dict) and result_data.get("success") is False:
+            tool_error = Exception(result_data.get("message", "Unknown error"))
+    else:
+        try:
+            result_data = await _invoke_runner()
+        except Exception as exc:
+            failed_payload = {
+                "sid": sid,
+                "rooms": effective_rooms,
+                "call_id": str(emit_call_id),
+                "group_id": str(effective_group_id) if effective_group_id else None,
+                "operation_key": str(operation_key) if operation_key else None,
+                "message": str(exc),
+                "error_type": type(exc).__name__,
+                "role": role,
+                "tool": tool_payload,
+            }
+            await internal_sio.emit(f"{event_prefix}.failed", failed_payload)
+
+            # Stamp the failure into the call receipt when a pre-minted
+            # call_id exists (the streaming generate path mints one and
+            # the receipt file already exists from its earlier write).
+            # Otherwise no receipt to append to.
+            if call_id is not None:
+                from app.infra.tools.entries.append_call_event import append_call_event
+                append_call_event(
+                    call_id,
+                    f"{event_prefix}.failed",
+                    failed_payload,
+                    effective_upload_folder,
+                )
+            raise
+
+    # --- Failed ---
+    if tool_error is not None:
+        failed_payload = {
+            "sid": sid,
+            "rooms": effective_rooms,
+            "call_id": str(emit_call_id),
+            "group_id": str(effective_group_id) if effective_group_id else None,
+            "operation_key": str(operation_key) if operation_key else None,
+            "message": str(tool_error),
+            "error_type": type(tool_error).__name__,
+            "role": role,
+            "tool": tool_payload,
+        }
+        await internal_sio.emit(f"{event_prefix}.failed", failed_payload)
+
+        # Stamp the failure into the call receipt unconditionally,
+        # independent of whether any output handler also calls
+        # ``append_call_event`` for this event. The receipt is the
+        # source-of-truth audit trail; failed events must always land
+        # here so post-mortem ``jq`` queries find them.
+        if call_upload_id is not None:
+            from app.infra.tools.entries.append_call_event import append_call_event
+            append_call_event(
+                call_upload_id,
+                f"{event_prefix}.failed",
+                failed_payload,
+                effective_upload_folder,
+            )
+
+        raise tool_error
+
+    # --- Completed ---
+    output = (
+        result_data.model_dump(mode="json")
+        if hasattr(result_data, "model_dump")
+        else result_data
+        if isinstance(result_data, dict)
+        else {}
+    )
+
+    # Latest soft_calls_mv row for this call — the runner just inserted
+    # one (or didn't, for non-soft writes). The black-box lookup is the
+    # canonical place to surface ledger state to live consumers; the
+    # persisted call JSON receipt picks the same fields up via the
+    # standard ``append_call_event`` pipe. Read errors don't block the
+    # event — ``ledger_status: None`` simply means "no entry found".
+    ledger_status: str | None = None
+    ledger_operation: str | None = None
+    ledger_artifact: str | None = None
+    ledger_artifact_id: str | None = None
+    try:
+        from app.tools.entries.soft_calls.get import get_soft_call
+        async with pool.acquire() as ledger_conn:
+            entry = await get_soft_call(ledger_conn, emit_call_id, artifact=artifact)
+        if entry is not None:
+            ledger_status = entry.status
+            ledger_operation = entry.operation
+            ledger_artifact = entry.artifact
+            ledger_artifact_id = str(entry.artifact_id)
+    except Exception:
+        # Best-effort lookup — never block the .completed emit on a
+        # ledger fetch failure.
+        pass
+
+    # See ``.started`` emit above for the ordering rationale — framework
+    # identity fields trail the response spread so a runner that returns
+    # ``call_id`` / ``group_id`` in its payload (e.g. group resolve) can't
+    # accidentally clobber the audit's own row id. Uses ``emit_call_id``
+    # (always set), not ``call_upload_id`` (None in the non-audit branch),
+    # so the wire-level identity is consistent regardless of audit branch.
+    await internal_sio.emit(f"{event_prefix}.completed", {
+        "sid": sid,
+        "rooms": effective_rooms,
+        "role": role,
+        **output,
+        "call_id": str(emit_call_id),
+        "group_id": str(effective_group_id) if effective_group_id else None,
+        "operation_key": str(operation_key) if operation_key else None,
+        "tool": tool_payload,
+        "ledger_status": ledger_status,
+        "ledger_operation": ledger_operation,
+        "ledger_artifact": ledger_artifact,
+        "ledger_artifact_id": ledger_artifact_id,
+    })
+
+    if response_model is not None:
+        return response_model.model_validate(result_data)
+    return result_data
+
+
+def build_audit_arguments(data: dict[str, Any]) -> dict[str, Any]:
+    """Strip transport-only keys from an audited operation payload."""
+    return {
+        key: value
+        for key, value in data.items()
+        if key not in {"sid", "profile_id", "session_id"}
+    }

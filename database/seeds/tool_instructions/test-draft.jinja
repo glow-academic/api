@@ -1,0 +1,16 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Test draft saved successfully.
+{% if r.draft_id %}- **Draft ID:** `{{ r.draft_id }}`{% endif %}
+
+Pass this `draft_id` to Test_Invocation_Create to apply the saved selections when materializing the row.
+{% elif results and results[0] and results[0].error %}
+Error saving test draft: {{ results[0].error }}
+
+**Troubleshooting:**
+- `test_id` must reference an active test on this profile/session
+- `invocation_id` must reference an active benchmark `invocation_entry` (the template)
+- Resource ids passed in must exist and be active
+{% else %}
+No result returned.
+{% endif %}

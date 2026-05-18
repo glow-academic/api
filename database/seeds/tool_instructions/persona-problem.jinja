@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Problem reported.{% if r.problem_id %} ID: `{{ r.problem_id }}`.{% endif %}
+{% elif results and results[0] and results[0].error %}
+Error reporting problem: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

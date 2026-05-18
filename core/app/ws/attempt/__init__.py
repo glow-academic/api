@@ -1,0 +1,33 @@
+"""Input: attempt.* events."""
+
+from . import (  # noqa: F401
+    audio_download,
+    audio_upload,
+    # Absorbed sub-modules
+    chat,
+    complete,
+    dashboard,
+    export,
+    file_download,
+    file_preview,
+    generate,
+    generations,
+    get,
+    grade,
+    group,
+    home,
+    image_download,
+    leaderboard,
+    message,
+    practice,
+    problem,
+    refresh,
+    reports,
+    response,
+    search,
+    speak,
+    start,
+    stop,
+    text_download,
+    video_download,
+)

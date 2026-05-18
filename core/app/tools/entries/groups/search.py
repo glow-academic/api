@@ -1,0 +1,80 @@
+"""Groups search — filtered/paginated query against groups_mv."""
+
+from datetime import datetime
+from uuid import UUID
+
+import asyncpg  # type: ignore
+
+from app.infra.docs.resolve_mv_source import resolve_mv_source
+from app.tools.entries.groups.types import GetGroupResponse
+
+MV_NAME = "groups_mv"
+
+
+async def search_groups(
+    conn: asyncpg.Connection,
+    session_ids: list[UUID] | None = None,
+    name: str | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    mcp: bool | None = None,
+    artifact_type: str | None = None,
+    has_runs: bool = False,
+    limit: int = 20,
+    offset: int = 0,
+    bypass_mv: bool = False,
+) -> list[GetGroupResponse]:
+    """Search groups from groups_mv with declarative filters.
+
+    has_runs=True drops groups that have no visible run. EXISTS check
+    runs against runs_mv (not runs_entry) because that's the same
+    universe the test picker's inner expansion sources from via
+    search_runs — keeping the two aligned avoids "header shows up but
+    expands to nothing" when runs_mv hasn't materialized base-table
+    rows or the MV's join filters out the row. Short-circuits on the
+    indexed group_id column.
+    """
+    source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
+
+    rows = await conn.fetch(
+        f"""
+        SELECT group_id, session_id, created_at, name, active, mcp, generated, artifact_type
+        FROM {source} g
+        WHERE ($1::uuid[] IS NULL OR session_id = ANY($1))
+          AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%')
+          AND ($3::timestamptz IS NULL OR created_at >= $3)
+          AND ($4::timestamptz IS NULL OR created_at <= $4)
+          AND ($5::boolean IS NULL OR mcp = $5)
+          AND ($8::text IS NULL OR artifact_type = $8)
+          AND (NOT $9::boolean OR EXISTS (
+                SELECT 1 FROM runs_mv r
+                WHERE r.group_id = g.group_id
+                LIMIT 1
+              ))
+        ORDER BY created_at DESC
+        LIMIT $6 OFFSET $7
+        """,
+        session_ids,
+        name,
+        date_from,
+        date_to,
+        mcp,
+        limit,
+        offset,
+        artifact_type,
+        has_runs,
+    )
+
+    return [
+        GetGroupResponse(
+            id=r["group_id"],
+            session_id=r["session_id"],
+            created_at=r["created_at"],
+            name=r["name"],
+            active=r["active"],
+            mcp=r["mcp"],
+            generated=r["generated"],
+            artifact_type=r["artifact_type"],
+        )
+        for r in rows
+    ]

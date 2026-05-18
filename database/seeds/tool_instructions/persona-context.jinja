@@ -1,0 +1,37 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### {{ (r.name or 'persona') | capitalize }} Context
+{% if r.description %}
+{{ r.description }}
+{% endif %}
+
+{% if r.entries %}- **Entries:** {{ r.entries|length }}{% endif %}
+{% if r.resources %} • **Resources:** {{ r.resources|length }}{% endif %}
+{% if r.permission_docs %} • **Permissions:** {{ r.permission_docs|length }}{% endif %}
+{% if r.api_operations %} • **API Operations:** {{ r.api_operations|length }}{% endif %}
+
+{% if r.api_operations %}
+## Available Operations
+{% for op in r.api_operations %}- `{{ op.name }}`{% if op.description %} — {{ op.description }}{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if r.caller_permissions %}
+## Caller Permissions
+{% for k, v in r.caller_permissions.items() %}- **{{ k }}:** {{ v }}
+{% endfor %}
+{% endif %}
+
+{% if r.profile %}
+## Profile
+- **Name:** {{ r.profile.name | default('(unnamed)') }}
+{% if r.profile.role %}- **Role:** {{ r.profile.role }}{% if r.profile.role_level is defined %} (level {{ r.profile.role_level }}){% endif %}
+{% endif %}
+{% if r.profile.is_active is defined %}- **Active:** {{ r.profile.is_active }}{% endif %}
+{% endif %}
+
+{% elif results and results[0] and results[0].error %}
+Error loading persona context: {{ results[0].error }}
+{% else %}
+No persona context returned.
+{% endif %}

@@ -1,0 +1,13 @@
+{% if scenarios and scenarios|length > 0 %}
+## Scenarios ({{ scenarios|length }} results{% if has_more %}, more available{% endif %})
+
+{% for s in scenarios %}
+- **{{ s.name or '(unnamed)' }}**{% if s.description %} — {{ s.description[:80] }}{% if s.description|length > 80 %}...{% endif %}{% endif %} (ID: `{{ s.id }}`)
+{% endfor %}
+
+{% if has_more %}
+Use `page_offset` to see more results.
+{% endif %}
+{% else %}
+No scenarios found matching the search criteria.
+{% endif %}

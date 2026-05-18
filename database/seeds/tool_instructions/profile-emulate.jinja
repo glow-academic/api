@@ -1,0 +1,8 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Emulating profile{% if r.profile_name %} **{{ r.profile_name }}**{% endif %}.{% if r.profile_id %} ID: `{{ r.profile_id }}`.{% endif %} Use `Profile_Unemulate` to return to your own profile.
+{% elif results and results[0] %}
+Emulate failed: {{ results[0].error or 'Unknown error' }}
+{% else %}
+No result returned.
+{% endif %}

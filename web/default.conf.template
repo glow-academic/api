@@ -1,0 +1,258 @@
+# Start directly with http-context directives like resolver, map, and upstream.
+resolver 127.0.0.11 valid=30s ipv6=off;
+
+# Map Upgrade headers once so we can reuse them
+map $http_upgrade $connection_upgrade {
+  default   upgrade;
+  ""        close;
+}
+
+# Preserve upstream proto (e.g., Apache SSL) so we don't downgrade https -> http.
+# If no upstream header, fall back to this hop's $scheme.
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ""      $scheme;
+}
+
+# Include dynamically generated upstreams (from docker-gen)
+include /etc/nginx/conf.d/generated/upstreams.conf;
+
+# Routing based on ACTIVE_ENV
+map "${ACTIVE_ENV}" $server_backend {
+    "green" green_server;
+    default blue_server;
+}
+
+# Routing based on ACTIVE_KC_ENV
+map "${ACTIVE_KC_ENV}" $keycloak_backend {
+    "green" green_keycloak;
+    default blue_keycloak;
+}
+
+server {
+    listen 80;
+
+    # --- add these buffer settings ---
+    proxy_buffering on;                 # explicit
+    proxy_buffer_size 128k;             # header buffer (fixes "too big header")
+    proxy_buffers 8 256k;               # 8 buffers of 256k for response body
+    proxy_busy_buffers_size 256k;       # ≤ total proxy_buffers
+    proxy_temp_file_write_size 256k;    # optional, keep consistent
+    # ---------------------------------
+
+    # FastAPI server — all API routes
+    location ^~ ${APP_PREFIX}/ {
+        proxy_pass         http://$server_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    # WebSocket traffic (prefixed)
+    location ^~ ${APP_PREFIX}/socket.io/ {
+        proxy_pass         http://$server_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        $connection_upgrade;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+        proxy_buffering    off;
+    }
+
+    # Keycloak (proxied under APP_PREFIX)
+    # rewrite strips APP_PREFIX so Keycloak sees /auth/… (variable proxy_pass skips auto-strip)
+    location ^~ ${APP_PREFIX}/auth/ {
+        rewrite ^${APP_PREFIX}(/auth/.*)$ $1 break;
+        proxy_pass         http://$keycloak_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        # Force HTTPS for Keycloak - ensures Keycloak detects HTTPS correctly for OAuth redirects
+        # Since public URL is HTTPS, always set this to https
+        proxy_set_header   X-Forwarded-Proto https;
+        proxy_set_header   X-Forwarded-Host  $host;
+        proxy_redirect     off;
+    }
+
+    # MCP (FastAPI) - HTTP + SSE transport
+    # CRITICAL: Serve both /mcp and /mcp/ without redirects
+    # HTTP clients strip Authorization headers on redirects (security feature)
+    # ChatGPT sends Authorization header, but redirects cause it to be dropped
+    location = ${APP_PREFIX}/mcp {
+        # Rewrite /mcp → /mcp/ at the upstream hop. FastAPI mounts the MCP
+        # streamable-http app at /mcp/ and returns 404 for the bare /mcp path.
+        # Clients (Claude.ai, ChatGPT) that follow the PRM `resource` URL land
+        # on /mcp without a trailing slash; a 3xx redirect would cause them
+        # to drop the Authorization header, so we rewrite in-proxy instead.
+        proxy_pass         http://$server_backend/mcp/$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+
+        # SSE: prevent buffering
+        proxy_buffering    off;
+        proxy_cache        off;
+
+        # Long-lived connections for SSE
+        proxy_read_timeout 3600;
+        proxy_send_timeout 3600;
+    }
+
+    location ^~ ${APP_PREFIX}/mcp/ {
+        proxy_pass         http://$server_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+
+        # SSE: prevent buffering
+        proxy_buffering    off;
+        proxy_cache        off;
+
+        # Long-lived connections for SSE
+        proxy_read_timeout 3600;
+        proxy_send_timeout 3600;
+    }
+
+    # MCP PRM discovery endpoint (RFC 9728) - if served at root
+    location = ${APP_PREFIX}/.well-known/oauth-protected-resource {
+        proxy_pass         http://$server_backend;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    # OAuth Authorization Server Metadata endpoint (RFC 8414) - REQUIRED for ChatGPT Dev Mode
+    location = ${APP_PREFIX}/.well-known/oauth-authorization-server {
+        proxy_pass         http://$server_backend;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    # Login/callback/logout — Keycloak OAuth flow
+    location = ${APP_PREFIX}/login {
+        proxy_pass         http://$server_backend/login$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    location = ${APP_PREFIX}/callback {
+        proxy_pass         http://$server_backend/callback$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    location = ${APP_PREFIX}/logout {
+        proxy_pass         http://$server_backend/logout$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    location = ${APP_PREFIX}/me {
+        proxy_pass         http://$server_backend/me$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    # Auth client config (deployment token protected)
+    location = ${APP_PREFIX}/auth/client-config {
+        proxy_pass         http://$server_backend/auth/client-config$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    # Default-IdP OIDC endpoints (Keycloak broker calls these server-to-server)
+    location = ${APP_PREFIX}/authorize {
+        proxy_pass         http://$server_backend/authorize$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    location = ${APP_PREFIX}/token {
+        proxy_pass         http://$server_backend/token$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    location = ${APP_PREFIX}/jwks {
+        proxy_pass         http://$server_backend/jwks$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+    }
+
+    location = ${APP_PREFIX}/userinfo {
+        proxy_pass         http://$server_backend/userinfo$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+    }
+
+    # Default-IdP OIDC endpoints (public access required for Keycloak redirects)
+    # Pattern matches MCP routing - root level, not under /api/
+    location = ${APP_PREFIX}/default-idp {
+        proxy_pass         http://$server_backend/default-idp$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+
+        # OAuth/OIDC endpoints may have long query strings
+        proxy_buffering    off;
+    }
+
+    location ^~ ${APP_PREFIX}/default-idp/ {
+        proxy_pass         http://$server_backend;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $forwarded_proto;
+        proxy_set_header   X-Forwarded-Host  $host;
+
+        # OAuth/OIDC endpoints may have long query strings
+        proxy_buffering    off;
+    }
+
+    # Root endpoint — service info + health check
+    location = / {
+        proxy_pass         http://$server_backend/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $http_host;
+    }
+}

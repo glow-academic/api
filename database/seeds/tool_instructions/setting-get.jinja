@@ -1,0 +1,19 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+{% if r.draft_id %}### Setting Draft (ID: `{{ r.draft_id }}`){% else %}### Setting{% endif %}
+
+{% for key, bank in r.items() %}
+{% if bank is iterable and bank is not string and bank is not mapping and bank|length > 0 and key not in ['draft_id', 'idempotency_key'] %}
+#### {{ key | replace('_', ' ') | title }}
+{% for item in bank %}
+{% if item is mapping %}
+- `{{ item.id or item.get(key[:-1] ~ '_id', '') }}` — {{ item.name or item.value or item.label or (item.description[:60] if item.description is defined else '(unnamed)') }}{% if item.selected %} ✓{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% elif results and results[0] and results[0].error %}
+Error fetching setting: {{ results[0].error }}
+{% else %}
+No setting data returned.
+{% endif %}

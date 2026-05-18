@@ -1,0 +1,568 @@
+"""Resolve agent artifact context — merged junctions + hydrated resources."""
+
+from __future__ import annotations
+
+import asyncio
+from dataclasses import dataclass
+from uuid import UUID
+
+import asyncpg
+from redis.asyncio import Redis
+
+from app.infra.flag_icons import hydrate_flag_icons
+from app.infra.types import ArtifactContext, ResourcePair
+from app.tools.artifacts.agent.get import get_agents as get_agent_artifacts
+from app.tools.entries.agent_drafts.get import get_agent_drafts
+from app.tools.resources.agents.get import get_agents as get_agent_resources
+from app.tools.resources.departments.get import get_departments
+from app.tools.resources.departments.search import search_departments
+from app.tools.resources.descriptions.get import get_descriptions
+from app.tools.resources.descriptions.search import search_descriptions
+from app.tools.resources.flags.get import get_flags
+from app.tools.resources.flags.search import search_flags
+from app.tools.resources.instructions.get import get_instructions
+from app.tools.resources.instructions.search import search_instructions
+from app.tools.resources.models.get import get_models
+from app.tools.resources.models.search import search_models
+from app.tools.resources.names.get import get_names
+from app.tools.resources.names.search import search_names
+from app.tools.resources.prompts.get import get_prompts
+from app.tools.resources.prompts.search import search_prompts
+from app.tools.resources.qualities.get import get_qualities
+from app.tools.resources.qualities.search import search_qualities
+from app.tools.resources.reasoning_levels.get import get_reasoning_levels
+from app.tools.resources.reasoning_levels.search import search_reasoning_levels
+from app.tools.resources.rubrics.get import get_rubrics
+from app.tools.resources.rubrics.search import search_rubrics
+from app.tools.resources.temperature_levels.get import get_temperature_levels
+from app.tools.resources.temperature_levels.search import search_temperature_levels
+from app.tools.resources.tools.get import get_tools
+from app.tools.resources.tools.search import search_tools
+from app.tools.resources.voices.get import get_voices
+from app.tools.resources.voices.search import search_voices
+
+AGENT_FLAG_NAMES = {"agent_active"}
+
+
+@dataclass
+class _MergedIds:
+    name_ids: list[UUID]
+    description_ids: list[UUID]
+    model_ids: list[UUID]
+    flag_ids: list[UUID]
+    department_ids: list[UUID]
+    tool_ids: list[UUID]
+    temperature_level_ids: list[UUID]
+    reasoning_level_ids: list[UUID]
+    voice_ids: list[UUID]
+    quality_ids: list[UUID]
+    rubric_ids: list[UUID]
+    prompt_ids: list[UUID]
+    agent_ids: list[UUID]
+
+
+def _merge_junction_ids(artifact, draft) -> _MergedIds:
+    name_ids = list(artifact.name_ids or []) if artifact else []
+    description_ids = list(artifact.description_ids or []) if artifact else []
+    model_ids = list(artifact.model_ids or []) if artifact else []
+    flag_ids = list(artifact.flag_ids or []) if artifact else []
+    department_ids = list(artifact.department_ids or []) if artifact else []
+    tool_ids = list(artifact.tool_ids or []) if artifact else []
+    temperature_level_ids = list(artifact.temperature_level_ids or []) if artifact else []
+    reasoning_level_ids = list(artifact.reasoning_level_ids or []) if artifact else []
+    voice_ids = list(artifact.voice_ids or []) if artifact else []
+    quality_ids = list(artifact.quality_ids or []) if artifact else []
+    rubric_ids = list(artifact.rubric_ids or []) if artifact else []
+    prompt_ids = list(artifact.prompt_ids or []) if artifact else []
+    agent_ids = list(artifact.agent_ids or []) if artifact else []
+
+    if draft:
+        if draft.name_ids:
+            name_ids = list(draft.name_ids)
+        if draft.description_ids:
+            description_ids = list(draft.description_ids)
+        if draft.model_ids:
+            model_ids = list(draft.model_ids)
+        if draft.flag_ids:
+            flag_ids = list(draft.flag_ids)
+        if draft.department_ids:
+            department_ids = list(draft.department_ids)
+        if draft.tool_ids:
+            tool_ids = list(draft.tool_ids)
+        if draft.temperature_level_ids:
+            temperature_level_ids = list(draft.temperature_level_ids)
+        if draft.reasoning_level_ids:
+            reasoning_level_ids = list(draft.reasoning_level_ids)
+        if draft.voice_ids:
+            voice_ids = list(draft.voice_ids)
+        if draft.quality_ids:
+            quality_ids = list(draft.quality_ids)
+        if draft.rubric_ids:
+            rubric_ids = list(draft.rubric_ids)
+        if draft.prompt_ids:
+            prompt_ids = list(draft.prompt_ids)
+        if draft.agent_ids:
+            agent_ids = list(draft.agent_ids)
+
+    return _MergedIds(
+        name_ids=name_ids,
+        description_ids=description_ids,
+        model_ids=model_ids,
+        flag_ids=flag_ids,
+        department_ids=department_ids,
+        tool_ids=tool_ids,
+        temperature_level_ids=temperature_level_ids,
+        reasoning_level_ids=reasoning_level_ids,
+        voice_ids=voice_ids,
+        quality_ids=quality_ids,
+        rubric_ids=rubric_ids,
+        prompt_ids=prompt_ids,
+        agent_ids=agent_ids,
+    )
+
+
+def _dedupe_ids(ids: list[UUID | None]) -> list[UUID]:
+    ordered: list[UUID] = []
+    seen: set[UUID] = set()
+    for item in ids:
+        if item is None or item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
+
+
+async def resolve_agent_context(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    agent_id: UUID | None,
+    group_id: UUID,
+    draft_id: UUID | None = None,
+    user_department_ids: list[UUID] | None = None,
+    names_search: str | None = None,
+    descriptions_search: str | None = None,
+    models_search: str | None = None,
+    prompts_search: str | None = None,
+    instructions_search: str | None = None,
+    flags_search: str | None = None,
+    departments_search: str | None = None,
+    tools_search: str | None = None,
+    temperature_levels_search: str | None = None,
+    reasoning_levels_search: str | None = None,
+    voices_search: str | None = None,
+    qualities_search: str | None = None,
+    rubrics_search: str | None = None,
+    names_limit: int | None = None,
+    descriptions_limit: int | None = None,
+    models_limit: int | None = None,
+    prompts_limit: int | None = None,
+    instructions_limit: int | None = None,
+    flags_limit: int | None = None,
+    departments_limit: int | None = None,
+    tools_limit: int | None = None,
+    temperature_levels_limit: int | None = None,
+    reasoning_levels_limit: int | None = None,
+    voices_limit: int | None = None,
+    qualities_limit: int | None = None,
+    rubrics_limit: int | None = None,
+    names_selected_only: bool | None = None,
+    descriptions_selected_only: bool | None = None,
+    models_selected_only: bool | None = None,
+    prompts_selected_only: bool | None = None,
+    instructions_selected_only: bool | None = None,
+    flags_selected_only: bool | None = None,
+    departments_selected_only: bool | None = None,
+    tools_selected_only: bool | None = None,
+    temperature_levels_selected_only: bool | None = None,
+    reasoning_levels_selected_only: bool | None = None,
+    voices_selected_only: bool | None = None,
+    qualities_selected_only: bool | None = None,
+    rubrics_selected_only: bool | None = None,
+    bypass_cache: bool = False,
+) -> ArtifactContext:
+    """Resolve an agent artifact into fully hydrated resources."""
+
+    user_dept_ids = user_department_ids or []
+
+    async def _fetch_artifact() -> list:
+        if not agent_id:
+            return []
+        async with pool.acquire() as conn:
+            return await get_agent_artifacts(
+                conn,
+                [agent_id],
+                active=None,
+                names=True,
+                descriptions=True,
+                departments=True,
+                flags=True,
+                models=True,
+                reasoning_levels=True,
+                temperature_levels=True,
+                tools=True,
+                voices=True,
+                qualities=True,
+                rubrics=True,
+                agents=True,
+            )
+
+    async def _fetch_draft() -> list:
+        if not draft_id:
+            return []
+        async with pool.acquire() as conn:
+            return await get_agent_drafts(conn, [draft_id])
+
+    artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
+    artifact = artifacts[0] if artifacts else None
+    draft = drafts[0] if drafts else None
+    merged = _merge_junction_ids(artifact, draft)
+    active = artifact.active if artifact else True
+
+    async def _get_selected_agent_resources() -> list:
+        if not merged.agent_ids:
+            return []
+        async with pool.acquire() as conn:
+            return await get_agent_resources(conn, merged.agent_ids, redis, bypass_cache)
+
+    selected_agent_resources = await _get_selected_agent_resources()
+    # prompts now live on the agent_prompts_junction (migration 008).
+    # `merged.prompt_ids` already folds the artifact row + draft
+    # pending_ids together — no need to walk each agents_resource
+    # and union its scalar prompt_id any more. agents_resource.prompt_id
+    # remains the per-embodiment primary prompt but isn't the read
+    # path for the artifact's prompts section.
+    prompt_ids = list(merged.prompt_ids)
+    instruction_ids = _dedupe_ids(
+        [instruction_id for item in selected_agent_resources for instruction_id in (getattr(item, "instruction_ids", None) or [])]
+    )
+    pending_ids: set[UUID] = set()
+    pending_agent_ids = set(draft.pending_agent_ids or []) if draft else set()
+    if draft:
+        pending_ids.update(draft.pending_name_ids or [])
+        pending_ids.update(draft.pending_description_ids or [])
+        pending_ids.update(draft.pending_flag_ids or [])
+        pending_ids.update(draft.pending_department_ids or [])
+        pending_ids.update(draft.pending_model_ids or [])
+        pending_ids.update(draft.pending_tool_ids or [])
+        pending_ids.update(draft.pending_reasoning_level_ids or [])
+        pending_ids.update(draft.pending_temperature_level_ids or [])
+        pending_ids.update(draft.pending_voice_ids or [])
+        pending_ids.update(draft.pending_quality_ids or [])
+        pending_ids.update(draft.pending_rubric_ids or [])
+        pending_ids.update(draft.pending_prompt_ids or [])
+    for item in selected_agent_resources:
+        if getattr(item, "id", None) not in pending_agent_ids:
+            continue
+        # instructions still live on the per-embodiment agents_resource;
+        # prompts moved to the junction so draft.pending_prompt_ids is
+        # the source of truth for the pending-badge state.
+        pending_ids.update(getattr(item, "instruction_ids", None) or [])
+
+    async def _get_names() -> list:
+        return await get_names(pool, merged.name_ids, redis, bypass_cache)
+
+    async def _search_names() -> list:
+        async with pool.acquire() as conn:
+            return await search_names(
+                conn,
+                redis,
+                search=names_search,
+                limit_count=names_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if names_selected_only else "all",
+                exclude_ids=merged.name_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_descriptions() -> list:
+        return await get_descriptions(pool, merged.description_ids, redis, bypass_cache)
+
+    async def _search_descriptions() -> list:
+        async with pool.acquire() as conn:
+            return await search_descriptions(
+                conn,
+                redis,
+                search=descriptions_search,
+                limit_count=descriptions_limit or 20,
+                draft_id=group_id,
+                suggest_source="selected" if descriptions_selected_only else "all",
+                exclude_ids=merged.description_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_models() -> list:
+        return await get_models(pool, merged.model_ids, redis, bypass_cache)
+
+    async def _search_models() -> list:
+        async with pool.acquire() as conn:
+            return await search_models(
+                conn,
+                redis,
+                search=models_search,
+                limit_count=models_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.model_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_prompts() -> list:
+        if not prompt_ids:
+            return []
+        return await get_prompts(pool, prompt_ids, redis, bypass_cache)
+
+    async def _search_prompts() -> list:
+        async with pool.acquire() as conn:
+            return await search_prompts(
+                conn,
+                redis,
+                search=prompts_search,
+                limit_count=prompts_limit or 20,
+                offset_count=0,
+                exclude_ids=prompt_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_instructions() -> list:
+        if not instruction_ids:
+            return []
+        return await get_instructions(pool, instruction_ids, redis, bypass_cache)
+
+    async def _search_instructions() -> list:
+        async with pool.acquire() as conn:
+            return await search_instructions(
+                conn,
+                redis,
+                search=instructions_search,
+                limit_count=instructions_limit or 20,
+                offset_count=0,
+                exclude_ids=instruction_ids,
+                bypass_cache=bypass_cache,
+            )
+
+    async def _get_flags() -> list:
+        return await get_flags(pool, merged.flag_ids, redis, bypass_cache)
+
+    async def _search_flags() -> list:
+        async with pool.acquire() as conn:
+            return await search_flags(
+                conn,
+                redis,
+                search=flags_search,
+                limit_count=flags_limit or 200,
+                offset_count=0,
+                exclude_ids=merged.flag_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_departments() -> list:
+        return await get_departments(pool, merged.department_ids, redis, bypass_cache)
+
+    async def _search_departments() -> list:
+        async with pool.acquire() as conn:
+            return await search_departments(
+                conn,
+                redis,
+                search=departments_search,
+                limit_count=departments_limit or 20,
+                offset_count=0,
+                department_ids=user_dept_ids,
+                suggest_source="selected" if departments_selected_only else "all",
+                exclude_ids=merged.department_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_tools() -> list:
+        return await get_tools(pool, merged.tool_ids, redis, bypass_cache)
+
+    async def _search_tools() -> list:
+        async with pool.acquire() as conn:
+            return await search_tools(
+                conn,
+                redis,
+                search=tools_search,
+                limit_count=tools_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.tool_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_temperature_levels() -> list:
+        return await get_temperature_levels(pool, merged.temperature_level_ids, redis, bypass_cache)
+
+    async def _search_temperature_levels() -> list:
+        async with pool.acquire() as conn:
+            return await search_temperature_levels(
+                conn,
+                redis,
+                search=temperature_levels_search,
+                limit_count=temperature_levels_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.temperature_level_ids,
+                bypass_cache=bypass_cache,
+            )
+
+    async def _get_reasoning_levels() -> list:
+        return await get_reasoning_levels(pool, merged.reasoning_level_ids, redis, bypass_cache)
+
+    async def _search_reasoning_levels() -> list:
+        async with pool.acquire() as conn:
+            return await search_reasoning_levels(
+                conn,
+                redis,
+                search=reasoning_levels_search,
+                limit_count=reasoning_levels_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.reasoning_level_ids,
+                bypass_cache=bypass_cache,
+            )
+
+    async def _get_voices() -> list:
+        return await get_voices(pool, merged.voice_ids, redis, bypass_cache)
+
+    async def _search_voices() -> list:
+        async with pool.acquire() as conn:
+            return await search_voices(
+                conn,
+                redis,
+                search=voices_search,
+                limit_count=voices_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.voice_ids,
+                bypass_cache=bypass_cache,
+                agent=True,
+            )
+
+    async def _get_qualities() -> list:
+        return await get_qualities(pool, merged.quality_ids, redis, bypass_cache)
+
+    async def _search_qualities() -> list:
+        async with pool.acquire() as conn:
+            return await search_qualities(
+                conn,
+                redis,
+                search=qualities_search,
+                limit_count=qualities_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.quality_ids,
+                bypass_cache=bypass_cache,
+            )
+
+    async def _get_rubrics() -> list:
+        return await get_rubrics(pool, merged.rubric_ids, redis, bypass_cache)
+
+    async def _search_rubrics() -> list:
+        async with pool.acquire() as conn:
+            return await search_rubrics(
+                conn,
+                redis,
+                search=rubrics_search,
+                limit_count=rubrics_limit or 20,
+                offset_count=0,
+                exclude_ids=merged.rubric_ids,
+                bypass_cache=bypass_cache,
+            )
+
+    (
+        names_selected,
+        names_suggestions,
+        descriptions_selected,
+        descriptions_suggestions,
+        models_selected,
+        models_suggestions,
+        prompts_selected,
+        prompts_suggestions,
+        instructions_selected,
+        instructions_suggestions,
+        flags_selected,
+        flags_suggestions,
+        departments_selected,
+        departments_suggestions,
+        tools_selected,
+        tools_suggestions,
+        temperature_levels_selected,
+        temperature_levels_suggestions,
+        reasoning_levels_selected,
+        reasoning_levels_suggestions,
+        voices_selected,
+        voices_suggestions,
+        qualities_selected,
+        qualities_suggestions,
+        rubrics_selected,
+        rubrics_suggestions,
+    ) = await asyncio.gather(
+        _get_names(),
+        _search_names(),
+        _get_descriptions(),
+        _search_descriptions(),
+        _get_models(),
+        _search_models(),
+        _get_prompts(),
+        _search_prompts(),
+        _get_instructions(),
+        _search_instructions(),
+        _get_flags(),
+        _search_flags(),
+        _get_departments(),
+        _search_departments(),
+        _get_tools(),
+        _search_tools(),
+        _get_temperature_levels(),
+        _search_temperature_levels(),
+        _get_reasoning_levels(),
+        _search_reasoning_levels(),
+        _get_voices(),
+        _search_voices(),
+        _get_qualities(),
+        _search_qualities(),
+        _get_rubrics(),
+        _search_rubrics(),
+    )
+
+    flags_suggestions_filtered = [
+        item
+        for item in flags_suggestions
+        if getattr(item, "name", None) in AGENT_FLAG_NAMES
+        or getattr(item, "type", None) in AGENT_FLAG_NAMES
+    ]
+
+    # Hydrate SVG icons onto each flag (icon_id → icon markup).
+    async with pool.acquire() as conn:
+        await hydrate_flag_icons(
+            flags_selected + flags_suggestions_filtered, conn, redis, bypass_cache
+        )
+
+    return ArtifactContext(
+        artifact_id=artifact.id if artifact else None,
+        active=active,
+        group_id=group_id,
+        resources={
+            "names": ResourcePair(selected=names_selected, suggestions=names_suggestions),
+            "descriptions": ResourcePair(selected=descriptions_selected, suggestions=descriptions_suggestions),
+            "models": ResourcePair(selected=models_selected, suggestions=models_suggestions),
+            "prompts": ResourcePair(selected=prompts_selected, suggestions=prompts_suggestions),
+            "instructions": ResourcePair(selected=instructions_selected, suggestions=instructions_suggestions),
+            "flags": ResourcePair(selected=flags_selected, suggestions=flags_suggestions_filtered),
+            "departments": ResourcePair(selected=departments_selected, suggestions=departments_suggestions),
+            "tools": ResourcePair(selected=tools_selected, suggestions=tools_suggestions),
+            "temperature_levels": ResourcePair(
+                selected=temperature_levels_selected,
+                suggestions=temperature_levels_suggestions,
+            ),
+            "reasoning_levels": ResourcePair(
+                selected=reasoning_levels_selected,
+                suggestions=reasoning_levels_suggestions,
+            ),
+            "voices": ResourcePair(selected=voices_selected, suggestions=voices_suggestions),
+            "qualities": ResourcePair(selected=qualities_selected, suggestions=qualities_suggestions),
+            "rubrics": ResourcePair(selected=rubrics_selected, suggestions=rubrics_suggestions),
+        },
+        entries={"draft_name": draft.name if draft else None, "pending_ids": pending_ids},
+    )

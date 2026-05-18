@@ -1,0 +1,10 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+Message sent.
+- **Accepted:** {{ r.accepted }}
+- **Message ID:** `{{ r.message_id }}`
+{% elif results and results[0] and results[0].error %}
+Error sending message: {{ results[0].error }}
+{% else %}
+No result returned.
+{% endif %}

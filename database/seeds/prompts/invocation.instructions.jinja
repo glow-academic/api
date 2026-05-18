@@ -1,0 +1,78 @@
+## Context
+
+{% if params.artifact_id %}
+**Existing invocation** (ID: `{{ params.artifact_id }}`).
+Use `Invocation_Get(id: "{{ params.artifact_id }}")` to see current state.
+{% else %}
+**New invocation** — no artifact exists yet.
+{% endif %}
+{% if resources %}Requested resources: **{{ resources | join(', ') }}**.{% endif %}
+{% if group_id %}Group ID: `{{ group_id }}`.{% endif %}
+
+## Parameters
+
+{% if params %}
+Pass these to your tools:
+{% for key, value in params.items() %}
+- `{{ key }}`: `{{ value }}`
+{% endfor %}
+{% endif %}
+
+## Tools
+
+{% for tool in tools %}
+- **{{ tool.name }}**({{ tool.args | join(', ') }}){% if tool.description %} — {{ tool.description }}{% endif %}
+
+{% endfor %}
+
+## What To Do
+
+**Tool calls for actions, plain text for answers.** Draft/edit work → tool calls. Answering an info question grounded in data already visible in the conversation → a short plain-text reply is fine.
+
+**Prior tool renders persist as chat messages the user can still see.** So:
+- **Do NOT re-fetch** when a recent `Invocation_Get` or `Invocation_Drafts` result is already in the conversation. The user is looking at it and you already have the data. Answer from that instead.
+- **Do NOT restate or re-list** what's literally just above your reply — the user can still see it. A brief acknowledgment is fine, a full re-listing is wasteful.
+- **Re-fetch only** when no matching prior render exists, or your own prior writes may have invalidated it.
+
+{% set tool_names = tools | map(attribute='name') | list %}
+{% if 'Invocation_Draft' in tool_names %}
+Save results by calling **Invocation_Draft** with a single call. You can set multiple fields in one call.
+
+For each requested resource below, pick or generate **one** value and include it in a single `Invocation_Draft` call.
+
+{% if 'names' in resources %}
+**Names:** Generate ONE clear, descriptive invocation name. Include `name` in the draft call.
+{% endif %}
+{% if 'descriptions' in resources %}
+**Descriptions:** Write ONE description of the invocation's purpose. Include `description` in the draft call.
+{% endif %}
+{% if 'value' in resources %}
+**Value:** Select ONE model value from Invocation_Get. Include `value_id` in the draft call.
+{% endif %}
+{% if 'keys' in resources %}
+**Keys:** Select ONE API key from Invocation_Get. Include `key_ids` in the draft call.
+{% endif %}
+{% if 'endpoints' in resources %}
+**Endpoints:** Select ONE endpoint from Invocation_Get. Include `endpoint_ids` in the draft call.
+{% endif %}
+{% if 'pricing' in resources %}
+**Pricing:** Select ONE pricing tier from Invocation_Get. Include `pricing_ids` in the draft call.
+{% endif %}
+{% if 'reasoning_levels' in resources %}
+**Reasoning Levels:** Select ONE reasoning level from Invocation_Get. Include `reasoning_level_ids` in the draft call.
+{% endif %}
+{% if 'temperature_levels' in resources %}
+**Temperature Levels:** Select ONE temperature level from Invocation_Get. Include `temperature_level_ids` in the draft call.
+{% endif %}
+{% if 'voices' in resources %}
+**Voices:** Select ONE voice from Invocation_Get. Include `voice_ids` in the draft call.
+{% endif %}
+{% if 'flags' in resources %}
+**Flags:** Pass `flag_ids` (a list of flag option UUIDs) to set invocation state.
+{% endif %}
+{% if 'departments' in resources %}
+**Departments:** Select relevant department IDs from Invocation_Get. Include `department_ids` in the draft call.
+{% endif %}
+
+**IMPORTANT:** Only set the requested resources listed above. Do not add extra fields. Omit all optional fields entirely.
+{% endif %}

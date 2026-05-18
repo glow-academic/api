@@ -1,0 +1,99 @@
+{% if success and results and results[0] and results[0].result %}
+{% set r = results[0].result %}
+### Chat Bundle
+- **Chat Entry ID:** `{{ r.chat_entry_id }}`
+- **Group ID:** `{{ r.group_id }}`
+{% if r.attempt_id %}- **Attempt ID:** `{{ r.attempt_id }}`{% endif %}
+{% set has_videos = r.videos and r.videos | length > 0 -%}
+- **Mode:** {% if has_videos %}Video (video → questions → options){% else %}Chat (personas, documents, image){% endif %}
+
+{% macro section_status(items) %}{% if items is none %}disabled{% elif items | selectattr('selected') | list and not items | selectattr('suggested') | list %}locked{% elif items | selectattr('suggested') | list %}needs_input{% else %}empty{% endif %}{% endmacro -%}
+### Setup Summary
+{% set sections = [
+  (r.personas, 'personas', 'Personas'),
+  (r.documents, 'documents', 'Documents'),
+  (r.parameter_fields, 'parameter_fields', 'Parameter Fields'),
+  (r.problem_statements, 'problem_statement', 'Problem Statement (exactly 1)'),
+  (r.objectives, 'objectives', 'Objectives'),
+  (r.questions, 'questions', 'Questions'),
+  (r.options, 'options_ids', 'Options'),
+  (r.videos, 'video_id', 'Video (required for questions)'),
+  (r.images, 'image_id', 'Image (chat mode only)'),
+] -%}
+**Needs input:**
+{% for items, arg, label in sections %}{% if section_status(items) == 'needs_input' %}- {{ label }} → `{{ arg }}`
+{% endif %}{% endfor -%}
+{% set has_locked = [] %}{% for items, arg, label in sections %}{% if section_status(items) == 'locked' %}{% if has_locked.append(1) %}{% endif %}{% endif %}{% endfor %}{% if has_locked -%}
+**Locked (already set):**
+{% for items, arg, label in sections %}{% if section_status(items) == 'locked' %}- {{ label }}
+{% endif %}{% endfor -%}
+{% endif -%}
+**Auto-configured:** departments, scenarios, config flags
+
+---
+{% macro render_compressed(items, label, display_field, display_truncate) -%}
+{% if items is not none -%}
+{% set suggested = items | selectattr('suggested') | list -%}
+{% set selected = items | selectattr('selected') | list -%}
+{% if suggested -%}
+**{{ label }}:** {% for item in suggested %}{{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% elif selected -%}
+**{{ label }} (locked):** {% for item in selected %}{{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif -%}
+{% endif -%}
+{% endmacro -%}
+{% macro render_with_ids(items, label, id_field, display_field, display_truncate) -%}
+{% if items is not none -%}
+{% set suggested = items | selectattr('suggested') | list -%}
+{% set selected = items | selectattr('selected') | list -%}
+{% if suggested -%}
+**{{ label }}:**
+{% for item in suggested %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor -%}
+{% elif selected -%}
+**{{ label }} (locked):**
+{% for item in selected %}- `{{ item[id_field] }}` — {{ item[display_field][:display_truncate] if item[display_field] else '(no text)' }}
+{% endfor -%}
+{% endif -%}
+{% endif -%}
+{% endmacro -%}
+{{ render_compressed(r.personas, 'Personas (pass names)', 'name', 60) -}}
+{{ render_compressed(r.documents, 'Documents (pass names)', 'name', 60) -}}
+{% if r.parameter_fields is not none -%}
+{% set pf_suggested = r.parameter_fields | selectattr('suggested') | list -%}
+{% if pf_suggested -%}
+**Parameter Fields (pass names via `parameter_fields`):**
+{% set ns = namespace(groups={}) -%}
+{% for pf in pf_suggested -%}
+{% set grp = pf.parameter_name or 'Other' -%}
+{% if grp not in ns.groups -%}{% if ns.groups.update({grp: []}) -%}{% endif -%}{% endif -%}
+{% if ns.groups[grp].append(pf.name or '?') -%}{% endif -%}
+{% endfor -%}
+{% for grp, names in ns.groups.items() -%}
+- **{{ grp }}:** {{ names | join(', ') }}
+{% endfor -%}
+{% endif -%}
+{% endif -%}
+{{ render_compressed(r.problem_statements, 'Problem Statements (pick 1)', 'problem_statement', 500) -}}
+{{ render_compressed(r.objectives, 'Objectives (pass texts or create new)', 'objective', 200) -}}
+{{ render_with_ids(r.videos, 'Videos (pass video_id — required for questions)', 'video_id', 'name', 60) -}}
+{% set selected_questions = (r.questions | selectattr('selected') | list) if r.questions else [] -%}
+{% if selected_questions -%}
+**Questions & Options (with `is_correct` flags — use for grading):**
+{% for q in selected_questions -%}
+- `{{ q.question_id }}` — {{ q.question_text }}{% if q.time is not none %} [t={{ q.time }}s]{% endif %}
+{% set q_options = (r.options | selectattr('question_id', 'equalto', q.question_id) | list) if r.options else [] -%}
+{% for opt in q_options -%}
+  - `{{ opt.option_id }}` — {{ opt.option_text }} {% if opt.is_correct %}**(correct)**{% else %}(incorrect){% endif %}
+{% endfor -%}
+{% endfor -%}
+{% else -%}
+{{ render_compressed(r.questions, 'Questions (pass texts or create new — require video)', 'question_text', 200) -}}
+{{ render_compressed(r.options, 'Options', 'option_text', 60) -}}
+{% endif -%}
+{{ render_with_ids(r.images, 'Images (pass image_id — chat mode only)', 'image_id', 'name', 60) -}}
+{% elif results and results[0] and results[0].error %}
+Error fetching chat bundle: {{ results[0].error }}
+{% else %}
+No chat data returned.
+{% endif %}
