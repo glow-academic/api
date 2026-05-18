@@ -274,7 +274,7 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
 
     # Get or create session for the effective profile
     async with pool.acquire() as conn:
-        session_id = await _get_or_create_session(conn, profile_id)
+        session_id = await get_or_create_session(conn, profile_id)
 
     return Identity(
         profile_id=profile_id,
@@ -582,7 +582,7 @@ async def resolve_emulation_chain(
 SESSION_IDLE_MINUTES = 10
 
 
-async def _get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> UUID:
+async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> UUID:
     """Get the current session for a profile, or mint a new one.
 
     Sessions are append-only — the ``active`` bool on ``sessions_entry``

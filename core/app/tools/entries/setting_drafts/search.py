@@ -10,7 +10,9 @@ from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
 async def search_setting_drafts(
     conn: asyncpg.Connection,
+    profile_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
+    name: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     mcp: bool | None = None,
@@ -64,19 +66,20 @@ async def search_setting_drafts(
         LEFT JOIN setting_drafts_thresholds_connection th ON th.draft_id = d.id
         WHERE d.active = true
           AND ($1::uuid[] IS NULL OR d.session_id = ANY($1))
-          AND ($2::timestamptz IS NULL OR d.created_at >= $2)
-          AND ($3::timestamptz IS NULL OR d.created_at <= $3)
-          AND ($4::boolean IS NULL OR d.mcp = $4)
+          AND ($2::text IS NULL OR d.name ILIKE ('%' || $2 || '%'))
+          AND ($3::timestamptz IS NULL OR d.created_at >= $3)
+          AND ($4::timestamptz IS NULL OR d.created_at <= $4)
+          AND ($5::boolean IS NULL OR d.mcp = $5)
         GROUP BY d.id, d.created_at, d.generated, d.mcp, d.active,
                  d.session_id, d.name
         ORDER BY d.created_at DESC
-        LIMIT $5 OFFSET $6
+        LIMIT $6 OFFSET $7
         """,
         session_ids,
+        name,
         date_from,
         date_to,
         mcp,
-        name,
         limit,
         offset,
     )

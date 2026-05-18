@@ -1,4 +1,7 @@
 # syntax=docker/dockerfile:1.7
+#
+# Build context: repo root (so we can COPY both `core/` and `database/`).
+# CI invokes this with: docker build -f core/Dockerfile .
 ############################################
 # 1️⃣  shared deps  (never re-installed if unchanged)
 ############################################
@@ -12,7 +15,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends build-essential gcc && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY core/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade pip && \
     pip install --prefer-binary --prefix=/install -r requirements.txt
@@ -32,8 +35,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # bring in the wheels
 COPY --from=deps /install /usr/local
 
-# Copy everything in the app folder (including all code, configs, etc.)
-COPY app/ ./app/
+# Copy api source + database/ (schema, migrations, seed runner).
+# `database/` ships in the image so the one-shot `db-init` service can
+# run `python -m database.scripts.runner --target-pg-url ...` against
+# the live stock postgres at first deploy.
+COPY core/app/ ./app/
+COPY database/ ./database/
 
 # non-root for prod
 ARG APP_UID=1001
