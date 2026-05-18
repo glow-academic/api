@@ -33,8 +33,19 @@ from uuid import UUID
 import asyncpg
 from dotenv import load_dotenv
 from redis.asyncio import Redis
-from testcontainers.postgres import PostgresContainer
-from testcontainers.redis import RedisContainer
+
+# testcontainers is a dev-only dep — only needed for the dump-mode path
+# that spins up throwaway pg + redis to produce history/*.sql.gz. The
+# in-place mode (used by the `db-init` compose service in production)
+# seeds the live DB directly and never needs it. Import lazily so the
+# runner can run inside the production api image, which doesn't ship
+# testcontainers.
+try:
+    from testcontainers.postgres import PostgresContainer
+    from testcontainers.redis import RedisContainer
+except ModuleNotFoundError:
+    PostgresContainer = None  # type: ignore[assignment,misc]
+    RedisContainer = None  # type: ignore[assignment,misc]
 
 # Load .env from project root (before any seed modules read env vars)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -1978,6 +1989,13 @@ def _cleanup_containers():
 async def _start_containers() -> tuple:
     """Start Postgres and Redis testcontainers, return (pg, pg_url, redis_container, redis_url)."""
     global _cleanup_registered
+
+    if PostgresContainer is None or RedisContainer is None:
+        raise RuntimeError(
+            "testcontainers is not installed — dump mode is unavailable. "
+            "Install dev requirements, or use --target-pg-url/--target-redis-url "
+            "for in-place seeding."
+        )
 
     if not _cleanup_registered:
         import atexit
