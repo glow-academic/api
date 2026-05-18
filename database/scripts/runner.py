@@ -2025,19 +2025,52 @@ async def _refresh_mvs(conn: asyncpg.Connection) -> None:
     print(f"  {len(unpopulated)} MVs refreshed.")
 
 
-async def main_setup(setup: str = "university") -> None:
+async def main_setup(
+    setup: str = "university",
+    *,
+    target_pg_url: str | None = None,
+    target_redis_url: str | None = None,
+) -> None:
     """Seed a fully independent setup — base modules + setup-specific data.
 
     Each setup is self-contained: it creates ALL platform resources,
     bootstraps its own superadmin profile, then seeds setup-specific data.
     No base-seed.sql, no shared state between setups.
 
+    Two modes:
+      - Dump mode (default): spin up testcontainers, seed, pg_dump to
+        history/{setup}.sql.gz. Used by `make seed-gen` for dev/CI.
+      - In-place mode (target_pg_url + target_redis_url set): seed the
+        live DB directly, skip the dump step. Used by the `db-init`
+        compose service at first deploy. Re-runs no-op when the target
+        DB already has tables.
+
     Args:
         setup: Name of the setup to seed (must match a directory in seeds/setups/).
+        target_pg_url: Live postgres URL to seed into. When set, in-place mode.
+        target_redis_url: Live redis URL paired with target_pg_url.
     """
-    print(f"=== Seed Runner: {setup} ===\n")
+    in_place = target_pg_url is not None and target_redis_url is not None
+    print(f"=== Seed Runner: {setup} ({'in-place' if in_place else 'dump'}) ===\n")
 
-    pg, pg_url, redis_container, redis_url = await _start_containers()
+    if in_place:
+        # Idempotency guard: if the target DB already has user tables,
+        # treat this as an already-seeded deploy and exit silently. This
+        # makes db-init safe to re-run on every `compose up`.
+        guard_conn = await asyncpg.connect(target_pg_url)
+        try:
+            table_count = await guard_conn.fetchval(
+                "SELECT count(*) FROM information_schema.tables "
+                "WHERE table_schema = 'public'"
+            )
+        finally:
+            await guard_conn.close()
+        if table_count and table_count > 0:
+            print(f"  Target DB already has {table_count} public tables — skipping seed.")
+            return
+        pg, pg_url, redis_container, redis_url = None, target_pg_url, None, target_redis_url
+    else:
+        pg, pg_url, redis_container, redis_url = await _start_containers()
 
     try:
         conn = await asyncpg.connect(pg_url)
@@ -2358,15 +2391,16 @@ async def main_setup(setup: str = "university") -> None:
         await redis_client.aclose()
         await pool.close()
 
-        # Full dump → history/{setup}.sql.gz
-        history_dir = DATABASE_DIR.parent / "history"
-        history_dir.mkdir(parents=True, exist_ok=True)
-        print(f"\nGenerating template: {setup}...")
-        _pg_dump_full(
-            pg,
-            history_dir / f"{setup}.sql.gz",
-            f"Template: {setup} (fully independent)",
-        )
+        if not in_place:
+            # Full dump → history/{setup}.sql.gz
+            history_dir = DATABASE_DIR.parent / "history"
+            history_dir.mkdir(parents=True, exist_ok=True)
+            print(f"\nGenerating template: {setup}...")
+            _pg_dump_full(
+                pg,
+                history_dir / f"{setup}.sql.gz",
+                f"Template: {setup} (fully independent)",
+            )
 
     finally:
         # Unbind the runner's pool + redis client from globals so a
@@ -2375,8 +2409,10 @@ async def main_setup(setup: str = "university") -> None:
         from app.infra import globals as _app_globals
         _app_globals.redis_client = None
         _app_globals._db_pool = None
-        pg.stop()
-        redis_container.stop()
+        if pg is not None:
+            pg.stop()
+        if redis_container is not None:
+            redis_container.stop()
 
     print("\nDone!")
 
@@ -2408,9 +2444,28 @@ if __name__ == "__main__":
         action="store_true",
         help="Seed all setups → history/*.sql.gz",
     )
+    parser.add_argument(
+        "--target-pg-url",
+        default=os.environ.get("SEED_TARGET_PG_URL"),
+        help="Live postgres URL to seed in place (skips testcontainer + pg_dump). "
+        "Env: SEED_TARGET_PG_URL.",
+    )
+    parser.add_argument(
+        "--target-redis-url",
+        default=os.environ.get("SEED_TARGET_REDIS_URL"),
+        help="Live redis URL paired with --target-pg-url. Env: SEED_TARGET_REDIS_URL.",
+    )
     args = parser.parse_args()
 
     if args.all:
+        if args.target_pg_url:
+            parser.error("--all is incompatible with --target-pg-url (in-place mode is per-setup)")
         asyncio.run(main_all())
     else:
-        asyncio.run(main_setup(args.setup or "university"))
+        asyncio.run(
+            main_setup(
+                args.setup or "university",
+                target_pg_url=args.target_pg_url,
+                target_redis_url=args.target_redis_url,
+            )
+        )
