@@ -1334,14 +1334,18 @@ def get_idp_public_url(config: KeycloakSyncConfig | None = None) -> str:
     origin = config.origin
     app_prefix = config.app_prefix.strip("/")
 
-    # Detect local dev
-    is_local_dev = "localhost" in origin.lower()
+    # The "rewrite localhost → http://localhost:8000" escape hatch is for
+    # bare `make run` dev where api listens directly on 8000. Inside a
+    # docker compose deploy (DOCKER_ENV=1), the api sits behind nginx on
+    # whatever port ORIGIN says, even when ORIGIN is localhost-based.
+    is_bare_local_dev = (
+        "localhost" in origin.lower()
+        and os.getenv("DOCKER_ENV") != "1"
+    )
 
-    if is_local_dev:
-        # Local dev: browser can access localhost:8000 directly
+    if is_bare_local_dev:
         base = "http://localhost:8000"
     else:
-        # Production: use public ORIGIN (nginx proxies to backend)
         base = origin.rstrip("/")
 
     if app_prefix:
