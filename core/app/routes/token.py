@@ -2,6 +2,7 @@
 
 import base64
 from typing import Any
+from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -27,16 +28,20 @@ async def token(request: Request) -> dict[str, Any]:
     if not grant_type or not code or not redirect_uri:
         raise HTTPException(400, "Missing required fields: grant_type, code, redirect_uri")
 
-    # Extract client_id/client_secret from Basic Auth header if not in form
+    # Extract client_id/client_secret from Basic Auth header if not in form.
+    # Per RFC 6749 §2.3.1, both halves are application/x-www-form-urlencoded
+    # *before* base64 — secrets with `=` / `+` / `/` (common in base64
+    # payloads) arrive as %3D / %2B / %2F and must be URL-decoded back
+    # before string comparison.
     auth_header = request.headers.get("authorization", "")
     if auth_header.startswith("Basic "):
         try:
             decoded = base64.b64decode(auth_header[6:]).decode()
             basic_id, basic_secret = decoded.split(":", 1)
             if not client_id:
-                client_id = basic_id
+                client_id = unquote(basic_id)
             if not client_secret:
-                client_secret = basic_secret
+                client_secret = unquote(basic_secret)
         except Exception:
             pass
 
