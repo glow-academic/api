@@ -23,10 +23,17 @@ _client_id = os.getenv("AUTH_KEYCLOAK_ID", "glow-client")
 _auth_client_secret = os.getenv("AUTH_CLIENT_SECRET", "")
 _deployment_token = os.getenv("DEPLOYMENT_TOKEN", "")
 
-# Browser-facing Keycloak base URL (through nginx in production)
-_is_local = "localhost" in _origin
+# Browser-facing Keycloak base URL. The bare-localhost branch only
+# applies for `make run` dev where keycloak is reachable on its docker
+# alias from the host — inside docker compose (DOCKER_ENV=1) we always
+# route the browser through api nginx on the public ORIGIN.
+_is_bare_local_dev = (
+    "localhost" in _origin and os.getenv("DOCKER_ENV") != "1"
+)
 _browser_kc = (
-    f"{_keycloak_internal_url}/auth" if _is_local else f"{_origin}{_app_prefix}/auth"
+    f"{_keycloak_internal_url}/auth"
+    if _is_bare_local_dev
+    else f"{_origin}{_app_prefix}/auth"
 )
 
 _redirect_uri = f"{_origin}{_app_prefix}/callback"
