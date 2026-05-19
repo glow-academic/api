@@ -96,8 +96,14 @@ def _get_keycloak_base_url() -> str:
     origin = os.getenv("ORIGIN", "http://localhost")
     app_prefix = os.getenv("APP_PREFIX", "")
     realm = os.getenv("KEYCLOAK_REALM", "master")
-    is_local = "localhost" in origin.lower()
-    if is_local:
+    # Bare-localhost escape hatch is only for `make run` where keycloak
+    # is reachable on its own port. Inside a docker compose deploy
+    # (DOCKER_ENV=1), keycloak is fronted by nginx on the public ORIGIN.
+    is_bare_local_dev = (
+        "localhost" in origin.lower()
+        and os.getenv("DOCKER_ENV") != "1"
+    )
+    if is_bare_local_dev:
         kc_base = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
         return f"{kc_base}/auth/realms/{realm}"
     else:
