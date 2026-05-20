@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.0"
+    "version": "1.0.10"
   },
   "paths": {
     "/persona/title": {
@@ -33456,39 +33456,67 @@
                 "type": "null"
               }
             ],
-            "description": "Artifact tool documentation"
+            "description": "Artifact tool documentation (None unless schema=true)"
           },
           "entries": {
-            "items": {
-              "$ref": "#/components/schemas/DocsResponse"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocsResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Entries",
-            "description": "Entry documentation list"
+            "description": "Entry documentation list (None unless schema=true)"
           },
           "resources": {
-            "items": {
-              "$ref": "#/components/schemas/DocsResponse"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocsResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Resources",
-            "description": "Resource documentation list"
+            "description": "Resource documentation list (None unless schema=true)"
           },
           "permission_docs": {
-            "items": {
-              "$ref": "#/components/schemas/OperationInfo"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OperationInfo"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Permission Docs",
-            "description": "Permission function signatures (for MCP/dev tooling)"
+            "description": "Permission function signatures for MCP/dev tooling (None unless schema=true)"
           },
           "api_operations": {
-            "items": {
-              "$ref": "#/components/schemas/OperationInfo"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OperationInfo"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Api Operations",
-            "description": "API operation documentation"
+            "description": "API operation documentation (None unless schema=true)"
           },
           "page_metadata": {
             "anyOf": [
@@ -33526,10 +33554,6 @@
           "name",
           "type",
           "description",
-          "entries",
-          "resources",
-          "permission_docs",
-          "api_operations",
           "profile",
           "caller_permissions"
         ],
@@ -45692,6 +45716,12 @@
               }
             ],
             "title": "Snapshot Key"
+          },
+          "schema": {
+            "type": "boolean",
+            "title": "Schema",
+            "description": "If true, include MCP/tooling schema metadata (artifact, entries, resources, permission_docs, api_operations). Defaults to false for lean page-bootstrap responses.",
+            "default": false
           }
         },
         "type": "object",

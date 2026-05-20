@@ -32,6 +32,7 @@ async def get_attempt_context(
         redis,
         profile_id=profile_id,
         entity_id=body.entity_id,
+        schema=body.schema,
     )
 
     response.headers["X-Cache-Tags"] = "attempts"

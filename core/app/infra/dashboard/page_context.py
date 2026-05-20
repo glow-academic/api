@@ -47,6 +47,7 @@ async def page_context_dashboard_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -56,6 +57,7 @@ async def page_context_dashboard_impl(
         key=big_cache_key("dashboard/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "dashboard", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -64,6 +66,7 @@ async def page_context_dashboard_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -75,6 +78,7 @@ async def _page_context_dashboard_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Dashboard page context.
 
@@ -158,9 +162,9 @@ async def _page_context_dashboard_build(
             "trend analysis, and summary sections across simulations and cohorts."
         ),
         artifact=None,
-        entries=[],
-        resources=[],
-        permission_docs=[
+        entries=([] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([
             get_operation_info(
                 compute_header_metrics,
                 description="Compute header-level aggregated metrics for the dashboard.",
@@ -181,8 +185,8 @@ async def _page_context_dashboard_build(
                 build_dashboard_bundle,
                 description="Build the complete dashboard bundle with all metric sections.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_dashboard,
                 description="POST /get — Get dashboard analytics with metrics and sections.",
@@ -196,7 +200,7 @@ async def _page_context_dashboard_build(
                 export_dashboard,
                 description="POST /export — Export dashboard data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

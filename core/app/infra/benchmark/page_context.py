@@ -49,6 +49,7 @@ async def page_context_benchmark_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -58,6 +59,7 @@ async def page_context_benchmark_impl(
         key=big_cache_key("benchmark/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "benchmark", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -66,6 +68,7 @@ async def page_context_benchmark_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -77,6 +80,7 @@ async def _page_context_benchmark_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Benchmark page context.
 
@@ -101,6 +105,8 @@ async def _page_context_benchmark_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _get_benchmark_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_benchmark_docs(conn)
 
@@ -167,15 +173,15 @@ async def _page_context_benchmark_build(
             "Benchmark analytics evaluates AI model performance across "
             "standardized test scenarios with scoring and comparison metrics."
         ),
-        entries=[benchmark_entry],
-        resources=[],
-        permission_docs=[
+        entries=([benchmark_entry] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([
             get_operation_info(
                 compute_benchmark_eval_status,
                 description="Compute eval card status from aggregated test invocation data.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_benchmark,
                 description="POST /get — Get benchmark evaluation results.",
@@ -192,7 +198,7 @@ async def _page_context_benchmark_build(
                 export_benchmark,
                 description="POST /export — Export benchmark data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

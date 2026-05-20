@@ -52,6 +52,7 @@ async def page_context_health_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -61,6 +62,7 @@ async def page_context_health_impl(
         key=big_cache_key("health/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "health", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -69,6 +71,7 @@ async def page_context_health_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -80,6 +83,7 @@ async def _page_context_health_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Health page context.
 
@@ -103,6 +107,8 @@ async def _page_context_health_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _fetch_health_docs() -> DocsResponse:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_health_docs(conn)
 
@@ -158,10 +164,10 @@ async def _page_context_health_build(
             "Health analytics monitors system performance metrics, "
             "service health indicators, and operational status."
         ),
-        entries=[health],
-        resources=[],
-        permission_docs=[],
-        api_operations=[
+        entries=([health] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_health,
                 description="POST /get — Get system health metrics and status.",
@@ -174,7 +180,7 @@ async def _page_context_health_build(
                 export_health,
                 description="POST /export — Export health data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

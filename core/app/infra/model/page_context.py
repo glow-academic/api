@@ -91,6 +91,7 @@ async def page_context_model_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -100,6 +101,7 @@ async def page_context_model_impl(
         key=big_cache_key("model/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "model", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -108,6 +110,7 @@ async def page_context_model_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -119,6 +122,7 @@ async def _page_context_model_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Model page context.
 
@@ -146,58 +150,86 @@ async def _page_context_model_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_model_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_model_docs(conn)
 
     async def _get_model_drafts_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_model_drafts_docs(conn)
 
     async def _get_names_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_departments_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_flags_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_modalities_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_modalities_docs(conn)
 
     async def _get_pricing_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_pricing_docs(conn)
 
     async def _get_providers_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_providers_docs(conn)
 
     async def _get_qualities_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_qualities_docs(conn)
 
     async def _get_reasoning_levels_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_reasoning_levels_docs(conn)
 
     async def _get_temperature_levels_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_temperature_levels_docs(conn)
 
     async def _get_values_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_values_docs(conn)
 
     async def _get_voices_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_voices_docs(conn)
 
@@ -368,9 +400,9 @@ async def _page_context_model_build(
             "temperature_levels, values, voices) "
             "via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             departments,
@@ -383,8 +415,8 @@ async def _page_context_model_build(
             temperature_levels,
             values,
             voices,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the model.",
@@ -409,8 +441,8 @@ async def _page_context_model_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_model,
                 description="POST /get — Get a single model by ID with hydrated resources.",
@@ -443,7 +475,7 @@ async def _page_context_model_build(
                 export_models,
                 description="POST /export — Export models as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

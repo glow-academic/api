@@ -83,6 +83,7 @@ async def page_context_eval_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -92,6 +93,7 @@ async def page_context_eval_impl(
         key=big_cache_key("eval/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "eval", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -100,6 +102,7 @@ async def page_context_eval_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -111,6 +114,7 @@ async def _page_context_eval_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Eval page context.
 
@@ -138,42 +142,62 @@ async def _page_context_eval_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_eval_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_eval_docs(conn)
 
     async def _get_eval_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_eval_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_departments_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_model_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_model_flags_docs(conn)
 
     async def _get_model_positions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_model_positions_docs(conn)
 
     async def _get_model_rubrics_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_model_rubrics_docs(conn)
 
     async def _get_models_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_models_docs(conn)
 
@@ -327,9 +351,9 @@ async def _page_context_eval_build(
             "flags, models, model_flags, model_positions, model_rubrics) "
             "via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             departments,
@@ -338,8 +362,8 @@ async def _page_context_eval_build(
             model_positions,
             model_rubrics,
             models,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the eval.",
@@ -364,8 +388,8 @@ async def _page_context_eval_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_eval,
                 description="POST /get — Get a single eval by ID with hydrated resources.",
@@ -398,7 +422,7 @@ async def _page_context_eval_build(
                 export_evals,
                 description="POST /export — Export evals as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

@@ -48,6 +48,7 @@ async def page_context_system_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -57,6 +58,7 @@ async def page_context_system_impl(
         key=big_cache_key("system/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "system", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -65,6 +67,7 @@ async def page_context_system_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -76,6 +79,7 @@ async def _page_context_system_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """System page context.
 
@@ -136,10 +140,10 @@ async def _page_context_system_build(
             "and group details."
         ),
         artifact=None,
-        entries=[],
-        resources=[],
-        permission_docs=[],
-        api_operations=[],
+        entries=([] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([] if schema else None),
+        api_operations=([] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

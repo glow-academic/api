@@ -84,6 +84,7 @@ async def page_context_parameter_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -93,6 +94,7 @@ async def page_context_parameter_impl(
         key=big_cache_key("parameter/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "parameter", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -101,6 +103,7 @@ async def page_context_parameter_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -112,6 +115,7 @@ async def _page_context_parameter_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Parameter page context.
 
@@ -139,30 +143,44 @@ async def _page_context_parameter_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_parameter_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameter_docs(conn)
 
     async def _get_parameter_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameter_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_departments_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_parameter_fields_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameter_fields_docs(conn)
 
@@ -318,16 +336,16 @@ async def _page_context_parameter_build(
             "Each parameter links to resources (names, descriptions, departments, "
             "flags, parameter_fields) via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             flags,
             departments,
             parameter_fields,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the parameter.",
@@ -352,8 +370,8 @@ async def _page_context_parameter_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_parameter,
                 description="POST /get — Get a single parameter by ID with hydrated resources.",
@@ -386,7 +404,7 @@ async def _page_context_parameter_build(
                 export_parameters,
                 description="POST /export — Export parameters as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

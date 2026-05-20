@@ -51,6 +51,7 @@ async def page_context_invocation_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -60,6 +61,7 @@ async def page_context_invocation_impl(
         key=big_cache_key("invocation/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "invocation", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -68,6 +70,7 @@ async def page_context_invocation_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -79,6 +82,7 @@ async def _page_context_invocation_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Invocation page context.
 
@@ -103,6 +107,8 @@ async def _page_context_invocation_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _get_invocation_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_invocation_docs(conn)
 
@@ -156,10 +162,10 @@ async def _page_context_invocation_build(
             "Invocation analytics provides detailed views of test invocations "
             "including execution results, drafts, and run history."
         ),
-        entries=[invocation],
-        resources=[],
-        permission_docs=[],
-        api_operations=[
+        entries=([invocation] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([] if schema else None),
+        api_operations=([
             get_operation_info(
                 invocation_get,
                 description="POST /get — Get a single invocation with full detail.",
@@ -170,7 +176,7 @@ async def _page_context_invocation_build(
             ),
             # /invocation/export was deleted in an earlier consolidation; use
             # /test/export with view='invocation' instead.
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

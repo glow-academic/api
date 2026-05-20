@@ -44,6 +44,7 @@ async def get_test_context(
             redis,
             profile_id=profile_id,
             entity_id=body.entity_id,
+            schema=body.schema,
         )
 
     result = await run_artifact_operation_with_audit(

@@ -73,6 +73,7 @@ async def page_context_chat_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -82,6 +83,7 @@ async def page_context_chat_impl(
         key=big_cache_key("chat/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "chat", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -90,6 +92,7 @@ async def page_context_chat_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -101,6 +104,7 @@ async def _page_context_chat_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Chat page context.
 
@@ -126,70 +130,104 @@ async def _page_context_chat_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_chat_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_chat_docs(conn)
 
     async def _get_chat_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_chat_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_departments_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_personas_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_personas_docs(conn)
 
     async def _get_documents_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_documents_docs(conn)
 
     async def _get_scenarios_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_scenarios_docs(conn)
 
     async def _get_fields_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_fields_docs(conn)
 
     async def _get_parameter_fields_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameter_fields_docs(conn)
 
     async def _get_questions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_questions_docs(conn)
 
     async def _get_options_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_options_docs(conn)
 
     async def _get_videos_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_videos_docs(conn)
 
     async def _get_images_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_images_docs(conn)
 
     async def _get_problem_statements_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_problem_statements_docs(conn)
 
     async def _get_objectives_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_objectives_docs(conn)
 
@@ -297,8 +335,8 @@ async def _page_context_chat_build(
             "tracking."
         ),
         artifact=None,
-        entries=[chat_entry, chat_drafts],
-        resources=[
+        entries=([chat_entry, chat_drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             flags,
@@ -314,8 +352,8 @@ async def _page_context_chat_build(
             images,
             problem_statements,
             objectives,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 compute_mode,
                 description="Determine view mode from practice flag and user role.",
@@ -356,8 +394,8 @@ async def _page_context_chat_build(
                 compute_bundle_section_show,
                 description="Determine if a bundle section should be visible.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 chat_get,
                 description="POST /get — Get a single chat bundle with messages and scoring.",
@@ -369,7 +407,7 @@ async def _page_context_chat_build(
             # Refresh + export use the attempt-root endpoints
             # (/attempt/refresh, /attempt/export) — no chat-specific
             # variants any more.
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

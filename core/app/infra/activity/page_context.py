@@ -51,6 +51,7 @@ async def page_context_activity_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -60,6 +61,7 @@ async def page_context_activity_impl(
         key=big_cache_key("activity/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "activity", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -68,6 +70,7 @@ async def page_context_activity_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -79,6 +82,7 @@ async def _page_context_activity_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Activity page context.
 
@@ -103,6 +107,8 @@ async def _page_context_activity_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _fetch_activity_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as c:
             return await get_activity_docs(c)
 
@@ -166,10 +172,10 @@ async def _page_context_activity_build(
             "Activity analytics tracks user engagement, login patterns, "
             "problem flags, and usage metrics across the platform."
         ),
-        entries=[activity_entry],
-        resources=[],
-        permission_docs=[],
-        api_operations=[
+        entries=([activity_entry] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_activity,
                 description="POST /get — Get activity analytics for a profile.",
@@ -194,7 +200,7 @@ async def _page_context_activity_build(
                 export_activity,
                 description="POST /export — Export activity data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

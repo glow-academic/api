@@ -49,6 +49,7 @@ async def page_context_attempt_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -58,6 +59,7 @@ async def page_context_attempt_impl(
         key=big_cache_key("attempt/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "attempt", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -66,6 +68,7 @@ async def page_context_attempt_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -77,6 +80,7 @@ async def _page_context_attempt_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Attempt page context.
 
@@ -101,6 +105,8 @@ async def _page_context_attempt_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _fetch_attempt_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as c:
             return await get_attempt_docs(c)
 
@@ -170,9 +176,9 @@ async def _page_context_attempt_build(
             "completion status."
         ),
         artifact=None,
-        entries=[attempt_entry],
-        resources=[],
-        permission_docs=[
+        entries=([attempt_entry] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([
             get_operation_info(
                 check_attempt_access,
                 description="Check if the requesting user has access to the attempt.",
@@ -217,8 +223,8 @@ async def _page_context_attempt_build(
                 compute_continuation_options,
                 description="Compute available continuation options from previous attempt chats.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 attempt_get,
                 description="POST /get — Get a single attempt with full detail.",
@@ -231,7 +237,7 @@ async def _page_context_attempt_build(
                 export_attempt,
                 description="POST /export — Export attempt data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

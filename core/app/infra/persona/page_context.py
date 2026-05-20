@@ -91,6 +91,7 @@ async def page_context_persona_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -107,12 +108,14 @@ async def page_context_persona_impl(
         key=big_cache_key("persona/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "persona", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
         response_model=ComposedContextResponse,
         builder=lambda: _page_context_persona_build(
             pool, redis, profile_id=profile_id, entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -124,6 +127,7 @@ async def _page_context_persona_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Uncached builder for page_context_persona_impl.
 
@@ -151,58 +155,86 @@ async def _page_context_persona_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_persona_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_persona_docs(conn)
 
     async def _get_persona_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_persona_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_colors_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_colors_docs(conn)
 
     async def _get_icons_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_icons_docs(conn)
 
     async def _get_instructions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_instructions_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_departments_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_examples_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_examples_docs(conn)
 
     async def _get_parameter_fields_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameter_fields_docs(conn)
 
     async def _get_parameters_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_parameters_docs(conn)
 
     async def _get_fields_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_fields_docs(conn)
 
     async def _get_voices_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_voices_docs(conn)
 
@@ -372,9 +404,9 @@ async def _page_context_persona_build(
             "instructions, departments, examples, flags, parameter_fields, voices) "
             "via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             colors,
@@ -387,8 +419,8 @@ async def _page_context_persona_build(
             parameters,
             fields,
             voices,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the persona.",
@@ -413,8 +445,8 @@ async def _page_context_persona_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_persona,
                 description="POST /get — Get a single persona by ID with hydrated resources.",
@@ -447,7 +479,7 @@ async def _page_context_persona_build(
                 export_personas,
                 description="POST /export — Export personas as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

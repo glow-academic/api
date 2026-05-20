@@ -91,6 +91,7 @@ async def page_context_cohort_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -100,6 +101,7 @@ async def page_context_cohort_impl(
         key=big_cache_key("cohort/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "cohort", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -108,6 +110,7 @@ async def page_context_cohort_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -119,6 +122,7 @@ async def _page_context_cohort_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Cohort page context.
 
@@ -146,50 +150,74 @@ async def _page_context_cohort_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_cohort_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_cohort_docs(conn)
 
     async def _get_cohort_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_cohort_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_departments_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_personas_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_personas_docs(conn)
 
     async def _get_profile_personas_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_profile_personas_docs(conn)
 
     async def _get_profiles_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_profiles_docs(conn)
 
     async def _get_simulations_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_simulations_docs(conn)
 
     async def _get_simulation_availability_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_simulation_availability_docs(conn)
 
     async def _get_simulation_positions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_simulation_positions_docs(conn)
 
@@ -354,9 +382,9 @@ async def _page_context_cohort_build(
             "flags, personas, profiles, profile_personas, simulations, "
             "simulation_availability, simulation_positions) via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             departments,
@@ -367,8 +395,8 @@ async def _page_context_cohort_build(
             simulations,
             simulation_availability,
             simulation_positions,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the cohort.",
@@ -393,8 +421,8 @@ async def _page_context_cohort_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_cohort,
                 description="POST /get — Get a single cohort by ID with hydrated resources.",
@@ -427,7 +455,7 @@ async def _page_context_cohort_build(
                 export_cohorts,
                 description="POST /export — Export cohorts as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,
