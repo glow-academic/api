@@ -33,7 +33,11 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
         "parameter_fields_id",
         "parameter_field_ids",
     ),
-    ("parameters", "document_parameters_junction", "parameters_id", "parameter_ids"),
+    # Removed: ("parameters", "document_parameters_junction", ...) — schema
+    # renamed `parameters` to `parameter_fields`; the junction table was
+    # dropped but this stale entry stayed, breaking /document/get with
+    # `relation "document_parameters_junction" does not exist`. The
+    # parameter_fields junction above covers the same semantic surface.
     ("texts", "document_texts_junction", "texts_id", "texts_ids"),
     ("documents", "document_documents_junction", "documents_id", "document_ids"),
 ]
