@@ -33,7 +33,7 @@ class TestResolveBenchmarkContext:
             )
             await create_benchmark(
                 conn,
-                profiles_ids=[profile.profile_resource_id],
+                redis_client, profiles_ids=[profile.profile_resource_id],
                 departments_ids=[department.id],
             )
             await refresh_benchmark(conn)
@@ -68,7 +68,7 @@ class TestExportBenchmarkClient:
             )
             await create_benchmark(
                 conn,
-                profiles_ids=[profile.profile_resource_id],
+                redis_client, profiles_ids=[profile.profile_resource_id],
                 departments_ids=[department.id],
             )
             await refresh_benchmark(conn)

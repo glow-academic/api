@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
@@ -10,6 +11,7 @@ from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 async def get_tool_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
 ) -> list[GetToolDraftResponse]:
     """Get tool_drafts entries by IDs with connection data.

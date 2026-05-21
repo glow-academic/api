@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_hint.types import GetAttemptHintResponse
 
@@ -10,8 +11,8 @@ MV_NAME = "attempt_hint_mv"
 
 
 async def get_attempt_hints(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptHintResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptHintResponse]:
     """Fetch attempt hints by hint IDs."""
     if not ids:
         return []

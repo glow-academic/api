@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.grant_consumptions.types import (
     GetGrantConsumptionResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.grant_consumptions.types import (
 
 async def search_grant_consumptions(
     conn: asyncpg.Connection,
+    redis: Redis,
     grant_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,

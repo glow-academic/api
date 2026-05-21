@@ -109,7 +109,7 @@ async def logout(
     access token attached get this immediately; raw browser
     navigations (no header) fall through to the 10-min idle gap.
     """
-    from app.infra.globals import get_pool
+    from app.infra.globals import get_pool, get_redis_client
     from app.infra.identity.default_idp import get_kc_id_token_for_logout
     from app.infra.identity.resolve_identity import resolve_identity
     from app.tools.entries.logouts.create import create_logout
@@ -122,7 +122,7 @@ async def logout(
             identity = await resolve_identity(auth_header[7:], pool)
             async with pool.acquire() as conn:
                 await create_logout(
-                    conn,
+                    conn, get_redis_client(),
                     session_id=identity.session_id,
                     profile_id=identity.profile_id,
                 )

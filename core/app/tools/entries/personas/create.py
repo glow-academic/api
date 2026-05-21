@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.personas.types import CreatePersonasResponse
 from app.tools.entries.sessions.create import create_session
@@ -10,6 +11,7 @@ from app.tools.entries.sessions.create import create_session
 
 async def create_personas(
     conn: asyncpg.Connection,
+    redis: Redis,
     id: UUID | None = None,
     session_id: UUID | None = None,
     mcp: bool = False,

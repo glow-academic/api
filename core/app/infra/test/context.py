@@ -79,13 +79,13 @@ async def resolve_test_context(
     # ── Phase 1: Parallel fetch test + invocations ────────────────────
     async def _fetch_tests() -> list:
         async with pool.acquire() as c:
-            items, _total = await search_tests(c, test_ids=[test_id], limit=1)
+            items, _total = await search_tests(c, redis, test_ids=[test_id], limit=1)
             return items
 
     async def _fetch_invocations() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_entries_internal(
-                c, test_ids=[test_id], limit=100000, bypass_mv=True,
+                c, redis, test_ids=[test_id], limit=100000, bypass_mv=True,
             )
             return items
 
@@ -105,7 +105,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_runs(
-                c, test_invocation_ids=invocation_ids, limit=100000
+                c, redis, test_invocation_ids=invocation_ids, limit=100000
             )
             return items
 
@@ -114,7 +114,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_traces(
-                c, test_invocation_ids=invocation_ids, limit=100000
+                c, redis, test_invocation_ids=invocation_ids, limit=100000
             )
             return items
 
@@ -123,7 +123,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             return await search_test_grades(
-                c, invocation_ids=invocation_ids, limit=100000
+                c, redis, invocation_ids=invocation_ids, limit=100000
             )
 
     runs, groups, grades = await asyncio.gather(
@@ -147,7 +147,7 @@ async def resolve_test_context(
     if test.call_id:
         async with pool.acquire() as c:
             from app.tools.entries.calls.get import get_calls
-            calls = await get_calls(c, [test.call_id])
+            calls = await get_calls(c, [test.call_id], redis)
             if calls:
                 original_run_id = calls[0].run_id
     if original_run_id and original_run_id not in run_ids:
@@ -158,7 +158,7 @@ async def resolve_test_context(
             return []
         async with pool.acquire() as c:
             return await search_test_feedback_entries(
-                c, grade_ids=grade_ids, limit=100000
+                c, redis, grade_ids=grade_ids, limit=100000
             )
 
     async def _fetch_messages() -> list:
@@ -167,7 +167,7 @@ async def resolve_test_context(
         async with pool.acquire() as c:
             from app.tools.entries.messages.refresh import refresh_messages_internal
             await refresh_messages_internal(conn=c, redis=redis)
-            msgs, _ = await search_messages(c, run_ids=run_ids, limit=100000)
+            msgs, _ = await search_messages(c, redis, run_ids=run_ids, limit=100000)
             return msgs
 
     async def _fetch_original_calls() -> list:
@@ -177,7 +177,7 @@ async def resolve_test_context(
         async with pool.acquire() as c:
             from app.tools.entries.calls.refresh import refresh_calls_internal
             await refresh_calls_internal(c, redis=redis)
-            return await search_calls(c, run_ids=[original_run_id], limit=1000)
+            return await search_calls(c, redis, run_ids=[original_run_id], limit=1000)
 
     feedback, messages, original_calls = await asyncio.gather(
         _fetch_feedback(),

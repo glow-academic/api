@@ -86,13 +86,13 @@ async def attempt_start_impl(
     if is_practice:
         from app.tools.entries.practice.get import get_practices
         async with pool.acquire() as conn:
-            entries = await get_practices(conn, [parent_id])
+            entries = await get_practices(conn, [parent_id], redis)
         if not entries:
             raise HTTPException(status_code=404, detail="Practice entry not found.")
     else:
         from app.tools.entries.home.get import get_homes
         async with pool.acquire() as conn:
-            entries = await get_homes(conn, [parent_id])
+            entries = await get_homes(conn, [parent_id], redis)
         if not entries:
             raise HTTPException(status_code=404, detail="Home entry not found.")
 
@@ -122,13 +122,13 @@ async def attempt_start_impl(
         from app.tools.entries.practice_chat.search import search_practice_chats
         async with pool.acquire() as conn:
             chat_entries = await search_practice_chats(
-                conn, practice_ids=[parent_id], limit=1000, bypass_mv=True,
+                conn, redis, practice_ids=[parent_id], limit=1000, bypass_mv=True,
             )
     else:
         from app.tools.entries.home_chat.search import search_home_chats
         async with pool.acquire() as conn:
             chat_entries = await search_home_chats(
-                conn, home_ids=[parent_id], limit=1000, bypass_mv=True,
+                conn, redis, home_ids=[parent_id], limit=1000, bypass_mv=True,
             )
 
     if not chat_entries:
@@ -164,9 +164,9 @@ async def attempt_start_impl(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            persona_result = await create_persona(conn, personas_id=persona_id)
+            persona_result = await create_persona(conn, redis, personas_id=persona_id)
             attempt_result = await create_attempt(
-                conn,
+                conn, redis,
                 session_id=session_id,
                 user_persona_id=persona_result.id,
                 profiles_id=profiles_resource_id,
@@ -182,7 +182,7 @@ async def attempt_start_impl(
                     create_attempt_practice,
                 )
                 await create_attempt_practice(
-                    conn,
+                    conn, redis,
                     attempt_id=attempt_result.id,
                     practice_id=parent_id,
                     session_id=session_id,
@@ -190,7 +190,7 @@ async def attempt_start_impl(
             else:
                 from app.tools.entries.attempt_home.create import create_attempt_home
                 await create_attempt_home(
-                    conn,
+                    conn, redis,
                     attempt_id=attempt_result.id,
                     home_id=parent_id,
                     session_id=session_id,

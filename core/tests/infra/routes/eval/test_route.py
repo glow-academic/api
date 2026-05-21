@@ -96,7 +96,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
 
@@ -127,7 +127,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
 
@@ -160,7 +160,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
         updated = await _create_eval_route_resources(pool, redis_client)
@@ -194,7 +194,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
 
@@ -218,7 +218,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
 
@@ -329,7 +329,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            eval_route_client,
+            redis_client, eval_route_client,
             eval_route_actor,
         )
 

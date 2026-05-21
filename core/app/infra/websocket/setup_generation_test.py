@@ -18,6 +18,7 @@ Gate: only agents with a rubric_id participate; others are auto-promoted.
 """
 
 from __future__ import annotations
+from app.infra.globals import get_redis_client
 
 from dataclasses import dataclass
 from uuid import UUID
@@ -76,19 +77,20 @@ async def setup_generation_test(
 
     Only agents with rubric_ids should be passed here (caller filters).
     """
+    redis = get_redis_client()
     if not agents:
         raise ValueError("setup_generation_test requires at least one agent")
 
-    run = await get_run(conn, run_id)
+    run = await get_run(conn, run_id, redis)
     if run is None:
         raise ValueError(f"Run not found: {run_id}")
 
-    test_call = await create_call(conn, run_id=run_id, session_id=run.session_id)
+    test_call = await create_call(conn, redis, run_id=run_id, session_id=run.session_id)
 
     # 1. Create the test entry (is_dynamic=False — skip LLM re-run, grade
     #    existing agent output directly via /test/generate's static branch).
     test_result = await create_test(
-        conn,
+        conn, redis,
         call_id=test_call.id,
         profiles_id=profile_id,
         name="generation_resolution",
@@ -103,14 +105,14 @@ async def setup_generation_test(
 
     for agent_config in agents:
         invocation_call = await create_call(
-            conn,
+            conn, redis,
             run_id=run_id,
             session_id=run.session_id,
         )
 
         # Invocation level: agent identity + rubric + invocation-bundle
         inv_result = await create_test_invocation(
-            conn,
+            conn, redis,
             test_id=test_id,
             call_id=invocation_call.id,
             agent_ids=[agent_config.agent_id],
@@ -128,7 +130,7 @@ async def setup_generation_test(
         # live run (this is the run we're attaching for grading; no
         # historical replay needed when is_dynamic=False).
         trace_result = await create_test_invocation_traces(
-            conn,
+            conn, redis,
             test_invocation_id=test_invocation_id,
             run_id=run_id,
             prompt_ids=agent_config.prompt_ids,
@@ -144,7 +146,7 @@ async def setup_generation_test(
         # Run binding: links the trace + invocation to the live run.
         # Same run_id throughout (online eval = no replay).
         await create_test_invocation_runs(
-            conn,
+            conn, redis,
             test_invocation_id=test_invocation_id,
             test_invocation_traces_id=trace_result.id,
             run_id=run_id,

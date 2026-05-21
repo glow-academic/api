@@ -1,6 +1,7 @@
 """Shared test workflow logic, transport-agnostic apart from emitted payload shape."""
 
 from __future__ import annotations
+from app.infra.globals import get_redis_client
 
 import uuid
 from typing import Any
@@ -17,6 +18,7 @@ async def test_progress_impl(
     emit: EmitFn,
 ) -> None:
     """Translate test_progress_update to test_grade_start."""
+    redis = get_redis_client()
     from app.infra.websocket.test_types import TestProgressData
 
     invocation_id = data.get("invocation_id") or data.get("chat_id")
@@ -51,6 +53,7 @@ async def test_run_done_impl(
     emit: EmitFn,
 ) -> None:
     """Translate test_run_done to test_run_complete."""
+    redis = get_redis_client()
     from app.infra.websocket.test_types import TestRunCompleteData
 
     invocation_id = data.get("invocation_id") or data.get("chat_id")
@@ -162,6 +165,7 @@ async def test_grade_complete_impl(
     profile_id: str,
 ) -> None:
     """Handle test grade completion and emit test_grade_progress."""
+    redis = get_redis_client()
     from app.infra.websocket.test_types import TestGradedData
     from app.tools.entries.tokens.create import create_token
     from app.utils.logging.db_logger import get_logger
@@ -184,7 +188,7 @@ async def test_grade_complete_impl(
         if run_id and session_id:
             async with pool.acquire() as conn:
                 await create_token(
-                    conn,
+                    conn, redis,
                     run_id=uuid.UUID(run_id),
                     session_id=uuid.UUID(session_id),
                     input_tokens=input_tokens,
@@ -231,6 +235,7 @@ async def test_group_impl(
     pool: asyncpg.Pool,
 ) -> None:
     """Orchestrate sequential runs within a group."""
+    redis = get_redis_client()
     from app.infra.test.client_types import TestGroupPayload
     from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.runs.search import search_runs
@@ -260,7 +265,7 @@ async def test_group_impl(
 
         async with pool.acquire() as conn:
             runs, _ = await search_runs(
-                conn,
+                conn, redis,
                 group_ids=[group_id],
                 sort_order="asc",
                 bypass_mv=True,
@@ -323,6 +328,7 @@ async def test_next_impl(
     pool: asyncpg.Pool,
 ) -> None:
     """Find next invocation with pending runs and emit test_run or test_all_complete."""
+    redis = get_redis_client()
     sid = data.get("sid", "")
     if not sid:
         return
@@ -356,7 +362,7 @@ async def test_next_impl(
     try:
         async with pool.acquire() as conn:
             invocations, _total_count = await search_test_invocation_entries_internal(
-                conn,
+                conn, redis,
                 test_ids=[test_id],
                 limit=1000,
                 bypass_mv=True,
@@ -458,6 +464,7 @@ async def test_start_impl(
     redis: Redis | None = None,
 ) -> None:
     """Create test via black boxes, optional benchmark bridge, delegate to test_proceed."""
+    redis = get_redis_client()
     from app.infra.group.resolve import resolve_group_impl
     from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.benchmark_test.create import create_benchmark_test
@@ -502,7 +509,7 @@ async def test_start_impl(
             session_id = uuid.UUID(session_id_str)
         else:
             async with pool.acquire() as conn:
-                session_id = (await create_session(conn, profile_id=profiles_id)).id
+                session_id = (await create_session(conn, redis, profile_id=profiles_id)).id
 
         if redis is None:
             logger.error("test_start_impl requires redis for canonical group resolve")
@@ -524,7 +531,7 @@ async def test_start_impl(
             if eval_id:
                 from app.tools.entries.benchmark.search import search_benchmarks
                 benchmarks = await search_benchmarks(
-                    conn, eval_ids=[eval_id], limit=1, bypass_mv=True,
+                    conn, redis, eval_ids=[eval_id], limit=1, bypass_mv=True,
                 )
                 if not benchmarks:
                     raise ValueError(f"No benchmark found for eval {eval_id}")
@@ -533,14 +540,14 @@ async def test_start_impl(
 
             run_id = (
                 await create_run(
-                    conn,
+                    conn, redis,
                     group_id=group_id,
                     session_id=session_id,
                 )
             ).id
-            call_id = (await create_call(conn, run_id=run_id, session_id=session_id)).id
+            call_id = (await create_call(conn, redis, run_id=run_id, session_id=session_id)).id
             result = await create_test(
-                conn,
+                conn, redis,
                 call_id=call_id,
                 profiles_id=profiles_id,
                 infinite_mode=infinite_mode,
@@ -550,7 +557,7 @@ async def test_start_impl(
 
             if benchmark_id is not None:
                 await create_benchmark_test(
-                    conn,
+                    conn, redis,
                     benchmark_id=benchmark_id,
                     test_id=test_id,
                     session_id=session_id,
@@ -594,7 +601,7 @@ async def test_start_impl(
                     search_invocations,
                 )
                 templates = await search_invocations(
-                    conn, benchmark_ids=[benchmark_id], limit=1,
+                    conn, redis, benchmark_ids=[benchmark_id], limit=1,
                 )
                 if templates:
                     first_invocation_id = str(templates[0].id)

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.audio_completion.types import (
     CreateAudioCompletionResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.audio_completion.types import (
 
 async def create_audio_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     audio_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

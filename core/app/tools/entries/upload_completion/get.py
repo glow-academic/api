@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.upload_completion.types import (
     GetUploadCompletionResponse,
@@ -12,7 +13,7 @@ from app.tools.entries.upload_completion.types import (
 async def get_upload_completion(
     conn: asyncpg.Connection,
     completion_id: UUID,
-) -> GetUploadCompletionResponse | None:
+    redis: Redis) -> GetUploadCompletionResponse | None:
     """Get an upload_completion entry by ID."""
     row = await conn.fetchrow(
         """

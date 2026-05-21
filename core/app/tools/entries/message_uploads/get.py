@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.message_uploads.types import GetMessageUploadResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.message_uploads.types import GetMessageUploadResponse
 async def get_message_upload(
     conn: asyncpg.Connection,
     message_upload_id: UUID,
-) -> GetMessageUploadResponse | None:
+    redis: Redis) -> GetMessageUploadResponse | None:
     """Get a message_uploads entry by ID."""
     row = await conn.fetchrow(
         """

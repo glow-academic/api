@@ -4,6 +4,7 @@ from datetime import date
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
@@ -13,6 +14,7 @@ MV_NAME = "attempt_chat_mv"
 
 async def search_attempt_chats(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_ids: list[UUID] | None = None,
     group_ids: list[UUID] | None = None,
     attempt_chat_ids: list[UUID] | None = None,

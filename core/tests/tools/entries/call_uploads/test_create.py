@@ -13,14 +13,14 @@ from app.tools.entries.uploads.create import create_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _deps(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _deps(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     upload = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/response.json",
         mime_type="application/json",
         size=512,
@@ -28,22 +28,22 @@ async def _deps(conn, profile_id):
     return session, call, upload
 
 
-async def test_creates_call_upload_entry(conn, profile_id):
-    session, call, upload = await _deps(conn, profile_id)
+async def test_creates_call_upload_entry(conn, redis_client, profile_id):
+    session, call, upload = await _deps(conn, redis_client, profile_id)
     result = await create_call_upload(
-        conn, call_id=call.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, call_id=call.id, upload_id=upload.id, session_id=session.id
     )
 
     assert result.id is not None
 
 
-async def test_call_upload_exists_in_table(conn, profile_id):
-    session, call, upload = await _deps(conn, profile_id)
+async def test_call_upload_exists_in_table(conn, redis_client, profile_id):
+    session, call, upload = await _deps(conn, redis_client, profile_id)
     result = await create_call_upload(
-        conn, call_id=call.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, call_id=call.id, upload_id=upload.id, session_id=session.id
     )
 
-    row = await get_call_upload(conn, result.id)
+    row = await get_call_upload(conn, result.id, redis_client)
 
     assert row is not None
     assert row.call_id == call.id
@@ -52,13 +52,13 @@ async def test_call_upload_exists_in_table(conn, profile_id):
     assert row.active is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session, call, upload = await _deps(conn, profile_id)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session, call, upload = await _deps(conn, redis_client, profile_id)
     result = await create_call_upload(
-        conn, call_id=call.id, upload_id=upload.id, session_id=session.id, mcp=True
+        conn, redis_client, call_id=call.id, upload_id=upload.id, session_id=session.id, mcp=True
     )
 
-    row = await get_call_upload(conn, result.id)
+    row = await get_call_upload(conn, result.id, redis_client)
 
     assert row is not None
     assert row.mcp is True

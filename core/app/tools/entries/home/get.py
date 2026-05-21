@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.home.types import GetHomeResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "home_mv"
 async def get_homes(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetHomeResponse]:
+    redis: Redis) -> list[GetHomeResponse]:
     """Get home entries by IDs from home_mv."""
     if not ids:
         return []

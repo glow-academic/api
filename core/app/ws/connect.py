@@ -35,7 +35,7 @@ async def _mark_profile_active(profile_id: str, session_id: str | None) -> None:
         pool = get_pool()
         async with pool.acquire() as conn:
             await create_activity(
-                conn,
+                conn, get_redis_client(),
                 session_id=uuid.UUID(session_id),
                 profile_id=uuid.UUID(profile_id),
             )

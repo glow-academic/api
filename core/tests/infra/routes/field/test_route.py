@@ -119,7 +119,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
 
@@ -150,7 +150,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
 
@@ -183,7 +183,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
         updated = await _create_field_route_resources(pool, redis_client)
@@ -220,7 +220,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
 
@@ -244,7 +244,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
 
@@ -356,7 +356,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            field_route_client,
+            redis_client, field_route_client,
             field_route_actor,
         )
 

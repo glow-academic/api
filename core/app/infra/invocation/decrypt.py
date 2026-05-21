@@ -34,7 +34,7 @@ async def decrypt_invocation_impl(
     """
     # ── Step 1: Validate key belongs to invocation ────────────────────
     async with pool.acquire() as conn:
-        invocations = await get_invocations(conn, [invocation_id])
+        invocations = await get_invocations(conn, [invocation_id], redis)
 
     if not invocations:
         raise HTTPException(status_code=404, detail="Invocation not found")

@@ -37,6 +37,7 @@ async def test_invocation_complete_internal_impl(
     audit: bool = True,
 ) -> TestInvocationCompleteInternalResult:
     """Mark a single invocation complete by writing its completion entry."""
+    redis = get_redis_client()
     payload = TestInvocationCompletePayload(**data)
     sid = data.get("sid", "")
 
@@ -53,6 +54,7 @@ async def test_invocation_complete_internal_impl(
         raise ValueError("Missing session_id for test_invocation_complete")
 
     async def _run() -> TestInvocationCompleteInternalResult:
+        redis = get_redis_client()
         from app.tools.entries.calls.create import create_call
         from app.tools.entries.groups.get import get_groups
         from app.tools.entries.runs.create import create_run
@@ -66,7 +68,7 @@ async def test_invocation_complete_internal_impl(
 
         async with get_pool().acquire() as conn:
             invs = await get_test_invocations(
-                conn, [payload.test_invocation_id], bypass_mv=True,
+                conn, [payload.test_invocation_id], redis, bypass_mv=True,
             )
             if not invs:
                 raise ValueError(
@@ -78,19 +80,19 @@ async def test_invocation_complete_internal_impl(
                 raise ValueError(
                     f"Invocation {payload.test_invocation_id} has no group_id"
                 )
-            groups = await get_groups(conn, [group_id])
+            groups = await get_groups(conn, [group_id], redis)
             if not groups or groups[0].session_id is None:
                 raise ValueError(
                     f"Group {group_id} has no session_id"
                 )
             run = await create_run(
-                conn, group_id=group_id, session_id=groups[0].session_id,
+                conn, redis, group_id=group_id, session_id=groups[0].session_id,
             )
             call = await create_call(
-                conn, run_id=run.id, session_id=groups[0].session_id,
+                conn, redis, run_id=run.id, session_id=groups[0].session_id,
             )
             completion = await create_test_invocation_completion(
-                conn,
+                conn, redis,
                 invocation_id=payload.test_invocation_id,
                 call_id=call.id,
             )

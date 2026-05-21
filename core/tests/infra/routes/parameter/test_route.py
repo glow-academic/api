@@ -110,7 +110,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
 
@@ -141,7 +141,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
 
@@ -175,7 +175,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
         updated = await _create_parameter_route_resources(pool, redis_client)
@@ -210,7 +210,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
 
@@ -234,7 +234,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
 
@@ -346,7 +346,7 @@ class TestParameterRoute:
         created = await self._create_parameter_via_route(
             pool,
             redis_client,
-            parameter_route_client,
+            redis_client, parameter_route_client,
             parameter_route_actor,
         )
 

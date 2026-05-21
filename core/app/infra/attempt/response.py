@@ -60,6 +60,7 @@ async def attempt_response_internal_impl(
             refresh_attempt_responses,
         )
 
+        redis = get_redis_client()
         downstream_emit = emit or make_emit()
         recorded: list[SocketEvent] = []
 
@@ -69,7 +70,7 @@ async def attempt_response_internal_impl(
 
         async with get_pool().acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
-                conn,
+                conn, redis,
                 attempt_chat_ids=[chat_id],
                 bypass_mv=True,
                 limit=1,
@@ -92,7 +93,7 @@ async def attempt_response_internal_impl(
             else:
                 try:
                     response = await create_attempt_responses(
-                        conn,
+                        conn, redis,
                         chat_id=chat_id,
                         session_id=UUID(str(session_id)),
                         question_ids=[question_id],

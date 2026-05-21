@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.model_drafts.types import CreateModelDraftResponse
 
 
 async def create_model_draft(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     id: UUID | None = None,
     mcp: bool = False,

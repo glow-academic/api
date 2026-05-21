@@ -92,7 +92,7 @@ async def name_group_impl(
     async with pool.acquire() as conn:
         result = await create_group_name(
             conn,
-            group_id=resolved_group_id,
+            redis, group_id=resolved_group_id,
             name=resolved_name,
             session_id=session_id,
         )

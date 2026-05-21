@@ -204,13 +204,13 @@ async def patch_invocation_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_invocation_drafts(conn, [idempotency_key])
+                drafts = await get_invocation_drafts(conn, [idempotency_key], redis)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         result = await create_invocation_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=idempotency_key,
                             soft=False,
                             department_ids=draft.department_ids,
@@ -235,7 +235,7 @@ async def patch_invocation_draft_impl(
                     else:
                         result = await create_invocation_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=idempotency_key,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -270,7 +270,7 @@ async def patch_invocation_draft_impl(
         async with conn.transaction():
             result = await create_invocation_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key or request.draft_id,
                 soft=soft,
                 name=request.name or "",

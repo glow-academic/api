@@ -25,6 +25,7 @@ async def write_metrics_snapshot(
     memory_bytes: int,
 ) -> CreateMetricsEntryResponse:
     """Write a metrics snapshot to the database."""
+    from app.infra.globals import get_redis_client
     from app.infra.identity.resolve_identity import get_system_session_id
 
     async with pool.acquire() as conn:
@@ -33,6 +34,7 @@ async def write_metrics_snapshot(
 
             return await create_metrics_entry_internal(
                 conn,
+                get_redis_client(),
                 ts=ts,
                 requests_total=requests_total,
                 errors_total=errors_total,
@@ -50,6 +52,7 @@ async def write_health_checks(
     checks: dict,
 ) -> None:
     """Write health check results to the database."""
+    from app.infra.globals import get_redis_client
     from app.infra.identity.resolve_identity import get_system_session_id
     from app.tools.entries.health.create import create_health
 
@@ -60,6 +63,7 @@ async def write_health_checks(
             for service, result in checks.items():
                 await create_health(
                     conn,
+                    get_redis_client(),
                     service=service,
                     ok=result.ok,
                     latency_ms=result.latency_ms,

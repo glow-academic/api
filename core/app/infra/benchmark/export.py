@@ -101,12 +101,12 @@ async def export_benchmark_impl(
 
     # -- Step 2: Search all benchmarks (full dump) --
     async with pool.acquire() as conn:
-        benchmarks = await search_benchmarks(conn, limit=100000)
+        benchmarks = await search_benchmarks(conn, redis, limit=100000)
 
     # -- Step 3: Search all test invocations (full dump) --
     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
-            conn, limit=100000, offset=0
+            conn, redis, limit=100000, offset=0
         )
 
     if not benchmarks and not invocations:

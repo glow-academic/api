@@ -97,7 +97,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
 
@@ -128,7 +128,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
 
@@ -161,7 +161,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
         updated = await _create_rubric_route_resources(pool, redis_client)
@@ -195,7 +195,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
 
@@ -219,7 +219,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
 
@@ -330,7 +330,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            rubric_route_client,
+            redis_client, rubric_route_client,
             rubric_route_actor,
         )
 

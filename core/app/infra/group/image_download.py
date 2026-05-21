@@ -66,9 +66,9 @@ async def image_download_group_impl(
     # scenario picker surface). ``search_images`` accepts both filter
     # slots; try the entry path first, fall back to the resource path.
     async with pool.acquire() as conn:
-        results = await search_images(conn, image_ids=[image_id], limit=1)
+        results = await search_images(conn, redis, image_ids=[image_id], limit=1)
         if not results:
-            results = await search_images(conn, images_ids=[image_id], limit=1)
+            results = await search_images(conn, redis, images_ids=[image_id], limit=1)
 
     if not results:
         raise HTTPException(

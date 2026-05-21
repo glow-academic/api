@@ -299,7 +299,7 @@ async def resolve_group_impl(
         async with pool.acquire() as conn:
             result = await create_group(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 artifact_type=artifact_type,
                 id=group_id,
                 soft=False,
@@ -342,7 +342,7 @@ async def resolve_group_impl(
                 async with pool.acquire() as conn:
                     result = await create_group(
                         conn,
-                        session_id=session_id,
+                        redis, session_id=session_id,
                         artifact_type=artifact_type,
                         id=candidate,
                         soft=False,
@@ -362,7 +362,7 @@ async def resolve_group_impl(
                     async with pool.acquire() as conn:
                         result = await create_group(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             artifact_type=artifact_type,
                             id=candidate,
                             soft=False,
@@ -386,7 +386,7 @@ async def resolve_group_impl(
         async with pool.acquire() as conn:
             await create_group_name(
                 conn,
-                group_id=resolved_group_id,
+                redis, group_id=resolved_group_id,
                 name="New Chat",
                 session_id=session_id,
             )
@@ -410,7 +410,7 @@ async def resolve_group_impl(
     # skip this fetch (saves ~5 ms warm, ~30 ms cold per call).
     if name is None and not id_only:
         async with pool.acquire() as conn:
-            existing = await get_groups(conn, ids=[resolved_group_id])
+            existing = await get_groups(conn, [resolved_group_id], redis)
         if existing:
             name = existing[0].name
 
@@ -501,7 +501,7 @@ async def _load_history(
     """
     async with pool.acquire() as conn:
         run_items, _ = await search_runs(
-            conn, group_ids=[group_id], sort_order="asc", limit=10000,
+            conn, redis, group_ids=[group_id], sort_order="asc", limit=10000,
         )
     if not run_items:
         return [], []
@@ -509,9 +509,9 @@ async def _load_history(
     run_ids = [r.run_id for r in run_items]
     async with pool.acquire() as conn:
         msg_items, _ = await search_messages(
-            conn, run_ids=run_ids, sort_order="asc", limit=100000,
+            conn, redis, run_ids=run_ids, sort_order="asc", limit=100000,
         )
-        call_items = await search_calls(conn, run_ids=run_ids, limit=100000)
+        call_items = await search_calls(conn, redis, run_ids=run_ids, limit=100000)
 
     # Batch-resolve tool resources via the canonical black box. Calls
     # with no registered tool get ``tool=None`` and the client renders

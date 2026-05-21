@@ -61,7 +61,7 @@ async def image_download_attempt_impl(
 
     # -- Step 3: Resolve images_id -> file metadata via images_mv --------------
     async with pool.acquire() as conn:
-        results = await search_images(conn, images_ids=[image_id], limit=1)
+        results = await search_images(conn, redis, images_ids=[image_id], limit=1)
 
     if not results:
         raise HTTPException(

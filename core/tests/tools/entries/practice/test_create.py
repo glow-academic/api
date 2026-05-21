@@ -10,11 +10,11 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _practice(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _practice(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     return await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -31,22 +31,22 @@ async def test_returns_id(conn, profile_id, simulation_bundle):
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id, simulation_bundle):
-    result = await _practice(conn, profile_id, simulation_bundle)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, simulation_bundle):
+    result = await _practice(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice(conn)
 
-    items = await get_practices(conn, [result.id])
+    items = await get_practices(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
     assert items[0].active is True
 
 
-async def test_connections_populated(conn, profile_id, simulation_bundle):
-    result = await _practice(conn, profile_id, simulation_bundle)
+async def test_connections_populated(conn, redis_client, profile_id, simulation_bundle):
+    result = await _practice(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice(conn)
 
-    items = await get_practices(conn, [result.id])
+    items = await get_practices(conn, [result.id], redis_client)
 
     assert len(items) == 1
     practice = items[0]
@@ -56,12 +56,12 @@ async def test_connections_populated(conn, profile_id, simulation_bundle):
     assert profile_id in practice.profile_ids
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
     bundle = simulation_bundle
-    session = await create_session(conn, profile_id=profile_id)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     result = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],

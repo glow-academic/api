@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_grade.types import CreateAttemptGradeResponse
 
 
 async def create_attempt_grade(
     conn: asyncpg.Connection,
+    redis: Redis,
     chat_id: UUID,
     session_id: UUID,
     time_taken: int,

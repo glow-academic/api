@@ -147,7 +147,7 @@ async def resolve_chat_context(
     template = None
     if chat_entry_id:
         async with pool.acquire() as conn:
-            templates = await get_chats(conn, [chat_entry_id])
+            templates = await get_chats(conn, [chat_entry_id], redis)
             template = templates[0] if templates else None
 
     # ── Step 2: Derive constraints from template ──────────────────────────────
@@ -219,7 +219,7 @@ async def resolve_chat_context(
     # ── Step 3: Fetch draft ───────────────────────────────────────────────────
     if draft_id:
         async with pool.acquire() as conn:
-            drafts = await get_chat_drafts(conn, [draft_id])
+            drafts = await get_chat_drafts(conn, [draft_id], redis)
     else:
         drafts = []
     draft = drafts[0] if drafts else None

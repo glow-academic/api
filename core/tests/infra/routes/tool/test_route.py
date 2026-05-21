@@ -97,7 +97,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 
@@ -132,7 +132,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 
@@ -164,7 +164,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 
@@ -192,7 +192,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
         updated = await _create_tool_route_resources(pool, redis_client)
@@ -239,7 +239,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 
@@ -273,7 +273,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 
@@ -392,7 +392,7 @@ class TestToolRoute:
         created = await self._create_tool_via_route(
             pool,
             redis_client,
-            tool_route_client,
+            redis_client, tool_route_client,
             tool_route_actor,
         )
 

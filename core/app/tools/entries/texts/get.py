@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.texts.types import GetTextResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.texts.types import GetTextResponse
 async def get_text(
     conn: asyncpg.Connection,
     text_id: UUID,
-) -> GetTextResponse | None:
+    redis: Redis) -> GetTextResponse | None:
     """Get a texts entry by ID."""
     row = await conn.fetchrow(
         """

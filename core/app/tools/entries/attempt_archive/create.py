@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_archive.types import (
     CreateAttemptArchiveResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_archive.types import (
 
 async def create_attempt_archive(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_id: UUID,
     session_id: UUID,
     archived: bool,

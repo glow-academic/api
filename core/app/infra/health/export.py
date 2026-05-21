@@ -87,11 +87,11 @@ async def export_health_impl(
 
     async def _fetch_health() -> list:
         async with pool.acquire() as conn:
-            return await search_health(conn, limit=100000, offset=0)
+            return await search_health(conn, redis, limit=100000, offset=0)
 
     async def _fetch_metrics() -> list:
         async with pool.acquire() as conn:
-            return await search_metrics(conn, limit=100000, offset=0)
+            return await search_metrics(conn, redis, limit=100000, offset=0)
 
     (
         health_entries,

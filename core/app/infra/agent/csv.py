@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from app.infra.agent.search import AGENT_IMPORT_FIELDS
 from app.infra.agent.types import CreateAgentItem
-from app.infra.globals import UPLOAD_FOLDER
+from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.tools.entries.uploads.create import create_upload
 
 
@@ -107,6 +107,7 @@ async def parse_agent_csv_impl(
     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
+            get_redis_client(),
             session_id=session_id,
             file_path=relative_path,
             mime_type=content_type,

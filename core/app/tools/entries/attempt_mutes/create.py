@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_mutes.types import (
     CreateAttemptMutesResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_mutes.types import (
 
 async def create_attempt_mutes(
     conn: asyncpg.Connection,
+    redis: Redis,
     conversation_id: UUID,
     session_id: UUID,
     muted: bool,

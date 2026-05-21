@@ -53,7 +53,7 @@ async def resolve_group_context(
     async def _fetch_runs() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_runs(
-                c, group_ids=[group_id], sort_order="asc", limit=10000
+                c, redis, group_ids=[group_id], sort_order="asc", limit=10000
             )
             return items
 
@@ -62,7 +62,7 @@ async def resolve_group_context(
 
     async def _fetch_group_info() -> list:
         async with pool.acquire() as c:
-            return await get_groups(c, [group_id])
+            return await get_groups(c, [group_id], redis)
 
     runs, actor_name_items, group_info = await asyncio.gather(
         _fetch_runs(),
@@ -82,7 +82,7 @@ async def resolve_group_context(
         async with pool.acquire() as c:
             return await search_messages(
                 c,
-                run_ids=run_ids,
+                redis, run_ids=run_ids,
                 sort_order="asc",
                 limit=message_limit or 100000,
                 offset=message_offset or 0,
@@ -90,7 +90,7 @@ async def resolve_group_context(
 
     async def _fetch_calls() -> list:
         async with pool.acquire() as c:
-            return await search_calls(c, run_ids=run_ids, limit=100000)
+            return await search_calls(c, redis, run_ids=run_ids, limit=100000)
 
     (messages, total_message_count), calls = await asyncio.gather(
         _fetch_messages(),

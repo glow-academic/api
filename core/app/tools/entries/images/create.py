@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.images.types import CreateImageResponse
 
 
 async def create_image(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     id: UUID | None = None,
     images_id: UUID | None = None,

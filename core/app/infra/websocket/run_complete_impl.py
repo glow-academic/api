@@ -150,6 +150,7 @@ async def run_complete_impl(
         if reasoning_output:
             await persist_run_message(
                 conn,
+                redis,
                 run_id=run_uuid,
                 session_id=session_id,
                 role="assistant",
@@ -162,6 +163,7 @@ async def run_complete_impl(
         if assistant_output:
             await persist_run_message(
                 conn,
+                redis,
                 run_id=run_uuid,
                 session_id=session_id,
                 role="assistant",
@@ -172,7 +174,7 @@ async def run_complete_impl(
         if input_tokens or output_tokens:
             await create_token(
                 conn,
-                run_id=run_uuid,
+                redis, run_id=run_uuid,
                 session_id=session_id,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,

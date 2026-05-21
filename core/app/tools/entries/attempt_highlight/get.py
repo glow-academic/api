@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_highlight.types import (
     GetAttemptHighlightResponse,
@@ -12,8 +13,8 @@ MV_NAME = "attempt_highlight_mv"
 
 
 async def get_attempt_highlights(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptHighlightResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptHighlightResponse]:
     if not ids:
         return []
     rows = await conn.fetch(

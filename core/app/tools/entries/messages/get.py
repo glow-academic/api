@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.messages.types import GetMessageResponse
 
@@ -10,6 +11,7 @@ from app.tools.entries.messages.types import GetMessageResponse
 async def get_message(
     conn: asyncpg.Connection,
     message_id: UUID,
+    redis: Redis,
     agents: bool = False,
 ) -> GetMessageResponse | None:
     """Get a messages entry by ID, optionally with agent connections."""

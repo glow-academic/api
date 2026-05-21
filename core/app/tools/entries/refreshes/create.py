@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.refreshes.types import CreateRefreshResponse
 
 
 async def create_refresh(
     conn: asyncpg.Connection,
+    redis: Redis,
     operation_key: UUID,
     artifact_type: str,
     target: str,

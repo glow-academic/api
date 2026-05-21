@@ -68,9 +68,9 @@ async def video_download_group_impl(
     # to the resource path. Mirrors how the FE bubble doesn't know
     # which id-flavor the upstream surfaced it as.
     async with pool.acquire() as conn:
-        results = await search_videos(conn, video_ids=[video_id], limit=1)
+        results = await search_videos(conn, redis, video_ids=[video_id], limit=1)
         if not results:
-            results = await search_videos(conn, videos_ids=[video_id], limit=1)
+            results = await search_videos(conn, redis, videos_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

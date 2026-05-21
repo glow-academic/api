@@ -91,6 +91,7 @@ async def test_trace_internal_impl(
     audit: bool = True,
 ) -> TestTraceInternalResult:
     """Insert a test_invocation_traces_entry row + bundle config."""
+    redis = get_redis_client()
     payload = TestTracePayload(**data)
     sid = data.get("sid", "")
 
@@ -135,7 +136,7 @@ async def test_trace_internal_impl(
                 instruction_ids.append(minted_instruction.id)
 
             result = await create_test_invocation_traces(
-                conn,
+                conn, redis,
                 test_invocation_id=payload.test_invocation_id,
                 run_id=payload.run_id,
                 instruction_ids=instruction_ids or None,

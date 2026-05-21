@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_practice.types import (
     CreateAttemptPracticeResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.attempt_practice.types import (
 
 async def create_attempt_practice(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_id: UUID,
     practice_id: UUID,
     session_id: UUID,

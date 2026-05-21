@@ -10,9 +10,9 @@ from app.tools.entries.texts.search import search_texts
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    text = await create_text(conn, session_id=session.id)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    text = await create_text(conn, redis_client, session_id=session.id)
     # texts_mv requires: texts_resource + texts_texts_connection + texts_entry
     texts_resource_id = await conn.fetchval(
         "INSERT INTO texts_resource DEFAULT VALUES RETURNING id"
@@ -25,47 +25,47 @@ async def _setup(conn, profile_id):
     return text, texts_resource_id
 
 
-async def test_finds_created_entry(conn, profile_id):
-    text, _ = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    text, _ = await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW texts_mv")
 
-    items = await search_texts(conn, text_ids=[text.id])
+    items = await search_texts(conn, redis_client, text_ids=[text.id])
 
     ids = [item.text_id for item in items]
     assert text.id in ids
 
 
-async def test_filters_by_text_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_text_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW texts_mv")
 
-    items = await search_texts(conn, text_ids=[nonexistent_id()])
+    items = await search_texts(conn, redis_client, text_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    text, _ = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    text, _ = await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW texts_mv")
 
-    items = await search_texts(conn, text_ids=[text.id], limit=1)
+    items = await search_texts(conn, redis_client, text_ids=[text.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW texts_mv")
 
-    items = await search_texts(conn)
+    items = await search_texts(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    text, _ = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    text, _ = await _setup(conn, redis_client, profile_id)
 
-    items = await search_texts(conn, text_ids=[text.id], bypass_mv=True)
+    items = await search_texts(conn, redis_client, text_ids=[text.id], bypass_mv=True)
 
     ids = [item.text_id for item in items]
     assert text.id in ids

@@ -109,7 +109,7 @@ async def title_group_impl(
         async with pool.acquire() as conn:
             name_result = await create_group_name(
                 conn,
-                group_id=group_id,
+                redis, group_id=group_id,
                 name=title,
                 session_id=session_id,
                 id=idempotency_key,
@@ -130,7 +130,7 @@ async def title_group_impl(
     async with pool.acquire() as conn:
         name_result = await create_group_name(
             conn,
-            group_id=group_id,
+            redis, group_id=group_id,
             name=title,
             session_id=session_id,
             id=idempotency_key,

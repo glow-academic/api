@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.benchmark.types import GetBenchmarkResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "benchmark_mv"
 async def get_benchmarks(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetBenchmarkResponse]:
+    redis: Redis) -> list[GetBenchmarkResponse]:
     """Fetch benchmark entries by IDs from the MV."""
     if not ids:
         return []

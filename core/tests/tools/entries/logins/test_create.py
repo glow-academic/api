@@ -10,23 +10,23 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_returns_id(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_login(conn, session_id=session.id)
+async def test_returns_id(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_login(conn, redis_client, session_id=session.id)
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_login(conn, session_id=session.id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_login(conn, redis_client, session_id=session.id)
     await refresh_logins(conn)
 
-    items = await get_logins(conn, [result.id])
+    items = await get_logins(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
@@ -35,27 +35,27 @@ async def test_visible_via_get_after_refresh(conn, profile_id):
     assert items[0].mcp is False
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_login(conn, session_id=session.id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_login(conn, redis_client, session_id=session.id, mcp=True)
     await refresh_logins(conn)
 
-    items = await get_logins(conn, [result.id])
+    items = await get_logins(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].mcp is True
 
 
-async def test_links_profile(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_links_profile(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
     result = await create_login(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         profile_id=profile_id,
     )
     await refresh_logins(conn)
 
-    items = await get_logins(conn, [result.id])
+    items = await get_logins(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].profile_id == profile_id

@@ -36,7 +36,7 @@ async def chat_hints_attempt_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_hint(
             conn,
-            message_id=message_id,
+            redis, message_id=message_id,
             session_id=session_id,
             hint=hint or "No hint provided",
         )

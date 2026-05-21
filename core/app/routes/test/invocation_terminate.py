@@ -66,7 +66,7 @@ async def terminate_invocation(
     async def _runner() -> TestRunEndResponse:
         async with pool.acquire() as conn:
             runs = await get_test_invocation_runs(
-                conn, [request.test_invocation_run_id]
+                conn, [request.test_invocation_run_id], redis
             )
             if not runs:
                 raise HTTPException(
@@ -75,7 +75,7 @@ async def terminate_invocation(
                 )
             run = runs[0]
             invs = await get_test_invocations(
-                conn, [run.test_invocation_id], bypass_mv=True,
+                conn, [run.test_invocation_id], redis, bypass_mv=True,
             )
             if not invs:
                 raise HTTPException(status_code=404, detail="parent invocation not found")
@@ -83,17 +83,17 @@ async def terminate_invocation(
             group_id = inv.group_id
             if group_id is None:
                 raise HTTPException(status_code=400, detail="invocation has no group_id")
-            groups = await get_groups(conn, [group_id])
+            groups = await get_groups(conn, [group_id], redis)
             if not groups or groups[0].session_id is None:
                 raise HTTPException(status_code=400, detail="group has no session_id")
             new_run = await create_run(
-                conn, group_id=group_id, session_id=groups[0].session_id,
+                conn, redis, group_id=group_id, session_id=groups[0].session_id,
             )
             call = await create_call(
-                conn, run_id=new_run.id, session_id=groups[0].session_id,
+                conn, redis, run_id=new_run.id, session_id=groups[0].session_id,
             )
             completion = await create_test_invocation_runs_completion(
-                conn,
+                conn, redis,
                 test_invocation_runs_id=request.test_invocation_run_id,
                 call_id=call.id,
                 stop=False,

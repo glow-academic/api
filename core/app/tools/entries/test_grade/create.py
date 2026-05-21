@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.test_grade.types import CreateTestGradeResponse
 
 
 async def create_test_grade(
     conn: asyncpg.Connection,
+    redis: Redis,
     invocation_id: UUID,
     call_id: UUID,
     time_taken: int,

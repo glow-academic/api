@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.uploads.types import SearchUploadResponse
@@ -12,6 +13,7 @@ MV_NAME = "uploads_mv"
 
 async def search_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     upload_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

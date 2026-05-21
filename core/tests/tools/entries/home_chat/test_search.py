@@ -13,11 +13,11 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _setup(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     home = await create_home(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -26,67 +26,67 @@ async def _setup(conn, profile_id, bundle):
         simulation_availability_ids=[bundle.simulation_availability_id],
         simulation_positions_ids=[bundle.simulation_position_id],
     )
-    chat = await create_chat(conn, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
     home_chat = await create_home_chat(
         conn,
-        home_id=home.id,
+        redis_client, home_id=home.id,
         chat_id=chat.id,
         session_id=session.id,
     )
     return home, chat, home_chat
 
 
-async def test_finds_created_entry(conn, profile_id, simulation_bundle):
-    home, chat, result = await _setup(conn, profile_id, simulation_bundle)
+async def test_finds_created_entry(conn, redis_client, profile_id, simulation_bundle):
+    home, chat, result = await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home_chat(conn)
 
-    items = await search_home_chats(conn, home_ids=[home.id])
+    items = await search_home_chats(conn, redis_client, home_ids=[home.id])
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_home_id(conn, profile_id, simulation_bundle):
-    await _setup(conn, profile_id, simulation_bundle)
+async def test_filters_by_home_id(conn, redis_client, profile_id, simulation_bundle):
+    await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home_chat(conn)
 
-    items = await search_home_chats(conn, home_ids=[nonexistent_id()])
+    items = await search_home_chats(conn, redis_client, home_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_filters_by_chat_id(conn, profile_id, simulation_bundle):
-    home, chat, result = await _setup(conn, profile_id, simulation_bundle)
+async def test_filters_by_chat_id(conn, redis_client, profile_id, simulation_bundle):
+    home, chat, result = await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home_chat(conn)
 
-    items = await search_home_chats(conn, chat_ids=[chat.id])
+    items = await search_home_chats(conn, redis_client, chat_ids=[chat.id])
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_pagination_limit(conn, profile_id, simulation_bundle):
-    home, _, _ = await _setup(conn, profile_id, simulation_bundle)
+async def test_pagination_limit(conn, redis_client, profile_id, simulation_bundle):
+    home, _, _ = await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home_chat(conn)
 
-    items = await search_home_chats(conn, home_ids=[home.id], limit=1)
+    items = await search_home_chats(conn, redis_client, home_ids=[home.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id, simulation_bundle):
-    await _setup(conn, profile_id, simulation_bundle)
+async def test_returns_all_without_filter(conn, redis_client, profile_id, simulation_bundle):
+    await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home_chat(conn)
 
-    items = await search_home_chats(conn)
+    items = await search_home_chats(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id, simulation_bundle):
-    home, _, result = await _setup(conn, profile_id, simulation_bundle)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id, simulation_bundle):
+    home, _, result = await _setup(conn, redis_client, profile_id, simulation_bundle)
 
-    items = await search_home_chats(conn, home_ids=[home.id], bypass_mv=True)
+    items = await search_home_chats(conn, redis_client, home_ids=[home.id], bypass_mv=True)
 
     ids = [item.id for item in items]
     assert result.id in ids

@@ -15,9 +15,9 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, session_id=session.id, group_id=group.id)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, session_id=session.id, group_id=group.id)
     input_pricing = await create_pricing(
         conn,
         "input",
@@ -38,7 +38,7 @@ async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
     )
     await create_run_pricing_entry_internal(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         pricing_type="input",
         run_id=run.id,
         pricing_id=input_pricing.id,
@@ -46,7 +46,7 @@ async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
     )
     await create_run_pricing_entry_internal(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         pricing_type="output",
         run_id=run.id,
         pricing_id=output_pricing.id,
@@ -55,7 +55,7 @@ async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
 
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
 
-    items, total_count = await search_runs(conn, group_ids=[group.id], limit=10)
+    items, total_count = await search_runs(conn, redis_client, group_ids=[group.id], limit=10)
 
     assert total_count == 1
     assert items[0].run_id == run.id

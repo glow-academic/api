@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.audio_uploads.types import GetAudioUploadResponse
 
 
 async def search_audio_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     audio_ids: list[UUID] | None = None,
     upload_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

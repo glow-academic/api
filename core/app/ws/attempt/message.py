@@ -42,7 +42,7 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> dict[str, Any] | No
 
             pool = get_pool()
             async with pool.acquire() as conn:
-                upload = await get_upload(conn, UUID(str(audio_id)))
+                upload = await get_upload(conn, UUID(str(audio_id)), get_redis_client())
             if upload:
                 file_path = get_upload_folder() / upload.file_path
                 if file_path.exists():

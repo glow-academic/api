@@ -102,7 +102,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
 
@@ -135,7 +135,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
 
@@ -168,7 +168,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
         updated = await _create_department_route_resources(pool, redis_client)
@@ -203,7 +203,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
 
@@ -228,7 +228,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
 
@@ -338,7 +338,7 @@ class TestDepartmentRoute:
         created = await self._create_department_via_route(
             pool,
             redis_client,
-            department_route_client,
+            redis_client, department_route_client,
             department_route_actor,
         )
 

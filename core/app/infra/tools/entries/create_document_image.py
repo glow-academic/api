@@ -58,7 +58,7 @@ async def create_document_image(
     # 2. Create uploads entry
     upload = await create_upload(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         file_path=dest_name,
         mime_type=mime_type,
         size=size,
@@ -79,7 +79,7 @@ async def create_document_image(
     # 5. Link image entry ↔ upload entry
     image_upload = await create_image_upload(
         conn,
-        image_id=image_entry.id,
+        redis, image_id=image_entry.id,
         upload_id=upload.id,
         session_id=session_id,
     )

@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.globals import get_pool
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_grade.search import search_attempt_grades
 from app.tools.entries.attempt_highlight.create import create_attempt_highlight
 from app.tools.entries.attempt_strength.create import create_attempt_strength
@@ -56,7 +56,7 @@ async def chat_strengths(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        grades = await search_attempt_grades(conn, chat_ids=[request.chat_id], limit=1)
+        grades = await search_attempt_grades(conn, get_redis_client(), chat_ids=[request.chat_id], limit=1)
         if not grades:
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
@@ -64,7 +64,7 @@ async def chat_strengths(
         strength_ids: list[UUID] = []
         for item in request.strengths:
             result = await create_attempt_strength(
-                conn,
+                conn, get_redis_client(),
                 grade_id=grade_id,
                 message_id=item.message_id or uuid4(),
                 session_id=session_id,
@@ -78,7 +78,7 @@ async def chat_strengths(
             if item.highlights:
                 for hl in item.highlights:
                     await create_attempt_highlight(
-                        conn,
+                        conn, get_redis_client(),
                         strength_id=result.id,
                         session_id=session_id,
                         section=hl.section,

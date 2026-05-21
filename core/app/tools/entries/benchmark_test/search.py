@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.benchmark_test.types import GetBenchmarkTestResponse
@@ -12,6 +13,7 @@ MV_NAME = "benchmark_test_mv"
 
 async def search_benchmark_tests(
     conn: asyncpg.Connection,
+    redis: Redis,
     benchmark_ids: list[UUID] | None = None,
     test_ids: list[UUID] | None = None,
     limit: int = 20,

@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.invocation.types import GetInvocationResponse
 
 
 async def search_invocations(
     conn: asyncpg.Connection,
+    redis: Redis,
     benchmark_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
     date_from: datetime | None = None,

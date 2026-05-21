@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.messages.types import CreateMessageResponse
 
 
 async def create_message(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_id: UUID,
     role: str,
     id: UUID | None = None,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.chat_drafts.types import GetChatDraftResponse
@@ -14,7 +15,7 @@ from app.utils.cache.set_cached import set_cached
 async def get_chat_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetChatDraftResponse]:
+    redis: Redis) -> list[GetChatDraftResponse]:
     """Get chat_drafts entries by IDs with connection data."""
     if not ids:
         return []

@@ -230,7 +230,7 @@ async def export_provider_impl(
     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
-            session_id=session_id,
+            redis, session_id=session_id,
             file_path=relative_path,
             mime_type="text/csv",
             size=len(csv_bytes),
@@ -244,7 +244,7 @@ async def export_provider_impl(
             )
             await create_file_upload(
                 conn,
-                file_id=entry_row.id,
+                redis, file_id=entry_row.id,
                 upload_id=upload_row.id,
                 session_id=session_id,
             )

@@ -228,21 +228,21 @@ async def _export_single_attempt_bytes(
     async def _fetch_attempts() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempts(
-                c, attempt_ids=[attempt_id], limit=1
+                c, redis, attempt_ids=[attempt_id], limit=1
             )
             return items
 
     async def _fetch_chats() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_chats(
-                c, attempt_ids=[attempt_id], limit=100000
+                c, redis, attempt_ids=[attempt_id], limit=100000
             )
             return items
 
     async def _fetch_messages() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_messages(
-                c, attempt_ids=[attempt_id], limit=100000
+                c, redis, attempt_ids=[attempt_id], limit=100000
             )
             return items
 

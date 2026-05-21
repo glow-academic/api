@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.tools.entries.build_call_payload import build_call_payload
 from app.infra.tools.entries.create_run_message import create_run_message
@@ -24,6 +25,7 @@ from app.tools.entries.uploads.create import create_upload
 
 async def create_tool_call(
     conn: asyncpg.Connection,
+    redis: Redis,
     group_id: UUID,
     session_id: UUID,
     profile_id: UUID,
@@ -54,7 +56,7 @@ async def create_tool_call(
         effective_run_id = run_id
     else:
         run = await create_run(
-            conn,
+            conn, redis,
             group_id=group_id,
             session_id=session_id,
             mcp=mcp,
@@ -64,7 +66,7 @@ async def create_tool_call(
     call_id: UUID | None = None
     if tool_id is not None:
         call_result = await create_call(
-            conn,
+            conn, redis,
             run_id=effective_run_id,
             session_id=session_id,
             tool_id=tool_id,
@@ -194,7 +196,7 @@ async def create_tool_call(
 
     # 5. Create upload DB rows
     text_upload = await create_upload(
-        conn,
+        conn, redis,
         session_id=session_id,
         file_path=text_rel_path,
         mime_type="text/plain",
@@ -204,7 +206,7 @@ async def create_tool_call(
 
     if tool_id is not None and call_upload_db_id is None:
         call_upload = await create_upload(
-            conn,
+            conn, redis,
             session_id=session_id,
             file_path=call_rel_path,
             mime_type="application/json",
@@ -222,6 +224,7 @@ async def create_tool_call(
     # dispatch and audit-write).
     msg = await create_run_message(
         conn,
+        redis,
         run_id=effective_run_id,
         session_id=session_id,
         role=role,
@@ -236,7 +239,7 @@ async def create_tool_call(
 
     if call_id is not None and call_upload_db_id is not None:
         call_upload_junction = await create_call_upload(
-            conn,
+            conn, redis,
             call_id=call_id,
             upload_id=call_upload_db_id,
             session_id=session_id,
@@ -245,7 +248,7 @@ async def create_tool_call(
         call_upload_junction_id = call_upload_junction.id
 
         msg_call_upload = await create_message_upload(
-            conn,
+            conn, redis,
             message_id=msg.message_id,
             upload_id=call_upload_db_id,
             session_id=session_id,

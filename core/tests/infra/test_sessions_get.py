@@ -16,8 +16,8 @@ pytestmark = pytest.mark.asyncio
 async def test_get_session_impl_returns_latest_active_session(pool, redis_client):
     async with pool.acquire() as conn:
         profile = await create_profile(conn, redis_client)
-        older = await create_session(conn, profile_id=profile.id)
-        newer = await create_session(conn, profile_id=profile.id)
+        older = await create_session(conn, redis_client, profile_id=profile.id)
+        newer = await create_session(conn, redis_client, profile_id=profile.id)
         await conn.execute(
             "UPDATE sessions_entry SET created_at = NOW() - interval '2 days' WHERE id = $1",
             older.id,
@@ -56,7 +56,7 @@ async def test_get_session_impl_reads_from_cache_after_first_lookup(
 ):
     async with pool.acquire() as conn:
         profile = await create_profile(conn, redis_client)
-        session = await create_session(conn, profile_id=profile.id)
+        session = await create_session(conn, redis_client, profile_id=profile.id)
         await refresh_sessions(conn)
         cached = await get_session_impl(
             conn,

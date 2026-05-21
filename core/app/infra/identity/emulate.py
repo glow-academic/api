@@ -117,7 +117,7 @@ async def resolve_emulation(
     # Step 4: Find active sessions for requester and target
     async with pool.acquire() as conn:
         requester_sessions = await search_sessions(
-            conn, profile_ids=[requester.profiles_id], active=True, limit=1
+            conn, redis, profile_ids=[requester.profiles_id], active=True, limit=1
         )
     if not requester_sessions:
         return EmulationResult(
@@ -129,7 +129,7 @@ async def resolve_emulation(
 
     async with pool.acquire() as conn:
         target_sessions = await search_sessions(
-            conn, profile_ids=[target.profiles_id], active=True, limit=1
+            conn, redis, profile_ids=[target.profiles_id], active=True, limit=1
         )
     if not target_sessions:
         return EmulationResult(
@@ -148,14 +148,14 @@ async def resolve_emulation(
         async with conn.transaction():
             grant_result = await create_grant(
                 conn,
-                session_id=requester_session_id,
+                redis, session_id=requester_session_id,
                 expires_at=expires_at,
                 profiles_id=requester.profiles_id,
             )
 
             await create_emulation(
                 conn,
-                grant_id=grant_result.id,
+                redis, grant_id=grant_result.id,
                 session_id=target_session_id,
                 profile_id=target.profiles_id,
             )
@@ -218,8 +218,9 @@ async def resolve_unemulation(
     else:
         link = chain[-1]
 
+    from app.infra.globals import get_redis_client
     async with pool.acquire() as conn:
-        await create_grant_consumption(conn, grant_id=link.grant_id)
+        await create_grant_consumption(conn, get_redis_client(), grant_id=link.grant_id)
 
     logger.info(
         f"Unemulated: consumed grant {link.grant_id}, "

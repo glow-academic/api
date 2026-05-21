@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 
 
 async def search_parameter_drafts(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     name: str | None = None,

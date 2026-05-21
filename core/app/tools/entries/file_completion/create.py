@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.file_completion.types import (
     CreateFileCompletionResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.file_completion.types import (
 
 async def create_file_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     file_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

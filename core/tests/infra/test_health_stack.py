@@ -20,17 +20,17 @@ from app.tools.entries.metrics.refresh import refresh_metrics_internal
 pytestmark = pytest.mark.asyncio
 
 
-async def _seed_health_metrics(conn) -> None:
+async def _seed_health_metrics(conn, redis_client) -> None:
     await create_health(
         conn,
-        service="redis",
+        redis_client, service="redis",
         ok=True,
         latency_ms=12.5,
         ts=datetime(2031, 1, 1, 10, 0, tzinfo=UTC),
     )
     await create_metrics_entry_internal(
         conn,
-        ts=datetime(2031, 1, 1, 10, 0, tzinfo=UTC),
+        redis_client, ts=datetime(2031, 1, 1, 10, 0, tzinfo=UTC),
         requests_total=100,
         errors_total=2,
         avg_latency_ms=45.5,
@@ -44,7 +44,7 @@ async def _seed_health_metrics(conn) -> None:
 class TestResolveHealthContext:
     async def test_returns_health_and_metrics_entries(self, pool, redis_client):
         async with pool.acquire() as conn:
-            await _seed_health_metrics(conn)
+            await _seed_health_metrics(conn, redis_client)
 
         result = await resolve_health_context(
             pool,
@@ -69,7 +69,7 @@ class TestExportHealthClient:
         profile = await profile_identity_factory()
 
         async with pool.acquire() as conn:
-            await _seed_health_metrics(conn)
+            await _seed_health_metrics(conn, redis_client)
 
         result = await export_health_impl(
             pool,

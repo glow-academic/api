@@ -91,7 +91,7 @@ async def video_upload_scenario_impl(
     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
-            session_id=session_uuid,
+            redis, session_id=session_uuid,
             file_path=relative_path,
             mime_type=content_type,
             size=len(file_bytes),
@@ -106,7 +106,7 @@ async def video_upload_scenario_impl(
 
         await create_video_upload(
             conn,
-            video_id=video_result.id,
+            redis, video_id=video_result.id,
             upload_id=upload_result.id,
             session_id=session_uuid,
         )

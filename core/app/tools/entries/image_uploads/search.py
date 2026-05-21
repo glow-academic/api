@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.image_uploads.types import GetImageUploadResponse
 
 
 async def search_image_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     image_ids: list[UUID] | None = None,
     upload_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

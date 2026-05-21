@@ -35,6 +35,7 @@ async def _mark_all_invocations_complete(
 ) -> int:
     """For every uncompleted invocation on the test, write a completion
     entry. Returns the count of newly-completed invocations."""
+    redis = get_redis_client()
     from app.tools.entries.calls.create import create_call
     from app.tools.entries.runs.create import create_run
     from app.tools.entries.test_invocation.search import (
@@ -48,7 +49,7 @@ async def _mark_all_invocations_complete(
     )
 
     invs, _total = await search_test_invocation_entries_internal(
-        conn, test_ids=[test_id], limit=1000, bypass_mv=True,
+        conn, redis, test_ids=[test_id], limit=1000, bypass_mv=True,
     )
 
     count = 0
@@ -60,14 +61,14 @@ async def _mark_all_invocations_complete(
         # Need a call_id for the completion record. Mint a fresh run+call
         # in the invocation's group, like the legacy proceed path did.
         from app.tools.entries.groups.get import get_groups
-        groups = await get_groups(conn, [inv.group_id])
+        groups = await get_groups(conn, [inv.group_id], redis)
         if not groups or groups[0].session_id is None:
             continue
         session_id = groups[0].session_id
-        run = await create_run(conn, group_id=inv.group_id, session_id=session_id)
-        call = await create_call(conn, run_id=run.id, session_id=session_id)
+        run = await create_run(conn, redis, group_id=inv.group_id, session_id=session_id)
+        call = await create_call(conn, redis, run_id=run.id, session_id=session_id)
         await create_test_invocation_completion(
-            conn, invocation_id=inv.invocation_id, call_id=call.id,
+            conn, redis, invocation_id=inv.invocation_id, call_id=call.id,
         )
         count += 1
 

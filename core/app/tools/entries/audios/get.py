@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.audios.types import GetAudioResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.audios.types import GetAudioResponse
 async def get_audio(
     conn: asyncpg.Connection,
     audio_id: UUID,
-) -> GetAudioResponse | None:
+    redis: Redis) -> GetAudioResponse | None:
     """Get an audios entry by ID."""
     row = await conn.fetchrow(
         """

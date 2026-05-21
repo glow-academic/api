@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 
 
 async def search_persona_drafts(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     name: str | None = None,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_strength.types import (
@@ -14,6 +15,7 @@ MV_NAME = "attempt_strength_mv"
 
 async def search_attempt_strengths(
     conn: asyncpg.Connection,
+    redis: Redis,
     message_ids: list[UUID] | None = None,
     grade_ids: list[UUID] | None = None,
     limit: int = 20,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_feedback.types import (
     CreateTestFeedbackResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.test_feedback.types import (
 
 async def create_test_feedback(
     conn: asyncpg.Connection,
+    redis: Redis,
     grade_id: UUID,
     call_id: UUID,
     tool_call_id: UUID,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
@@ -10,6 +11,7 @@ from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 async def get_rubric_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
 ) -> list[GetRubricDraftResponse]:
     """Get rubric_drafts entries by IDs with connection data.

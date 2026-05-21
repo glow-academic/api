@@ -17,143 +17,143 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _call(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _call(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return session, call
 
 
-async def _problem(conn, session, call):
+async def _problem(conn, redis_client, session, call):
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     return result.id
 
 
-async def test_finds_created_resolve(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_finds_created_resolve(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn, problem_ids=[problem_id])
+    items = await search_resolves(conn, redis_client, problem_ids=[problem_id])
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_problem_id(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
-    await create_resolve(conn, problem_id=problem_id, resolved=False, call_id=call.id)
+async def test_filters_by_problem_id(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
+    await create_resolve(conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id)
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn, problem_ids=[nonexistent_id()])
+    items = await search_resolves(conn, redis_client, problem_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_filters_by_resolved(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_filters_by_resolved(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     r_resolved = await create_resolve(
-        conn, problem_id=problem_id, resolved=True, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=True, call_id=call.id
     )
     r_unresolved = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn, resolved=True)
+    items = await search_resolves(conn, redis_client, resolved=True)
 
     ids = [item.id for item in items]
     assert r_resolved.id in ids
     assert r_unresolved.id not in ids
 
 
-async def test_filters_by_mcp(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_filters_by_mcp(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     r_mcp = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id, mcp=True
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id, mcp=True
     )
     r_normal = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id, mcp=False
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id, mcp=False
     )
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn, mcp=True)
+    items = await search_resolves(conn, redis_client, mcp=True)
 
     ids = [item.id for item in items]
     assert r_mcp.id in ids
     assert r_normal.id not in ids
 
 
-async def test_filters_by_date_from(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_filters_by_date_from(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     await refresh_resolves(conn)
 
     future = datetime.now(UTC) + timedelta(days=1)
-    items = await search_resolves(conn, date_from=future)
+    items = await search_resolves(conn, redis_client, date_from=future)
 
     ids = [item.id for item in items]
     assert result.id not in ids
 
 
-async def test_filters_by_date_to(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_filters_by_date_to(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     await refresh_resolves(conn)
 
     past = datetime.now(UTC) - timedelta(days=1)
-    items = await search_resolves(conn, date_to=past)
+    items = await search_resolves(conn, redis_client, date_to=past)
 
     ids = [item.id for item in items]
     assert result.id not in ids
 
 
-async def test_pagination_limit(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
-    await create_resolve(conn, problem_id=problem_id, resolved=False, call_id=call.id)
-    await create_resolve(conn, problem_id=problem_id, resolved=True, call_id=call.id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
+    await create_resolve(conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id)
+    await create_resolve(conn, redis_client, problem_id=problem_id, resolved=True, call_id=call.id)
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn, problem_ids=[problem_id], limit=1)
+    items = await search_resolves(conn, redis_client, problem_ids=[problem_id], limit=1)
 
     assert len(items) == 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
-    await create_resolve(conn, problem_id=problem_id, resolved=False, call_id=call.id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
+    await create_resolve(conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id)
     await refresh_resolves(conn)
 
-    items = await search_resolves(conn)
+    items = await search_resolves(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
 
-    items = await search_resolves(conn, problem_ids=[problem_id], bypass_mv=True)
+    items = await search_resolves(conn, redis_client, problem_ids=[problem_id], bypass_mv=True)
 
     ids = [item.id for item in items]
     assert result.id in ids

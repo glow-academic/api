@@ -46,7 +46,7 @@ async def chat_improvements_attempt_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_improvement(
             conn,
-            grade_id=grade_id,
+            redis, grade_id=grade_id,
             message_id=message_id,
             session_id=session_id,
             name=name or "Untitled improvement",

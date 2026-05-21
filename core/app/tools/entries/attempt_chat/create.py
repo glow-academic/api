@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_chat.types import CreateAttemptChatResponse
 
 
 async def create_attempt_chat(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     chat_id: UUID,
     id: UUID | None = None,

@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.globals import get_pool
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_grade.search import search_attempt_grades
 from app.tools.entries.attempt_improvement.create import create_attempt_improvement
 from app.tools.entries.attempt_replacement.create import create_attempt_replacement
@@ -57,7 +57,7 @@ async def chat_improvements(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        grades = await search_attempt_grades(conn, chat_ids=[request.chat_id], limit=1)
+        grades = await search_attempt_grades(conn, get_redis_client(), chat_ids=[request.chat_id], limit=1)
         if not grades:
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
@@ -65,7 +65,7 @@ async def chat_improvements(
         improvement_ids: list[UUID] = []
         for item in request.improvements:
             result = await create_attempt_improvement(
-                conn,
+                conn, get_redis_client(),
                 grade_id=grade_id,
                 message_id=item.message_id or uuid4(),
                 session_id=session_id,
@@ -79,7 +79,7 @@ async def chat_improvements(
             if item.replacements:
                 for rpl in item.replacements:
                     await create_attempt_replacement(
-                        conn,
+                        conn, get_redis_client(),
                         improvement_id=result.id,
                         session_id=session_id,
                         section=rpl.section,

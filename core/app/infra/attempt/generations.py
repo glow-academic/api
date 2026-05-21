@@ -91,7 +91,7 @@ async def _generations_attempt_build(
     async with pool.acquire() as conn:
         results = await search_groups(
             conn,
-            session_ids=session_ids,
+            redis, session_ids=session_ids,
             name=search,
             date_from=date_from,
             date_to=date_to,

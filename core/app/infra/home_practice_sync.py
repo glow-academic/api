@@ -511,13 +511,14 @@ async def sync_home_practice_entries(
 
     # ── Create entries using black-box tools ──
     # One entry per simulation (shared across all profiles), one chat per scenario.
+    redis = get_redis_client()
     async with pool.acquire() as conn:
-        session = await create_session(conn)
+        session = await create_session(conn, redis)
 
         for sim_data in sim_data_list:
             if sim_data["is_practice"]:
                 parent = await create_practice(
-                    conn,
+                    conn, redis,
                     session_id=session.id,
                     cohorts_ids=[cohorts_resource_id],
                     departments_ids=department_ids,
@@ -532,7 +533,7 @@ async def sync_home_practice_entries(
                 )
             else:
                 parent = await create_home(
-                    conn,
+                    conn, redis,
                     session_id=session.id,
                     cohorts_ids=[cohorts_resource_id],
                     departments_ids=department_ids,
@@ -550,7 +551,7 @@ async def sync_home_practice_entries(
 
             for chat_data in sim_data["chats"]:
                 chat = await create_chat(
-                    conn,
+                    conn, redis,
                     session_id=session.id,
                     scenario_ids=[chat_data["scenario_id"]],
                     position=chat_data["position"],
@@ -614,9 +615,9 @@ async def sync_home_practice_entries(
                 )
 
                 if sim_data["is_practice"]:
-                    await create_practice_chat(conn, parent.id, chat.id, session.id)
+                    await create_practice_chat(conn, redis, parent.id, chat.id, session.id)
                 else:
-                    await create_home_chat(conn, parent.id, chat.id, session.id)
+                    await create_home_chat(conn, redis, parent.id, chat.id, session.id)
 
                 entry_count += 1
 

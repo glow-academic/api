@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.practice.types import GetPracticeResponse
@@ -12,6 +13,7 @@ MV_NAME = "practice_mv"
 
 async def search_practices(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

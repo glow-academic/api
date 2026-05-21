@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.text_uploads.types import CreateTextUploadResponse
 
 
 async def create_text_upload(
     conn: asyncpg.Connection,
+    redis: Redis,
     text_id: UUID,
     upload_id: UUID,
     session_id: UUID,

@@ -89,7 +89,7 @@ async def export_session_impl(
     # -- Step 2: Get session metadata --
 
     async with pool.acquire() as conn:
-        sessions = await get_sessions(conn, [target_session_id])
+        sessions = await get_sessions(conn, [target_session_id], redis)
 
     if not sessions:
         return ExportSessionApiResponse(
@@ -103,7 +103,7 @@ async def export_session_impl(
 
     async with pool.acquire() as conn:
         groups = await search_groups(
-            conn, session_ids=[target_session_id], limit=100000, offset=0
+            conn, redis, session_ids=[target_session_id], limit=100000, offset=0
         )
 
     # -- Step 4: Get runs for all groups --
@@ -112,7 +112,7 @@ async def export_session_impl(
     if all_group_ids:
         async with pool.acquire() as conn:
             runs = (
-                await search_runs(conn, group_ids=all_group_ids, limit=100000, offset=0)
+                await search_runs(conn, redis, group_ids=all_group_ids, limit=100000, offset=0)
             )[0]
     else:
         runs = []

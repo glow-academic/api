@@ -60,7 +60,7 @@ async def _maybe_auto_accept_document_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_document_drafts(conn, [draft_id], active=None)
+        drafts = await get_document_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -81,7 +81,7 @@ async def _maybe_auto_accept_document_draft(
         async with conn.transaction():
             await create_document_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -185,7 +185,7 @@ async def _resolve_creatable_values(
             )
             await create_file_upload(
                 conn,
-                file_id=file_entry.id,
+                redis, file_id=file_entry.id,
                 upload_id=file_val.upload_id,
                 session_id=session_id,
             )
@@ -203,7 +203,7 @@ async def _resolve_creatable_values(
 
             upload_result = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=final_file_path,
                 mime_type="text/plain",
                 size=size,
@@ -216,7 +216,7 @@ async def _resolve_creatable_values(
             )
             await create_text_upload(
                 conn,
-                text_id=text_entry.id,
+                redis, text_id=text_entry.id,
                 upload_id=upload_result.id,
                 session_id=session_id,
             )
@@ -282,7 +282,7 @@ async def _resolve_creatable_values(
             if image_val.upload_id is not None:
                 await create_image_upload(
                     conn,
-                    image_id=image_entry.id,
+                    redis, image_id=image_entry.id,
                     upload_id=image_val.upload_id,
                     session_id=session_id,
                 )
@@ -370,13 +370,13 @@ async def patch_document_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_document_drafts(conn, [target_id], active=None)
+                drafts = await get_document_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_document_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -394,7 +394,7 @@ async def patch_document_draft_impl(
                     else:
                         await create_document_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -445,7 +445,7 @@ async def patch_document_draft_impl(
         async with conn.transaction():
             result = await create_document_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=operation_key,
                 soft=soft,
                 name=request.name or "",

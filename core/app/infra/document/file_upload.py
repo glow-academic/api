@@ -87,7 +87,7 @@ async def file_upload_document_impl(
     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
-            session_id=session_uuid,
+            redis, session_id=session_uuid,
             file_path=file_path,
             mime_type=content_type,
             size=len(file_bytes),
@@ -100,7 +100,7 @@ async def file_upload_document_impl(
 
         await create_file_upload(
             conn,
-            file_id=file_result.id,
+            redis, file_id=file_result.id,
             upload_id=upload_result.id,
             session_id=session_uuid,
         )

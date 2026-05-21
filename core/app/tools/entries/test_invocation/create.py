@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation.types import (
     CreateTestInvocationResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.test_invocation.types import (
 
 async def create_test_invocation(
     conn: asyncpg.Connection,
+    redis: Redis,
     *,
     id: UUID | None = None,
     test_id: UUID | None = None,

@@ -20,23 +20,23 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_analysis(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_analysis(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     await create_attempt(
-        conn, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id
+        conn, redis_client, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     grade = await create_attempt_grade(
         conn,
-        chat_id=attempt_chat.id,
+        redis_client, chat_id=attempt_chat.id,
         call_id=call2.id,
         time_taken=120,
         passed=True,
@@ -44,7 +44,7 @@ async def _attempt_analysis(conn, profile_id, **overrides):
     )
     defaults = dict(grade_id=grade.id, call_id=call2.id, content="Test analysis")
     defaults.update(overrides)
-    result = await create_attempt_analysis(conn, **defaults)
+    result = await create_attempt_analysis(conn, redis_client, **defaults)
     return result
 
 
@@ -53,10 +53,10 @@ async def test_returns_id(conn, profile_id):
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _attempt_analysis(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _attempt_analysis(conn, redis_client, profile_id)
     await refresh_attempt_analysis(conn)
-    items = await get_attempt_analyses(conn, [result.id])
+    items = await get_attempt_analyses(conn, [result.id], redis_client)
     assert len(items) == 1
 
 

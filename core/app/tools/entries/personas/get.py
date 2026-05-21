@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.personas.types import GetPersonasResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.personas.types import GetPersonasResponse
 async def get_personas(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetPersonasResponse]:
+    redis: Redis) -> list[GetPersonasResponse]:
     """Get personas entries by IDs with their persona connections."""
     if not ids:
         return []

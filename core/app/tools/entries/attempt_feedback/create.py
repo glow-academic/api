@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_feedback.types import (
     CreateAttemptFeedbackResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.attempt_feedback.types import (
 
 async def create_attempt_feedback(
     conn: asyncpg.Connection,
+    redis: Redis,
     grade_id: UUID,
     session_id: UUID,
     total: int,

@@ -45,17 +45,17 @@ async def archive_test_impl(
 
     async with pool.acquire() as conn:
         run_result = await create_run(
-            conn, group_id=group_result.group_id, session_id=session_id,
+            conn, redis, group_id=group_result.group_id, session_id=session_id,
         )
         call_result = await create_call(
-            conn, run_id=run_result.id, session_id=session_id,
+            conn, redis, run_id=run_result.id, session_id=session_id,
         )
 
         updated_count = 0
         for test_id in request.test_ids:
             await create_test_archive(
                 conn,
-                test_id=test_id,
+                redis, test_id=test_id,
                 call_id=call_result.id,
                 archived=request.archived,
             )

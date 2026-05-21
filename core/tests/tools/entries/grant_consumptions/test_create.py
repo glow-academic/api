@@ -15,25 +15,25 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _grant(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    grant = await create_grant(conn, session_id=session.id)
+async def _grant(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    grant = await create_grant(conn, redis_client, session_id=session.id)
     return grant
 
 
-async def test_returns_id(conn, profile_id):
-    grant = await _grant(conn, profile_id)
-    result = await create_grant_consumption(conn, grant_id=grant.id)
+async def test_returns_id(conn, redis_client, profile_id):
+    grant = await _grant(conn, redis_client, profile_id)
+    result = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
 
     assert result.id is not None
 
 
-async def test_visible_via_get(conn, profile_id):
-    grant = await _grant(conn, profile_id)
-    result = await create_grant_consumption(conn, grant_id=grant.id)
+async def test_visible_via_get(conn, redis_client, profile_id):
+    grant = await _grant(conn, redis_client, profile_id)
+    result = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
     await refresh_grant_consumptions(conn)
 
-    items = await get_grant_consumptions(conn, [result.id])
+    items = await get_grant_consumptions(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
@@ -43,12 +43,12 @@ async def test_visible_via_get(conn, profile_id):
     assert items[0].generated is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    grant = await _grant(conn, profile_id)
-    result = await create_grant_consumption(conn, grant_id=grant.id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    grant = await _grant(conn, redis_client, profile_id)
+    result = await create_grant_consumption(conn, redis_client, grant_id=grant.id, mcp=True)
     await refresh_grant_consumptions(conn)
 
-    items = await get_grant_consumptions(conn, [result.id])
+    items = await get_grant_consumptions(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].mcp is True

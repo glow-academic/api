@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_practice.types import (
@@ -14,6 +15,7 @@ MV_NAME = "attempt_practice_mv"
 
 async def search_attempt_practice_entries(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_ids: list[UUID] | None = None,
     practice_ids: list[UUID] | None = None,
     limit: int = 20,

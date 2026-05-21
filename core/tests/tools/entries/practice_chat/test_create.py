@@ -12,11 +12,11 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _practice_chat(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _practice_chat(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     practice = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -25,10 +25,10 @@ async def _practice_chat(conn, profile_id, bundle):
         simulation_availability_ids=[bundle.simulation_availability_id],
         simulation_positions_ids=[bundle.simulation_position_id],
     )
-    chat = await create_chat(conn, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
     practice_chat = await create_practice_chat(
         conn,
-        practice_id=practice.id,
+        redis_client, practice_id=practice.id,
         chat_id=chat.id,
         session_id=session.id,
     )
@@ -41,36 +41,36 @@ async def test_returns_id(conn, profile_id, simulation_bundle):
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id, simulation_bundle):
-    _, _, _, result = await _practice_chat(conn, profile_id, simulation_bundle)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, simulation_bundle):
+    _, _, _, result = await _practice_chat(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice_chat(conn)
 
-    items = await get_practice_chats(conn, [result.id])
+    items = await get_practice_chats(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
     assert items[0].active is True
 
 
-async def test_links_practice_and_chat(conn, profile_id, simulation_bundle):
+async def test_links_practice_and_chat(conn, redis_client, profile_id, simulation_bundle):
     _, practice, chat, result = await _practice_chat(
-        conn, profile_id, simulation_bundle
+        conn, redis_client, profile_id, simulation_bundle
     )
     await refresh_practice_chat(conn)
 
-    items = await get_practice_chats(conn, [result.id])
+    items = await get_practice_chats(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].practice_id == practice.id
     assert items[0].chat_id == chat.id
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
     bundle = simulation_bundle
-    session = await create_session(conn, profile_id=profile_id)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     practice = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -79,10 +79,10 @@ async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
         simulation_availability_ids=[bundle.simulation_availability_id],
         simulation_positions_ids=[bundle.simulation_position_id],
     )
-    chat = await create_chat(conn, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
     result = await create_practice_chat(
         conn,
-        practice_id=practice.id,
+        redis_client, practice_id=practice.id,
         chat_id=chat.id,
         session_id=session.id,
         mcp=True,

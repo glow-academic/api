@@ -4,12 +4,14 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.grants.types import CreateGrantResponse
 
 
 async def create_grant(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     id: UUID | None = None,
     expires_at: datetime | None = None,

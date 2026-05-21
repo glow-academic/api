@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.10"
+    "version": "1.0.17"
   },
   "paths": {
     "/persona/title": {
@@ -37105,7 +37105,7 @@
               }
             ],
             "title": "Idempotency Key",
-            "description": "Operation key for ack \u2014 promotes or rejects a dormant create"
+            "description": "Idempotency key \u2014 safe-retry replay on the first call; ack of a dormant create when sent with accept"
           },
           "accept": {
             "anyOf": [
@@ -67765,6 +67765,18 @@
             ],
             "title": "Draft Id",
             "description": "UUID of the draft"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           },
           "names": {
             "anyOf": [

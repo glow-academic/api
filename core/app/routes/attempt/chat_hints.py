@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.globals import get_pool
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_hint.create import create_attempt_hint
 
 router = APIRouter()
@@ -59,7 +59,7 @@ async def chat_hints(
                     detail="message_id is required for each hint",
                 )
             result = await create_attempt_hint(
-                conn,
+                conn, get_redis_client(),
                 message_id=item.message_id,
                 session_id=session_id,
                 hint=item.hint,

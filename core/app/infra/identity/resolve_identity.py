@@ -494,7 +494,7 @@ async def _find_active_grant_target(
 
     async with pool.acquire() as conn:
         grants = await search_grants(
-            conn,
+            conn, redis,
             profiles_ids=[context.profiles_id],
             active=True,
             limit=10,
@@ -511,13 +511,13 @@ async def _find_active_grant_target(
 
         async with pool.acquire() as conn:
             consumptions = await search_grant_consumptions(
-                conn, grant_ids=[grant.id], limit=1
+                conn, redis, grant_ids=[grant.id], limit=1
             )
         if consumptions:
             continue
 
         async with pool.acquire() as conn:
-            emulations = await search_emulations(conn, grant_ids=[grant.id], limit=1)
+            emulations = await search_emulations(conn, redis, grant_ids=[grant.id], limit=1)
         if not emulations or not emulations[0].profile_id:
             continue
 
@@ -605,6 +605,9 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
     """
     from app.tools.artifacts.profile.get import get_profiles
 
+    from app.infra.globals import get_redis_client
+    redis = get_redis_client()
+
     # Resolve profile_artifact.id → profiles_resource.id
     profiles = await get_profiles(conn, [profile_id], profiles=True)
     if not profiles or not profiles[0].profile_ids:
@@ -624,7 +627,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
     # very next request (which would otherwise mint a duplicate
     # before the MV's 30s refresh tick).
     sessions = await search_sessions(
-        conn,
+        conn, redis,
         profile_ids=[profiles_resource_id],
         active=True,
         limit=1,
@@ -637,7 +640,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
         # always mint a new session after any logout, regardless of
         # timing.
         logouts = await search_logouts(
-            conn,
+            conn, redis,
             session_ids=[session.id],
             limit=1,
             bypass_mv=True,
@@ -648,7 +651,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
             # first activity ping hasn't landed yet (or got
             # throttled by the 60s SETNX in middleware).
             recent = await search_activity(
-                conn,
+                conn, redis,
                 session_ids=[session.id],
                 limit=1,
                 bypass_mv=True,
@@ -662,7 +665,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
 
     # Mint a new session — either no prior, the latest was logged
     # out, or it idled past the threshold.
-    result = await create_session(conn, profile_id=profiles_resource_id)
+    result = await create_session(conn, redis, profile_id=profiles_resource_id)
     return result.id
 
 
@@ -689,9 +692,10 @@ async def get_system_session_id(conn: asyncpg.Connection) -> UUID:
             return _system_session_id
 
     # Create a system session (no profile link needed).
+    from app.infra.globals import get_redis_client
     from app.tools.entries.sessions.create import create_session
 
-    session_id = (await create_session(conn)).id
+    session_id = (await create_session(conn, get_redis_client())).id
 
     _system_session_id = session_id
     logger.info(f"Created system session: {session_id}")

@@ -221,11 +221,11 @@ async def _export_single_test_bytes(
         )
 
     async with pool.acquire() as conn:
-        tests, _total = await search_tests(conn, test_ids=[test_id], limit=1)
+        tests, _total = await search_tests(conn, redis, test_ids=[test_id], limit=1)
 
     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
-            conn, test_ids=[test_id], limit=100000, offset=0
+            conn, redis, test_ids=[test_id], limit=100000, offset=0
         )
 
     invocation_ids = [inv.invocation_id for inv in invocations]
@@ -233,7 +233,7 @@ async def _export_single_test_bytes(
         async with pool.acquire() as conn:
             runs = (
                 await search_test_invocation_runs(
-                    conn, test_invocation_ids=invocation_ids, limit=100000, offset=0
+                    conn, redis, test_invocation_ids=invocation_ids, limit=100000, offset=0
                 )
             )[0]
     else:

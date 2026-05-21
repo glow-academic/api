@@ -28,8 +28,8 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
-    session = await create_session(conn, profile_id=profile_resource_id)
-    group = await create_group(conn, session_id=session.id, name="Pricing Group", artifact_type="persona")
+    session = await create_session(conn, redis_client, profile_id=profile_resource_id)
+    group = await create_group(conn, redis_client, session_id=session.id, name="Pricing Group", artifact_type="persona")
     model = await create_model(
         conn,
         value="gpt-test-pricing",
@@ -62,14 +62,14 @@ async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
     )
     run = await create_run(
         conn,
-        group_id=group.id,
+        redis_client, group_id=group.id,
         session_id=session.id,
         profiles_id=profile_resource_id,
         agent_ids=[agent.id],
     )
     await create_run_pricing_entry_internal(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         pricing_type="input",
         run_id=run.id,
         pricing_id=input_pricing.id,
@@ -77,7 +77,7 @@ async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
     )
     await create_run_pricing_entry_internal(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         pricing_type="output",
         run_id=run.id,
         pricing_id=output_pricing.id,

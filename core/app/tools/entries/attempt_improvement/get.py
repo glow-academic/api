@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_improvement.types import (
     GetAttemptImprovementResponse,
@@ -12,8 +13,8 @@ MV_NAME = "attempt_improvement_mv"
 
 
 async def get_attempt_improvements(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptImprovementResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptImprovementResponse]:
     if not ids:
         return []
     rows = await conn.fetch(

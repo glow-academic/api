@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.messages.types import SearchMessageResponse
@@ -12,6 +13,7 @@ MV_NAME = "messages_mv"
 
 async def search_messages(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_ids: list[UUID] | None = None,
     role: str | None = None,
     roles: list[str] | None = None,

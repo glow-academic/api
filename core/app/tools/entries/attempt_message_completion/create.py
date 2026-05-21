@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_message_completion.types import (
     CreateAttemptMessageCompletionResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_message_completion.types import (
 
 async def create_attempt_message_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_message_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

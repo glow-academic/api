@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.videos.types import SearchVideoResponse
@@ -12,6 +13,7 @@ MV_NAME = "videos_mv"
 
 async def search_videos(
     conn: asyncpg.Connection,
+    redis: Redis,
     video_ids: list[UUID] | None = None,
     videos_ids: list[UUID] | None = None,
     limit: int = 20,

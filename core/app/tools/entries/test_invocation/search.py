@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.test_invocation.types import GetTestInvocationResponse
@@ -12,6 +13,7 @@ MV_NAME = "test_invocation_mv"
 
 async def search_test_invocation_entries_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     test_ids: list[UUID] | None = None,
     group_ids: list[UUID] | None = None,
     suite_department_ids: list[UUID] | None = None,

@@ -81,10 +81,10 @@ async def audio_download_attempt_impl(
     # canonical resource→upload helper. Both paths land on the same
     # ``uploads_entry`` so the file-fetch downstream is uniform.
     async with pool.acquire() as conn:
-        junctions = await search_audio_uploads(conn, audio_ids=[audio_id], limit=1)
+        junctions = await search_audio_uploads(conn, redis, audio_ids=[audio_id], limit=1)
         upload = None
         if junctions:
-            upload = await get_upload(conn, junctions[0].upload_id)
+            upload = await get_upload(conn, junctions[0].upload_id, redis)
         else:
             # Resource-id path. ``get_upload_by_audios_id`` walks
             # ``audios_resource → audios_audios_connection → audios_entry

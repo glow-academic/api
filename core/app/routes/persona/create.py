@@ -69,7 +69,7 @@ async def create_persona(
             response_model=CreatePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
-            operation_key=request.operation_key,  # idempotency replay gate (canary)
+            operation_key=request.idempotency_key,  # one key drives the replay gate (canary)
         )
 
         response.headers["X-Invalidate-Tags"] = "personas"

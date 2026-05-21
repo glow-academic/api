@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.group_names.types import GetGroupNameResponse
@@ -13,6 +14,7 @@ MV_NAME = "group_names_mv"
 async def get_group_names(
     conn: asyncpg.Connection,
     group_ids: list[UUID],
+    redis: Redis,
     bypass_mv: bool = False,
 ) -> list[GetGroupNameResponse]:
     """Get latest name per group from group_names_mv."""

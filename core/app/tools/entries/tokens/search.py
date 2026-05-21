@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.tokens.types import GetTokenResponse
@@ -13,6 +14,7 @@ MV_NAME = "tokens_mv"
 
 async def search_tokens(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
     date_from: datetime | None = None,

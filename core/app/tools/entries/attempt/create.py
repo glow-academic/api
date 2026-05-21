@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt.types import CreateAttemptResponse
 
 
 async def create_attempt(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     user_persona_id: UUID,
     profiles_id: UUID,

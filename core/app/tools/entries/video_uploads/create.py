@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.video_uploads.types import CreateVideoUploadResponse
 
 
 async def create_video_upload(
     conn: asyncpg.Connection,
+    redis: Redis,
     video_id: UUID,
     upload_id: UUID,
     session_id: UUID,

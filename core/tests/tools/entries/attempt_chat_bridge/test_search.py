@@ -24,84 +24,84 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     result = await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
     return result, attempt, attempt_chat
 
 
-async def test_finds_created_entry(conn, profile_id):
-    result, attempt, _ = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    result, attempt, _ = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await search_attempt_chat_bridges(conn, attempt_ids=[attempt.id])
+    items = await search_attempt_chat_bridges(conn, redis_client, attempt_ids=[attempt.id])
 
     attempt_ids = [item.attempt_id for item in items]
     assert result.attempt_id in attempt_ids
 
 
-async def test_filters_by_attempt_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_attempt_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await search_attempt_chat_bridges(conn, attempt_ids=[nonexistent_id()])
+    items = await search_attempt_chat_bridges(conn, redis_client, attempt_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_filters_by_attempt_chat_id(conn, profile_id):
-    result, _, attempt_chat = await _setup(conn, profile_id)
+async def test_filters_by_attempt_chat_id(conn, redis_client, profile_id):
+    result, _, attempt_chat = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await search_attempt_chat_bridges(conn, attempt_chat_ids=[attempt_chat.id])
+    items = await search_attempt_chat_bridges(conn, redis_client, attempt_chat_ids=[attempt_chat.id])
 
     chat_ids = [item.attempt_chat_id for item in items]
     assert result.attempt_chat_id in chat_ids
 
 
-async def test_pagination_limit(conn, profile_id):
-    _, attempt, _ = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    _, attempt, _ = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await search_attempt_chat_bridges(conn, attempt_ids=[attempt.id], limit=1)
+    items = await search_attempt_chat_bridges(conn, redis_client, attempt_ids=[attempt.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await search_attempt_chat_bridges(conn)
+    items = await search_attempt_chat_bridges(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, attempt, _ = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    result, attempt, _ = await _setup(conn, redis_client, profile_id)
 
     items = await search_attempt_chat_bridges(
-        conn, attempt_ids=[attempt.id], bypass_mv=True
+        conn, redis_client, attempt_ids=[attempt.id], bypass_mv=True
     )
 
     attempt_ids = [item.attempt_id for item in items]

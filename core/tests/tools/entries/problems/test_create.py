@@ -13,31 +13,31 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _call(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _call(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return session, call
 
 
-async def test_returns_id(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     await refresh_problems(conn)
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
@@ -48,46 +48,46 @@ async def test_visible_via_get_after_refresh(conn, profile_id):
     assert items[0].mcp is False
 
 
-async def test_passes_custom_message(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_passes_custom_message(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         call_id=call.id,
         type="feature",
         message="Custom message", artifact_type="activity")
     await refresh_problems(conn)
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].message == "Custom message"
     assert items[0].type == "feature"
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", mcp=True, artifact_type="activity")
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", mcp=True, artifact_type="activity")
     await refresh_problems(conn)
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].mcp is True
 
 
-async def test_links_profile(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_links_profile(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         call_id=call.id,
         type="question",
         profile_id=profile_id, artifact_type="activity")
     await refresh_problems(conn)
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].profile_id == profile_id

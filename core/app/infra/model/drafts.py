@@ -54,7 +54,7 @@ async def list_model_drafts_impl(
     async with pool.acquire() as conn:
         drafts = await search_model_drafts(
             conn,
-            profile_ids=[profile.profiles_id],
+            redis, profile_ids=[profile.profiles_id],
             session_ids=[session_id] if session_id else None,
             name=search,
             date_from=date_from,

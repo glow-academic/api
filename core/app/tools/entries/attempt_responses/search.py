@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_responses.types import (
@@ -14,6 +15,7 @@ MV_NAME = "attempt_responses_mv"
 
 async def search_attempt_responses(
     conn: asyncpg.Connection,
+    redis: Redis,
     chat_ids: list[UUID] | None = None,
     question_ids: list[UUID] | None = None,
     option_ids: list[UUID] | None = None,

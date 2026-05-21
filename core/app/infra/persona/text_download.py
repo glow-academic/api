@@ -60,7 +60,7 @@ async def text_download_persona_impl(
         )
 
     async with pool.acquire() as conn:
-        junctions = await search_text_uploads(conn, text_ids=[text_id], limit=1)
+        junctions = await search_text_uploads(conn, redis, text_ids=[text_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -69,7 +69,7 @@ async def text_download_persona_impl(
             )
 
         upload_id = junctions[0].upload_id
-        upload = await get_upload(conn, upload_id)
+        upload = await get_upload(conn, upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

@@ -91,14 +91,14 @@ async def resolve_invocation_context(
         if invocation_id is None:
             return None
         async with pool.acquire() as conn:
-            items = await get_test_invocations(conn, [invocation_id], bypass_mv=bypass_cache)
+            items = await get_test_invocations(conn, [invocation_id], redis, bypass_mv=bypass_cache)
         return items[0] if items else None
 
     async def _get_draft():
         if draft_id is None:
             return None
         async with pool.acquire() as conn:
-            items = await get_invocation_drafts(conn, [draft_id])
+            items = await get_invocation_drafts(conn, [draft_id], redis)
         return items[0] if items else None
 
     base_invocation, draft = await asyncio.gather(_get_base_invocation(), _get_draft())

@@ -90,10 +90,10 @@ async def problem_test_impl(
 
     async with pool.acquire() as conn:
         run_result = await create_run(
-            conn, group_id=group_result.group_id, session_id=session_id
+            conn, redis, group_id=group_result.group_id, session_id=session_id
         )
         call_result = await create_call(
-            conn, run_id=run_result.id, session_id=session_id
+            conn, redis, run_id=run_result.id, session_id=session_id
         )
         problem_result = await create_problem_entry(
             conn,

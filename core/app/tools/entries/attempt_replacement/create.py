@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_replacement.types import (
     CreateAttemptReplacementResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_replacement.types import (
 
 async def create_attempt_replacement(
     conn: asyncpg.Connection,
+    redis: Redis,
     improvement_id: UUID,
     session_id: UUID,
     section: str,

@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.rubric_drafts.types import CreateRubricDraftResponse
 
 
 async def create_rubric_draft(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     id: UUID | None = None,

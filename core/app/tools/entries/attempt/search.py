@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt.types import GetAttemptResponse
@@ -13,6 +14,7 @@ MV_NAME = "attempt_mv"
 
 async def search_attempts(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_highlight.types import (
     CreateAttemptHighlightResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_highlight.types import (
 
 async def create_attempt_highlight(
     conn: asyncpg.Connection,
+    redis: Redis,
     strength_id: UUID,
     session_id: UUID,
     section: str,

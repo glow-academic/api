@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_mutes.types import (
     GetAttemptMutesResponse,
@@ -14,7 +15,7 @@ MV_NAME = "attempt_mutes_mv"
 async def get_attempt_mutes(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetAttemptMutesResponse]:
+    redis: Redis) -> list[GetAttemptMutesResponse]:
     """Get attempt_mutes entries by IDs from MV."""
     if not ids:
         return []

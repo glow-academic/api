@@ -235,7 +235,7 @@ async def prepare_generation(
         async with pool.acquire() as conn:
             trace_ctx = await resolve_trace_context(conn, trace_uuid)
             invs = await get_test_invocations(
-                conn, [trace_ctx.test_invocation_id], bypass_mv=True
+                conn, [trace_ctx.test_invocation_id], redis, bypass_mv=True
             )
         if not invs:
             raise ValueError(
@@ -257,6 +257,7 @@ async def prepare_generation(
             async with pool.acquire() as conn:
                 historical_calls = await search_calls(
                     conn,
+                    redis,
                     run_ids=[trace_ctx.historical_run_id],
                     limit=10000,
                 )
@@ -550,7 +551,7 @@ async def prepare_generation(
     else:
         async with pool.acquire() as conn:
             run = await create_run(
-                conn,
+                conn, redis,
                 group_id=group_id,
                 session_id=session_id,
                 agent_ids=agent_ids_for_run,
@@ -664,6 +665,7 @@ async def prepare_generation(
                 if msg.persist:
                     await persist_run_message(
                         conn,
+                        redis,
                         run_id=run_id,
                         session_id=session_id,
                         role=msg.role,
@@ -680,6 +682,7 @@ async def prepare_generation(
                 for instruction in payload.instructions:
                     await persist_run_message(
                         conn,
+                        redis,
                         run_id=run_id,
                         session_id=session_id,
                         role=payload.instructions_role,

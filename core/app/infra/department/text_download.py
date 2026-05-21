@@ -52,7 +52,7 @@ async def text_download_department_impl(
         )
 
     async with pool.acquire() as conn:
-        junctions = await search_text_uploads(conn, text_ids=[text_id], limit=1)
+        junctions = await search_text_uploads(conn, redis, text_ids=[text_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -60,7 +60,7 @@ async def text_download_department_impl(
                 detail="No upload found for this text.",
             )
 
-        upload = await get_upload(conn, junctions[0].upload_id)
+        upload = await get_upload(conn, junctions[0].upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

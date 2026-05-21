@@ -147,7 +147,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -191,7 +191,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -239,7 +239,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -267,7 +267,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
         updated = await _create_persona_route_resources(pool, redis_client)
@@ -325,7 +325,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -351,7 +351,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -393,7 +393,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
         draft_name = f"Draft Persona {unique_tag()}"
@@ -469,7 +469,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 
@@ -498,7 +498,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            persona_route_client,
+            redis_client, persona_route_client,
             persona_route_actor,
         )
 

@@ -52,11 +52,11 @@ async def call_download_test_impl(
         raise HTTPException(status_code=403, detail="No permission for test call download.")
 
     async with pool.acquire() as conn:
-        junctions = await search_call_uploads(conn, call_ids=[effective_call_id], limit=1)
+        junctions = await search_call_uploads(conn, redis, call_ids=[effective_call_id], limit=1)
         if not junctions:
             raise HTTPException(status_code=404, detail="No upload found for this call.")
 
-        upload = await get_upload(conn, junctions[0].upload_id)
+        upload = await get_upload(conn, junctions[0].upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.invocation_drafts.types import (
@@ -16,7 +17,7 @@ from app.utils.cache.set_cached import set_cached
 async def get_invocation_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetInvocationDraftResponse]:
+    redis: Redis) -> list[GetInvocationDraftResponse]:
     """Get invocation_drafts entries by IDs with connection data."""
     if not ids:
         return []

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation_completion.types import (
     GetTestInvocationCompletionResponse,
@@ -14,7 +15,7 @@ MV_NAME = "test_invocation_completion_mv"
 async def get_test_invocation_completions(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetTestInvocationCompletionResponse]:
+    redis: Redis) -> list[GetTestInvocationCompletionResponse]:
     """Get test_invocation_completion entries by IDs from MV."""
     if not ids:
         return []

@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.run_pricing.types import CreateRunPricingEntryResponse
 
 
 async def create_run_pricing_entry_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     pricing_type: str,
     run_id: UUID,

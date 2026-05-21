@@ -95,7 +95,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
 
@@ -131,7 +131,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
 
@@ -159,7 +159,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
         updated = await _create_setting_route_resources(pool, redis_client)
@@ -205,7 +205,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
 
@@ -229,7 +229,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
 
@@ -333,7 +333,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
 
@@ -379,7 +379,7 @@ class TestSettingRoute:
         created = await self._create_setting_via_route(
             pool,
             redis_client,
-            setting_route_client,
+            redis_client, setting_route_client,
             setting_route_actor,
         )
         setting_route_client.authenticate(

@@ -80,7 +80,7 @@ async def _maybe_auto_accept_draft(
     #    every pending_*_ids list. Any non-empty list means the user
     #    still has decisions to make.
     async with pool.acquire() as conn:
-        drafts = await get_persona_drafts(conn, [draft_id], active=None)
+        drafts = await get_persona_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -104,7 +104,7 @@ async def _maybe_auto_accept_draft(
         async with conn.transaction():
             await create_persona_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -401,13 +401,13 @@ async def patch_persona_draft_impl(
             async with pool.acquire() as conn:
                 # active=None so we find the dormant draft (active=false)
                 # we're about to promote.
-                drafts = await get_persona_drafts(conn, [target_id], active=None)
+                drafts = await get_persona_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_persona_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -426,7 +426,7 @@ async def patch_persona_draft_impl(
                     else:
                         await create_persona_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -519,7 +519,7 @@ async def patch_persona_draft_impl(
         async with conn.transaction():
             result = await create_persona_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
                 name=request.name or "",

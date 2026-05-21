@@ -25,30 +25,30 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_message_tree(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_message_tree(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    real_chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    real_chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=real_chat.id
+        conn, redis_client, call_id=call2.id, chat_id=real_chat.id
     )
-    msg1 = await create_message(conn, run_id=run.id, role="user")
-    msg2 = await create_message(conn, run_id=run.id, role="assistant")
+    msg1 = await create_message(conn, redis_client, run_id=run.id, role="user")
+    msg2 = await create_message(conn, redis_client, run_id=run.id, role="assistant")
     await create_attempt_message(
-        conn, chat_id=chat.id, call_id=call2.id, message_id=msg1.id
+        conn, redis_client, chat_id=chat.id, call_id=call2.id, message_id=msg1.id
     )
     await create_attempt_message(
-        conn, chat_id=chat.id, call_id=call2.id, message_id=msg2.id
+        conn, redis_client, chat_id=chat.id, call_id=call2.id, message_id=msg2.id
     )
     defaults = dict(
         parent_id=msg1.id,
@@ -56,7 +56,7 @@ async def _attempt_message_tree(conn, profile_id, **overrides):
         session_id=session.id,
     )
     defaults.update(overrides)
-    return await create_attempt_message_tree(conn, **defaults)
+    return await create_attempt_message_tree(conn, redis_client, **defaults)
 
 
 async def test_returns_ids(conn, profile_id):
@@ -67,12 +67,12 @@ async def test_returns_ids(conn, profile_id):
     assert result.child_id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _attempt_message_tree(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _attempt_message_tree(conn, redis_client, profile_id)
     await refresh_attempt_message_tree(conn)
 
     # get_attempt_message_trees queries by message_id
-    items = await get_attempt_message_trees(conn, [result.parent_id])
+    items = await get_attempt_message_trees(conn, [result.parent_id], redis_client)
 
     assert len(items) >= 1
 

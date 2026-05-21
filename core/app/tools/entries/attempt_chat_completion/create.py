@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_chat_completion.types import (
     CreateAttemptChatCompletionResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.attempt_chat_completion.types import (
 
 async def create_attempt_chat_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     chat_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.practice_chat.types import GetPracticeChatResponse
@@ -12,6 +13,7 @@ MV_NAME = "practice_chat_mv"
 
 async def search_practice_chats(
     conn: asyncpg.Connection,
+    redis: Redis,
     practice_ids: list[UUID] | None = None,
     chat_ids: list[UUID] | None = None,
     limit: int = 20,

@@ -43,7 +43,7 @@ async def get_session_impl(
 
     results = await search_sessions(
         conn,
-        profile_ids=[profile_id],
+        redis, profile_ids=[profile_id],
         active=True,
         limit=1,
     )

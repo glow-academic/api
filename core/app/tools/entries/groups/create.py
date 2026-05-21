@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.groups.types import CreateGroupResponse
 
 
 async def create_group(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     artifact_type: str,

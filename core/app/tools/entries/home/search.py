@@ -1,6 +1,7 @@
 """Home search — filtered/paginated query against home_mv."""
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.home.types import GetHomeResponse
@@ -10,6 +11,7 @@ MV_NAME = "home_mv"
 
 async def search_homes(
     conn: asyncpg.Connection,
+    redis: Redis,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,

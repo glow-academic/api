@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.tokens.types import GetTokenResponse
@@ -13,6 +14,7 @@ MV_NAME = "tokens_mv"
 async def get_tokens(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     bypass_mv: bool = False,
 ) -> list[GetTokenResponse]:
     """Get tokens by IDs from tokens_mv."""

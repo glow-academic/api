@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.test.types import GetTestResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "test_mv"
 async def get_tests(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetTestResponse]:
+    redis: Redis) -> list[GetTestResponse]:
     """Fetch test entries by IDs from the MV."""
     if not ids:
         return []

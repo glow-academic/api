@@ -85,7 +85,7 @@ async def _load_grading_state(
     async with pool.acquire() as conn:
         feedbacks: list[GetAttemptFeedbackResponse] = (
             await search_attempt_feedback_entries(
-                conn, grade_ids=[grade_id], limit=1000
+                conn, redis, grade_ids=[grade_id], limit=1000
             )
         )
 
@@ -378,7 +378,7 @@ async def export_rubric_impl(
         # the most recent attempt.
         async with pool.acquire() as conn:
             grades = await search_attempt_grades(
-                conn, chat_ids=[chat_id], limit=1
+                conn, redis, chat_ids=[chat_id], limit=1
             )
         if not grades:
             raise HTTPException(
@@ -407,7 +407,7 @@ async def export_rubric_impl(
     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
-            session_id=session_id,
+            redis, session_id=session_id,
             file_path=relative_path,
             mime_type="application/pdf",
             size=len(pdf_bytes),
@@ -421,7 +421,7 @@ async def export_rubric_impl(
             )
             await create_file_upload(
                 conn,
-                file_id=entry_row.id,
+                redis, file_id=entry_row.id,
                 upload_id=upload_row.id,
                 session_id=session_id,
             )

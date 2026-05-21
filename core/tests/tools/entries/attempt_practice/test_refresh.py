@@ -18,22 +18,22 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _setup(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
         practice=True,
     )
     practice = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -44,22 +44,22 @@ async def _setup(conn, profile_id, bundle):
     )
     return await create_attempt_practice(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         practice_id=practice.id,
         session_id=session.id,
     )
 
 
-async def test_appears_after_refresh(conn, profile_id, simulation_bundle):
-    result = await _setup(conn, profile_id, simulation_bundle)
+async def test_appears_after_refresh(conn, redis_client, profile_id, simulation_bundle):
+    result = await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_attempt_practice(conn)
 
-    items = await get_attempt_practice(conn, attempt_ids=[result.attempt_id])
+    items = await get_attempt_practice(conn, redis_client, attempt_ids=[result.attempt_id])
     assert len(items) >= 1
 
 
-async def test_not_visible_before_refresh(conn, profile_id, simulation_bundle):
-    result = await _setup(conn, profile_id, simulation_bundle)
+async def test_not_visible_before_refresh(conn, redis_client, profile_id, simulation_bundle):
+    result = await _setup(conn, redis_client, profile_id, simulation_bundle)
 
-    items = await get_attempt_practice(conn, attempt_ids=[result.attempt_id])
+    items = await get_attempt_practice(conn, redis_client, attempt_ids=[result.attempt_id])
     assert len(items) == 0

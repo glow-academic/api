@@ -136,7 +136,7 @@ async def _search_test_build(
     async with pool.acquire() as conn:
         items, total_count = await search_tests(
             conn,
-            eval_ids=eval_ids,
+            redis, eval_ids=eval_ids,
             department_ids=department_ids,
             is_archived=is_archived,
             date_from=date_from,

@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.texts.types import CreateTextResponse
 
 
 async def create_text(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     texts_id: UUID | None = None,

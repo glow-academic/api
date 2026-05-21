@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.provider_drafts.types import (
     CreateProviderDraftResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.provider_drafts.types import (
 
 async def create_provider_draft(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     id: UUID | None = None,

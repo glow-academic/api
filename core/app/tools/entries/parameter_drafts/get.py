@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 
@@ -10,6 +11,7 @@ from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 async def get_parameter_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
 ) -> list[GetParameterDraftResponse]:
     """Get parameter_drafts entries by IDs with connection data.

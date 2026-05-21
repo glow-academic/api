@@ -60,7 +60,7 @@ async def file_download_model_impl(
 
     # -- Step 3: Resolve files_id -> file metadata via files_mv ----------------
     async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+        results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

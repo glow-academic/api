@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.practice_chat.types import CreatePracticeChatResponse
 
 
 async def create_practice_chat(
     conn: asyncpg.Connection,
+    redis: Redis,
     practice_id: UUID,
     chat_id: UUID,
     session_id: UUID,

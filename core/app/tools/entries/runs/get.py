@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.runs.types import GetRunResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.runs.types import GetRunResponse
 async def get_run(
     conn: asyncpg.Connection,
     run_id: UUID,
-) -> GetRunResponse | None:
+    redis: Redis) -> GetRunResponse | None:
     """Get a runs entry by ID."""
     row = await conn.fetchrow(
         """

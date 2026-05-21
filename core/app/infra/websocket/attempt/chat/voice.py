@@ -41,6 +41,7 @@ async def attempt_chat_voice_internal_impl(
     This endpoint does NOT trigger AI generation. The client calls
     /attempt/generate with modalities + conversation_id separately.
     """
+    redis = get_redis_client()
     payload = AttemptAudioStartPayload(**data)
     chat_id = payload.chat_id
 
@@ -64,13 +65,13 @@ async def attempt_chat_voice_internal_impl(
     group_id = group_result.group_id
 
     async with pool.acquire() as conn:
-        chat_entries = await get_attempt_chats(conn, [chat_id])
+        chat_entries = await get_attempt_chats(conn, [chat_id], redis)
         if not chat_entries:
             raise ValueError(f"Attempt chat {chat_id} not found")
         attempt_id = chat_entries[0].attempt_id
 
         conversation = await create_attempt_conversations(
-            conn,
+            conn, redis,
             chat_id=chat_id,
             session_id=session_id,
         )

@@ -222,7 +222,7 @@ async def create_attempt_chat_impl(
         async with pool.acquire() as conn:
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=request.attempt_id,
+                redis, attempt_id=request.attempt_id,
                 attempt_chat_id=request.previous_attempt_chat_id,
                 session_id=session_id,
                 soft=soft,
@@ -487,13 +487,13 @@ async def create_attempt_chat_impl(
             assistant_entry_ids: list[UUID] = []
             for persona_resource_id in (final_personas_ids or []):
                 persona_entry = await create_persona(
-                    conn, personas_id=persona_resource_id,
+                    conn, redis, personas_id=persona_resource_id,
                 )
                 assistant_entry_ids.append(persona_entry.id)
 
             result = await create_attempt_chat(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 chat_id=request.chat_id,
                 title=cfg_name,
                 position=cfg_position,
@@ -536,7 +536,7 @@ async def create_attempt_chat_impl(
             )
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=request.attempt_id,
+                redis, attempt_id=request.attempt_id,
                 attempt_chat_id=result.id,
                 session_id=session_id,
                 soft=soft,

@@ -122,14 +122,14 @@ async def attempt_message_internal_impl(
         # active message in the chat.
         if parent_message_id is None and auto_link_parent:
             latest_items, _ = await search_attempt_messages(
-                conn, chat_ids=[chat_id], limit=1
+                conn, redis, chat_ids=[chat_id], limit=1
             )
             if latest_items:
                 parent_message_id = latest_items[0].message_id
 
         # Create attempt_message_entry (container)
         message_result = await create_attempt_message(
-            conn,
+            conn, redis,
             chat_id=chat_id,
             session_id=effective_session_id,
         )
@@ -138,7 +138,7 @@ async def attempt_message_internal_impl(
         content_ids = []
         for content_text, content_persona_id in content_items:
             content_result = await create_attempt_content(
-                conn,
+                conn, redis,
                 message_id=message_result.id,
                 session_id=effective_session_id,
                 content=content_text,
@@ -152,14 +152,14 @@ async def attempt_message_internal_impl(
         # roots, which is the expected shape.
         if parent_message_id is not None:
             await create_attempt_message_tree(
-                conn,
+                conn, redis,
                 parent_id=parent_message_id,
                 child_id=message_result.id,
                 session_id=effective_session_id,
             )
 
         await create_attempt_message_completion(
-            conn,
+            conn, redis,
             attempt_message_id=message_result.id,
             session_id=effective_session_id,
         )
@@ -177,7 +177,7 @@ async def attempt_message_internal_impl(
                 create_attempt_audio,
             )
             await create_attempt_audio(
-                conn,
+                conn, redis,
                 message_id=message_result.id,
                 audios_id=audios_uuid,
                 session_id=effective_session_id,

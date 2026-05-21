@@ -45,7 +45,7 @@ async def file_download_auth_impl(
         )
 
     async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+        results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

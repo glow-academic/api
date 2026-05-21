@@ -185,14 +185,14 @@ async def media_upload_impl(
             mime_type = content_type or "application/octet-stream"
             upload_row = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=relative_path,
                 mime_type=mime_type,
                 size=file_size,
             )
             upload_id = upload_row.id
         else:
-            existing = await get_upload(conn, upload_id)
+            existing = await get_upload(conn, upload_id, redis)
             if existing is None:
                 raise ValueError(f"Upload {upload_id} not found")
             relative_path = existing.file_path
@@ -208,13 +208,13 @@ async def media_upload_impl(
             )
             entry = await create_audio(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 audios_id=resource.id,
                 length_seconds=length_seconds,
             )
             await create_audio_upload(
                 conn,
-                audio_id=entry.id,
+                redis, audio_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
             )
@@ -227,12 +227,12 @@ async def media_upload_impl(
             )
             entry = await create_image(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 images_id=resource.id,
             )
             await create_image_upload(
                 conn,
-                image_id=entry.id,
+                redis, image_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
             )
@@ -245,13 +245,13 @@ async def media_upload_impl(
             )
             entry = await create_video(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 videos_id=resource.id,
                 length_seconds=length_seconds,
             )
             await create_video_upload(
                 conn,
-                video_id=entry.id,
+                redis, video_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
             )
@@ -279,13 +279,14 @@ async def media_upload_impl(
             text_size = (UPLOAD_FOLDER / text_rel_path).stat().st_size
             text_upload = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=text_rel_path,
                 mime_type="text/plain",
                 size=text_size,
             )
             msg = await create_run_message(
                 conn,
+                redis,
                 run_id=run_id,
                 session_id=session_id,
                 role="assistant",
@@ -298,7 +299,7 @@ async def media_upload_impl(
             )
             await create_message_upload(
                 conn,
-                message_id=msg.message_id,
+                redis, message_id=msg.message_id,
                 upload_id=upload_id,
                 session_id=session_id,
             )

@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_audio.types import CreateAttemptAudioResponse
 
 
 async def create_attempt_audio(
     conn: asyncpg.Connection,
+    redis: Redis,
     message_id: UUID,
     audios_id: UUID,
     session_id: UUID,

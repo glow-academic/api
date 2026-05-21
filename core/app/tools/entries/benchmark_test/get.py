@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.benchmark_test.types import (
     GetBenchmarkTestResponse,
@@ -14,7 +15,7 @@ MV_NAME = "benchmark_test_mv"
 async def get_benchmark_tests(
     conn: asyncpg.Connection,
     benchmark_ids: list[UUID],
-) -> list[GetBenchmarkTestResponse]:
+    redis: Redis) -> list[GetBenchmarkTestResponse]:
     """Get benchmark_test entries by benchmark_id from MV."""
     if not benchmark_ids:
         return []

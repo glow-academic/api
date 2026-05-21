@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation_runs_completion.types import (
     GetTestInvocationRunsCompletionResponse,
@@ -13,6 +14,7 @@ MV_NAME = "test_invocation_runs_completion_mv"
 
 async def search_test_invocation_runs_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     test_invocation_runs_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

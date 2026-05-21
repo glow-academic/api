@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.emulations.types import CreateEmulationResponse
 
 
 async def create_emulation(
     conn: asyncpg.Connection,
+    redis: Redis,
     grant_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

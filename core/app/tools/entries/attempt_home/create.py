@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_home.types import CreateAttemptHomeResponse
 
 
 async def create_attempt_home(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_id: UUID,
     home_id: UUID,
     session_id: UUID,

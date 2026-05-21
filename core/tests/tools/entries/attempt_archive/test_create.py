@@ -15,15 +15,15 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_archive(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_archive(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -33,7 +33,7 @@ async def _attempt_archive(conn, profile_id, **overrides):
         archived=True,
     )
     defaults.update(overrides)
-    return await create_attempt_archive(conn, **defaults)
+    return await create_attempt_archive(conn, redis_client, **defaults)
 
 
 async def test_returns_id(conn, profile_id):
@@ -42,11 +42,11 @@ async def test_returns_id(conn, profile_id):
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _attempt_archive(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _attempt_archive(conn, redis_client, profile_id)
     await refresh_attempt_archive(conn)
 
-    items = await get_attempt_archives(conn, [result.id])
+    items = await get_attempt_archives(conn, [result.id], redis_client)
 
     assert len(items) == 1
 

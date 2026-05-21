@@ -17,10 +17,10 @@ async def _pricing_type(conn):
     return await conn.fetchval("SELECT unnest(enum_range(NULL::pricing_type)) LIMIT 1")
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, session_id=session.id, group_id=group.id)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, session_id=session.id, group_id=group.id)
     pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
@@ -34,50 +34,50 @@ async def _setup(conn, profile_id):
     return entry_id, run
 
 
-async def test_finds_created_entry(conn, profile_id):
-    entry_id, run = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    entry_id, run = await _setup(conn, redis_client, profile_id)
 
     items = await search_run_pricing_entries_internal(
-        conn, run_ids=[run.id], bypass_mv=True
+        conn, redis_client, run_ids=[run.id], bypass_mv=True
     )
 
     ids = [item.id for item in items]
     assert entry_id in ids
 
 
-async def test_filters_by_run_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_run_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
     items = await search_run_pricing_entries_internal(
-        conn, run_ids=[nonexistent_id()], bypass_mv=True
+        conn, redis_client, run_ids=[nonexistent_id()], bypass_mv=True
     )
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    entry_id, run = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    entry_id, run = await _setup(conn, redis_client, profile_id)
 
     items = await search_run_pricing_entries_internal(
-        conn, run_ids=[run.id], limit=1, bypass_mv=True
+        conn, redis_client, run_ids=[run.id], limit=1, bypass_mv=True
     )
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
-    items = await search_run_pricing_entries_internal(conn, bypass_mv=True)
+    items = await search_run_pricing_entries_internal(conn, redis_client, bypass_mv=True)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    entry_id, run = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    entry_id, run = await _setup(conn, redis_client, profile_id)
 
     items = await search_run_pricing_entries_internal(
-        conn, run_ids=[run.id], bypass_mv=True
+        conn, redis_client, run_ids=[run.id], bypass_mv=True
     )
 
     ids = [item.id for item in items]

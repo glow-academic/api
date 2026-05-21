@@ -14,21 +14,21 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_home(conn, profile_id, bundle, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_home(conn, redis_client, profile_id, bundle, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
     home = await create_home(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -39,7 +39,7 @@ async def _attempt_home(conn, profile_id, bundle, **overrides):
     )
     defaults = dict(attempt_id=attempt.id, home_id=home.id, session_id=session.id)
     defaults.update(overrides)
-    result = await create_attempt_home(conn, **defaults)
+    result = await create_attempt_home(conn, redis_client, **defaults)
     return result, attempt, home
 
 

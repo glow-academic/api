@@ -59,7 +59,7 @@ async def create_scenario_video(
     # 2. Create uploads entry
     upload = await create_upload(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         file_path=dest_name,
         mime_type=mime_type,
         size=size,
@@ -81,7 +81,7 @@ async def create_scenario_video(
     # 5. Link video entry ↔ upload entry
     video_upload = await create_video_upload(
         conn,
-        video_id=video_entry.id,
+        redis, video_id=video_entry.id,
         upload_id=upload.id,
         session_id=session_id,
     )

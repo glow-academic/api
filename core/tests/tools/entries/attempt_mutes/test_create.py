@@ -23,32 +23,32 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_mutes(conn, profile_id, **overrides):
+async def _attempt_mutes(conn, redis_client, profile_id, **overrides):
     """Create full chain: session → ... → attempt → chat → conversations → mutes."""
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
     conversation = await create_attempt_conversations(
-        conn, chat_id=attempt_chat.id, call_id=call2.id
+        conn, redis_client, chat_id=attempt_chat.id, call_id=call2.id
     )
     defaults = dict(
         conversation_id=conversation.id,
@@ -56,7 +56,7 @@ async def _attempt_mutes(conn, profile_id, **overrides):
         muted=True,
     )
     defaults.update(overrides)
-    return await create_attempt_mutes(conn, **defaults)
+    return await create_attempt_mutes(conn, redis_client, **defaults)
 
 
 async def test_returns_id(conn, profile_id):
@@ -65,11 +65,11 @@ async def test_returns_id(conn, profile_id):
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _attempt_mutes(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _attempt_mutes(conn, redis_client, profile_id)
     await refresh_attempt_mutes(conn)
 
-    items = await get_attempt_mutes(conn, [result.id])
+    items = await get_attempt_mutes(conn, [result.id], redis_client)
 
     assert len(items) == 1
 

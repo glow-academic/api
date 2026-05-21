@@ -11,6 +11,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.message_uploads.create import create_message_upload
 from app.tools.entries.messages.create import create_message
@@ -28,6 +29,7 @@ class CreateRunMessageResult:
 
 async def create_run_message(
     conn: asyncpg.Connection,
+    redis: Redis,
     *,
     run_id: UUID,
     session_id: UUID,
@@ -58,14 +60,14 @@ async def create_run_message(
     upload junctions are written the same way regardless.
     """
     message = await create_message(
-        conn, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
+        conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
         agent_ids=agent_ids, created_at=created_at, id=id,
     )
 
-    text = await create_text(conn, session_id=session_id, mcp=mcp)
+    text = await create_text(conn, redis, session_id=session_id, mcp=mcp)
 
     text_upload_junction = await create_text_upload(
-        conn,
+        conn, redis,
         text_id=text.id,
         upload_id=upload_id,
         session_id=session_id,
@@ -73,7 +75,7 @@ async def create_run_message(
     )
 
     message_upload_junction = await create_message_upload(
-        conn,
+        conn, redis,
         message_id=message.id,
         upload_id=upload_id,
         session_id=session_id,

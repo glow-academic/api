@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.video_uploads.types import GetVideoUploadResponse
 
 
 async def search_video_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     video_ids: list[UUID] | None = None,
     upload_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

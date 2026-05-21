@@ -29,9 +29,9 @@ async def _failing_tool(conn, **kwargs):
     raise ValueError("something broke")
 
 
-async def _deps(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
+async def _deps(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     return session, group
 
 
@@ -127,8 +127,8 @@ async def test_with_tool_txt_has_output(conn, profile_id, tmp_path):
     assert data["success"] is True
 
 
-async def test_with_tool_creates_db_entries(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
+async def test_with_tool_creates_db_entries(conn, redis_client, profile_id, tmp_path):
+    session, group = await _deps(conn, redis_client, profile_id)
     tool = await create_tool_resource(conn)
 
     result = await create_tool_call(
@@ -142,16 +142,16 @@ async def test_with_tool_creates_db_entries(conn, profile_id, tmp_path):
         tool_id=tool.id,
     )
 
-    run = await get_run(conn, result.run_id)
+    run = await get_run(conn, result.run_id, redis_client)
     assert run is not None
 
-    calls = await get_calls(conn, [result.call_id], bypass_mv=True)
+    calls = await get_calls(conn, [result.call_id], redis_client, bypass_mv=True)
     assert len(calls) == 1
 
-    message = await get_message(conn, result.message_id)
+    message = await get_message(conn, result.message_id, redis_client)
     assert message is not None
 
-    text = await get_text(conn, result.text_id)
+    text = await get_text(conn, result.text_id, redis_client)
     assert text is not None
 
 
@@ -195,8 +195,8 @@ async def test_without_tool_writes_txt_only(conn, profile_id, tmp_path):
     assert not (tmp_path / "call").exists()
 
 
-async def test_without_tool_creates_db_entries(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
+async def test_without_tool_creates_db_entries(conn, redis_client, profile_id, tmp_path):
+    session, group = await _deps(conn, redis_client, profile_id)
 
     result = await create_tool_call(
         conn,
@@ -208,13 +208,13 @@ async def test_without_tool_creates_db_entries(conn, profile_id, tmp_path):
         arguments={"prompt": "Summarize"},
     )
 
-    run = await get_run(conn, result.run_id)
+    run = await get_run(conn, result.run_id, redis_client)
     assert run is not None
 
-    message = await get_message(conn, result.message_id)
+    message = await get_message(conn, result.message_id, redis_client)
     assert message is not None
 
-    text = await get_text(conn, result.text_id)
+    text = await get_text(conn, result.text_id, redis_client)
     assert text is not None
 
 

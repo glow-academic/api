@@ -95,7 +95,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
 
@@ -127,7 +127,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
 
@@ -160,7 +160,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
         updated = await _create_model_route_resources(pool, redis_client)
@@ -194,7 +194,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
 
@@ -218,7 +218,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
 
@@ -321,7 +321,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            model_route_client,
+            redis_client, model_route_client,
             model_route_actor,
         )
 

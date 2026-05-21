@@ -16,66 +16,66 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
     result = await create_attempt_archive(
-        conn, attempt_id=attempt.id, call_id=call.id, archived=True
+        conn, redis_client, attempt_id=attempt.id, call_id=call.id, archived=True
     )
     return result, attempt
 
 
-async def test_finds_created_entry(conn, profile_id):
-    result, attempt = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    result, attempt = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_archive(conn)
 
-    items = await search_attempt_archives(conn, attempt_ids=[attempt.id])
+    items = await search_attempt_archives(conn, redis_client, attempt_ids=[attempt.id])
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_attempt_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_attempt_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_archive(conn)
 
-    items = await search_attempt_archives(conn, attempt_ids=[nonexistent_id()])
+    items = await search_attempt_archives(conn, redis_client, attempt_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    result, attempt = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    result, attempt = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_archive(conn)
 
-    items = await search_attempt_archives(conn, attempt_ids=[attempt.id], limit=1)
+    items = await search_attempt_archives(conn, redis_client, attempt_ids=[attempt.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_archive(conn)
 
-    items = await search_attempt_archives(conn)
+    items = await search_attempt_archives(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, attempt = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    result, attempt = await _setup(conn, redis_client, profile_id)
 
     items = await search_attempt_archives(
-        conn, attempt_ids=[attempt.id], bypass_mv=True
+        conn, redis_client, attempt_ids=[attempt.id], bypass_mv=True
     )
 
     ids = [item.id for item in items]

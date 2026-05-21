@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_chat_completion.types import (
     GetAttemptChatCompletionResponse,
@@ -14,7 +15,7 @@ MV_NAME = "attempt_chat_completion_mv"
 async def get_attempt_chat_completions(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetAttemptChatCompletionResponse]:
+    redis: Redis) -> list[GetAttemptChatCompletionResponse]:
     """Get attempt_chat_completion entries by IDs from MV."""
     if not ids:
         return []

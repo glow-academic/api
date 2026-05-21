@@ -4,6 +4,7 @@ import json
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.home_chat.types import GetHomeChatResponse
@@ -17,7 +18,7 @@ MV_NAME = "home_chat_mv"
 async def get_home_chats(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetHomeChatResponse]:
+    redis: Redis) -> list[GetHomeChatResponse]:
     """Get home_chat entries by IDs from home_chat_mv."""
     if not ids:
         return []

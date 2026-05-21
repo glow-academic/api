@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.group_names.types import GetGroupNameResponse
@@ -12,6 +13,7 @@ MV_NAME = "group_names_mv"
 
 async def search_group_names(
     conn: asyncpg.Connection,
+    redis: Redis,
     group_ids: list[UUID] | None = None,
     search: str | None = None,
     limit: int = 20,

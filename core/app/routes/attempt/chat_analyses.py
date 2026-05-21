@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.globals import get_pool
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_analysis.create import create_attempt_analysis
 from app.tools.entries.attempt_grade.search import search_attempt_grades
 
@@ -47,7 +47,7 @@ async def chat_analyses(
 
     pool = get_pool()
     async with pool.acquire() as conn:
-        grades = await search_attempt_grades(conn, chat_ids=[request.chat_id], limit=1)
+        grades = await search_attempt_grades(conn, get_redis_client(), chat_ids=[request.chat_id], limit=1)
         if not grades:
             raise HTTPException(status_code=404, detail="No grade found for this chat")
         grade_id = grades[0].grade_id
@@ -55,7 +55,7 @@ async def chat_analyses(
         analysis_ids: list[UUID] = []
         for item in request.analyses:
             result = await create_attempt_analysis(
-                conn,
+                conn, get_redis_client(),
                 grade_id=grade_id,
                 session_id=session_id,
                 content=item.content,

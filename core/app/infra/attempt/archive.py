@@ -79,7 +79,7 @@ async def archive_attempt_impl(
     async with pool.acquire() as conn:
         attempts, _ = await search_attempts(
             conn,
-            attempt_ids=request.attempt_ids or None,
+            redis, attempt_ids=request.attempt_ids or None,
             simulation_ids=request.simulation_ids or None,
             profile_ids=request.profile_ids_filter or None,
             cohort_ids=request.cohort_ids or None,
@@ -100,7 +100,7 @@ async def archive_attempt_impl(
         for attempt in attempts:
             await create_attempt_archive(
                 conn,
-                attempt_id=attempt.attempt_id,
+                redis, attempt_id=attempt.attempt_id,
                 session_id=session_id,
                 archived=request.archived,
             )

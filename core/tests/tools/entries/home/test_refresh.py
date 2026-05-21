@@ -10,11 +10,11 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _home(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _home(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     return await create_home(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -29,22 +29,22 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_new_home_appears_after_refresh(conn, profile_id):
-    _created(await _home(conn, profile_id))
+async def test_new_home_appears_after_refresh(conn, redis_client, profile_id):
+    _created(await _home(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_home(conn)
-    items = await get_homes(conn, ids=[lookup_id])
+    items = await get_homes(conn, redis_client, ids=[lookup_id])
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_new_home_is_not_visible_before_refresh(conn, profile_id):
-    _created(await _home(conn, profile_id))
+async def test_new_home_is_not_visible_before_refresh(conn, redis_client, profile_id):
+    _created(await _home(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_homes(conn, ids=[lookup_id])
+    items = await get_homes(conn, redis_client, ids=[lookup_id])
 
     assert items == []
 

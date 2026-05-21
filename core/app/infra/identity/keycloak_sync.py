@@ -1871,7 +1871,7 @@ async def sync_identity_providers(
 
             realm_level_aliases_to_keep.add(provider.slug)
             await sync_identity_provider_for_realm_level(
-                auth_id=auth_id,
+                redis, auth_id=auth_id,
                 slug=provider.slug,
                 provider_id=provider.provider_id or "",
                 display_name=provider.name or "",
@@ -1947,7 +1947,7 @@ async def sync_identity_providers(
         # Sync each unique auth once (prevents duplicates)
         for auth_data in all_department_auths.values():
             await sync_identity_provider_for_org(
-                auth_id=auth_data["auth_id"],
+                redis, auth_id=auth_data["auth_id"],
                 slug=auth_data["slug"],
                 provider_id=auth_data["provider_id"],
                 display_name=auth_data["display_name"],

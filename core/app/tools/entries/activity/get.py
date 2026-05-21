@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.activity.types import GetActivityResponse
@@ -13,6 +14,7 @@ MV_NAME = "activity_mv"
 async def get_activity(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     bypass_mv: bool = False,
 ) -> list[GetActivityResponse]:
     """Get activity entries by IDs from activity_mv."""

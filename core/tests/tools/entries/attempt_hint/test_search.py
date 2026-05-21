@@ -23,82 +23,82 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
+async def _setup(conn, redis_client, profile_id):
     """Create full chain: session -> ... -> attempt_hint, return (hint_result, message)."""
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    msg = await create_message(conn, run_id=run.id, role="user")
-    call3 = await create_call(conn, run_id=run.id, session_id=session.id)
+    msg = await create_message(conn, redis_client, run_id=run.id, role="user")
+    call3 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     await create_attempt_message(
-        conn, chat_id=attempt_chat.id, message_id=msg.id, call_id=call3.id
+        conn, redis_client, chat_id=attempt_chat.id, message_id=msg.id, call_id=call3.id
     )
     result = await create_attempt_hint(
-        conn, message_id=msg.id, call_id=call3.id, hint="Test hint"
+        conn, redis_client, message_id=msg.id, call_id=call3.id, hint="Test hint"
     )
     return result, msg
 
 
-async def test_finds_created_entry(conn, profile_id):
-    result, msg = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    result, msg = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_hint(conn)
 
-    items = await search_attempt_hints(conn, message_ids=[msg.id])
+    items = await search_attempt_hints(conn, redis_client, message_ids=[msg.id])
 
     ids = [item.hint_id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_message_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_message_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_hint(conn)
 
-    items = await search_attempt_hints(conn, message_ids=[nonexistent_id()])
+    items = await search_attempt_hints(conn, redis_client, message_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    result, msg = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    result, msg = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_hint(conn)
 
-    items = await search_attempt_hints(conn, message_ids=[msg.id], limit=1)
+    items = await search_attempt_hints(conn, redis_client, message_ids=[msg.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_hint(conn)
 
-    items = await search_attempt_hints(conn)
+    items = await search_attempt_hints(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, msg = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    result, msg = await _setup(conn, redis_client, profile_id)
 
-    items = await search_attempt_hints(conn, message_ids=[msg.id], bypass_mv=True)
+    items = await search_attempt_hints(conn, redis_client, message_ids=[msg.id], bypass_mv=True)
 
     ids = [item.hint_id for item in items]
     assert result.id in ids

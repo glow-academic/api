@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_practice.types import (
     GetAttemptPracticeResponse,
@@ -14,7 +15,7 @@ MV_NAME = "attempt_practice_mv"
 async def get_attempt_practice(
     conn: asyncpg.Connection,
     attempt_ids: list[UUID],
-) -> list[GetAttemptPracticeResponse]:
+    redis: Redis) -> list[GetAttemptPracticeResponse]:
     """Get attempt_practice entries by attempt_id from MV."""
     if not attempt_ids:
         return []

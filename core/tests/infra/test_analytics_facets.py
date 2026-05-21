@@ -118,9 +118,9 @@ async def test_pricing_facets_resolve_departments_and_date_range(pool, redis_cli
             department_ids=[department.id],
             profile_ids=[profile.id],
         )
-        session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id, artifact_type="persona")
-        run = await create_run(conn, group_id=group.id, session_id=session.id)
+        session = await create_session(conn, redis_client, profile_id=profile.id)
+        group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+        run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
         await conn.execute(
             "UPDATE runs_entry SET created_at = $2 WHERE id = $1",
             run.id,
@@ -155,7 +155,7 @@ async def test_health_facets_resolve_date_range_only(pool, redis_client):
     async with pool.acquire() as conn:
         await create_health(
             conn,
-            service="redis",
+            redis_client, service="redis",
             ok=True,
             latency_ms=12.0,
             ts=datetime(2036, 6, 1, tzinfo=UTC),

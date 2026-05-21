@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.invocation.types import GetInvocationResponse
@@ -15,7 +16,7 @@ from app.utils.cache.set_cached import set_cached
 async def get_invocations(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetInvocationResponse]:
+    redis: Redis) -> list[GetInvocationResponse]:
     """Get invocation entries by IDs with connection data."""
     if not ids:
         return []

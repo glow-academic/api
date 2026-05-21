@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 from pydantic import BaseModel, Field
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
@@ -83,6 +84,7 @@ def _build_pricing_list(item: object) -> list[RunPricingItem]:
 
 async def search_runs(
     conn: asyncpg.Connection,
+    redis: Redis,
     group_ids: list[UUID] | None = None,
     profiles_ids: list[UUID] | None = None,
     date_from: datetime | None = None,

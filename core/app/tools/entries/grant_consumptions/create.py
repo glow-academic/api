@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.grant_consumptions.types import (
     CreateGrantConsumptionResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.grant_consumptions.types import (
 
 async def create_grant_consumption(
     conn: asyncpg.Connection,
+    redis: Redis,
     grant_id: UUID,
     id: UUID | None = None,
     mcp: bool = False,

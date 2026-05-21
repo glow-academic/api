@@ -8,11 +8,11 @@ from app.tools.entries.invocation.create import create_invocation
 pytestmark = pytest.mark.asyncio
 
 
-async def _invocation(conn, **overrides):
-    benchmark = await create_benchmark(conn)
+async def _invocation(conn, redis_client, **overrides):
+    benchmark = await create_benchmark(conn, redis_client)
     defaults = dict(benchmark_id=benchmark.id)
     defaults.update(overrides)
-    result = await create_invocation(conn, **defaults)
+    result = await create_invocation(conn, redis_client, **defaults)
     return result, benchmark
 
 

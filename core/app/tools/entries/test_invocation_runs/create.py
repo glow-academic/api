@@ -9,6 +9,7 @@ on the trace.
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation_runs.types import (
     CreateTestInvocationRunsResponse,
@@ -17,6 +18,7 @@ from app.tools.entries.test_invocation_runs.types import (
 
 async def create_test_invocation_runs(
     conn: asyncpg.Connection,
+    redis: Redis,
     test_invocation_id: UUID,
     *,
     id: UUID | None = None,

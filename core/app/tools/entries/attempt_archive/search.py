@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_archive.types import GetAttemptArchiveResponse
@@ -12,6 +13,7 @@ MV_NAME = "attempt_archive_mv"
 
 async def search_attempt_archives(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

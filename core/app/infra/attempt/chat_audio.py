@@ -58,7 +58,7 @@ async def attempt_chat_audio_internal_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_audio(
             conn,
-            message_id=message_id,
+            redis, message_id=message_id,
             audios_id=audios_id,
             session_id=effective_session_id,
         )

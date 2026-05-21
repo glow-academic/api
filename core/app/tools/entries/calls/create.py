@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.calls.types import CreateCallResponse
 
 
 async def create_call(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_id: UUID,
     session_id: UUID,
     id: UUID | None = None,

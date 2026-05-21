@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.videos.types import GetVideoResponse
 
@@ -10,7 +11,7 @@ from app.tools.entries.videos.types import GetVideoResponse
 async def get_video(
     conn: asyncpg.Connection,
     video_id: UUID,
-) -> GetVideoResponse | None:
+    redis: Redis) -> GetVideoResponse | None:
     """Get a videos entry by ID."""
     row = await conn.fetchrow(
         """

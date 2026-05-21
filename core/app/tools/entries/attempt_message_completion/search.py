@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 from pydantic import BaseModel
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
@@ -26,6 +27,7 @@ class GetAttemptMessageCompletionResponse(BaseModel):
 
 async def search_attempt_message_completions(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_message_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

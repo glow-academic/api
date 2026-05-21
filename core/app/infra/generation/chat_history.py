@@ -218,10 +218,11 @@ async def _read_text_for_message(
     text_ids: list[UUID],
 ) -> str:
     """Resolve a message's text_ids to concatenated file content."""
+    redis = get_redis_client()
     if not text_ids:
         return ""
     parts: list[str] = []
-    junctions = await search_text_uploads(conn, text_ids=text_ids, limit=len(text_ids))
+    junctions = await search_text_uploads(conn, redis, text_ids=text_ids, limit=len(text_ids))
     # text_uploads search returns DESC by created_at — keep one row per
     # text_id (the most recent active link).
     seen: set[UUID] = set()
@@ -229,7 +230,7 @@ async def _read_text_for_message(
         if j.text_id in seen:
             continue
         seen.add(j.text_id)
-        upload = await get_upload(conn, j.upload_id)
+        upload = await get_upload(conn, j.upload_id, redis)
         if upload is None:
             continue
         full_path = os.path.join(UPLOAD_FOLDER, upload.file_path)
@@ -301,12 +302,13 @@ async def fetch_group_history(
     history per dispatching agent so each LLM call sees only its own
     prior turns.
     """
+    redis = get_redis_client()
     async with pool.acquire() as conn:
         # 1. Runs in the group, oldest-first. Cap the run window so we
         # don't pull thousands of rows for long-lived groups; 50 runs
         # is plenty (we cap the message slice below anyway).
         runs, _ = await search_runs(
-            conn,
+            conn, redis,
             group_ids=[group_id],
             sort_order="asc",
             limit=50,
@@ -324,7 +326,7 @@ async def fetch_group_history(
         # final cap to give the per-message filter room (we drop empty
         # ones below) without recursing.
         messages, _ = await search_messages(
-            conn,
+            conn, redis,
             run_ids=run_ids,
             sort_order="asc",
             limit=limit * 2,
@@ -332,7 +334,7 @@ async def fetch_group_history(
 
         # 3. Calls on those runs — indexed by call_id for cheap join below.
         calls = await search_calls(
-            conn, run_ids=run_ids, limit=limit * 2,
+            conn, get_redis_client(), run_ids=run_ids, limit=limit * 2,
         )
         calls_by_id: dict[UUID, Any] = {c.id: c for c in calls}
 

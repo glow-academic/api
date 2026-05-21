@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation_traces.types import (
     GetTestInvocationTracesResponse,
@@ -13,6 +14,7 @@ MV_NAME = "test_invocation_traces_mv"
 
 async def search_test_invocation_traces(
     conn: asyncpg.Connection,
+    redis: Redis,
     test_invocation_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

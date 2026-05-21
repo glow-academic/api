@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.grant_consumptions.types import (
     GetGrantConsumptionResponse,
@@ -14,7 +15,7 @@ MV_NAME = "grant_consumptions_mv"
 async def get_grant_consumptions(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetGrantConsumptionResponse]:
+    redis: Redis) -> list[GetGrantConsumptionResponse]:
     """Get grant consumption entries by IDs from grant_consumptions_mv."""
     if not ids:
         return []

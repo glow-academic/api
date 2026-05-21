@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_content.types import (
     CreateAttemptContentResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.attempt_content.types import (
 
 async def create_attempt_content(
     conn: asyncpg.Connection,
+    redis: Redis,
     message_id: UUID,
     session_id: UUID,
     content: str,

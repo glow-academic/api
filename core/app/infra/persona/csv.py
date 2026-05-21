@@ -23,7 +23,7 @@ import asyncpg
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from app.infra.globals import UPLOAD_FOLDER
+from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.infra.persona.search import PERSONA_IMPORT_FIELDS
 from app.infra.persona.types import CreatePersonaItem
 from app.tools.entries.uploads.create import create_upload
@@ -130,6 +130,7 @@ async def parse_persona_csv_impl(
     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
+            get_redis_client(),
             session_id=session_id,
             file_path=relative_path,
             mime_type=content_type,

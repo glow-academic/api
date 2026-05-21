@@ -24,6 +24,7 @@ from app.infra.websocket.attempt_types import (
     AttemptUserStartData,
     GenerateRequestData,
 )
+from app.infra.globals import get_redis_client
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.session_store import get_session_by_group_id
@@ -168,6 +169,7 @@ async def attempt_next_impl(
     resolve_profile_identity_fn: ResolveProfileIdentityFn | None = None,
 ) -> None:
     """Delegate attempt_next → attempt_proceed with force_proceed=True."""
+    redis = redis or get_redis_client()
     from app.infra.profile_identity_context import resolve_profile_identity_context
 
     sid = data.get("sid", "")
@@ -221,8 +223,10 @@ async def user_start_impl(
     *,
     emit: EmitFn,
     pool: asyncpg.Pool,
+    redis: Redis | None = None,
 ) -> None:
     """Create user message shell and emit attempt_user_start."""
+    redis = redis or get_redis_client()
     sid = data.get("sid", "")
     chat_id = data.get("chat_id", "")
     run_id = data.get("run_id", "")
@@ -241,12 +245,12 @@ async def user_start_impl(
 
         async with pool.acquire() as conn:
             result = await create_message(
-                conn,
+                conn, redis,
                 run_id=run_id_uuid,
                 role="user",
             )
             await create_attempt_message(
-                conn,
+                conn, redis,
                 chat_id=uuid.UUID(chat_id),
                 message_id=result.id,
                 session_id=session_id_uuid or uuid.UUID(int=0),
@@ -279,8 +283,10 @@ async def user_complete_impl(
     *,
     emit: EmitFn,
     pool: asyncpg.Pool,
+    redis: Redis | None = None,
 ) -> None:
     """Write content to open user message and emit attempt_user_complete."""
+    redis = redis or get_redis_client()
     from app.tools.entries.attempt.search import search_attempts
     from app.tools.entries.attempt_content.create import (
         create_attempt_content as create_attempt_content_entry_internal,
@@ -305,7 +311,7 @@ async def user_complete_impl(
 
         async with pool.acquire() as conn:
             messages, _ = await search_attempt_messages(
-                conn,
+                conn, redis,
                 chat_ids=[uuid.UUID(chat_id)],
                 bypass_mv=True,
                 limit=1000,
@@ -323,7 +329,7 @@ async def user_complete_impl(
             message_id = message.message_id
             created_at = message.created_at
             attempts, _ = await search_attempts(
-                conn,
+                conn, redis,
                 attempt_ids=[message.attempt_id],
                 bypass_mv=True,
                 limit=1,
@@ -343,7 +349,7 @@ async def user_complete_impl(
             )
 
             await create_attempt_message_completion(
-                conn,
+                conn, redis,
                 attempt_message_id=message_id,
                 session_id=session_id_uuid or uuid.UUID(int=0),
             )
@@ -385,6 +391,7 @@ async def attempt_message_impl(
     - if a socket-backed chat context exists, kick the generate pipeline
     - otherwise stop after the persisted user message
     """
+    redis = redis or get_redis_client()
     from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.tools.entries.attempt_chat.search import search_attempt_chats
     from app.tools.entries.runs.create import create_run
@@ -422,7 +429,7 @@ async def attempt_message_impl(
     if run_id is None:
         async with pool.acquire() as conn:
             run = await create_run(
-                conn,
+                conn, redis,
                 group_id=group_id,
                 session_id=session_id_uuid,
             )
@@ -458,7 +465,7 @@ async def attempt_message_impl(
 
     async with pool.acquire() as conn:
         attempt_chats, _ = await search_attempt_chats(
-            conn,
+            conn, redis,
             attempt_chat_ids=[attempt_chat_id],
             bypass_mv=True,
             limit=1,
@@ -483,10 +490,12 @@ async def speech_complete_impl(
     *,
     emit: EmitFn,
     pool: asyncpg.Pool,
+    redis: Redis | None = None,
     session_id: uuid.UUID | None = None,
     audio_folder: str | None = None,
 ) -> None:
     """Save audio, create upload record, emit attempt_user_received_complete."""
+    redis = redis or get_redis_client()
     from pathlib import Path
 
     from app.infra.globals import AUDIO_FOLDER
@@ -515,7 +524,7 @@ async def speech_complete_impl(
             relative_path = f"audio/{filename}"
             async with pool.acquire() as conn:
                 upload_result = await create_upload(
-                    conn,
+                    conn, redis,
                     session_id=session_id or uuid.UUID(int=0),
                     file_path=relative_path,
                     mime_type="audio/pcm16",
@@ -553,6 +562,7 @@ async def attempt_start_impl(
     session_id: str,
 ) -> None:
     """Create attempt via black boxes, then delegate to attempt_proceed."""
+    redis = redis or get_redis_client()
     from app.infra.attempt.client_types import AttemptStartPayload
     from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.tools.entries.attempt.create import create_attempt
@@ -612,9 +622,9 @@ async def attempt_start_impl(
 
         async with pool.acquire() as conn:
             if is_practice:
-                entries = await get_practices(conn, [parent_id])
+                entries = await get_practices(conn, [parent_id], redis)
             else:
-                entries = await get_homes(conn, [parent_id])
+                entries = await get_homes(conn, [parent_id], redis)
 
         if not entries:
             raise ValueError(f"Parent entry not found: {parent_id}")
@@ -644,14 +654,14 @@ async def attempt_start_impl(
         async with pool.acquire() as conn:
             if is_practice:
                 chat_entries = await search_practice_chats(
-                    conn,
+                    conn, redis,
                     practice_ids=[payload.practice_id],
                     limit=1000,
                     bypass_mv=True,
                 )
             else:
                 chat_entries = await search_home_chats(
-                    conn,
+                    conn, redis,
                     home_ids=[payload.home_id],
                     limit=1000,
                     bypass_mv=True,
@@ -674,16 +684,16 @@ async def attempt_start_impl(
         async with pool.acquire() as conn:
             async with conn.transaction():
                 run_result = await create_run(
-                    conn,
+                    conn, redis,
                     session_id=session_id_uuid,
                     group_id=group_id,
                 )
                 run_id = run_result.id
 
-                persona_result = await create_persona(conn, personas_id=persona_id)
+                persona_result = await create_persona(conn, redis, personas_id=persona_id)
 
                 attempt_result = await create_attempt(
-                    conn,
+                    conn, redis,
                     session_id=session_id_uuid,
                     user_persona_id=persona_result.id,
                     profiles_id=profiles_resource_id,
@@ -697,14 +707,14 @@ async def attempt_start_impl(
 
                 if is_practice:
                     await create_attempt_practice(
-                        conn,
+                        conn, redis,
                         attempt_id=attempt_id,
                         practice_id=payload.practice_id,
                         session_id=session_id_uuid,
                     )
                 else:
                     await create_attempt_home(
-                        conn,
+                        conn, redis,
                         attempt_id=attempt_id,
                         home_id=payload.home_id,
                         session_id=session_id_uuid,
@@ -786,7 +796,7 @@ async def emit_chat_generate_impl(
 
     async with pool.acquire() as conn:
         run_result = await create_run(
-            conn,
+            conn, redis,
             session_id=session_id,
             group_id=group_id,
         )
@@ -835,6 +845,7 @@ async def attempt_proceed_impl(
     profiles_id: uuid.UUID | None = None,
 ) -> None:
     """Shared core: resolve context → check done → resolve chat → emit."""
+    redis = redis or get_redis_client()
     from app.infra.websocket.attempt_types import (
         AttemptEndedData,
         AttemptStartedData,
@@ -883,7 +894,7 @@ async def attempt_proceed_impl(
 
         async with pool.acquire() as conn:
             run_result = await create_run(
-                conn,
+                conn, redis,
                 group_id=uuid.UUID(payload.group_id),
                 session_id=session_id_uuid,
             )
@@ -892,7 +903,7 @@ async def attempt_proceed_impl(
             if completed_chat_id:
                 try:
                     await create_attempt_chat_completion(
-                        conn,
+                        conn, redis,
                         chat_id=completed_chat_id,
                         session_id=session_id_uuid,
                     )
@@ -901,7 +912,7 @@ async def attempt_proceed_impl(
 
             if complete_all:
                 bridges = await search_attempt_chat_bridges(
-                    conn,
+                    conn, redis,
                     attempt_ids=[attempt_id],
                     limit=1000,
                     bypass_mv=True,
@@ -912,7 +923,7 @@ async def attempt_proceed_impl(
                     if bridge_chat_id:
                         try:
                             await create_attempt_chat_completion(
-                                conn,
+                                conn, redis,
                                 chat_id=bridge_chat_id,
                                 session_id=session_id_uuid,
                             )
@@ -939,7 +950,7 @@ async def attempt_proceed_impl(
                 return
 
         async with pool.acquire() as conn:
-            attempt_entries = await get_attempts(conn, [attempt_id])
+            attempt_entries = await get_attempts(conn, [attempt_id], redis)
             if not attempt_entries:
                 raise ValueError(f"Attempt not found: {attempt_id}")
             attempt_data = attempt_entries[0]
@@ -949,7 +960,7 @@ async def attempt_proceed_impl(
             attempt_department_id = attempt_data.department_id
 
             bridges = await search_attempt_chat_bridges(
-                conn,
+                conn, redis,
                 attempt_ids=[attempt_id],
                 limit=1000,
                 bypass_mv=True,
@@ -959,7 +970,7 @@ async def attempt_proceed_impl(
             bridge_attempt_chat_ids = [b.attempt_chat_id for b in bridges]
             if bridge_attempt_chat_ids:
                 attempt_chats, _ = await search_attempt_chats(
-                    conn,
+                    conn, redis,
                     attempt_chat_ids=bridge_attempt_chat_ids,
                     bypass_mv=True,
                     limit=1000,
@@ -970,23 +981,23 @@ async def attempt_proceed_impl(
 
             if is_practice:
                 practice_entries = await search_attempt_practice_entries(
-                    conn, attempt_ids=[attempt_id], bypass_mv=True
+                    conn, redis, attempt_ids=[attempt_id], bypass_mv=True
                 )
                 if not practice_entries:
                     raise ValueError("No practice link for this attempt")
                 practice_id = practice_entries[0].practice_id
                 parent_chat_links = await search_practice_chats(
-                    conn, practice_ids=[practice_id], limit=1000, bypass_mv=True
+                    conn, redis, practice_ids=[practice_id], limit=1000, bypass_mv=True
                 )
             else:
                 home_entries = await search_attempt_homes(
-                    conn, attempt_ids=[attempt_id], bypass_mv=True
+                    conn, redis, attempt_ids=[attempt_id], bypass_mv=True
                 )
                 if not home_entries:
                     raise ValueError("No home link for this attempt")
                 home_id = home_entries[0].home_id
                 parent_chat_links = await search_home_chats(
-                    conn, home_ids=[home_id], limit=1000, bypass_mv=True
+                    conn, redis, home_ids=[home_id], limit=1000, bypass_mv=True
                 )
 
             all_parent_chat_ids = [
@@ -1149,7 +1160,7 @@ async def attempt_proceed_impl(
         async with pool.acquire() as conn:
             async with conn.transaction():
                 chat_result = await create_attempt_chat(
-                    conn,
+                    conn, redis,
                     session_id=session_id_uuid,
                     chat_id=chat_entry_id,
                     title=request_dict.get("title", ""),
@@ -1194,7 +1205,7 @@ async def attempt_proceed_impl(
                 attempt_chat_id = chat_result.id
 
                 await create_attempt_chat_bridge(
-                    conn,
+                    conn, redis,
                     attempt_id=attempt_id,
                     attempt_chat_id=attempt_chat_id,
                     session_id=session_id_uuid,

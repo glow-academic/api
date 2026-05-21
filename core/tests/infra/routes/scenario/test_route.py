@@ -117,7 +117,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -155,7 +155,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -203,7 +203,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -231,7 +231,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
         updated = await _create_scenario_route_resources(pool, redis_client)
@@ -285,7 +285,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -311,7 +311,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -353,7 +353,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
         draft_name = f"Draft Scenario {unique_tag()}"
@@ -429,7 +429,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 
@@ -458,7 +458,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            scenario_route_client,
+            redis_client, scenario_route_client,
             scenario_route_actor,
         )
 

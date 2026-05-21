@@ -9,15 +9,15 @@ from app.tools.entries.uploads.get import get_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_creates_upload_entry(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_creates_upload_entry(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
     result = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/file.txt",
         mime_type="text/plain",
         size=1024,
@@ -26,17 +26,17 @@ async def test_creates_upload_entry(conn, profile_id):
     assert result.id is not None
 
 
-async def test_upload_exists_in_table(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_upload_exists_in_table(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
     result = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/file.txt",
         mime_type="text/plain",
         size=1024,
     )
 
-    upload = await get_upload(conn, result.id)
+    upload = await get_upload(conn, result.id, redis_client)
 
     assert upload is not None
     assert upload.session_id == session.id
@@ -46,18 +46,18 @@ async def test_upload_exists_in_table(conn, profile_id):
     assert upload.active is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
     result = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/file.txt",
         mime_type="text/plain",
         size=512,
         mcp=True,
     )
 
-    upload = await get_upload(conn, result.id)
+    upload = await get_upload(conn, result.id, redis_client)
 
     assert upload is not None
     assert upload.mcp is True

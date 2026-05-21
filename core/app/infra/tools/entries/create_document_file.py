@@ -55,7 +55,7 @@ async def create_document_file(
     # 2. Create uploads entry
     upload = await create_upload(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         file_path=dest_name,
         mime_type=mime_type,
         size=size,
@@ -74,7 +74,7 @@ async def create_document_file(
     # 5. Link file entry ↔ upload entry
     file_upload = await create_file_upload(
         conn,
-        file_id=file_entry.id,
+        redis, file_id=file_entry.id,
         upload_id=upload.id,
         session_id=session_id,
     )

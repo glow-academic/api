@@ -14,6 +14,7 @@ class GetCallResponse(BaseModel):
     id: UUID
     run_id: UUID
     created_at: datetime
+    operation_key: UUID | None = None
     upload_id: UUID | None
     file_path: str | None
     mime_type: str | None

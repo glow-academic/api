@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.attempt_chat_bridge.types import (
@@ -14,6 +15,7 @@ MV_NAME = "attempt_chat_bridge_mv"
 
 async def search_attempt_chat_bridges(
     conn: asyncpg.Connection,
+    redis: Redis,
     attempt_ids: list[UUID] | None = None,
     attempt_chat_ids: list[UUID] | None = None,
     limit: int = 20,

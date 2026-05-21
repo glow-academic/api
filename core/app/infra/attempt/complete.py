@@ -38,7 +38,7 @@ async def complete_attempt_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_completion(
             conn,
-            attempt_id=attempt_id,
+            redis, attempt_id=attempt_id,
             session_id=session_id,
             message=message,
         )

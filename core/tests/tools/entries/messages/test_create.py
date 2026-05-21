@@ -11,25 +11,25 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _run(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    return await create_run(conn, group_id=group.id, session_id=session.id)
+async def _run(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    return await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
 
 
-async def test_creates_message_entry(conn, profile_id):
-    run = await _run(conn, profile_id)
-    result = await create_message(conn, run_id=run.id, role="user")
+async def test_creates_message_entry(conn, redis_client, profile_id):
+    run = await _run(conn, redis_client, profile_id)
+    result = await create_message(conn, redis_client, run_id=run.id, role="user")
 
     assert result.id is not None
     assert result.created_at is not None
 
 
-async def test_message_exists_in_table(conn, profile_id):
-    run = await _run(conn, profile_id)
-    result = await create_message(conn, run_id=run.id, role="assistant")
+async def test_message_exists_in_table(conn, redis_client, profile_id):
+    run = await _run(conn, redis_client, profile_id)
+    result = await create_message(conn, redis_client, run_id=run.id, role="assistant")
 
-    message = await get_message(conn, result.id)
+    message = await get_message(conn, result.id, redis_client)
 
     assert message is not None
     assert message.run_id == run.id
@@ -37,11 +37,11 @@ async def test_message_exists_in_table(conn, profile_id):
     assert message.active is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    run = await _run(conn, profile_id)
-    result = await create_message(conn, run_id=run.id, role="user", mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    run = await _run(conn, redis_client, profile_id)
+    result = await create_message(conn, redis_client, run_id=run.id, role="user", mcp=True)
 
-    message = await get_message(conn, result.id)
+    message = await get_message(conn, result.id, redis_client)
 
     assert message is not None
     assert message.mcp is True

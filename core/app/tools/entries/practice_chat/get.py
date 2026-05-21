@@ -4,6 +4,7 @@ import json
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.practice_chat.types import GetPracticeChatResponse
@@ -17,7 +18,7 @@ MV_NAME = "practice_chat_mv"
 async def get_practice_chats(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetPracticeChatResponse]:
+    redis: Redis) -> list[GetPracticeChatResponse]:
     """Get practice_chat entries by IDs from practice_chat_mv."""
     if not ids:
         return []

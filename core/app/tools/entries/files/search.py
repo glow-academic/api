@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.files.types import SearchFileResponse
@@ -12,6 +13,7 @@ MV_NAME = "files_mv"
 
 async def search_files(
     conn: asyncpg.Connection,
+    redis: Redis,
     file_ids: list[UUID] | None = None,
     files_ids: list[UUID] | None = None,
     mime_type: str | None = None,

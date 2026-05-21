@@ -91,9 +91,9 @@ async def create_feedback_impl(
         if "run_id" in kwargs and kwargs["run_id"]:
             run_id = kwargs["run_id"] if isinstance(kwargs["run_id"], UUID) else UUID(str(kwargs["run_id"]))
         else:
-            grades = await get_test_grades(conn, ids=[grade_id])
+            grades = await get_test_grades(conn, [grade_id], redis)
             if grades and grades[0].call_id:
-                calls = await get_calls(conn, [grades[0].call_id])
+                calls = await get_calls(conn, [grades[0].call_id], redis)
                 if calls:
                     run_id = calls[0].run_id
 
@@ -104,7 +104,7 @@ async def create_feedback_impl(
         # invocation — shared by every fanned-out feedback row).
         call = await create_call(
             conn,
-            run_id=run_id,
+            redis, run_id=run_id,
             session_id=session_id,
         )
 
@@ -115,7 +115,7 @@ async def create_feedback_impl(
         for std_id in standard_ids_to_write:
             result = await create_test_feedback(
                 conn,
-                grade_id=grade_id,
+                redis, grade_id=grade_id,
                 call_id=call.id,
                 tool_call_id=tool_call_id,
                 total=score,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.run_pricing.types import GetRunPricingResponse
@@ -12,6 +13,7 @@ MV_NAME = "run_pricing_mv"
 
 async def search_run_pricing_entries_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,

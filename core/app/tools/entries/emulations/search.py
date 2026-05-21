@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.emulations.types import GetEmulationResponse
@@ -13,6 +14,7 @@ MV_NAME = "emulations_mv"
 
 async def search_emulations(
     conn: asyncpg.Connection,
+    redis: Redis,
     profile_ids: list[UUID] | None = None,
     grant_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

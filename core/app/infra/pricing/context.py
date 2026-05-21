@@ -51,7 +51,7 @@ async def resolve_pricing_context(
     async with pool.acquire() as conn:
         all_runs, _total_count = await search_runs(
             conn,
-            date_from=date_from,
+            redis, date_from=date_from,
             date_to=date_to,
             limit=100000,
         )
@@ -200,7 +200,7 @@ async def resolve_pricing_search_context(
         async with pool.acquire() as conn:
             return await search_groups(
                 conn,
-                session_ids=session_ids,
+                redis, session_ids=session_ids,
                 name=name_search,
                 date_from=date_from,
                 date_to=date_to,
@@ -212,7 +212,7 @@ async def resolve_pricing_search_context(
         async with pool.acquire() as conn:
             return await search_groups(
                 conn,
-                session_ids=session_ids,
+                redis, session_ids=session_ids,
                 name=name_search,
                 date_from=date_from,
                 date_to=date_to,
@@ -229,7 +229,7 @@ async def resolve_pricing_search_context(
     group_ids = [g.id for g in all_groups]
     if group_ids:
         async with pool.acquire() as conn:
-            all_runs = (await search_runs(conn, group_ids=group_ids, limit=100000))[0]
+            all_runs = (await search_runs(conn, redis, group_ids=group_ids, limit=100000))[0]
     else:
         all_runs = []
 

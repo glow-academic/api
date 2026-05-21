@@ -42,6 +42,7 @@ async def test_run_internal_impl(
     audit: bool = True,
 ) -> TestRunInternalResult:
     """Insert a test_invocation_runs_entry binding row."""
+    redis = get_redis_client()
     payload = TestRunPayload(**data)
     sid = data.get("sid", "")
 
@@ -58,9 +59,10 @@ async def test_run_internal_impl(
         raise ValueError("Missing session_id for test_run")
 
     async def _run() -> TestRunInternalResult:
+        redis = get_redis_client()
         async with get_pool().acquire() as conn:
             result = await create_test_invocation_runs(
-                conn,
+                conn, redis,
                 test_invocation_id=payload.test_invocation_id,
                 run_id=payload.run_id,
                 test_invocation_traces_id=payload.test_invocation_trace_id,

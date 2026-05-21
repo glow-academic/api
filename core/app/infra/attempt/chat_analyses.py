@@ -36,7 +36,7 @@ async def chat_analyses_attempt_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_analysis(
             conn,
-            grade_id=grade_id,
+            redis, grade_id=grade_id,
             session_id=session_id,
             content=content or "No analysis provided",
         )

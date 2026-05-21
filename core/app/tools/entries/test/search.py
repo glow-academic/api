@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.test.types import GetTestResponse
@@ -13,6 +14,7 @@ MV_NAME = "test_mv"
 
 async def search_tests(
     conn: asyncpg.Connection,
+    redis: Redis,
     test_ids: list[UUID] | None = None,
     eval_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,

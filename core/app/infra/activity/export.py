@@ -117,23 +117,23 @@ async def export_activity_impl(
 
     async def _fetch_activity() -> list:
         async with pool.acquire() as c:
-            return await search_activity(c, limit=100000, offset=0)
+            return await search_activity(c, redis, limit=100000, offset=0)
 
     async def _fetch_logins() -> list:
         async with pool.acquire() as c:
-            return await search_logins(c, limit=100000, offset=0)
+            return await search_logins(c, redis, limit=100000, offset=0)
 
     async def _fetch_problems() -> list:
         async with pool.acquire() as c:
-            return await search_problems(c, limit=100000, offset=0)
+            return await search_problems(c, redis, limit=100000, offset=0)
 
     async def _fetch_grants() -> list:
         async with pool.acquire() as c:
-            return await search_grants(c, limit=100000, offset=0)
+            return await search_grants(c, redis, limit=100000, offset=0)
 
     async def _fetch_emulations() -> list:
         async with pool.acquire() as c:
-            return await search_emulations(c, limit=100000, offset=0)
+            return await search_emulations(c, redis, limit=100000, offset=0)
 
     (
         activity_entries,

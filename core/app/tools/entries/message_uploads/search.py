@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.message_uploads.types import GetMessageUploadResponse
 
 
 async def search_message_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     message_ids: list[UUID] | None = None,
     upload_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

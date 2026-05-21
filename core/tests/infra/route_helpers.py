@@ -55,9 +55,9 @@ async def create_admin_route_actor(
             role_ids=[admin_role.id],
             redis=redis_client,
         )
-        session = await create_session(conn, profile_id=graph.profile_resource_id)
+        session = await create_session(conn, redis_client, profile_id=graph.profile_resource_id)
         await refresh_sessions(conn)
-        await create_group(conn, session_id=session.id, artifact_type="persona")
+        await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
 
     identity = await resolve_profile_identity_context(
         pool,

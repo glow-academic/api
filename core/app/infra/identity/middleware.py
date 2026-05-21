@@ -113,7 +113,7 @@ async def _maybe_ping_activity(
         async with pool.acquire() as conn:
             await create_activity(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 profile_id=profile_id,
             )
     except Exception as e:

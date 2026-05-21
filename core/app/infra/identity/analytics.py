@@ -87,13 +87,13 @@ async def resolve_profile_facts_filters(
             (earliest_items, _), (latest_items, _) = await asyncio.gather(
                 search_attempt_chats(
                     c_earliest,
-                    department_ids=department_ids,
+                    redis, department_ids=department_ids,
                     sort_order="asc",
                     limit=1,
                 ),
                 search_attempt_chats(
                     c_latest,
-                    department_ids=department_ids,
+                    redis, department_ids=department_ids,
                     sort_order="desc",
                     limit=1,
                 ),
@@ -177,13 +177,13 @@ async def resolve_pricing_filters(
         async with pool.acquire() as c_earliest, pool.acquire() as c_latest:
             (earliest_items, _), (latest_items, _) = await asyncio.gather(
                 search_runs(
-                    conn=c_earliest,
+                    c_earliest, redis,
                     profiles_ids=profile_resource_ids,
                     sort_order="asc",
                     limit=1,
                 ),
                 search_runs(
-                    conn=c_latest,
+                    c_latest, redis,
                     profiles_ids=profile_resource_ids,
                     sort_order="desc",
                     limit=1,
@@ -263,13 +263,13 @@ async def resolve_benchmark_filters(
             # Fetch earliest and latest in parallel
             earliest_items, _ = await search_tests(
                 c_earliest,
-                profile_ids=profile_resource_ids,
+                redis, profile_ids=profile_resource_ids,
                 sort_order="asc",
                 limit=1,
             )
             latest_items, _ = await search_tests(
                 c_latest,
-                profile_ids=profile_resource_ids,
+                redis, profile_ids=profile_resource_ids,
                 sort_order="desc",
                 limit=1,
             )
@@ -300,10 +300,13 @@ async def resolve_health_filters(
     if not need_date_range:
         return AnalyticsFiltersResult()
 
+    from app.infra.globals import get_redis_client
+    redis = get_redis_client()
+
     async with pool.acquire() as c_earliest, pool.acquire() as c_latest:
         earliest_items, latest_items = await asyncio.gather(
-            search_health(c_earliest, sort_order="asc", limit=1),
-            search_health(c_latest, sort_order="desc", limit=1),
+            search_health(c_earliest, redis, sort_order="asc", limit=1),
+            search_health(c_latest, redis, sort_order="desc", limit=1),
         )
 
     earliest = earliest_items[0].date_hour.isoformat() if earliest_items else None

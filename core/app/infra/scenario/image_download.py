@@ -66,9 +66,9 @@ async def image_download_scenario_impl(
     # to the LLM). Try resource filter first, then entry filter — same
     # downstream behavior either way once a row is found.
     async with pool.acquire() as conn:
-        results = await search_images(conn, images_ids=[image_id], limit=1)
+        results = await search_images(conn, redis, images_ids=[image_id], limit=1)
         if not results:
-            results = await search_images(conn, image_ids=[image_id], limit=1)
+            results = await search_images(conn, redis, image_ids=[image_id], limit=1)
 
     if not results:
         raise HTTPException(

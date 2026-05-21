@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 MV_NAME = "attempt_mutes_mv"
 
 
 async def search_attempt_mutes_entries_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     conversation_ids: list[UUID] | None = None,
     limit_count: int = 20,
     offset_count: int = 0,

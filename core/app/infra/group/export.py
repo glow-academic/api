@@ -75,7 +75,7 @@ async def export_group_impl(
     # -- Step 2: Get group metadata --
 
     async with pool.acquire() as conn:
-        groups = await get_groups(conn, [group_id])
+        groups = await get_groups(conn, [group_id], redis)
 
     if not groups:
         return ExportGroupApiResponse(
@@ -89,7 +89,7 @@ async def export_group_impl(
 
     async with pool.acquire() as conn:
         runs, _total_count = await search_runs(
-            conn, group_ids=[group_id], limit=100000, offset=0
+            conn, redis, group_ids=[group_id], limit=100000, offset=0
         )
 
     # -- Step 4: Compute per-run costs --

@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.infra.tools.entries.create_run_message import (
     CreateRunMessageResult,
@@ -22,6 +23,7 @@ from app.tools.entries.uploads.create import create_upload
 
 async def persist_run_message(
     conn: asyncpg.Connection,
+    redis: Redis,
     *,
     run_id: UUID,
     session_id: UUID,
@@ -57,6 +59,7 @@ async def persist_run_message(
     # 2. Create upload DB record
     upload_result = await create_upload(
         conn,
+        redis,
         session_id=session_id,
         file_path=rel_path,
         mime_type="text/plain",
@@ -66,6 +69,7 @@ async def persist_run_message(
     # 3. Create message + text + junctions
     return await create_run_message(
         conn,
+        redis,
         run_id=run_id,
         session_id=session_id,
         role=role,

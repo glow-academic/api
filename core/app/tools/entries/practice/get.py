@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.practice.types import GetPracticeResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "practice_mv"
 async def get_practices(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetPracticeResponse]:
+    redis: Redis) -> list[GetPracticeResponse]:
     """Get practice entries by IDs from practice_mv."""
     if not ids:
         return []

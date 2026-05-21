@@ -55,7 +55,7 @@ async def resolve_leaderboard_context(
     async with pool.acquire() as conn:
         all_attempt_chats, _total_count = await search_attempt_chats(
             conn,
-            profile_ids=[target_profile_id] if target_profile_id else None,
+            redis, profile_ids=[target_profile_id] if target_profile_id else None,
             cohort_ids=cohort_ids,
             department_ids=department_ids,
             attempt_type=attempt_type,
@@ -70,7 +70,7 @@ async def resolve_leaderboard_context(
     if chat_ids:
         async with pool.acquire() as conn:
             all_attempt_messages = (
-                await search_attempt_messages(conn, chat_ids=chat_ids, limit=1000000)
+                await search_attempt_messages(conn, redis, chat_ids=chat_ids, limit=1000000)
             )[0]
     else:
         all_attempt_messages = []
@@ -131,7 +131,7 @@ async def resolve_leaderboard_search_context(
     async with pool.acquire() as conn:
         all_attempt_chats, _total_count = await search_attempt_chats(
             conn,
-            profile_ids=[target_profile_id] if target_profile_id else None,
+            redis, profile_ids=[target_profile_id] if target_profile_id else None,
             cohort_ids=cohort_ids,
             department_ids=department_ids,
             simulation_ids=simulation_ids,
@@ -149,7 +149,7 @@ async def resolve_leaderboard_search_context(
     if chat_ids:
         async with pool.acquire() as conn:
             all_attempt_messages = (
-                await search_attempt_messages(conn, chat_ids=chat_ids, limit=1000000)
+                await search_attempt_messages(conn, redis, chat_ids=chat_ids, limit=1000000)
             )[0]
     else:
         all_attempt_messages = []

@@ -112,7 +112,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
 
@@ -140,7 +140,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
 
@@ -174,7 +174,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
         updated = await _create_profile_route_resources(pool, redis_client)
@@ -209,7 +209,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
 
@@ -233,7 +233,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
 
@@ -346,7 +346,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            profile_route_client,
+            redis_client, profile_route_client,
             profile_route_actor,
         )
 
@@ -418,7 +418,7 @@ class TestProfileRoute:
         )
 
         async with pool.acquire() as conn:
-            await create_session(conn, profile_id=target.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=target.profile_resource_id)
             await refresh_sessions(conn)
 
         profile_route_client.authenticate(
@@ -452,7 +452,7 @@ class TestProfileRoute:
         )
 
         async with pool.acquire() as conn:
-            await create_session(conn, profile_id=target.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=target.profile_resource_id)
             await refresh_sessions(conn)
 
         profile_route_client.authenticate(

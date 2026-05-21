@@ -9,30 +9,30 @@ from app.tools.entries.grants.refresh import refresh_grants_internal
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
 def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_new_grants_appears_after_refresh(conn, session_id):
-    created = _created(await create_grant(conn, session_id=session_id))
+async def test_new_grants_appears_after_refresh(conn, redis_client, session_id):
+    created = _created(await create_grant(conn, redis_client, session_id=session_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_grants_internal(conn)
-    items = await get_grants(conn, ids=[lookup_id])
+    items = await get_grants(conn, redis_client, ids=[lookup_id])
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_new_grants_is_not_visible_before_refresh(conn, session_id):
-    created = _created(await create_grant(conn, session_id=session_id))
+async def test_new_grants_is_not_visible_before_refresh(conn, redis_client, session_id):
+    created = _created(await create_grant(conn, redis_client, session_id=session_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_grants(conn, ids=[lookup_id])
+    items = await get_grants(conn, redis_client, ids=[lookup_id])
 
     assert items == []
 

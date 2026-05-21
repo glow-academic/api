@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.test_feedback.types import GetTestFeedbackResponse
@@ -12,6 +13,7 @@ MV_NAME = "test_feedback_mv"
 
 async def search_test_feedback_entries(
     conn: asyncpg.Connection,
+    redis: Redis,
     grade_ids: list[UUID] | None = None,
     tool_call_ids: list[UUID] | None = None,
     limit: int = 20,

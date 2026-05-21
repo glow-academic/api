@@ -25,41 +25,41 @@ async def _insert_metric(conn, session_id):
     )
 
 
-async def test_finds_created_entry(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     await _insert_metric(conn, session.id)
     await refresh_metrics_internal(conn)
 
-    items = await search_metrics(conn)
+    items = await search_metrics(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_pagination_limit(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     await _insert_metric(conn, session.id)
     await _insert_metric(conn, session.id)
     await refresh_metrics_internal(conn)
 
-    items = await search_metrics(conn, limit=1)
+    items = await search_metrics(conn, redis_client, limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     await _insert_metric(conn, session.id)
     await refresh_metrics_internal(conn)
 
-    items = await search_metrics(conn)
+    items = await search_metrics(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     await _insert_metric(conn, session.id)
 
-    items = await search_metrics(conn, bypass_mv=True)
+    items = await search_metrics(conn, redis_client, bypass_mv=True)
 
     assert len(items) >= 1

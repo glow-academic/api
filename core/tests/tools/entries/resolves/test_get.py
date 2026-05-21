@@ -15,30 +15,30 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _call(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _call(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return session, call
 
 
-async def _problem(conn, session, call):
+async def _problem(conn, redis_client, session, call):
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     return result.id
 
 
-async def test_returns_by_id(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_returns_by_id(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     await refresh_resolves(conn)
 
-    items = await get_resolves(conn, [result.id])
+    items = await get_resolves(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
@@ -47,18 +47,18 @@ async def test_returns_by_id(conn, profile_id):
     assert items[0].created_at is not None
 
 
-async def test_returns_multiple(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_returns_multiple(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     r1 = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
     r2 = await create_resolve(
-        conn, problem_id=problem_id, resolved=True, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=True, call_id=call.id
     )
     await refresh_resolves(conn)
 
-    items = await get_resolves(conn, [r1.id, r2.id])
+    items = await get_resolves(conn, [r1.id, r2.id], redis_client)
 
     assert len(items) == 2
     ids = {item.id for item in items}
@@ -66,26 +66,26 @@ async def test_returns_multiple(conn, profile_id):
     assert r2.id in ids
 
 
-async def test_returns_empty_for_missing(conn, profile_id):
-    items = await get_resolves(conn, [nonexistent_id()])
+async def test_returns_empty_for_missing(conn, redis_client, profile_id):
+    items = await get_resolves(conn, [nonexistent_id()], redis_client)
 
     assert items == []
 
 
-async def test_returns_empty_for_empty_ids(conn, profile_id):
-    items = await get_resolves(conn, [])
+async def test_returns_empty_for_empty_ids(conn, redis_client, profile_id):
+    items = await get_resolves(conn, [], redis_client)
 
     assert items == []
 
 
-async def test_bypass_mv(conn, profile_id):
-    session, call = await _call(conn, profile_id)
-    problem_id = await _problem(conn, session, call)
+async def test_bypass_mv(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
+    problem_id = await _problem(conn, redis_client, session, call)
     result = await create_resolve(
-        conn, problem_id=problem_id, resolved=False, call_id=call.id
+        conn, redis_client, problem_id=problem_id, resolved=False, call_id=call.id
     )
 
-    items = await get_resolves(conn, [result.id], bypass_mv=True)
+    items = await get_resolves(conn, [result.id], redis_client, bypass_mv=True)
 
     assert len(items) == 1
     assert items[0].id == result.id

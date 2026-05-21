@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_content.types import (
     GetAttemptContentResponse,
@@ -12,8 +13,8 @@ MV_NAME = "attempt_content_mv"
 
 
 async def get_attempt_contents(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptContentResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptContentResponse]:
     """Fetch attempt contents by content IDs."""
     if not ids:
         return []

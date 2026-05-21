@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.department_drafts.types import (
 
 async def search_department_drafts(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     name: str | None = None,

@@ -63,7 +63,7 @@ async def audio_download_group_impl(
 
     # -- Step 3: Resolve audio_id -> upload_id ----------------------------------
     async with pool.acquire() as conn:
-        junctions = await search_audio_uploads(conn, audio_ids=[audio_id], limit=1)
+        junctions = await search_audio_uploads(conn, redis, audio_ids=[audio_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -74,7 +74,7 @@ async def audio_download_group_impl(
         upload_id = junctions[0].upload_id
 
         # -- Step 4: Resolve upload_id -> file metadata -------------------------
-        upload = await get_upload(conn, upload_id)
+        upload = await get_upload(conn, upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

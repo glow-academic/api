@@ -171,7 +171,7 @@ async def get_test_impl(
             )
             async with pool.acquire() as conn:
                 completions, _ = await search_test_invocation_runs_completion(
-                    conn, test_invocation_runs_ids=binding_ids, limit=100000,
+                    conn, redis, test_invocation_runs_ids=binding_ids, limit=100000,
                 )
             completed_binding_ids = {c.test_invocation_runs_id for c in completions}
 
@@ -355,7 +355,7 @@ async def get_test_impl(
 
         async with pool.acquire() as conn:
             group_summaries = await search_groups(
-                conn,
+                conn, redis,
                 name=configs_search,
                 has_runs=True,
                 limit=configs_groups_page_size,
@@ -369,7 +369,7 @@ async def get_test_impl(
         async def _group_stats(gid: UUID):
             async with pool.acquire() as conn:
                 rows, total = await search_runs(
-                    conn,
+                    conn, redis,
                     group_ids=[gid],
                     sort_order="desc",
                     has_models=True,
@@ -447,7 +447,7 @@ async def get_test_impl(
                 rows_by_group: dict[UUID, list[Any]] = {}
                 for g in on_page_expanded:
                     rows, _total = await search_runs(
-                        conn,
+                        conn, redis,
                         group_ids=[g.id],
                         sort_order="desc",
                         has_models=True,
@@ -512,7 +512,7 @@ async def get_test_impl(
                         # Pull all calls for these runs in one batch.
                         run_ids_for_perms = [r.run_id for r in rows if r.run_id]
                         all_calls = await _search_calls(
-                            conn, run_ids=run_ids_for_perms, limit=10000,
+                            conn, redis or get_redis_client(), run_ids=run_ids_for_perms, limit=10000,
                         )
                         for call in all_calls:
                             if call.file_path is None or call.run_id is None:

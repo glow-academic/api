@@ -69,7 +69,7 @@ async def chat_feedback_attempt_impl(
     async with pool.acquire() as conn:
         result = await create_attempt_feedback(
             conn,
-            grade_id=grade_id,
+            redis, grade_id=grade_id,
             session_id=session_id,
             total=total,
             feedback=feedback or "No feedback provided",

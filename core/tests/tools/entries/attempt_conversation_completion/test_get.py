@@ -28,25 +28,25 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_conversation_completion(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_conversation_completion(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, call_id=call.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     conversation = await create_attempt_conversations(
-        conn, chat_id=attempt_chat.id, call_id=call2.id
+        conn, redis_client, chat_id=attempt_chat.id, call_id=call2.id
     )
     defaults = dict(
         conversation_id=conversation.id,
@@ -56,30 +56,30 @@ async def _attempt_conversation_completion(conn, profile_id, **overrides):
         message="",
     )
     defaults.update(overrides)
-    return await create_attempt_conversation_completion(conn, **defaults)
+    return await create_attempt_conversation_completion(conn, redis_client, **defaults)
 
 
 def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_gets_created_attempt_conversation_completion(conn, profile_id):
-    _created(await _attempt_conversation_completion(conn, profile_id))
+async def test_gets_created_attempt_conversation_completion(conn, redis_client, profile_id):
+    _created(await _attempt_conversation_completion(conn, redis_client, profile_id))
     await refresh_attempt_conversation_completion(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_attempt_conversation_completions(conn, ids=[lookup_id])
+    items = await get_attempt_conversation_completions(conn, redis_client, ids=[lookup_id])
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_returns_empty_for_missing_id(conn):
-    items = await get_attempt_conversation_completions(conn, ids=[nonexistent_id()])
+async def test_returns_empty_for_missing_id(conn, redis_client):
+    items = await get_attempt_conversation_completions(conn, redis_client, ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_returns_empty_for_empty_ids(conn):
-    items = await get_attempt_conversation_completions(conn, ids=[])
+async def test_returns_empty_for_empty_ids(conn, redis_client):
+    items = await get_attempt_conversation_completions(conn, redis_client, ids=[])
 
     assert items == []

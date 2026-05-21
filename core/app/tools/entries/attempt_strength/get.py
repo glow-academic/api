@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_strength.types import (
     GetAttemptStrengthResponse,
@@ -12,8 +13,8 @@ MV_NAME = "attempt_strength_mv"
 
 
 async def get_attempt_strengths(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptStrengthResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptStrengthResponse]:
     if not ids:
         return []
     rows = await conn.fetch(f"SELECT * FROM {MV_NAME} WHERE strength_id = ANY($1)", ids)

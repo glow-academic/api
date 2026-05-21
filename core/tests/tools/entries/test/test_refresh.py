@@ -13,17 +13,17 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _test(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _test(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     defaults = dict(
         call_id=call.id,
         profiles_id=profile_id,
     )
     defaults.update(overrides)
-    result = await create_test(conn, **defaults)
+    result = await create_test(conn, redis_client, **defaults)
     return result
 
 
@@ -31,22 +31,22 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_new_test_appears_after_refresh(conn, profile_id):
-    _created(await _test(conn, profile_id))
+async def test_new_test_appears_after_refresh(conn, redis_client, profile_id):
+    _created(await _test(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_test(conn)
-    items = await get_tests(conn, ids=[lookup_id])
+    items = await get_tests(conn, redis_client, ids=[lookup_id])
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_new_test_is_not_visible_before_refresh(conn, profile_id):
-    _created(await _test(conn, profile_id))
+async def test_new_test_is_not_visible_before_refresh(conn, redis_client, profile_id):
+    _created(await _test(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_tests(conn, ids=[lookup_id])
+    items = await get_tests(conn, redis_client, ids=[lookup_id])
 
     assert items == []
 

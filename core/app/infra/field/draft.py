@@ -54,7 +54,7 @@ async def _maybe_auto_accept_field_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_field_drafts(conn, [draft_id], active=None)
+        drafts = await get_field_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -71,7 +71,7 @@ async def _maybe_auto_accept_field_draft(
         async with conn.transaction():
             await create_field_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -348,13 +348,13 @@ async def patch_field_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_field_drafts(conn, [target_id], active=None)
+                drafts = await get_field_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_field_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -368,7 +368,7 @@ async def patch_field_draft_impl(
                     else:
                         await create_field_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -415,7 +415,7 @@ async def patch_field_draft_impl(
         async with conn.transaction():
             result = await create_field_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
                 name=request.name or "",

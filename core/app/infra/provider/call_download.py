@@ -52,7 +52,7 @@ async def call_download_provider_impl(
         )
 
     async with pool.acquire() as conn:
-        junctions = await search_call_uploads(conn, call_ids=[call_id], limit=1)
+        junctions = await search_call_uploads(conn, redis, call_ids=[call_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -60,7 +60,7 @@ async def call_download_provider_impl(
                 detail="No upload found for this call.",
             )
 
-        upload = await get_upload(conn, junctions[0].upload_id)
+        upload = await get_upload(conn, junctions[0].upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

@@ -217,7 +217,7 @@ async def resolve_setting_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_setting_drafts(conn, [draft_id])
+            return await get_setting_drafts(conn, [draft_id], redis)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifacts(), _fetch_drafts())
     artifact = artifacts[0] if artifacts else None

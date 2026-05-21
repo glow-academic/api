@@ -16,7 +16,7 @@ from uuid import UUID
 
 import asyncpg  # type: ignore
 
-from app.infra.globals import UPLOAD_FOLDER
+from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.infra.upload_paths import ensure_upload_subdir, resolve_upload_path
 from app.tools.entries.uploads.create import create_upload
 
@@ -34,7 +34,7 @@ async def _create_upload_record(
 
     return (
         await create_upload(
-            conn,
+            conn, get_redis_client(),
             session_id=session_id,
             file_path=relative_path,
             mime_type=mime_type,

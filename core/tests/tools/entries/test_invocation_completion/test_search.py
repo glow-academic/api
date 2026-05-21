@@ -22,19 +22,19 @@ from app.tools.entries.test_invocation_completion.search import (
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    test = await create_test(conn, call_id=call.id, profiles_id=profile_id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    test = await create_test(conn, redis_client, call_id=call.id, profiles_id=profile_id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     test_invocation = await create_test_invocation(
-        conn, test_id=test.id, call_id=call2.id
+        conn, redis_client, test_id=test.id, call_id=call2.id
     )
     result = await create_test_invocation_completion(
         conn,
-        invocation_id=test_invocation.id,
+        redis_client, invocation_id=test_invocation.id,
         call_id=call2.id,
         stop=False,
         error=False,
@@ -43,54 +43,54 @@ async def _setup(conn, profile_id):
     return result, test_invocation
 
 
-async def test_finds_created_entry(conn, profile_id):
-    result, test_invocation = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    result, test_invocation = await _setup(conn, redis_client, profile_id)
     await refresh_test_invocation_completion(conn)
 
     items = await search_test_invocation_completions(
-        conn, invocation_ids=[test_invocation.id]
+        conn, redis_client, invocation_ids=[test_invocation.id]
     )
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_invocation_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_invocation_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_test_invocation_completion(conn)
 
     items = await search_test_invocation_completions(
-        conn, invocation_ids=[nonexistent_id()]
+        conn, redis_client, invocation_ids=[nonexistent_id()]
     )
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    result, test_invocation = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    result, test_invocation = await _setup(conn, redis_client, profile_id)
     await refresh_test_invocation_completion(conn)
 
     items = await search_test_invocation_completions(
-        conn, invocation_ids=[test_invocation.id], limit=1
+        conn, redis_client, invocation_ids=[test_invocation.id], limit=1
     )
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_test_invocation_completion(conn)
 
-    items = await search_test_invocation_completions(conn)
+    items = await search_test_invocation_completions(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, test_invocation = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    result, test_invocation = await _setup(conn, redis_client, profile_id)
 
     items = await search_test_invocation_completions(
-        conn, invocation_ids=[test_invocation.id], bypass_mv=True
+        conn, redis_client, invocation_ids=[test_invocation.id], bypass_mv=True
     )
 
     ids = [item.id for item in items]

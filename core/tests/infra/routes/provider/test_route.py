@@ -135,7 +135,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 
@@ -166,7 +166,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 
@@ -200,7 +200,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
         updated = await _create_provider_route_resources(pool, redis_client)
@@ -237,7 +237,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 
@@ -261,7 +261,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 
@@ -375,7 +375,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 
@@ -421,7 +421,7 @@ class TestProviderRoute:
         created = await self._create_provider_via_route(
             pool,
             redis_client,
-            provider_route_client,
+            redis_client, provider_route_client,
             provider_route_actor,
         )
 

@@ -63,7 +63,7 @@ async def call_download_group_impl(
 
     # -- Step 3: Resolve call_id -> upload_id -----------------------------------
     async with pool.acquire() as conn:
-        junctions = await search_call_uploads(conn, call_ids=[call_id], limit=1)
+        junctions = await search_call_uploads(conn, redis, call_ids=[call_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -74,7 +74,7 @@ async def call_download_group_impl(
         upload_id = junctions[0].upload_id
 
         # -- Step 4: Resolve upload_id -> file metadata -------------------------
-        upload = await get_upload(conn, upload_id)
+        upload = await get_upload(conn, upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

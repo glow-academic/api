@@ -46,7 +46,7 @@ async def chat_grade_attempt_impl(
 
     async with pool.acquire() as conn:
         # Step 1: Get chat → rubric, created_at
-        chats, _ = await search_attempt_chats(conn, attempt_chat_ids=[chat_id], limit=1)
+        chats, _ = await search_attempt_chats(conn, redis, attempt_chat_ids=[chat_id], limit=1)
         if not chats:
             raise ValueError(f"Attempt chat {chat_id} not found")
         chat = chats[0]
@@ -81,7 +81,7 @@ async def chat_grade_attempt_impl(
         # Step 4: Create grade + link rubric
         result = await create_attempt_grade(
             conn,
-            chat_id=chat_id,
+            redis, chat_id=chat_id,
             session_id=session_id,
             time_taken=time_taken,
             passed=passed,

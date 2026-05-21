@@ -349,7 +349,7 @@ def _pick_feedback_standards(
 
 async def _seed_grade_feedback(
     conn: asyncpg.Connection,
-    *,
+    redis_client, *,
     grade_id: UUID,
     session_id: UUID,
     slug: str,
@@ -363,7 +363,7 @@ async def _seed_grade_feedback(
             continue
         await create_attempt_feedback(
             conn,
-            grade_id=grade_id,
+            redis_client, grade_id=grade_id,
             session_id=session_id,
             total=points,
             id=sid(f"{slug}/feedback/{index}"),
@@ -377,7 +377,7 @@ async def _seed_grade_feedback(
 
 
 async def _wrap_personas_resource(
-    conn: asyncpg.Connection, resource_ids: list[UUID]
+    conn: asyncpg.Connection, redis_client, resource_ids: list[UUID]
 ) -> dict[UUID, UUID]:
     """For each persona resource id, create a personas_entry that wraps
     it. Returns {resource_id → entry_id}.
@@ -392,7 +392,7 @@ async def _wrap_personas_resource(
     for rid in sorted(set(resource_ids), key=str):
         entry_id = sid(f"attempts-analytics/persona-entry/{rid}")
         try:
-            await create_personas(conn, id=entry_id, persona_ids=[rid])
+            await create_personas(conn, redis_client, id=entry_id, persona_ids=[rid])
         except asyncpg.UniqueViolationError:
             # A prior interrupted seed run may have already created
             # the deterministic wrapper. Reuse that known ID.
@@ -451,14 +451,14 @@ async def _seed_one_attempt(
     # 1. Group + group_name (the agent-dispatch context).
     await create_group(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         artifact_type="attempt",
         id=group_id,
         created_at=created_at - timedelta(minutes=2),
     )
     await create_group_name(
         conn,
-        group_id=group_id,
+        redis, group_id=group_id,
         name=f"Attempt seed #{idx + 1}",
         session_id=session_id,
         id=group_name_id,
@@ -473,7 +473,7 @@ async def _seed_one_attempt(
     # points so per-type aggregations have data for both.
     await create_attempt(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         user_persona_id=user_persona_entry_id,
         profiles_id=profile_id,
         id=attempt_id,
@@ -486,7 +486,7 @@ async def _seed_one_attempt(
     if is_practice:
         await create_attempt_practice(
             conn,
-            attempt_id=attempt_id,
+            redis, attempt_id=attempt_id,
             practice_id=parent_id,
             session_id=session_id,
             created_at=created_at + timedelta(seconds=15),
@@ -494,7 +494,7 @@ async def _seed_one_attempt(
     else:
         await create_attempt_home(
             conn,
-            attempt_id=attempt_id,
+            redis, attempt_id=attempt_id,
             home_id=parent_id,
             session_id=session_id,
             created_at=created_at + timedelta(seconds=15),
@@ -529,7 +529,7 @@ async def _seed_one_attempt(
     )
     await create_attempt_chat(
         conn,
-        session_id=session_id,
+        redis, session_id=session_id,
         chat_id=chat_id,
         id=attempt_chat_id,
         assistant_persona_ids=assistant_persona_entry_ids or None,
@@ -573,7 +573,7 @@ async def _seed_one_attempt(
     # 4. attempt ↔ attempt_chat bridge.
     await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt_id,
+        redis, attempt_id=attempt_id,
         attempt_chat_id=attempt_chat_id,
         session_id=session_id,
         created_at=attempt_chat_created_at + timedelta(seconds=15),
@@ -594,7 +594,7 @@ async def _seed_one_attempt(
                 continue
             await create_attempt_responses(
                 conn,
-                chat_id=attempt_chat_id,
+                redis, chat_id=attempt_chat_id,
                 session_id=session_id,
                 id=sid(f"{slug}/response/{q_idx}"),
                 question_ids=[question_id],
@@ -616,14 +616,14 @@ async def _seed_one_attempt(
 
             await create_attempt_message(
                 conn,
-                chat_id=attempt_chat_id,
+                redis, chat_id=attempt_chat_id,
                 session_id=session_id,
                 id=msg_id,
                 created_at=attempt_chat_created_at + timedelta(minutes=t + 1),
             )
             await create_attempt_content(
                 conn,
-                message_id=msg_id,
+                redis, message_id=msg_id,
                 session_id=session_id,
                 content=line,
                 persona_id=turn_persona_entry,
@@ -641,7 +641,7 @@ async def _seed_one_attempt(
             run_id = sid(f"{slug}/run/{r}")
             await create_run(
                 conn,
-                group_id=group_id,
+                redis, group_id=group_id,
                 session_id=session_id,
                 id=run_id,
                 agent_ids=[agent_id],
@@ -650,7 +650,7 @@ async def _seed_one_attempt(
             inp_tokens, out_tokens = _TOKEN_ENVELOPES[r % len(_TOKEN_ENVELOPES)]
             await create_token(
                 conn,
-                run_id=run_id,
+                redis, run_id=run_id,
                 session_id=session_id,
                 id=sid(f"{slug}/token/{r}"),
                 input_tokens=inp_tokens,
@@ -660,7 +660,7 @@ async def _seed_one_attempt(
             if input_pricing_id is not None:
                 await create_run_pricing_entry_internal(
                     conn,
-                    session_id=session_id,
+                    redis, session_id=session_id,
                     pricing_type="input",
                     run_id=run_id,
                     pricing_id=input_pricing_id,
@@ -670,7 +670,7 @@ async def _seed_one_attempt(
             if output_pricing_id is not None:
                 await create_run_pricing_entry_internal(
                     conn,
-                    session_id=session_id,
+                    redis, session_id=session_id,
                     pricing_type="output",
                     run_id=run_id,
                     pricing_id=output_pricing_id,
@@ -682,7 +682,7 @@ async def _seed_one_attempt(
     if completed:
         await create_attempt_chat_completion(
             conn,
-            chat_id=attempt_chat_id,
+            redis, chat_id=attempt_chat_id,
             session_id=session_id,
             id=sid(f"{slug}/chat-completion"),
             stop=True,
@@ -690,7 +690,7 @@ async def _seed_one_attempt(
         )
         await create_attempt_completion(
             conn,
-            attempt_id=attempt_id,
+            redis, attempt_id=attempt_id,
             session_id=session_id,
             id=sid(f"{slug}/completion"),
             stop=True,
@@ -715,7 +715,7 @@ async def _seed_one_attempt(
         time_taken = _TIME_TAKEN_SECONDS[idx % len(_TIME_TAKEN_SECONDS)]
         grade = await create_attempt_grade(
             conn,
-            chat_id=attempt_chat_id,
+            redis, chat_id=attempt_chat_id,
             session_id=session_id,
             time_taken=time_taken,
             passed=score >= (rubric_pass_points or 0),
@@ -730,7 +730,7 @@ async def _seed_one_attempt(
         )
         await _seed_grade_feedback(
             conn,
-            grade_id=grade.id,
+            redis, grade_id=grade.id,
             session_id=session_id,
             slug=slug,
             selected_standards=selected_standards,
@@ -759,9 +759,9 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
             conn, redis, limit_count=50, bypass_cache=True
         )
         # Available scenario chats — pre-seeded by the simulation seeds.
-        chats = await search_chat_entries_internal(conn, limit_count=1000)
-        homes = await search_homes(conn, limit=10000, bypass_mv=True)
-        practices = await search_practices(conn, limit=10000, bypass_mv=True)
+        chats = await search_chat_entries_internal(conn, redis, limit_count=1000)
+        homes = await search_homes(conn, redis, limit=10000, bypass_mv=True)
+        practices = await search_practices(conn, redis, limit=10000, bypass_mv=True)
         home_ids = {h.id for h in homes if h.id}
         practice_ids = {p.id for p in practices if p.id}
         parent_profile_ids = {
@@ -771,7 +771,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         chat_templates = await get_chats(
             conn,
             [chat["chat_entry_id"] for chat in chats if chat.get("chat_entry_id")],
-        )
+        redis)
         chat_template_map = {chat.id: chat for chat in chat_templates if chat.id}
         rubric_ids = list(
             {
@@ -893,7 +893,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
             key=str,
         )
         persona_resource_to_entry = await _wrap_personas_resource(
-            conn, unique_persona_resource_ids
+            conn, redis, unique_persona_resource_ids
         )
 
         primary_agent_id = agents[0].id if agents else None

@@ -16,17 +16,17 @@ from app.tools.resources.agents.create import create_agent
 pytestmark = pytest.mark.asyncio
 
 
-async def _run_deps(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
+async def _run_deps(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(
-        conn, group_id=group.id, session_id=session.id, profiles_id=profile_id
+        conn, redis_client, group_id=group.id, session_id=session.id, profiles_id=profile_id
     )
     return session, run
 
 
-async def test_persist_run_message_writes_file_and_rows(conn, profile_id, tmp_path):
-    session, run = await _run_deps(conn, profile_id)
+async def test_persist_run_message_writes_file_and_rows(conn, redis_client, profile_id, tmp_path):
+    session, run = await _run_deps(conn, redis_client, profile_id)
 
     result = await persist_run_message(
         conn,
@@ -37,11 +37,11 @@ async def test_persist_run_message_writes_file_and_rows(conn, profile_id, tmp_pa
         upload_folder=tmp_path,
     )
 
-    message = await get_message(conn, result.message_id)
-    text = await get_text(conn, result.text_id)
-    upload_junction = await get_message_upload(conn, result.message_upload_junction_id)
-    text_upload_junction = await get_text_upload(conn, result.text_upload_junction_id)
-    upload = await get_upload(conn, upload_junction.upload_id)
+    message = await get_message(conn, result.message_id, redis_client)
+    text = await get_text(conn, result.text_id, redis_client)
+    upload_junction = await get_message_upload(conn, result.message_upload_junction_id, redis_client)
+    text_upload_junction = await get_text_upload(conn, result.text_upload_junction_id, redis_client)
+    upload = await get_upload(conn, upload_junction.upload_id, redis_client)
     stored_path = tmp_path / upload.file_path
 
     assert message.role == "developer"
@@ -55,7 +55,7 @@ async def test_persist_run_message_writes_file_and_rows(conn, profile_id, tmp_pa
 async def test_persist_run_message_links_agent_ids(
     conn, profile_id, redis_client, tmp_path
 ):
-    session, run = await _run_deps(conn, profile_id)
+    session, run = await _run_deps(conn, redis_client, profile_id)
     agent = await create_agent(conn, name="persist-agent", redis=redis_client)
 
     result = await persist_run_message(
@@ -68,5 +68,5 @@ async def test_persist_run_message_links_agent_ids(
         agent_ids=[agent.id],
     )
 
-    message = await get_message(conn, result.message_id)
+    message = await get_message(conn, result.message_id, redis_client)
     assert message.id == result.message_id

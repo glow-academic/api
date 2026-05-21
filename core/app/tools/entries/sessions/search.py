@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.sessions.types import GetSessionResponse
@@ -13,6 +14,7 @@ MV_NAME = "sessions_mv"
 
 async def search_sessions(
     conn: asyncpg.Connection,
+    redis: Redis,
     profile_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,

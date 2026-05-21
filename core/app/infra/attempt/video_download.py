@@ -60,7 +60,7 @@ async def video_download_attempt_impl(
 
     # -- Step 3: Resolve videos_id -> file metadata via videos_mv --------------
     async with pool.acquire() as conn:
-        results = await search_videos(conn, videos_ids=[video_id], limit=1)
+        results = await search_videos(conn, redis, videos_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

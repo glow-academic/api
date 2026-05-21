@@ -55,7 +55,7 @@ async def resolve_benchmark_context(
     async with pool.acquire() as c:
         benchmarks = await search_benchmarks(
             c,
-            department_ids=department_ids,
+            redis, department_ids=department_ids,
             date_from=date_from,
             date_to=date_to,
             limit=10000,
@@ -82,14 +82,14 @@ async def resolve_benchmark_context(
         if not benchmark_ids:
             return []
         async with pool.acquire() as c:
-            return await search_invocations(c, benchmark_ids=benchmark_ids, limit=10000)
+            return await search_invocations(c, redis, benchmark_ids=benchmark_ids, limit=10000)
 
     async def _fetch_benchmark_tests() -> list:
         if not benchmark_ids:
             return []
         async with pool.acquire() as c:
             return await search_benchmark_tests(
-                c, benchmark_ids=benchmark_ids, limit=100000
+                c, redis, benchmark_ids=benchmark_ids, limit=100000
             )
 
     invocations, benchmark_tests = await asyncio.gather(
@@ -113,7 +113,7 @@ async def resolve_benchmark_context(
         async with pool.acquire() as c:
             items, _total = await search_tests(
                 c,
-                test_ids=bridged_test_ids,
+                redis, test_ids=bridged_test_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -135,7 +135,7 @@ async def resolve_benchmark_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_entries_internal(
-                c, test_ids=test_ids, limit=100000
+                c, redis, test_ids=test_ids, limit=100000
             )
             return items
 
@@ -244,7 +244,7 @@ async def resolve_benchmark_search_context(
     async with pool.acquire() as c:
         benchmarks = await search_benchmarks(
             c,
-            department_ids=department_ids,
+            redis, department_ids=department_ids,
             eval_ids=eval_ids,
             limit=10000,
         )
@@ -258,7 +258,7 @@ async def resolve_benchmark_search_context(
         async with pool.acquire() as c:
             benchmark_tests = await search_benchmark_tests(
                 c,
-                benchmark_ids=benchmark_ids,
+                redis, benchmark_ids=benchmark_ids,
                 limit=100000,
             )
     else:
@@ -278,7 +278,7 @@ async def resolve_benchmark_search_context(
     async with pool.acquire() as c:
         tests, _total_count = await search_tests(
             c,
-            test_ids=test_ids_from_benchmarks,
+            redis, test_ids=test_ids_from_benchmarks,
             date_from=date_from,
             date_to=date_to,
             is_archived=is_archived,
@@ -304,7 +304,7 @@ async def resolve_benchmark_search_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_entries_internal(
-                c, test_ids=test_ids, limit=100000
+                c, redis, test_ids=test_ids, limit=100000
             )
             return items
 

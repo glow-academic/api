@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_grade.types import GetAttemptGradeResponse
 
@@ -10,8 +11,8 @@ MV_NAME = "attempt_grade_mv"
 
 
 async def get_attempt_grades(
-    conn: asyncpg.Connection, ids: list[UUID]
-) -> list[GetAttemptGradeResponse]:
+    conn: asyncpg.Connection, ids: list[UUID], 
+redis: Redis) -> list[GetAttemptGradeResponse]:
     """Fetch attempt grades by grade IDs."""
     if not ids:
         return []

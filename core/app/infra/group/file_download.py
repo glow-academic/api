@@ -66,9 +66,9 @@ async def file_download_group_impl(
     # document picker surface). ``search_files`` accepts both filter
     # slots; try the entry path first, fall back to the resource path.
     async with pool.acquire() as conn:
-        results = await search_files(conn, file_ids=[file_id], limit=1)
+        results = await search_files(conn, redis, file_ids=[file_id], limit=1)
         if not results:
-            results = await search_files(conn, files_ids=[file_id], limit=1)
+            results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

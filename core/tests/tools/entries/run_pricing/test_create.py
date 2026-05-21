@@ -13,10 +13,10 @@ from app.tools.resources.pricing.create import create_pricing
 pytestmark = pytest.mark.asyncio
 
 
-async def _run(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, session_id=session.id, group_id=group.id)
+async def _run(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, session_id=session.id, group_id=group.id)
     return session, run
 
 
@@ -64,7 +64,7 @@ async def test_roundtrip_via_db(conn, profile_id):
 
 
 async def test_helper_links_pricing_resource(conn, profile_id, redis_client):
-    session, run = await _run(conn, profile_id)
+    session, run = await _run(conn, redis_client, profile_id)
     pricing = await create_pricing(
         conn,
         "input",
@@ -77,7 +77,7 @@ async def test_helper_links_pricing_resource(conn, profile_id, redis_client):
 
     result = await create_run_pricing_entry_internal(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         pricing_type="input",
         run_id=run.id,
         pricing_id=pricing.id,

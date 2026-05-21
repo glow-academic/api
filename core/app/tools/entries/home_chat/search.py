@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.home_chat.types import GetHomeChatResponse
@@ -12,6 +13,7 @@ MV_NAME = "home_chat_mv"
 
 async def search_home_chats(
     conn: asyncpg.Connection,
+    redis: Redis,
     home_ids: list[UUID] | None = None,
     chat_ids: list[UUID] | None = None,
     limit: int = 20,

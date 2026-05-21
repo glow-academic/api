@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.chat.types import GetChatResponse
@@ -18,7 +19,7 @@ MV_NAME = "chat_mv"
 async def get_chats(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetChatResponse]:
+    redis: Redis) -> list[GetChatResponse]:
     """Get chat entries by IDs from chat_mv."""
     if not ids:
         return []

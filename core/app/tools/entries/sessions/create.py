@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.sessions.types import CreateSessionResponse
 
 
 async def create_session(
     conn: asyncpg.Connection,
+    redis: Redis,
     profile_id: UUID | None = None,
     *,
     id: UUID | None = None,

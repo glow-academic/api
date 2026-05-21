@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.benchmark.types import GetBenchmarkResponse
@@ -13,6 +14,7 @@ MV_NAME = "benchmark_mv"
 
 async def search_benchmarks(
     conn: asyncpg.Connection,
+    redis: Redis,
     department_ids: list[UUID] | None = None,
     eval_ids: list[UUID] | None = None,
     date_from: datetime | None = None,

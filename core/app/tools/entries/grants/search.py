@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.grants.types import GetGrantResponse
@@ -12,6 +13,7 @@ MV_NAME = "grants_mv"
 
 async def search_grants(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_ids: list[UUID] | None = None,
     profiles_ids: list[UUID] | None = None,
     active: bool | None = None,

@@ -175,23 +175,27 @@ async def run_artifact_operation_with_audit(
     effective_upload_folder = upload_folder or UPLOAD_FOLDER
 
     # ── Idempotency replay gate (opt-in; inert unless ``operation_key`` set) ──
-    # Reuses the ``operation_key`` already threaded into ``create_call`` — a
-    # separate concept from the soft/accept ``idempotency_key`` ledger, which we
-    # leave untouched (coexist, not unify). Runs before any side effect (group
-    # mint, ``.started`` emit, execution).
+    # ``operation_key`` IS the client's idempotency key — one key. Routes thread
+    # ``request.idempotency_key`` straight through as ``operation_key`` (the
+    # codebase already merges them: ``operation_key or idempotency_key``). Runs
+    # before any side effect (group mint, ``.started`` emit, execution).
     #   • A prior completed call with this key → replay its persisted receipt.
     #   • Otherwise take a short-lived lock so only one concurrent first-run runs.
+    # The soft/accept ack phase (``accept`` present) is SKIPPED — it deliberately
+    # reuses the key with a different body, and the soft-call ledger already makes
+    # that phase idempotent; the gate only guards the first (propose) call.
     # FAIL-OPEN: any unexpected error logs and falls through to normal execution
     # — the gate must never break a request that would otherwise succeed. A 409
     # is intentional (reused key with a different body, or in-flight duplicate)
     # and is re-raised.
-    if operation_key is not None and not bypass_cache:
+    if operation_key is not None and not bypass_cache and arguments.get("accept") is None:
         try:
             async with pool.acquire() as _idem_conn:
                 # bypass_mv=True reads through the base-table index, so a
                 # just-completed call is visible immediately (no MV-refresh lag).
                 _prior = await search_calls(
                     _idem_conn,
+                    redis,
                     operation_keys=[operation_key],
                     limit=1,
                     bypass_mv=True,
@@ -204,7 +208,7 @@ async def run_artifact_operation_with_audit(
                         _fingerprint_arguments(arguments):
                     raise HTTPException(
                         status_code=409,
-                        detail="operation_key reused with a different request payload.",
+                        detail="Idempotency key reused with a different request payload.",
                     )
                 _cached = _receipt.get("raw_output")
                 # Never replay a cached server error — let the retry truly retry.
@@ -226,7 +230,7 @@ async def run_artifact_operation_with_audit(
                 if not _got_lock:
                     raise HTTPException(
                         status_code=409,
-                        detail="An operation with this operation_key is already in progress.",
+                        detail="An operation with this idempotency key is already in progress.",
                     )
         except HTTPException:
             raise
@@ -292,7 +296,7 @@ async def run_artifact_operation_with_audit(
         async with pool.acquire() as conn:
             await create_group(
                 conn,
-                session_id=effective_session_id,
+                redis, session_id=effective_session_id,
                 artifact_type=artifact,
                 id=effective_group_id,
             )
@@ -400,6 +404,7 @@ async def run_artifact_operation_with_audit(
         async with pool.acquire() as conn:
             audit_result = await create_tool_call(
                 conn,
+                redis,
                 group_id=effective_group_id,  # type: ignore[arg-type]
                 session_id=effective_session_id,  # type: ignore[arg-type]
                 profile_id=effective_profiles_id,  # type: ignore[arg-type]

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_archive.types import (
     GetTestArchiveResponse,
@@ -14,7 +15,7 @@ MV_NAME = "test_archive_mv"
 async def get_test_archives(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetTestArchiveResponse]:
+    redis: Redis) -> list[GetTestArchiveResponse]:
     """Get test_archive entries by IDs from MV."""
     if not ids:
         return []

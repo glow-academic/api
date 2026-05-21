@@ -111,7 +111,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -151,7 +151,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -197,7 +197,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -225,7 +225,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
         updated = await _create_cohort_route_resources(pool, redis_client)
@@ -279,7 +279,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -305,7 +305,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -347,7 +347,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
         draft_name = f"Draft Cohort {unique_tag()}"
@@ -423,7 +423,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 
@@ -452,7 +452,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            cohort_route_client,
+            redis_client, cohort_route_client,
             cohort_route_actor,
         )
 

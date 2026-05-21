@@ -13,33 +13,33 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _call(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _call(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return session, call
 
 
-async def test_new_problem_appears_after_refresh(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_new_problem_appears_after_refresh(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
     await refresh_problems(conn)
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
 
 
-async def test_new_problem_not_visible_before_refresh(conn, profile_id):
-    session, call = await _call(conn, profile_id)
+async def test_new_problem_not_visible_before_refresh(conn, redis_client, profile_id):
+    session, call = await _call(conn, redis_client, profile_id)
     result = await create_problem(
-        conn, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
+        conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
 
-    items = await get_problems(conn, [result.id])
+    items = await get_problems(conn, [result.id], redis_client)
 
     assert items == []

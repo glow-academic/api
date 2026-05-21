@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.simulation_drafts.types import (
     GetSimulationDraftResponse,
@@ -12,6 +13,7 @@ from app.tools.entries.simulation_drafts.types import (
 async def get_simulation_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
 ) -> list[GetSimulationDraftResponse]:
     """Get simulation_drafts entries by IDs with connection data.

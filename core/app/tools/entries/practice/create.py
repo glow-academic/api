@@ -4,12 +4,14 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.practice.types import CreatePracticeResponse
 
 
 async def create_practice(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     cohorts_ids: list[UUID],
     departments_ids: list[UUID],

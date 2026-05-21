@@ -221,27 +221,27 @@ async def attempt_chat_factory(pool, redis_client):
     async def _create():
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
-            run = await create_run(conn, group_id=group.id, session_id=session.id)
-            call = await create_call(conn, run_id=run.id, session_id=session.id)
-            persona = await create_persona(conn, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+            run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+            call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=call.id,
+                redis_client, call_id=call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
             )
-            chat = await create_chat(conn, session_id=session.id)
-            call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+            chat = await create_chat(conn, redis_client, session_id=session.id)
+            call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
             attempt_chat = await create_attempt_chat(
                 conn,
-                call_id=call2.id,
+                redis_client, call_id=call2.id,
                 chat_id=chat.id,
             )
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 attempt_chat_id=attempt_chat.id,
                 session_id=session.id,
             )
@@ -502,10 +502,11 @@ class TestUserStartImpl:
     async def test_creates_message_and_emits_user_start(
         self,
         pool,
+        redis_client,
         attempt_chat_factory,
     ):
         emit, events = recording_emit()
-        graph = await attempt_chat_factory()
+        graph = await attempt_chat_factory(redis_client, redis_client)
         await user_start_impl(
             {
                 "sid": "s1",
@@ -520,10 +521,10 @@ class TestUserStartImpl:
         assert events[0].event == "attempt_user_start"
         message_id = UUID(events[0].data["message_id"])
         async with pool.acquire() as conn:
-            message = await get_message(conn, message_id)
+            message = await get_message(conn, message_id, redis_client)
             attempt_messages, total_count = await search_attempt_messages(
                 conn,
-                chat_ids=[graph.attempt_chat.id],
+                redis_client, chat_ids=[graph.attempt_chat.id],
                 bypass_mv=True,
                 limit=100,
             )
@@ -684,11 +685,11 @@ class TestRunDoneImpl:
 class TestNextImpl:
     async def _setup_test(self, conn, redis_client):
         profile = await create_profile(conn, redis_client, name="test-next-profile")
-        session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id, artifact_type="persona")
-        run = await create_run(conn, group_id=group.id, session_id=session.id)
-        test_call = await create_call(conn, run_id=run.id, session_id=session.id)
-        test = await create_test(conn, call_id=test_call.id, profiles_id=profile.id)
+        session = await create_session(conn, redis_client, profile_id=profile.id)
+        group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+        run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+        test_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+        test = await create_test(conn, redis_client, call_id=test_call.id, profiles_id=profile.id)
         return test, run, session, group
 
     async def test_no_sid_emits_nothing(self):
@@ -706,7 +707,7 @@ class TestNextImpl:
 
     async def test_no_invocations_emits_all_complete(self, pool, redis_client):
         async with pool.acquire() as conn:
-            test, _run, _session, _group = await self._setup_test(conn, redis_client)
+            test, _run, _session, _group = await self._setup_test(conn, redis_client, redis_client)
             await refresh_test(conn)
             await refresh_test_invocation(conn)
         emit, events = recording_emit()
@@ -723,13 +724,13 @@ class TestNextImpl:
 
     async def test_pending_invocation_emits_test_group(self, pool, redis_client):
         async with pool.acquire() as conn:
-            test, run, session, group = await self._setup_test(conn, redis_client)
+            test, run, session, group = await self._setup_test(conn, redis_client, redis_client)
             invocation_call = await create_call(
-                conn, run_id=run.id, session_id=session.id
+                conn, redis_client, run_id=run.id, session_id=session.id
             )
             invocation = await create_test_invocation(
                 conn,
-                test_id=test.id,
+                redis_client, test_id=test.id,
                 call_id=invocation_call.id,
             )
             await refresh_test(conn)
@@ -749,36 +750,36 @@ class TestNextImpl:
 
     async def test_all_completed_emits_all_complete(self, pool, redis_client):
         async with pool.acquire() as conn:
-            test, run, session, group = await self._setup_test(conn, redis_client)
-            first_call = await create_call(conn, run_id=run.id, session_id=session.id)
+            test, run, session, group = await self._setup_test(conn, redis_client, redis_client)
+            first_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
             first_invocation = await create_test_invocation(
                 conn,
-                test_id=test.id,
+                redis_client, test_id=test.id,
                 call_id=first_call.id,
             )
-            second_call = await create_call(conn, run_id=run.id, session_id=session.id)
+            second_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
             second_invocation = await create_test_invocation(
                 conn,
-                test_id=test.id,
+                redis_client, test_id=test.id,
                 call_id=second_call.id,
             )
             complete_first_call = await create_call(
-                conn, run_id=run.id, session_id=session.id
+                conn, redis_client, run_id=run.id, session_id=session.id
             )
             await create_test_grade(
                 conn,
-                invocation_id=first_invocation.id,
+                redis_client, invocation_id=first_invocation.id,
                 call_id=complete_first_call.id,
                 time_taken=10,
                 passed=True,
                 score=90,
             )
             complete_second_call = await create_call(
-                conn, run_id=run.id, session_id=session.id
+                conn, redis_client, run_id=run.id, session_id=session.id
             )
             await create_test_grade(
                 conn,
-                invocation_id=second_invocation.id,
+                redis_client, invocation_id=second_invocation.id,
                 call_id=complete_second_call.id,
                 time_taken=10,
                 passed=True,
@@ -873,11 +874,11 @@ class TestGradeCompleteImpl:
     async def test_creates_token_when_run_and_session(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
@@ -901,7 +902,7 @@ class TestGradeCompleteImpl:
 
         async with pool.acquire() as conn:
             await refresh_tokens(conn)
-            tokens = await search_tokens(conn, run_ids=[run.id], bypass_mv=True)
+            tokens = await search_tokens(conn, redis_client, run_ids=[run.id], bypass_mv=True)
 
         assert len(events) == 1
         assert len(tokens) == 1
@@ -1013,10 +1014,10 @@ class TestGroupImpl:
     async def test_first_run_emits_test_run(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
-            first_run = await create_run(conn, group_id=group.id, session_id=session.id)
-            await create_run(conn, group_id=group.id, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+            first_run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+            await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
 
         emit, events = recording_emit()
         await _test_group_impl(
@@ -1037,10 +1038,10 @@ class TestGroupImpl:
     async def test_last_run_emits_group_complete(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
-            await create_run(conn, group_id=group.id, session_id=session.id)
-            last_run = await create_run(conn, group_id=group.id, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+            await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+            last_run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
 
         emit, events = recording_emit()
         await _test_group_impl(
@@ -1120,8 +1121,8 @@ class TestStartImpl:
     async def test_creates_benchmark_bridge_when_requested(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            benchmark = await create_benchmark(conn, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            benchmark = await create_benchmark(conn, redis_client, session_id=session.id)
 
         emit, events = recording_emit()
         await _test_start_impl(
@@ -1163,13 +1164,13 @@ class TestStartImpl:
 class TestProceedImpl:
     async def _setup_test(self, conn, redis_client, *, is_dynamic=True):
         profile = await create_profile(conn, redis_client, name="test-proceed-profile")
-        session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id, artifact_type="persona")
-        run = await create_run(conn, group_id=group.id, session_id=session.id)
-        test_call = await create_call(conn, run_id=run.id, session_id=session.id)
+        session = await create_session(conn, redis_client, profile_id=profile.id)
+        group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+        run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+        test_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
         test = await create_test(
             conn,
-            call_id=test_call.id,
+            redis_client, call_id=test_call.id,
             profiles_id=profile.id,
             is_dynamic=is_dynamic,
         )
@@ -1185,6 +1186,7 @@ class TestProceedImpl:
     async def _create_invocation(
         self,
         conn,
+        redis_client,
         graph,
         *,
         group_id=None,
@@ -1192,12 +1194,12 @@ class TestProceedImpl:
     ):
         invocation_call = await create_call(
             conn,
-            run_id=graph.run.id,
+            redis_client, run_id=graph.run.id,
             session_id=graph.session.id,
         )
         invocation = await create_test_invocation(
             conn,
-            test_id=graph.test.id,
+            redis_client, test_id=graph.test.id,
             call_id=invocation_call.id,
             use_custom=use_custom,
         )
@@ -1219,8 +1221,8 @@ class TestProceedImpl:
 
     async def test_complete_all_marks_all_and_emits_ended(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client)
-            invocation, _invocation_call = await self._create_invocation(conn, graph)
+            graph = await self._setup_test(conn, redis_client, redis_client)
+            invocation, _invocation_call = await self._create_invocation(conn, graph, redis_client)
         emit, events = recording_emit()
         await _test_proceed_impl(
             {
@@ -1235,7 +1237,7 @@ class TestProceedImpl:
         async with pool.acquire() as conn:
             completions = await search_test_invocation_completions(
                 conn,
-                invocation_ids=[invocation.id],
+                redis_client, invocation_ids=[invocation.id],
                 bypass_mv=True,
             )
 
@@ -1246,16 +1248,16 @@ class TestProceedImpl:
 
     async def test_all_completed_emits_ended(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client)
-            invocation, _invocation_call = await self._create_invocation(conn, graph)
+            graph = await self._setup_test(conn, redis_client, redis_client)
+            invocation, _invocation_call = await self._create_invocation(conn, graph, redis_client)
             grade_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_test_grade(
                 conn,
-                invocation_id=invocation.id,
+                redis_client, invocation_id=invocation.id,
                 call_id=grade_call.id,
                 time_taken=10,
                 passed=True,
@@ -1277,7 +1279,7 @@ class TestProceedImpl:
 
     async def test_no_invocations_emits_error(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client)
+            graph = await self._setup_test(conn, redis_client, redis_client)
         emit, events = recording_emit()
         await _test_proceed_impl(
             {
@@ -1294,11 +1296,11 @@ class TestProceedImpl:
 
     async def test_use_custom_without_force_emits_started(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client)
+            graph = await self._setup_test(conn, redis_client, redis_client)
             invocation, _invocation_call = await self._create_invocation(
                 conn,
                 graph,
-                use_custom=True,
+                redis_client, use_custom=True,
             )
         emit, events = recording_emit()
         await _test_proceed_impl(
@@ -1320,8 +1322,8 @@ class TestProceedImpl:
         redis_client,
     ):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client, is_dynamic=False)
-            invocation, _invocation_call = await self._create_invocation(conn, graph)
+            graph = await self._setup_test(conn, redis_client, redis_client, is_dynamic=False)
+            invocation, _invocation_call = await self._create_invocation(conn, graph, redis_client)
         emit, events = recording_emit()
         await _test_proceed_impl(
             {
@@ -1336,7 +1338,7 @@ class TestProceedImpl:
         async with pool.acquire() as conn:
             started_invocations, _ = await search_test_invocation_entries_internal(
                 conn,
-                test_ids=[graph.test.id],
+                redis_client, test_ids=[graph.test.id],
                 bypass_mv=True,
                 limit=100,
             )
@@ -1353,8 +1355,8 @@ class TestProceedImpl:
         redis_client,
     ):
         async with pool.acquire() as conn:
-            graph = await self._setup_test(conn, redis_client)
-            invocation, _invocation_call = await self._create_invocation(conn, graph)
+            graph = await self._setup_test(conn, redis_client, redis_client)
+            invocation, _invocation_call = await self._create_invocation(conn, graph, redis_client)
         emit, events = recording_emit()
         await _test_proceed_impl(
             {
@@ -1369,7 +1371,7 @@ class TestProceedImpl:
         async with pool.acquire() as conn:
             completions = await search_test_invocation_completions(
                 conn,
-                invocation_ids=[invocation.id],
+                redis_client, invocation_ids=[invocation.id],
                 bypass_mv=True,
             )
 
@@ -1389,16 +1391,16 @@ _RUN_CREATE = "app.tools.entries.runs.create"
 class TestRunImpl:
     async def _setup_graph(self, conn, redis_client):
         profile = await create_profile(conn, redis_client, name="test-run-profile")
-        session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id, artifact_type="persona")
+        session = await create_session(conn, redis_client, profile_id=profile.id)
+        group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
-            group_id=group.id,
+            redis_client, group_id=group.id,
             session_id=session.id,
             profiles_id=profile.id,
         )
-        test_call = await create_call(conn, run_id=run.id, session_id=session.id)
-        test = await create_test(conn, call_id=test_call.id, profiles_id=profile.id)
+        test_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+        test = await create_test(conn, redis_client, call_id=test_call.id, profiles_id=profile.id)
         return SimpleNamespace(
             profile=profile,
             session=session,
@@ -1450,15 +1452,15 @@ class TestRunImpl:
 
     async def test_no_messages_emits_error(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_graph(conn, redis_client)
+            graph = await self._setup_graph(conn, redis_client, redis_client)
             invocation_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             invocation = await create_test_invocation(
                 conn,
-                test_id=graph.test.id,
+                redis_client, test_id=graph.test.id,
                 call_id=invocation_call.id,
             )
         emit, events = recording_emit()
@@ -1486,17 +1488,17 @@ class TestRunImpl:
         redis_client,
     ):
         async with pool.acquire() as conn:
-            graph = await self._setup_graph(conn, redis_client)
-            await create_message(conn, run_id=graph.run.id, role="user")
-            await create_message(conn, run_id=graph.run.id, role="assistant")
+            graph = await self._setup_graph(conn, redis_client, redis_client)
+            await create_message(conn, redis_client, run_id=graph.run.id, role="user")
+            await create_message(conn, redis_client, run_id=graph.run.id, role="assistant")
             invocation_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             invocation = await create_test_invocation(
                 conn,
-                test_id=graph.test.id,
+                redis_client, test_id=graph.test.id,
                 call_id=invocation_call.id,
             )
         emit, events = recording_emit()
@@ -1519,7 +1521,7 @@ class TestRunImpl:
         async with pool.acquire() as conn:
             copied_messages, _ = await search_messages(
                 conn,
-                run_ids=[new_run_id],
+                redis_client, run_ids=[new_run_id],
                 sort_order="asc",
                 bypass_mv=True,
                 limit=100,
@@ -1573,18 +1575,18 @@ class TestUserCompleteImpl:
         )
         assert events == []
 
-    async def test_happy_path_emits_user_complete(self, pool, attempt_chat_factory):
-        graph = await attempt_chat_factory()
+    async def test_happy_path_emits_user_complete(self, pool, redis_client, attempt_chat_factory):
+        graph = await attempt_chat_factory(redis_client, redis_client)
         async with pool.acquire() as conn:
-            open_message = await create_message(conn, run_id=graph.run.id, role="user")
+            open_message = await create_message(conn, redis_client, run_id=graph.run.id, role="user")
             open_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_attempt_message(
                 conn,
-                chat_id=graph.attempt_chat.id,
+                redis_client, chat_id=graph.attempt_chat.id,
                 message_id=open_message.id,
                 call_id=open_call.id,
             )
@@ -1608,19 +1610,19 @@ class TestUserCompleteImpl:
         async with pool.acquire() as conn:
             contents = await search_attempt_contents(
                 conn,
-                message_ids=[open_message.id],
+                redis_client, message_ids=[open_message.id],
                 bypass_mv=True,
                 limit=100,
             )
             completions = await search_attempt_message_completions(
                 conn,
-                attempt_message_ids=[open_message.id],
+                redis_client, attempt_message_ids=[open_message.id],
                 bypass_mv=True,
                 limit=100,
             )
             attempt_messages, _ = await search_attempt_messages(
                 conn,
-                chat_ids=[graph.attempt_chat.id],
+                redis_client, chat_ids=[graph.attempt_chat.id],
                 bypass_mv=True,
                 limit=100,
             )
@@ -1634,48 +1636,48 @@ class TestUserCompleteImpl:
         )
         assert matching_message.completed is True
 
-    async def test_filters_completed_messages(self, pool, attempt_chat_factory):
-        graph = await attempt_chat_factory()
+    async def test_filters_completed_messages(self, pool, redis_client, attempt_chat_factory):
+        graph = await attempt_chat_factory(redis_client, redis_client)
         async with pool.acquire() as conn:
             completed_message = await create_message(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 role="user",
             )
             completed_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_attempt_message(
                 conn,
-                chat_id=graph.attempt_chat.id,
+                redis_client, chat_id=graph.attempt_chat.id,
                 message_id=completed_message.id,
                 call_id=completed_call.id,
             )
             completion_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_attempt_message_completion(
                 conn,
-                attempt_message_id=completed_message.id,
+                redis_client, attempt_message_id=completed_message.id,
                 call_id=completion_call.id,
             )
             assistant_message = await create_message(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 role="assistant",
             )
             assistant_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_attempt_message(
                 conn,
-                chat_id=graph.attempt_chat.id,
+                redis_client, chat_id=graph.attempt_chat.id,
                 message_id=assistant_message.id,
                 call_id=assistant_call.id,
             )
@@ -1744,11 +1746,12 @@ class TestSpeechCompleteImpl:
     async def test_with_audio_creates_upload(
         self,
         pool,
+        redis_client,
         audio_session_factory,
         tmp_path,
     ):
         test_session_id = "00000000-0000-0000-0000-0000000000aa"
-        await audio_session_factory(session_id=test_session_id)
+        await audio_session_factory(redis_client, session_id=test_session_id)
         emit, events = recording_emit()
         await _speech_complete_impl(
             {
@@ -1765,7 +1768,7 @@ class TestSpeechCompleteImpl:
         assert len(events) == 1
         upload_id = UUID(events[0].data["audio_upload_id"])
         async with pool.acquire() as conn:
-            upload = await get_upload(conn, upload_id)
+            upload = await get_upload(conn, upload_id, redis_client)
         assert upload is not None
         assert upload.session_id == UUID(test_session_id)
         assert upload.mime_type == "audio/pcm16"
@@ -1792,23 +1795,23 @@ class TestAttemptMessageImpl:
         fixture = await profile_identity_factory()
 
         async with pool.acquire() as conn:
-            session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             base_run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=fixture.profile_resource_id,
             )
             call = await create_call(
                 conn,
-                run_id=base_run.id,
+                redis_client, run_id=base_run.id,
                 session_id=session.id,
             )
-            persona = await create_persona(conn, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=call.id,
+                redis_client, call_id=call.id,
                 user_persona_id=persona.id,
                 profiles_id=fixture.profile_resource_id,
                 practice=with_department,
@@ -1820,23 +1823,23 @@ class TestAttemptMessageImpl:
             )
             chat = await create_chat(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 department_ids=[department.id] if department else [],
             )
             attempt_chat_call = await create_call(
                 conn,
-                run_id=base_run.id,
+                redis_client, run_id=base_run.id,
                 session_id=session.id,
             )
             attempt_chat = await create_attempt_chat(
                 conn,
-                call_id=attempt_chat_call.id,
+                redis_client, call_id=attempt_chat_call.id,
                 chat_id=chat.id,
                 departments_ids=[department.id] if department else None,
             )
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 attempt_chat_id=attempt_chat.id,
                 session_id=session.id,
             )
@@ -1844,7 +1847,7 @@ class TestAttemptMessageImpl:
             if department is not None:
                 practice = await create_practice(
                     conn,
-                    session_id=session.id,
+                    redis_client, session_id=session.id,
                     cohorts_ids=[],
                     departments_ids=[department.id],
                     simulations_ids=[],
@@ -1855,13 +1858,13 @@ class TestAttemptMessageImpl:
                 )
                 await create_practice_chat(
                     conn,
-                    practice_id=practice.id,
+                    redis_client, practice_id=practice.id,
                     chat_id=chat.id,
                     session_id=session.id,
                 )
                 await create_attempt_practice(
                     conn,
-                    attempt_id=attempt.id,
+                    redis_client, attempt_id=attempt.id,
                     practice_id=practice.id,
                     session_id=session.id,
                 )
@@ -1905,13 +1908,13 @@ class TestAttemptMessageImpl:
         graph = await self._setup_attempt_message_graph(
             pool,
             redis_client,
-            profile_identity_factory,
+            redis_client, profile_identity_factory,
             with_department=True,
         )
         async with pool.acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
                 conn,
-                attempt_chat_ids=[graph.attempt_chat.id],
+                redis_client, attempt_chat_ids=[graph.attempt_chat.id],
                 bypass_mv=True,
                 limit=10,
             )
@@ -1950,21 +1953,21 @@ class TestAttemptMessageImpl:
         generated_run_id = UUID(events[2].data["run_id"])
 
         async with pool.acquire() as conn:
-            message = await get_message(conn, message_id)
+            message = await get_message(conn, message_id, redis_client)
             content_rows = await search_attempt_contents(
                 conn,
-                message_ids=[message_id],
+                redis_client, message_ids=[message_id],
                 bypass_mv=True,
                 limit=10,
             )
             completion_rows = await search_attempt_message_completions(
                 conn,
-                attempt_message_ids=[message_id],
+                redis_client, attempt_message_ids=[message_id],
                 bypass_mv=True,
                 limit=10,
             )
-            generated_run = await get_run(conn, generated_run_id)
-            created_run = await get_run(conn, message.run_id)
+            generated_run = await get_run(conn, generated_run_id, redis_client)
+            created_run = await get_run(conn, message.run_id, redis_client)
 
         assert message is not None
         assert message.run_id != graph.base_run.id
@@ -1987,7 +1990,7 @@ class TestAttemptMessageImpl:
         graph = await self._setup_attempt_message_graph(
             pool,
             redis_client,
-            profile_identity_factory,
+            redis_client, profile_identity_factory,
             with_department=False,
         )
 
@@ -2014,16 +2017,16 @@ class TestAttemptMessageImpl:
 
         message_id = UUID(events[0].data["message_id"])
         async with pool.acquire() as conn:
-            message = await get_message(conn, message_id)
+            message = await get_message(conn, message_id, redis_client)
             content_rows = await search_attempt_contents(
                 conn,
-                message_ids=[message_id],
+                redis_client, message_ids=[message_id],
                 bypass_mv=True,
                 limit=10,
             )
             completion_rows = await search_attempt_message_completions(
                 conn,
-                attempt_message_ids=[message_id],
+                redis_client, attempt_message_ids=[message_id],
                 bypass_mv=True,
                 limit=10,
             )
@@ -2106,8 +2109,8 @@ class TestAttemptStartImpl:
         fixture = await profile_identity_factory()
 
         async with pool.acquire() as conn:
-            session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             persona_resource = await create_persona_resource(
                 conn,
                 redis_client,
@@ -2127,7 +2130,7 @@ class TestAttemptStartImpl:
             )
             practice = await create_practice(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[],
                 simulations_ids=[simulation.id],
@@ -2136,17 +2139,17 @@ class TestAttemptStartImpl:
                 simulation_availability_ids=[],
                 simulation_positions_ids=[],
             )
-            chat_one = await create_chat(conn, session_id=session.id)
-            chat_two = await create_chat(conn, session_id=session.id)
+            chat_one = await create_chat(conn, redis_client, session_id=session.id)
+            chat_two = await create_chat(conn, redis_client, session_id=session.id)
             await create_practice_chat(
                 conn,
-                practice_id=practice.id,
+                redis_client, practice_id=practice.id,
                 chat_id=chat_one.id,
                 session_id=session.id,
             )
             await create_practice_chat(
                 conn,
-                practice_id=practice.id,
+                redis_client, practice_id=practice.id,
                 chat_id=chat_two.id,
                 session_id=session.id,
             )
@@ -2172,7 +2175,7 @@ class TestAttemptStartImpl:
         attempt_id = UUID(events[0].data["attempt_id"])
 
         async with pool.acquire() as conn:
-            attempts = await get_attempts(conn, [attempt_id])
+            attempts = await get_attempts(conn, [attempt_id], redis_client)
 
         assert len(attempts) == 1
         assert attempts[0].profile_id == fixture.profile_resource_id
@@ -2189,8 +2192,8 @@ class TestAttemptStartImpl:
         fixture = await profile_identity_factory()
 
         async with pool.acquire() as conn:
-            session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             persona_resource = await create_persona_resource(
                 conn,
                 redis_client,
@@ -2210,7 +2213,7 @@ class TestAttemptStartImpl:
             )
             home = await create_home(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[],
                 simulations_ids=[simulation.id],
@@ -2219,17 +2222,17 @@ class TestAttemptStartImpl:
                 simulation_availability_ids=[],
                 simulation_positions_ids=[],
             )
-            chat_one = await create_chat(conn, session_id=session.id)
-            chat_two = await create_chat(conn, session_id=session.id)
+            chat_one = await create_chat(conn, redis_client, session_id=session.id)
+            chat_two = await create_chat(conn, redis_client, session_id=session.id)
             await create_home_chat(
                 conn,
-                home_id=home.id,
+                redis_client, home_id=home.id,
                 chat_id=chat_one.id,
                 session_id=session.id,
             )
             await create_home_chat(
                 conn,
-                home_id=home.id,
+                redis_client, home_id=home.id,
                 chat_id=chat_two.id,
                 session_id=session.id,
             )
@@ -2256,7 +2259,7 @@ class TestAttemptStartImpl:
         attempt_id = UUID(events[0].data["attempt_id"])
 
         async with pool.acquire() as conn:
-            attempts = await get_attempts(conn, [attempt_id])
+            attempts = await get_attempts(conn, [attempt_id], redis_client)
 
         assert len(attempts) == 1
         assert attempts[0].profile_id == fixture.profile_resource_id
@@ -2268,8 +2271,8 @@ class TestAttemptStartImpl:
     ):
         fixture = await profile_identity_factory()
         async with pool.acquire() as conn:
-            session = await create_session(conn, profile_id=fixture.profile_resource_id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=fixture.profile_resource_id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
 
         emit, events = recording_emit()
         await _attempt_start_impl(
@@ -2300,15 +2303,15 @@ class TestEmitChatGenerateImpl:
     async def test_emits_generate_event(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            source_group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            source_group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             source_run = await create_run(
                 conn,
-                group_id=source_group.id,
+                redis_client, group_id=source_group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
-            chat_entry = await create_chat(conn, session_id=session.id)
+            chat_entry = await create_chat(conn, redis_client, session_id=session.id)
 
         emit, events = recording_emit()
         await _emit_chat_generate_impl(
@@ -2327,8 +2330,8 @@ class TestEmitChatGenerateImpl:
         generated_group_id = UUID(events[0].data["group_id"])
         generated_run_id = UUID(events[0].data["run_id"])
         async with pool.acquire() as conn:
-            groups = await get_groups(conn, [generated_group_id], bypass_mv=True)
-            run = await get_run(conn, generated_run_id)
+            groups = await get_groups(conn, [generated_group_id], redis_client, bypass_mv=True)
+            run = await get_run(conn, generated_run_id, redis_client)
 
         assert len(events) == 1
         assert events[0].event == "generate"
@@ -2343,8 +2346,8 @@ class TestEmitChatGenerateImpl:
     async def test_uses_default_resource_types(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            chat_entry = await create_chat(conn, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            chat_entry = await create_chat(conn, redis_client, session_id=session.id)
 
         emit, events = recording_emit()
         await _emit_chat_generate_impl(
@@ -2375,8 +2378,8 @@ class TestEmitChatGenerateImpl:
     ):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            chat_entry = await create_chat(conn, session_id=session.id)
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            chat_entry = await create_chat(conn, redis_client, session_id=session.id)
 
         draft = UUID(int=99)
         emit, events = recording_emit()
@@ -2453,8 +2456,8 @@ class TestAttemptProceedImpl:
         )
         assert len(events) == 0
 
-    async def test_complete_all_emits_ended(self, pool, attempt_chat_factory):
-        graph = await attempt_chat_factory()
+    async def test_complete_all_emits_ended(self, pool, redis_client, attempt_chat_factory):
+        graph = await attempt_chat_factory(redis_client, redis_client)
         emit, events = recording_emit()
         await _attempt_proceed_impl(
             {
@@ -2473,7 +2476,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             completions = await search_attempt_chat_completions(
                 conn,
-                chat_ids=[graph.attempt_chat.id],
+                redis_client, chat_ids=[graph.attempt_chat.id],
                 bypass_mv=True,
             )
 
@@ -2485,23 +2488,23 @@ class TestAttemptProceedImpl:
     async def test_all_done_emits_ended(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
             attempt_call = await create_call(
                 conn,
-                run_id=run.id,
+                redis_client, run_id=run.id,
                 session_id=session.id,
             )
-            persona = await create_persona(conn, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=attempt_call.id,
+                redis_client, call_id=attempt_call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
                 practice=True,
@@ -2509,7 +2512,7 @@ class TestAttemptProceedImpl:
             )
             practice = await create_practice(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[],
                 simulations_ids=[],
@@ -2518,32 +2521,32 @@ class TestAttemptProceedImpl:
                 simulation_availability_ids=[],
                 simulation_positions_ids=[],
             )
-            chat = await create_chat(conn, session_id=session.id)
+            chat = await create_chat(conn, redis_client, session_id=session.id)
             await create_practice_chat(
                 conn,
-                practice_id=practice.id,
+                redis_client, practice_id=practice.id,
                 chat_id=chat.id,
                 session_id=session.id,
             )
             attempt_chat_call = await create_call(
                 conn,
-                run_id=run.id,
+                redis_client, run_id=run.id,
                 session_id=session.id,
             )
             attempt_chat = await create_attempt_chat(
                 conn,
-                call_id=attempt_chat_call.id,
+                redis_client, call_id=attempt_chat_call.id,
                 chat_id=chat.id,
             )
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 attempt_chat_id=attempt_chat.id,
                 session_id=session.id,
             )
             await create_attempt_practice(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 practice_id=practice.id,
                 session_id=session.id,
             )
@@ -2576,19 +2579,19 @@ class TestAttemptProceedImpl:
         parent_chat_overrides: dict | None = None,
     ):
         profile = await create_profile(conn, redis_client)
-        session = await create_session(conn, profile_id=profile.id)
-        group = await create_group(conn, session_id=session.id, artifact_type="persona")
+        session = await create_session(conn, redis_client, profile_id=profile.id)
+        group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
         run = await create_run(
             conn,
-            group_id=group.id,
+            redis_client, group_id=group.id,
             session_id=session.id,
             profiles_id=profile.id,
         )
-        attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
-        persona = await create_persona(conn, session_id=session.id)
+        attempt_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+        persona = await create_persona(conn, redis_client, session_id=session.id)
         attempt = await create_attempt(
             conn,
-            call_id=attempt_call.id,
+            redis_client, call_id=attempt_call.id,
             user_persona_id=persona.id,
             profiles_id=profile.id,
             practice=True,
@@ -2596,7 +2599,7 @@ class TestAttemptProceedImpl:
         )
         practice = await create_practice(
             conn,
-            session_id=session.id,
+            redis_client, session_id=session.id,
             cohorts_ids=[],
             departments_ids=[],
             simulations_ids=[],
@@ -2608,19 +2611,19 @@ class TestAttemptProceedImpl:
         department = await create_department(conn, redis=redis_client)
         parent_chat = await create_chat(
             conn,
-            session_id=session.id,
+            redis_client, session_id=session.id,
             department_ids=[department.id],
             **(parent_chat_overrides or {}),
         )
         await create_practice_chat(
             conn,
-            practice_id=practice.id,
+            redis_client, practice_id=practice.id,
             chat_id=parent_chat.id,
             session_id=session.id,
         )
         await create_attempt_practice(
             conn,
-            attempt_id=attempt.id,
+            redis_client, attempt_id=attempt.id,
             practice_id=practice.id,
             session_id=session.id,
         )
@@ -2638,7 +2641,7 @@ class TestAttemptProceedImpl:
 
     async def test_no_generation_emits_chat_started(self, pool, redis_client):
         async with pool.acquire() as conn:
-            graph = await self._setup_practice_attempt(conn, redis_client)
+            graph = await self._setup_practice_attempt(conn, redis_client, redis_client)
 
         emit, events = recording_emit()
         await _attempt_proceed_impl(
@@ -2658,13 +2661,13 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
                 conn,
-                attempt_chat_ids=[attempt_chat_id],
+                redis_client, attempt_chat_ids=[attempt_chat_id],
                 bypass_mv=True,
                 limit=10,
             )
             bridges = await search_attempt_chat_bridges(
                 conn,
-                attempt_ids=[graph.attempt.id],
+                redis_client, attempt_ids=[graph.attempt.id],
                 bypass_mv=True,
                 limit=10,
             )
@@ -2686,7 +2689,7 @@ class TestAttemptProceedImpl:
             graph = await self._setup_practice_attempt(
                 conn,
                 redis_client,
-                parent_chat_overrides={"generate_personas": True},
+                redis_client, parent_chat_overrides={"generate_personas": True},
             )
 
         emit, events = recording_emit()
@@ -2711,7 +2714,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             bridges = await search_attempt_chat_bridges(
                 conn,
-                attempt_ids=[graph.attempt.id],
+                redis_client, attempt_ids=[graph.attempt.id],
                 bypass_mv=True,
                 limit=10,
             )
@@ -2723,7 +2726,7 @@ class TestAttemptProceedImpl:
             graph = await self._setup_practice_attempt(
                 conn,
                 redis_client,
-                parent_chat_overrides={"use_custom": True},
+                redis_client, parent_chat_overrides={"use_custom": True},
             )
 
         emit, events = recording_emit()
@@ -2747,8 +2750,8 @@ class TestAttemptProceedImpl:
     async def test_error_emits_attempt_error(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
 
         emit, events = recording_emit()
         await _attempt_proceed_impl(
@@ -2772,18 +2775,19 @@ class TestAttemptProceedImpl:
     async def test_complete_all_ignores_duplicate_chat_completions(
         self,
         pool,
+        redis_client,
         attempt_chat_factory,
     ):
-        graph = await attempt_chat_factory()
+        graph = await attempt_chat_factory(redis_client, redis_client)
         async with pool.acquire() as conn:
             completion_call = await create_call(
                 conn,
-                run_id=graph.run.id,
+                redis_client, run_id=graph.run.id,
                 session_id=graph.session.id,
             )
             await create_attempt_chat_completion(
                 conn,
-                chat_id=graph.attempt_chat.id,
+                redis_client, chat_id=graph.attempt_chat.id,
                 call_id=completion_call.id,
             )
 
@@ -2810,23 +2814,23 @@ class TestAttemptProceedImpl:
     async def test_missing_home_link_emits_attempt_error(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
             attempt_call = await create_call(
                 conn,
-                run_id=run.id,
+                redis_client, run_id=run.id,
                 session_id=session.id,
             )
-            persona = await create_persona(conn, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=attempt_call.id,
+                redis_client, call_id=attempt_call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
                 practice=False,
@@ -2854,19 +2858,19 @@ class TestAttemptProceedImpl:
     async def test_no_department_emits_attempt_error(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
-            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
-            persona = await create_persona(conn, session_id=session.id)
+            attempt_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=attempt_call.id,
+                redis_client, call_id=attempt_call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
                 practice=True,
@@ -2874,7 +2878,7 @@ class TestAttemptProceedImpl:
             )
             practice = await create_practice(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[],
                 simulations_ids=[],
@@ -2885,18 +2889,18 @@ class TestAttemptProceedImpl:
             )
             parent_chat = await create_chat(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 department_ids=[],
             )
             await create_practice_chat(
                 conn,
-                practice_id=practice.id,
+                redis_client, practice_id=practice.id,
                 chat_id=parent_chat.id,
                 session_id=session.id,
             )
             await create_attempt_practice(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 practice_id=practice.id,
                 session_id=session.id,
             )
@@ -2924,19 +2928,19 @@ class TestAttemptProceedImpl:
     async def test_home_attempt_emits_chat_started(self, pool, redis_client):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
-            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
-            persona = await create_persona(conn, session_id=session.id)
+            attempt_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=attempt_call.id,
+                redis_client, call_id=attempt_call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
                 practice=False,
@@ -2945,7 +2949,7 @@ class TestAttemptProceedImpl:
             department = await create_department(conn, redis=redis_client)
             home = await create_home(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[department.id],
                 simulations_ids=[],
@@ -2956,18 +2960,18 @@ class TestAttemptProceedImpl:
             )
             parent_chat = await create_chat(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 department_ids=[department.id],
             )
             await create_home_chat(
                 conn,
-                home_id=home.id,
+                redis_client, home_id=home.id,
                 chat_id=parent_chat.id,
                 session_id=session.id,
             )
             await create_attempt_home(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 home_id=home.id,
                 session_id=session.id,
             )
@@ -2998,19 +3002,19 @@ class TestAttemptProceedImpl:
     ):
         async with pool.acquire() as conn:
             profile = await create_profile(conn, redis_client)
-            session = await create_session(conn, profile_id=profile.id)
-            group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            session = await create_session(conn, redis_client, profile_id=profile.id)
+            group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             run = await create_run(
                 conn,
-                group_id=group.id,
+                redis_client, group_id=group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
-            attempt_call = await create_call(conn, run_id=run.id, session_id=session.id)
-            persona = await create_persona(conn, session_id=session.id)
+            attempt_call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+            persona = await create_persona(conn, redis_client, session_id=session.id)
             attempt = await create_attempt(
                 conn,
-                call_id=attempt_call.id,
+                redis_client, call_id=attempt_call.id,
                 user_persona_id=persona.id,
                 profiles_id=profile.id,
                 practice=True,
@@ -3019,7 +3023,7 @@ class TestAttemptProceedImpl:
             department = await create_department(conn, redis=redis_client)
             practice = await create_practice(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 cohorts_ids=[],
                 departments_ids=[department.id],
                 simulations_ids=[],
@@ -3030,19 +3034,19 @@ class TestAttemptProceedImpl:
             )
             parent_chat = await create_chat(
                 conn,
-                session_id=session.id,
+                redis_client, session_id=session.id,
                 department_ids=[],
                 generate_personas=True,
             )
             await create_practice_chat(
                 conn,
-                practice_id=practice.id,
+                redis_client, practice_id=practice.id,
                 chat_id=parent_chat.id,
                 session_id=session.id,
             )
             await create_attempt_practice(
                 conn,
-                attempt_id=attempt.id,
+                redis_client, attempt_id=attempt.id,
                 practice_id=practice.id,
                 session_id=session.id,
             )
@@ -3070,7 +3074,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
                 conn,
-                attempt_chat_ids=[generated_attempt_chat_id],
+                redis_client, attempt_chat_ids=[generated_attempt_chat_id],
                 bypass_mv=True,
                 limit=10,
             )
@@ -3110,7 +3114,7 @@ class TestAttemptProceedImpl:
             graph = await self._setup_practice_attempt(
                 conn,
                 redis_client,
-                parent_chat_overrides={
+                redis_client, parent_chat_overrides={
                     "rubric_ids": [rubric.id],
                     "standard_ids": [standard.id],
                     "standard_group_ids": [standard_group.id],
@@ -3138,7 +3142,7 @@ class TestAttemptProceedImpl:
         async with pool.acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
                 conn,
-                attempt_chat_ids=[generated_attempt_chat_id],
+                redis_client, attempt_chat_ids=[generated_attempt_chat_id],
                 bypass_mv=True,
                 limit=10,
             )

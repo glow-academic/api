@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.test_invocation_traces.types import (
     GetTestInvocationTracesResponse,
@@ -14,7 +15,7 @@ MV_NAME = "test_invocation_traces_mv"
 async def get_test_invocation_traces(
     conn: asyncpg.Connection,
     ids: list[UUID],
-) -> list[GetTestInvocationTracesResponse]:
+    redis: Redis) -> list[GetTestInvocationTracesResponse]:
     """Get test_invocation_traces entries by IDs from MV."""
     if not ids:
         return []

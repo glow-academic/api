@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 MV_NAME = "chat_mv"
 
 
 async def search_chat_entries_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     parent_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
     limit_count: int = 20,

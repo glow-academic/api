@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_strength.types import (
     CreateAttemptStrengthResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_strength.types import (
 
 async def create_attempt_strength(
     conn: asyncpg.Connection,
+    redis: Redis,
     grade_id: UUID,
     message_id: UUID,
     session_id: UUID,

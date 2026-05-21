@@ -99,11 +99,11 @@ async def create_invocation_impl(
     group_id = group_result.group_id
 
     async with pool.acquire() as conn:
-        tests = await get_tests(conn, ids=[request.test_id])
+        tests = await get_tests(conn, [request.test_id], redis)
         if not tests:
             raise HTTPException(status_code=404, detail=f"Test {request.test_id} not found")
 
-        groups = await get_groups(conn, [group_id])
+        groups = await get_groups(conn, [group_id], redis)
         if not groups or groups[0].session_id is None:
             raise HTTPException(status_code=400, detail="Group has no session_id")
         group_session_id = groups[0].session_id
@@ -122,7 +122,7 @@ async def create_invocation_impl(
         tmpl_quality: list[UUID] = []
 
         if request.invocation_id is not None:
-            tmpls = await get_invocations(conn, [request.invocation_id])
+            tmpls = await get_invocations(conn, [request.invocation_id], redis)
             if not tmpls:
                 raise HTTPException(
                     status_code=404,
@@ -214,12 +214,12 @@ async def create_invocation_impl(
         position = request.position if request.position is not None else tmpl_position
         use_custom = request.use_custom or tmpl_use_custom
 
-        run = await create_run(conn, group_id=group_id, session_id=group_session_id)
-        call = await create_call(conn, run_id=run.id, session_id=group_session_id)
+        run = await create_run(conn, redis, group_id=group_id, session_id=group_session_id)
+        call = await create_call(conn, redis, run_id=run.id, session_id=group_session_id)
 
         result = await create_test_invocation(
             conn,
-            test_id=request.test_id,
+            redis, test_id=request.test_id,
             call_id=call.id,
             title=request.title,
             use_custom=use_custom,

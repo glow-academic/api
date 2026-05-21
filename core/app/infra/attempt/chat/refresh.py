@@ -79,7 +79,7 @@ async def refresh_chat_impl(
                     for target in effective_targets:
                         await create_refresh(
                             conn,
-                            operation_key=effective_operation_key,
+                            redis, operation_key=effective_operation_key,
                             artifact_type="chat",
                             target=target,
                             session_id=session_id,
@@ -101,7 +101,7 @@ async def refresh_chat_impl(
                 for target in effective_targets:
                     await create_refresh(
                         conn,
-                        operation_key=effective_operation_key,
+                        redis, operation_key=effective_operation_key,
                         artifact_type="chat",
                         target=target,
                         session_id=session_id,
@@ -120,7 +120,7 @@ async def refresh_chat_impl(
             for target in effective_targets:
                 await create_refresh(
                     conn,
-                    operation_key=effective_operation_key,
+                    redis, operation_key=effective_operation_key,
                     artifact_type="chat",
                     target=target,
                     session_id=session_id,

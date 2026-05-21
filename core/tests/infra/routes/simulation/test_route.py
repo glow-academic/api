@@ -110,7 +110,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
 
@@ -147,7 +147,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
 
@@ -181,7 +181,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
         updated = await _create_simulation_route_resources(pool, redis_client)
@@ -216,7 +216,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
 
@@ -240,7 +240,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
 
@@ -344,7 +344,7 @@ class TestSimulationRoute:
         created = await self._create_simulation_via_route(
             pool,
             redis_client,
-            simulation_route_client,
+            redis_client, simulation_route_client,
             simulation_route_actor,
         )
 

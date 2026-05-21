@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.file_uploads.types import GetFileUploadResponse
 
 
 async def search_file_uploads(
     conn: asyncpg.Connection,
+    redis: Redis,
     file_ids: list[UUID] | None = None,
     upload_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.video_completion.types import (
     CreateVideoCompletionResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.video_completion.types import (
 
 async def create_video_completion(
     conn: asyncpg.Connection,
+    redis: Redis,
     video_id: UUID,
     session_id: UUID,
     *,

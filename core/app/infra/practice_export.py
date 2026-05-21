@@ -94,7 +94,7 @@ async def export_practice_client(
     async with pool.acquire() as conn:
         attempts, _total_count = await search_attempts(
             conn,
-            practice=True,
+            redis, practice=True,
             limit=100000,
             offset=0,
         )
@@ -104,7 +104,7 @@ async def export_practice_client(
     async with pool.acquire() as conn:
         chats = await search_chat_entries_internal(
             conn,
-            limit_count=100000,
+            redis, limit_count=100000,
             offset_count=0,
         )
 

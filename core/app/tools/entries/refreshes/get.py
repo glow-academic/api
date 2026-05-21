@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.refreshes.types import GetRefreshResponse
@@ -13,6 +14,7 @@ MV_NAME = "refreshes_mv"
 async def get_refreshes(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     bypass_mv: bool = False,
 ) -> list[GetRefreshResponse]:
     """Get refresh entries by IDs from refreshes_mv."""

@@ -125,7 +125,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -162,7 +162,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -209,7 +209,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -237,7 +237,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
         updated = await _create_agent_route_resources(pool, redis_client)
@@ -290,7 +290,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -316,7 +316,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -358,7 +358,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
         draft_name = f"Draft Agent {unique_tag()}"
@@ -434,7 +434,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
@@ -463,7 +463,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            agent_route_client,
+            redis_client, agent_route_client,
             agent_route_actor,
         )
 
