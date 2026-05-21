@@ -28,9 +28,7 @@ from app.tools.entries.test_invocation_runs.get import get_test_invocation_runs
 from app.tools.entries.test_invocation_runs_completion.create import (
     create_test_invocation_runs_completion,
 )
-from app.tools.entries.test_invocation_runs_completion.refresh import (
-    refresh_test_invocation_runs_completion,
-)
+from app.infra.invocation.refresh import refresh_invocation_impl
 
 router = APIRouter()
 
@@ -100,7 +98,12 @@ async def terminate_invocation(
                 error=request.error,
                 message=request.message,
             )
-            await refresh_test_invocation_runs_completion(conn)
+        await refresh_invocation_impl(
+            pool, redis,
+            profile_id=UUID(str(profile_id)),
+            session_id=UUID(str(session_id)),
+            targets=["test_invocation_runs_completion_mv"],
+        )
 
         return TestRunEndResponse(
             test_invocation_run_id=str(request.test_invocation_run_id),

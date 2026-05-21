@@ -11,9 +11,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.tools.entries.attempt.refresh import refresh_attempt
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_completion.create import create_attempt_completion
-from app.tools.entries.attempt_completion.refresh import refresh_attempt_completion
 
 
 async def complete_attempt_impl(
@@ -43,8 +42,9 @@ async def complete_attempt_impl(
             message=message,
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_completion(conn)
-        await refresh_attempt(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_completion_mv", "attempt_mv"],
+    )
 
     return {"completion_id": str(result.id), "attempt_id": str(attempt_id)}

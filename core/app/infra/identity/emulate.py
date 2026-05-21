@@ -23,7 +23,6 @@ from app.infra.identity.resolve_identity import (
 from app.infra.identity.simulatable import SIMULATABLE_ROLES
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.emulations.create import create_emulation
-from app.tools.entries.emulations.refresh import refresh_emulations
 from app.tools.entries.grant_consumptions.create import (
     create_grant_consumption,
 )
@@ -160,9 +159,15 @@ async def resolve_emulation(
                 profile_id=target.profiles_id,
             )
 
-    async with pool.acquire() as conn:
-        await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY grants_mv")
-        await refresh_emulations(conn)
+    # Enqueue async refresh of grants_mv + emulations_mv via the per-MV worker.
+    from app.infra.refresh.queue import enqueue_refreshes
+    await enqueue_refreshes(
+        pool, redis,
+        profile_id=requester_profile_id,
+        session_id=requester_session_id,
+        artifact_type="emulation",
+        targets=["grants_mv", "emulations_mv"],
+    )
 
     return EmulationResult(
         allowed=True,

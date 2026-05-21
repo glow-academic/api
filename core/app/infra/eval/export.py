@@ -26,7 +26,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.artifacts.eval.get import get_evals
@@ -219,7 +219,11 @@ async def export_eval_impl(
                 upload_id=upload_row.id,
                 session_id=session_id,
             )
-            await refresh_files_internal(conn, redis)
+
+    await enqueue_refreshes(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        artifact_type="file", targets=["files_mv"], tags=["files"],
+    )
 
     return ExportEvalApiResponse(
         file_id=resource_row.id,

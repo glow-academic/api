@@ -25,10 +25,9 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_chat.create import create_attempt_chat
-from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bridge
-from app.tools.entries.attempt_chat_bridge.refresh import refresh_attempt_chat_bridge
 
 # ---------------------------------------------------------------------------
 # Value types for denormalized input
@@ -227,9 +226,10 @@ async def create_attempt_chat_impl(
                 session_id=session_id,
                 soft=soft,
             )
-        async with pool.acquire() as conn:
-            await refresh_attempt_chat(conn)
-            await refresh_attempt_chat_bridge(conn)
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_chat_mv", "attempt_chat_bridge_mv"],
+        )
         return CreateAttemptChatApiResponse(
             attempt_chat_id=request.previous_attempt_chat_id,
             idempotency_key=request.idempotency_key,
@@ -544,9 +544,10 @@ async def create_attempt_chat_impl(
 
     # ── Step 7: Refresh + return ──────────────────────────────────────────────
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_chat(conn)
-        await refresh_attempt_chat_bridge(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_chat_mv", "attempt_chat_bridge_mv"],
+    )
 
     return CreateAttemptChatApiResponse(
         attempt_chat_id=result.id,

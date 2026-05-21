@@ -8,8 +8,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_hint.create import create_attempt_hint
-from app.tools.entries.attempt_hint.refresh import refresh_attempt_hint
 
 
 async def chat_hints_attempt_impl(
@@ -41,7 +41,9 @@ async def chat_hints_attempt_impl(
             hint=hint or "No hint provided",
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_hint(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_hint_mv"],
+    )
 
     return {"hint_id": str(result.id)}

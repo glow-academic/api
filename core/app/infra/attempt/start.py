@@ -45,8 +45,7 @@ async def attempt_start_impl(
 ) -> AttemptStartResponse:
     """Create an attempt from a home or practice entry."""
     from app.tools.entries.attempt.create import create_attempt
-    from app.tools.entries.attempt.refresh import refresh_attempt
-    from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
+    from app.infra.attempt.refresh import refresh_attempt_impl
     from app.tools.entries.persona.create import create_persona
     from app.tools.resources.profile_personas.search import search_profile_personas
     from app.tools.resources.simulations.get import get_simulations
@@ -198,9 +197,10 @@ async def attempt_start_impl(
 
     # ── Step 5: Refresh MVs ─────────────────────────────────────────────────
 
-    async with pool.acquire() as conn:
-        await refresh_attempt(conn)
-        await refresh_attempt_chat(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_mv", "attempt_chat_mv"],
+    )
 
     return AttemptStartResponse(
         attempt_id=attempt_result.id,

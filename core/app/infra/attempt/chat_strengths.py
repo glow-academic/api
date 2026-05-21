@@ -8,8 +8,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_strength.create import create_attempt_strength
-from app.tools.entries.attempt_strength.refresh import refresh_attempt_strength
 
 
 async def chat_strengths_attempt_impl(
@@ -53,7 +53,9 @@ async def chat_strengths_attempt_impl(
             description=description or "No description provided",
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_strength(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_strength_mv"],
+    )
 
     return {"strength_id": str(result.id)}

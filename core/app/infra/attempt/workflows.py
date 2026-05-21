@@ -564,10 +564,9 @@ async def attempt_start_impl(
     """Create attempt via black boxes, then delegate to attempt_proceed."""
     redis = redis or get_redis_client()
     from app.infra.attempt.client_types import AttemptStartPayload
+    from app.infra.attempt.refresh import refresh_attempt_impl
     from app.infra.profile_identity_context import resolve_profile_identity_context
     from app.tools.entries.attempt.create import create_attempt
-    from app.tools.entries.attempt.refresh import refresh_attempt
-    from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
     from app.tools.entries.attempt_home.create import create_attempt_home
     from app.tools.entries.attempt_practice.create import (
         create_attempt_practice,
@@ -720,9 +719,12 @@ async def attempt_start_impl(
                         session_id=session_id_uuid,
                     )
 
-        async with pool.acquire() as conn:
-            await refresh_attempt(conn)
-            await refresh_attempt_chat(conn)
+        await refresh_attempt_impl(
+            pool, redis,
+            profile_id=profile_id_uuid,
+            session_id=session_id_uuid,
+            targets=["attempt_mv", "attempt_chat_mv"],
+        )
 
         await emit(
             [
@@ -850,10 +852,9 @@ async def attempt_proceed_impl(
         AttemptEndedData,
         AttemptStartedData,
     )
+    from app.infra.attempt.refresh import refresh_attempt_impl
     from app.tools.entries.attempt.get import get_attempts
-    from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.create import create_attempt_chat
-    from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
     from app.tools.entries.attempt_chat.search import search_attempt_chats
     from app.tools.entries.attempt_chat_bridge.create import (
         create_attempt_chat_bridge,
@@ -930,8 +931,12 @@ async def attempt_proceed_impl(
                         except Exception:
                             pass
 
-                await refresh_attempt(conn)
-                await refresh_attempt_chat(conn)
+                await refresh_attempt_impl(
+                    pool, redis,
+                    profile_id=profile_id_uuid,
+                    session_id=session_id_uuid,
+                    targets=["attempt_mv", "attempt_chat_mv"],
+                )
 
                 await emit(
                     [
@@ -1241,9 +1246,12 @@ async def attempt_proceed_impl(
                     )
                 ]
             )
-            async with pool.acquire() as conn:
-                await refresh_attempt(conn)
-                await refresh_attempt_chat(conn)
+            await refresh_attempt_impl(
+                pool, redis,
+                profile_id=profile_id_uuid,
+                session_id=session_id_uuid,
+                targets=["attempt_mv", "attempt_chat_mv"],
+            )
 
     except Exception as e:
         logger.exception(f"Error in attempt_proceed: {e}")

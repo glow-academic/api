@@ -52,12 +52,10 @@ async def attempt_response_internal_impl(
         raise ValueError("Missing session_id for attempt_response_submit")
 
     async def _run() -> AttemptResponseInternalResult:
+        from app.infra.attempt.refresh import refresh_attempt_impl
         from app.tools.entries.attempt_chat.search import search_attempt_chats
         from app.tools.entries.attempt_responses.create import (
             create_attempt_responses,
-        )
-        from app.tools.entries.attempt_responses.refresh import (
-            refresh_attempt_responses,
         )
 
         redis = get_redis_client()
@@ -99,7 +97,12 @@ async def attempt_response_internal_impl(
                         question_ids=[question_id],
                         option_ids=option_ids,
                     )
-                    await refresh_attempt_responses(conn)
+                    await refresh_attempt_impl(
+                        get_pool(), redis,
+                        profile_id=UUID(str(profile_id)),
+                        session_id=UUID(str(session_id)),
+                        targets=["attempt_responses_mv"],
+                    )
                 except asyncpg.ForeignKeyViolationError:
                     await _emit(
                         [

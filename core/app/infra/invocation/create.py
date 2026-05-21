@@ -32,8 +32,8 @@ from app.tools.entries.groups.get import get_groups
 from app.tools.entries.invocation.get import get_invocations
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.test.get import get_tests
+from app.infra.invocation.refresh import refresh_invocation_impl
 from app.tools.entries.test_invocation.create import create_test_invocation
-from app.tools.entries.test_invocation.refresh import refresh_test_invocation
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.model_rubrics.get import get_model_rubrics
 
@@ -233,6 +233,10 @@ async def create_invocation_impl(
             temperature_level_ids=temperature_level_ids,
             modality_ids=modality_ids,
         )
-        await refresh_test_invocation(conn)
+
+    await refresh_invocation_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["test_invocation_mv"],
+    )
 
     return CreateInvocationApiResponse(invocation_id=result.id)

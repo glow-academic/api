@@ -471,11 +471,9 @@ async def test_start_impl(
     from app.tools.entries.calls.create import create_call
     from app.tools.entries.runs.create import create_run
     from app.tools.entries.sessions.create import create_session
+    from app.infra.invocation.refresh import refresh_invocation_impl
+    from app.infra.test.refresh import refresh_test_impl
     from app.tools.entries.test.create import create_test
-    from app.tools.entries.test.refresh import refresh_test
-    from app.tools.entries.test_invocation.refresh import (
-        refresh_test_invocation,
-    )
     from app.utils.cache.invalidate_tags import invalidate_tags
     from app.utils.logging.db_logger import get_logger
 
@@ -581,10 +579,16 @@ async def test_start_impl(
                         f"Failed to store generation_test_link for test {test_id}"
                     )
 
-            await refresh_test(conn)
-            await refresh_test_invocation(conn)
-            if redis:
-                await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
+        await refresh_test_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_mv"],
+        )
+        await refresh_invocation_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_invocation_mv"],
+        )
+        if redis:
+            await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 
         # Client-orchestrated: mirrors attempt_start_impl, which returns
         # {attempt_id, chat_id} where chat_id is the FIRST chat_entry

@@ -164,20 +164,25 @@ async def resolve_test_context(
     async def _fetch_messages() -> list:
         if not run_ids:
             return []
+        # bypass_mv=True reads through to the source table — needed because
+        # we no longer sync-refresh messages_mv here (that's now async via
+        # the MVRefresher background worker, which is fine for cached reads
+        # elsewhere but not for this read-after-write codepath).
         async with pool.acquire() as c:
-            from app.tools.entries.messages.refresh import refresh_messages_internal
-            await refresh_messages_internal(conn=c, redis=redis)
-            msgs, _ = await search_messages(c, redis, run_ids=run_ids, limit=100000)
+            msgs, _ = await search_messages(
+                c, redis, run_ids=run_ids, limit=100000, bypass_mv=True,
+            )
             return msgs
 
     async def _fetch_original_calls() -> list:
         """Fetch tool calls from the original run (the agent output being graded)."""
         if not original_run_id:
             return []
+        # bypass_mv=True for the same reason as _fetch_messages above.
         async with pool.acquire() as c:
-            from app.tools.entries.calls.refresh import refresh_calls_internal
-            await refresh_calls_internal(c, redis=redis)
-            return await search_calls(c, redis, run_ids=[original_run_id], limit=1000)
+            return await search_calls(
+                c, redis, run_ids=[original_run_id], limit=1000, bypass_mv=True,
+            )
 
     feedback, messages, original_calls = await asyncio.gather(
         _fetch_feedback(),

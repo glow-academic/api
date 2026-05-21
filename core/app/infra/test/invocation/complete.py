@@ -55,15 +55,13 @@ async def test_invocation_complete_internal_impl(
 
     async def _run() -> TestInvocationCompleteInternalResult:
         redis = get_redis_client()
+        from app.infra.invocation.refresh import refresh_invocation_impl
         from app.tools.entries.calls.create import create_call
         from app.tools.entries.groups.get import get_groups
         from app.tools.entries.runs.create import create_run
         from app.tools.entries.test_invocation.get import get_test_invocations
         from app.tools.entries.test_invocation_completion.create import (
             create_test_invocation_completion,
-        )
-        from app.tools.entries.test_invocation_completion.refresh import (
-            refresh_test_invocation_completion,
         )
 
         async with get_pool().acquire() as conn:
@@ -96,7 +94,13 @@ async def test_invocation_complete_internal_impl(
                 invocation_id=payload.test_invocation_id,
                 call_id=call.id,
             )
-            await refresh_test_invocation_completion(conn)
+
+        await refresh_invocation_impl(
+            get_pool(), redis,
+            profile_id=UUID(str(profile_id)),
+            session_id=UUID(str(session_id)),
+            targets=["test_invocation_completion_mv"],
+        )
 
         return TestInvocationCompleteInternalResult(
             invocation_id=str(payload.test_invocation_id),

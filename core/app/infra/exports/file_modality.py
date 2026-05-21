@@ -23,7 +23,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.utils.cache.mv_refresh_queue import enqueue_pending
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.files.create import create_file as create_file_resource
 
@@ -74,7 +74,8 @@ async def wrap_bytes_as_file(
                 upload_id=upload_row.id,
                 session_id=session_id,
             )
-            await refresh_files_internal(conn, redis)
+    if session_id is not None and redis is not None:
+        await enqueue_pending(redis, "files_mv")
 
     return resource_row.id, file_name
 

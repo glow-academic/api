@@ -11,12 +11,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_chat_completion.create import (
     create_attempt_chat_completion,
-)
-from app.tools.entries.attempt_chat_completion.refresh import (
-    refresh_attempt_chat_completion,
 )
 
 
@@ -47,8 +44,9 @@ async def chat_complete_attempt_impl(
             message=message,
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_chat_completion(conn)
-        await refresh_attempt_chat(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_chat_completion_mv", "attempt_chat_mv"],
+    )
 
     return {"completion_id": str(result.id), "chat_id": str(chat_id)}

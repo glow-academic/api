@@ -19,8 +19,8 @@ from redis.asyncio import Redis
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.calls.get import get_calls
 from app.tools.entries.test.get import get_tests
+from app.infra.test.refresh import refresh_test_impl
 from app.tools.entries.test_grade.create import create_test_grade
-from app.tools.entries.test_grade.refresh import refresh_test_grade
 from app.tools.entries.test_invocation.get import get_test_invocations
 from app.tools.resources.rubrics.get import get_rubrics
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -134,7 +134,10 @@ async def create_grade_impl(
             score=score,
         )
 
-        await refresh_test_grade(conn)
+    await refresh_test_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["test_grade_mv"],
+    )
 
     await invalidate_tags(["test", "tests", "grades"], redis=redis)
 

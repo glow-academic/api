@@ -12,8 +12,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_feedback.create import create_attempt_feedback
-from app.tools.entries.attempt_feedback.refresh import refresh_attempt_feedback
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.standards.get import get_standards
 
@@ -76,8 +76,10 @@ async def chat_feedback_attempt_impl(
             standard_ids=[standard_id],
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_feedback(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_feedback_mv"],
+    )
 
     return {
         "feedback_id": str(result.id),

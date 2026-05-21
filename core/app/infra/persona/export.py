@@ -27,7 +27,7 @@ from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.departments.get import get_departments
@@ -343,14 +343,14 @@ async def export_persona_impl(
                 upload_id=upload_row.id,
                 session_id=session_id,
             )
-            # ``search_files`` (used by file_download) reads from
-            # ``files_mv``, so the new chain must be refreshed before
-            # the client's follow-up download can resolve the file_id.
-            # ``WITH NO DATA`` on the MV definition means it stays
-            # empty until something refreshes it. Synchronous refresh
-            # is correct here — the client downloads in the very next
-            # call.
-            await refresh_files_internal(conn, redis)
+    # Enqueue async files_mv refresh via the MV worker. The client's
+    # follow-up download will retry briefly if it loses the race; this
+    # path is rare enough that we accept the trade-off vs. blocking the
+    # request 50–200ms.
+    await enqueue_refreshes(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        artifact_type="file", targets=["files_mv"], tags=["files"],
+    )
 
     return ExportPersonaApiResponse(
         file_id=resource_row.id,

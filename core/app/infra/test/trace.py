@@ -32,9 +32,7 @@ from app.infra.websocket.socket_event import EmitFn
 from app.tools.entries.test_invocation_traces.create import (
     create_test_invocation_traces,
 )
-from app.tools.entries.test_invocation_traces.refresh import (
-    refresh_test_invocation_traces,
-)
+from app.infra.invocation.refresh import refresh_invocation_impl
 from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.prompts.create import create_prompt
 
@@ -148,7 +146,12 @@ async def test_trace_internal_impl(
                 reasoning_level_ids=payload.reasoning_level_ids,
                 quality_ids=payload.quality_ids,
             )
-            await refresh_test_invocation_traces(conn)
+        await refresh_invocation_impl(
+            get_pool(), get_redis_client(),
+            profile_id=UUID(str(profile_id)),
+            session_id=UUID(str(session_id)),
+            targets=["test_invocation_traces_mv"],
+        )
         return TestTraceInternalResult(test_invocation_trace_id=str(result.id))
 
     if not audit:

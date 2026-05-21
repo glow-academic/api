@@ -184,26 +184,17 @@ async def attempt_message_internal_impl(
             )
 
     # Refresh MVs so messages appear in the UI
-    from app.tools.entries.attempt_content.refresh import refresh_attempt_content
-    from app.tools.entries.attempt_message.refresh import refresh_attempt_message
-    from app.tools.entries.attempt_message_completion.refresh import (
-        refresh_attempt_message_completion,
+    # (audio-link MV is best-effort — there's no attempt_audio_mv in the
+    # registry, so we don't enqueue one here even when audios_id is set.)
+    from app.infra.attempt.refresh import refresh_attempt_impl
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=[
+            "attempt_content_mv",
+            "attempt_message_completion_mv",
+            "attempt_message_mv",
+        ],
     )
-    async with pool.acquire() as conn:
-        await refresh_attempt_content(conn)
-        await refresh_attempt_message_completion(conn)
-        await refresh_attempt_message(conn)
-        # Refresh the audio-link MV too when we attached an audio, so
-        # the user-bubble's playback affordance lands on the same UI
-        # tick as the message text.
-        if audios_id is not None:
-            try:
-                from app.tools.entries.attempt_audio.refresh import (
-                    refresh_attempt_audio,
-                )
-                await refresh_attempt_audio(conn)
-            except ImportError:
-                pass
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

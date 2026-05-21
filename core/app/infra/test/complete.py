@@ -44,9 +44,6 @@ async def _mark_all_invocations_complete(
     from app.tools.entries.test_invocation_completion.create import (
         create_test_invocation_completion,
     )
-    from app.tools.entries.test_invocation_completion.refresh import (
-        refresh_test_invocation_completion,
-    )
 
     invs, _total = await search_test_invocation_entries_internal(
         conn, redis, test_ids=[test_id], limit=1000, bypass_mv=True,
@@ -72,8 +69,6 @@ async def _mark_all_invocations_complete(
         )
         count += 1
 
-    if count:
-        await refresh_test_invocation_completion(conn)
     return count
 
 
@@ -100,8 +95,17 @@ async def test_complete_internal_impl(
         raise ValueError("Missing session_id for test_complete")
 
     async def _run() -> TestCompleteInternalResult:
+        from app.infra.invocation.refresh import refresh_invocation_impl
+
         async with get_pool().acquire() as conn:
             count = await _mark_all_invocations_complete(conn, payload.test_id)
+        if count:
+            await refresh_invocation_impl(
+                get_pool(), get_redis_client(),
+                profile_id=UUID(str(profile_id)),
+                session_id=UUID(str(session_id)),
+                targets=["test_invocation_completion_mv"],
+            )
         return TestCompleteInternalResult(
             test_id=str(payload.test_id), completed_count=count,
         )

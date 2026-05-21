@@ -311,35 +311,26 @@ async def media_upload_impl(
         ["uploads", "entries", f"{modality}s", "resources"], redis=redis,
     )
 
-    # Synchronously refresh the modality MV before returning. The FE
-    # picks up the ``.complete`` SSE event the moment ``_save_media``
-    # returns and immediately fires ``/scenario/image_download`` (which
-    # reads from ``images_mv``). Without a blocking refresh here the
-    # scheduler's next tick (~1–2s) loses the race: the FE's first
-    # download hits a stale MV and 404s.
-    #
-    # ``REFRESH MATERIALIZED VIEW CONCURRENTLY`` is ~50–200ms for these
-    # MVs and is the established pattern (the per-modality
-    # ``refresh_*_internal`` primitives are the same ones the async
-    # scheduler invokes). For the run-attribution case, also refresh
-    # ``messages_mv`` so a subsequent ``/scenario/group`` refetch sees
-    # the new attachment on the assistant message.
+    # Enqueue async refresh of the modality MV via the per-MV worker
+    # (debounced, multi-replica-safe). The FE picks up the ``.complete``
+    # SSE event the moment ``_save_media`` returns and immediately fires
+    # ``/scenario/image_download`` (which reads from ``images_mv``).
+    # There is a brief window (until the next worker tick, ~1–2s) where
+    # the MV is stale; downstream readers that need read-after-write
+    # consistency should pass ``bypass_mv=True``. Tag invalidation above
+    # already busts L3 caches synchronously.
     try:
-        async with pool.acquire() as conn:
-            if modality == "image":
-                from app.tools.entries.images.refresh import refresh_images_internal
-                await refresh_images_internal(conn, redis)
-            elif modality == "video":
-                from app.tools.entries.videos.refresh import refresh_videos_internal
-                await refresh_videos_internal(conn, redis)
-            elif modality == "audio":
-                from app.tools.entries.audios.refresh import refresh_audios_internal
-                await refresh_audios_internal(conn, redis)
+        from app.utils.cache.mv_refresh_queue import enqueue_pending
+        if redis is not None:
+            modality_target = {
+                "image": "images_mv",
+                "video": "videos_mv",
+                "audio": "audios_mv",
+            }.get(modality)
+            if modality_target:
+                await enqueue_pending(redis, modality_target)
             if run_id is not None and attribute_to_run:
-                from app.tools.entries.messages.refresh import (
-                    refresh_messages_internal,
-                )
-                await refresh_messages_internal(conn, redis)
+                await enqueue_pending(redis, "messages_mv")
     except Exception:
         # Never break the upload chain on a refresh hiccup — the
         # underlying rows are committed, the FE may just see a brief

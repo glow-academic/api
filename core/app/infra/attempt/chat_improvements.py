@@ -8,8 +8,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_improvement.create import create_attempt_improvement
-from app.tools.entries.attempt_improvement.refresh import refresh_attempt_improvement
 
 
 async def chat_improvements_attempt_impl(
@@ -53,7 +53,9 @@ async def chat_improvements_attempt_impl(
             description=description or "No description provided",
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_improvement(conn)
+    await refresh_attempt_impl(
+        pool, redis, profile_id=profile_id, session_id=session_id,
+        targets=["attempt_improvement_mv"],
+    )
 
     return {"improvement_id": str(result.id)}
