@@ -229,15 +229,26 @@ def get_sio_instance() -> socketio.AsyncServer:
 # can rely on the getter returning a live client; it raises if Redis hasn't
 # been initialized yet (boot-order bug) or has been torn down.
 redis_client: Any | None = None
+# Singleton ``BatchedRedis`` wrapping the raw client. Lazy-built on first
+# ``get_redis_client()`` call after ``redis_client`` is set. Singleton (not
+# per-request) is fine because each batch flushes within one event-loop
+# tick and only batches GETs — non-GET ops pass through to the same shared
+# connection unchanged.
+_batched_redis_client: Any | None = None
 
 
 def get_redis_client() -> Any:
+    global _batched_redis_client
     if redis_client is None:
         raise RuntimeError(
             "Redis client not initialized — get_redis_client() called before "
             "lifespan startup or after shutdown."
         )
-    return redis_client
+    if _batched_redis_client is None:
+        # Import locally to avoid circular import at module load time.
+        from app.infra.batched_redis import BatchedRedis
+        _batched_redis_client = BatchedRedis(redis_client)
+    return _batched_redis_client
 
 
 # ---------------------------------------------------------------------------

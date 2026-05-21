@@ -44,6 +44,7 @@ async def create_persona(
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -68,6 +69,7 @@ async def create_persona(
             response_model=CreatePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.operation_key,  # idempotency replay gate (canary)
         )
 
         response.headers["X-Invalidate-Tags"] = "personas"

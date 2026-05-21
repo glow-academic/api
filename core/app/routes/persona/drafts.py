@@ -42,11 +42,14 @@ async def get_persona_drafts(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
-        # Resolve time-windowed group for audit linking
+        # Resolve time-windowed group for audit linking. `id_only=True`
+        # skips the title fetch + history load — drafts only needs the
+        # UUID for the audit row's group_id FK.
         group_id = None
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 

@@ -45,6 +45,7 @@ async def decrypt_provider_key(
         if session_id:
             group_result = await group_provider_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 

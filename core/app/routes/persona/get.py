@@ -40,11 +40,14 @@ async def get_persona(
         pool = get_pool()
         redis = get_redis_client()
 
-        # Resolve time-windowed group for audit linking
+        # Resolve time-windowed group for audit linking. `id_only=True`
+        # skips the title/history fetch — /get only uses group_id for the
+        # audit row's FK.
         group_id = None
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 

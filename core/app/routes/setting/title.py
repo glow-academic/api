@@ -44,6 +44,7 @@ async def title_setting(
         # Resolve time-windowed group for audit linking (session context).
         group_result = await group_setting_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         audit_group_id = group_result.group_id
 

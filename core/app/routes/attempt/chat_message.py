@@ -91,6 +91,7 @@ async def chat_message(
         profile_id=profile_id,
         session_id=session_id,
         include_history=False,
+        id_only=True,
     )
     group_id = group_resolve.group_id
 

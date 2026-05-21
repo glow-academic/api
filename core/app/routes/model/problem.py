@@ -51,6 +51,7 @@ async def problem_model(
         group_id = None
         group_result = await group_model_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
