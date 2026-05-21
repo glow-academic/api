@@ -531,7 +531,7 @@ async def _load_history(
     async with pool.acquire() as conn:
         ledger_entries = (
             await search_soft_calls(
-                conn, call_ids=call_ids_for_ledger,
+                conn, redis, call_ids=call_ids_for_ledger,
                 limit=len(call_ids_for_ledger) or 1,
             )
             if call_ids_for_ledger else []

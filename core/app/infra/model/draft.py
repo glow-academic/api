@@ -32,6 +32,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_model_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -41,6 +42,7 @@ async def _maybe_auto_accept_model_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -96,6 +98,7 @@ async def _maybe_auto_accept_model_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -495,7 +498,7 @@ async def patch_model_draft_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -541,6 +544,7 @@ async def patch_model_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -598,6 +602,7 @@ async def patch_model_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -674,7 +679,7 @@ async def patch_model_draft_impl(
     auto_accepted = False
     if not soft:
         auto_accepted = await _maybe_auto_accept_model_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],

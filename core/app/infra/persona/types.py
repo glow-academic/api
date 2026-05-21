@@ -539,6 +539,12 @@ class CreatePersonaApiRequest(BaseModel):
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
+    # Retry-safety — DISTINCT from the soft/accept ``idempotency_key`` above.
+    # A client-stable key that makes this mutation safe to retry: the idempotency
+    # replay gate in ``run_artifact_operation_with_audit`` returns the prior
+    # response instead of creating duplicates. Optional; inert when omitted.
+    operation_key: UUID | None = Field(None, description="Idempotency key for safe retries — server replays the prior response instead of re-executing")
+
 
 class CreatePersonaApiResponse(BaseModel):
     """Response model for bulk create persona endpoint."""

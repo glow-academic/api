@@ -72,7 +72,7 @@ async def hydrate_eval_list_rows(
 
         from app.tools.entries.soft_calls.search import search_soft_calls
         ledger_entries = await search_soft_calls(
-            conn, artifact="eval", artifact_ids=eval_ids,
+            conn, redis, artifact="eval", artifact_ids=eval_ids,
             limit=len(eval_ids) or 1,
         )
     ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}

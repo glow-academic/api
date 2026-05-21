@@ -37,7 +37,6 @@ from app.tools.artifacts.persona.update import (
 )
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
-from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT = "persona"
@@ -86,7 +85,7 @@ async def update_persona_impl(
     # Look up the ledger row to resolve the dormant update's artifact_id.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -128,18 +127,16 @@ async def update_persona_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv"], operation_key=idempotency_key,
+            targets=["soft_calls_mv"],
         )
 
         return UpdatePersonaApiResponse(
@@ -348,6 +345,7 @@ async def update_persona_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -364,15 +362,9 @@ async def update_persona_impl(
 
     # ── Step 5: Refresh + invalidate (via canonical refresh) ────────────
 
-    if soft and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-    first_id = results[0].id if results else None
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["personas_mv"], soft=soft,
-        operation_key=idempotency_key or first_id,
+        targets=["soft_calls_mv"],
     )
 
     # ── Hydrate full row content for the client ──────────────────────

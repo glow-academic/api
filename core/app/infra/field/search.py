@@ -186,7 +186,7 @@ async def _search_field_build(
 
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="field", status="pending", limit=1000,
+            conn, redis, artifact="field", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}

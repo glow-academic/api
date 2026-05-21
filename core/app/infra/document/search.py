@@ -211,7 +211,7 @@ async def _search_document_build(
         # (and pending soft-deletes) surface in the list as ghost cards.
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="document", status="pending", limit=1000,
+            conn, redis, artifact="document", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}

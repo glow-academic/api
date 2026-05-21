@@ -36,7 +36,6 @@ from app.tools.artifacts.persona.create import (
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
-from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.cache.invalidate_tags import invalidate_tags
 
 ARTIFACT = "persona"
@@ -98,7 +97,7 @@ async def create_persona_impl(
     # is pending or which row to promote. See project_soft_calls_entry_pattern.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -136,25 +135,20 @@ async def create_persona_impl(
         # ledger row appended below is the canonical record; search keeps
         # filtering it out via active=false.
 
-        # Append the ack ledger row, then synchronously refresh
-        # soft_calls_mv via the canonical black box so subsequent
-        # reads (search, hydrate, group resolve) see the new status
-        # immediately. The MV must be refreshed outside any open txn.
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
 
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv"], operation_key=idempotency_key,
+            targets=["personas_mv", "soft_calls_mv"],
         )
 
         return CreatePersonaApiResponse(
@@ -282,6 +276,7 @@ async def create_persona_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -298,19 +293,9 @@ async def create_persona_impl(
 
     # ── Step 6: Refresh + invalidate (via canonical refresh) ────────────
 
-    # Soft writes appended a pending ledger row above. Refresh
-    # soft_calls_mv synchronously so the audit emit's lookup (in
-    # run_artifact_operation_with_audit) sees the just-inserted row,
-    # and subsequent reads land on fresh data. Black-box, no inline SQL.
-    if soft and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-    first_id = results[0].id if results else None
     await refresh_persona_impl(
         pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["personas_mv"], soft=soft,
-        operation_key=idempotency_key or first_id,
+        targets=["personas_mv", "soft_calls_mv"],
     )
 
     # ── Step 7: Hydrate full row content for the client ────────────────

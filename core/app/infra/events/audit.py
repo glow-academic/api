@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
@@ -27,10 +29,12 @@ def _mint_call_id() -> UUID:
     return uuid.uuid7() if hasattr(uuid, "uuid7") else uuid.uuid4()
 
 import asyncpg
+from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
 from app.infra.globals import UPLOAD_FOLDER, get_internal_sio
+from app.tools.entries.calls.search import search_calls
 from app.tools.entries.groups.create import create_group
 from app.tools.resources.tools.get import get_tools
 
@@ -46,6 +50,22 @@ logger = get_logger(__name__)
 T = TypeVar("T")
 
 internal_sio = get_internal_sio()
+
+# Idempotency replay gate. The lock only guards the window where N concurrent
+# first-runs of the same operation_key race before any receipt exists; once a
+# receipt is written the (fresh, bypass_mv) lookup short-circuits first, so the
+# lock is never consulted on later retries. TTL should comfortably exceed the
+# longest expected execution (incl. AI generations).
+_IDEM_LOCK_TTL_SECONDS = 300
+_IDEM_LOCK_PREFIX = "idem:op:"
+
+
+def _fingerprint_arguments(arguments: dict[str, Any]) -> str:
+    """Stable hash of an operation's arguments — backs same-key/different-body
+    detection so a reused ``operation_key`` carrying a different payload is
+    rejected (409) rather than silently replaying the first response."""
+    canonical = json.dumps(arguments or {}, sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def resolve_artifact_operation_tool(
@@ -153,6 +173,68 @@ async def run_artifact_operation_with_audit(
     effective_group_id = group_id
     effective_profiles_id = common.profile.profiles_id
     effective_upload_folder = upload_folder or UPLOAD_FOLDER
+
+    # ── Idempotency replay gate (opt-in; inert unless ``operation_key`` set) ──
+    # Reuses the ``operation_key`` already threaded into ``create_call`` — a
+    # separate concept from the soft/accept ``idempotency_key`` ledger, which we
+    # leave untouched (coexist, not unify). Runs before any side effect (group
+    # mint, ``.started`` emit, execution).
+    #   • A prior completed call with this key → replay its persisted receipt.
+    #   • Otherwise take a short-lived lock so only one concurrent first-run runs.
+    # FAIL-OPEN: any unexpected error logs and falls through to normal execution
+    # — the gate must never break a request that would otherwise succeed. A 409
+    # is intentional (reused key with a different body, or in-flight duplicate)
+    # and is re-raised.
+    if operation_key is not None and not bypass_cache:
+        try:
+            async with pool.acquire() as _idem_conn:
+                # bypass_mv=True reads through the base-table index, so a
+                # just-completed call is visible immediately (no MV-refresh lag).
+                _prior = await search_calls(
+                    _idem_conn,
+                    operation_keys=[operation_key],
+                    limit=1,
+                    bypass_mv=True,
+                )
+            _prior = [c for c in _prior if c.file_path]
+            if _prior:
+                _receipt_path = effective_upload_folder / _prior[0].file_path
+                _receipt = json.loads(_receipt_path.read_text(encoding="utf-8"))
+                if _fingerprint_arguments(_receipt.get("arguments")) != \
+                        _fingerprint_arguments(arguments):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="operation_key reused with a different request payload.",
+                    )
+                _cached = _receipt.get("raw_output")
+                # Never replay a cached server error — let the retry truly retry.
+                _is_error = isinstance(_cached, dict) and _cached.get("success") is False
+                if _cached is not None and not _is_error:
+                    logger.info(
+                        "IDEM_REPLAY %s.%s operation_key=%s call_id=%s",
+                        artifact, operation, operation_key, _prior[0].id,
+                    )
+                    if response_model is not None:
+                        return response_model.model_validate(_cached)
+                    return _cached  # type: ignore[return-value]
+            else:
+                # No completed receipt yet → serialize concurrent first-runs.
+                _got_lock = await redis.set(
+                    f"{_IDEM_LOCK_PREFIX}{operation_key}", "1",
+                    nx=True, ex=_IDEM_LOCK_TTL_SECONDS,
+                )
+                if not _got_lock:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="An operation with this operation_key is already in progress.",
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            logger.warning(
+                "IDEM_GATE_SKIP %s.%s operation_key=%s — gate error, falling through",
+                artifact, operation, operation_key, exc_info=True,
+            )
 
     # Opt-in mint: routes for create-the-group operations (e.g. /X/group)
     # set ``mint_group_id_if_missing=True`` so the framework assigns an id
@@ -425,7 +507,7 @@ async def run_artifact_operation_with_audit(
     try:
         from app.tools.entries.soft_calls.get import get_soft_call
         async with pool.acquire() as ledger_conn:
-            entry = await get_soft_call(ledger_conn, emit_call_id, artifact=artifact)
+            entry = await get_soft_call(ledger_conn, emit_call_id, redis, artifact=artifact)
         if entry is not None:
             ledger_status = entry.status
             ledger_operation = entry.operation

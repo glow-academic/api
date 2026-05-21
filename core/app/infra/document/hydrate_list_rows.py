@@ -88,7 +88,7 @@ async def hydrate_document_list_rows(
         # Latest ledger row per artifact_id — same black box as search.
         from app.tools.entries.soft_calls.search import search_soft_calls
         ledger_entries = await search_soft_calls(
-            conn, artifact="document", artifact_ids=document_ids,
+            conn, redis, artifact="document", artifact_ids=document_ids,
             limit=len(document_ids) or 1,
         )
     ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}

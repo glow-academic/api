@@ -81,7 +81,7 @@ async def hydrate_persona_list_rows(
         # endpoint uses, so the live ghost cards render with parity.
         from app.tools.entries.soft_calls.search import search_soft_calls
         ledger_entries = await search_soft_calls(
-            conn, artifact="persona", artifact_ids=persona_ids,
+            conn, redis, artifact="persona", artifact_ids=persona_ids,
             limit=len(persona_ids) or 1,
         )
     ledger_by_artifact_id = {e.artifact_id: e for e in ledger_entries}

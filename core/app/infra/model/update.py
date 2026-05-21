@@ -68,7 +68,7 @@ async def update_model_impl(
     # which broke under ack/all paths. Mirror persona/scenario shape.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -84,6 +84,7 @@ async def update_model_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
@@ -293,6 +294,7 @@ async def update_model_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",

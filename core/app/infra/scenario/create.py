@@ -121,7 +121,7 @@ async def create_scenario_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -177,6 +177,7 @@ async def create_scenario_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -317,6 +318,7 @@ async def _create_scenarios(
                 if soft and operation_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=operation_key,
                         artifact=ARTIFACT,
                         operation="create",

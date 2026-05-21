@@ -276,6 +276,7 @@ class GetScenarioApiRequest(BaseModel):
 
     id: UUID | None = Field(None, description="UUID of the scenario to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # Per-section filters
     names: SectionFilter | None = None
     descriptions: SectionFilter | None = None

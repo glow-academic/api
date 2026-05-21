@@ -288,7 +288,7 @@ async def _search_persona_build(
         # the user's "what's pending my attention" view.
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="persona", status="pending", limit=1000,
+            conn, redis, artifact="persona", status="pending", limit=1000,
         )
         pending_ledger_ids = [e.artifact_id for e in pending_entries]
         # Latest ledger row per artifact_id for stamping onto rows.
