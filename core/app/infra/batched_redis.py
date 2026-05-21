@@ -1,123 +1,205 @@
-"""BatchedRedis — automatic per-tick MGET batching for Redis GET calls.
+"""BatchedRedis — automatic per-tick batching for Redis reads + writes.
 
-Wraps an ``redis.asyncio.Redis`` client so that every ``await client.get(k)``
-within a single event-loop turn is collected into a list of pending keys.
-At the next ``await asyncio.sleep(0)`` boundary the wrapper fires ONE
-``MGET`` for the whole batch and resolves each caller's awaited future
-with its result.
+Wraps an ``redis.asyncio.Redis`` client so that every ``await client.get(k)``,
+``await client.setex(k, ttl, v)`` and ``await client.expire(k, ttl)`` within
+a single event-loop turn is collected into a pending queue. At the next
+``await asyncio.sleep(0)`` boundary the wrapper fires ONE pipeline that
+includes MGET (for all the reads) plus SETEX / EXPIRE for all the writes,
+in a single round-trip. Each caller's awaited future resolves with its
+individual result.
 
-The application code is unchanged — ``await redis.get(key)`` still looks
-like a single get. Only the wire pattern changes: where the underlying
-client previously issued N sequential round-trips, it now issues O(1)
-round-trips per asyncio "tick", proportional to the number of concurrent
-gets (e.g. from an ``asyncio.gather``).
+The application code is unchanged — every ``await redis.<op>(...)`` still
+looks like a single operation. Only the wire pattern changes: where the
+underlying client previously issued N sequential round-trips, it now
+issues ONE pipeline per asyncio "tick".
 
 Why this exists
 ---------------
-Measured Sep 2026 on ``/persona/get`` (warm cache, university seed):
-  - ``inner_get_persona_impl`` ≈ 50 ms (~50% of total wall clock)
-  - ``audit_overhead`` ≈ 50 ms
-  - cache log: ~76 cache HITS per request, ZERO writes on the warm path
-  - 76 redis round-trips * ~1 ms each = the 80–100 ms floor
-The 23-way ``asyncio.gather`` parallelises Python coroutines, but each
-``redis.get`` still round-trips to redis sequentially on its connection.
-This wrapper recovers the parallelism at the wire layer.
+Measured 2026 on ``/persona/get``:
+  - 76 redis cache HITS per warm request, sequential round-trips
+  - 14-17 cache WRITES per cold request, also sequential round-trips
+  - The 23-way ``asyncio.gather`` parallelises Python but not the wire.
+This wrapper recovers wire-layer parallelism for both reads and writes.
 
-Operations that are NOT batched (pass through unchanged via ``__getattr__``)
-include set/setex/expire/delete/pipeline/eval — they have side-effects or
-are stateful and don't benefit from coalescing.
+Safety / batching scope
+-----------------------
+Batched:
+  - GET           — coalesced into MGET (read)
+  - SETEX         — coalesced into a pipeline (write, no-return)
+  - EXPIRE        — coalesced into a pipeline (write, returns bool)
+
+NOT batched (pass through via ``__getattr__``):
+  - SET with NX (atomic lock-acquire — caller branches on return; mixing
+    into a pipeline would break read-after-write causality if a peer GET
+    on the same key is in the same batch)
+  - HASH / LIST / STREAM / SCRIPT primitives
+  - PIPELINE explicitly (caller is managing their own)
+  - SUBSCRIBE / PUBSUB / blocking commands
+
+Read-after-write within one tick: writes execute in the same pipeline
+as reads, but the pipeline returns all results together — a GET in the
+same batch as a SETEX of the same key would see the PRE-write value.
+None of the audit-wrapper or cache-layer code paths in this codebase
+do a GET-of-key followed by a SETEX-of-same-key in the same tick, so
+this is safe in practice. If a future caller adds that pattern, they
+must call ``redis._client.setex(...)`` directly to bypass batching, or
+the wrapper would need an inline-flush before queueing the dependent op.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class _PendingWrite:
+    op: str  # "setex" | "expire"
+    key: str
+    ttl: int
+    value: Any  # ignored for expire
+    future: asyncio.Future[Any]
+
+
 class BatchedRedis:
     """Drop-in wrapper over an ``redis.asyncio.Redis`` client that auto-
-    coalesces concurrent ``.get(key)`` awaits into one ``MGET`` per tick.
+    coalesces concurrent ``.get()`` / ``.setex()`` / ``.expire()`` awaits
+    into one pipeline per asyncio tick.
 
-    Constructor takes the real client; everything else delegates.
-    Thread-safety: not thread-safe (only one event loop accesses it at
-    a time), which matches the underlying redis client's contract.
+    Constructor takes the real client; everything else delegates via
+    ``__getattr__``.
+
+    Not thread-safe — single event loop only, matching the underlying
+    redis client's contract.
     """
 
     def __init__(self, client: Any) -> None:
-        # ``client`` is an ``redis.asyncio.Redis`` instance. We never read
-        # private attrs, only call documented public methods.
         self._client = client
-        # Pending GET requests waiting for the next tick to flush.
-        # Map of key (str) → list of futures awaiting that key. Multiple
-        # callers asking for the same key in the same tick share a future
-        # so we don't transmit the same key twice in one MGET.
-        self._pending: dict[str, list[asyncio.Future[Any]]] = {}
-        # Whether a flush task is already scheduled. Guards against
-        # double-scheduling when many gets arrive before the tick fires.
+        # Pending reads: map of key (str) → list of futures awaiting that key.
+        # Multiple callers asking for the same key in the same tick share
+        # a single redis-side fetch but each get their own future.
+        self._pending_gets: dict[str, list[asyncio.Future[Any]]] = {}
+        # Pending writes: ordered list of (op, key, ttl, value, future).
+        # Order is preserved so the pipeline mirrors caller-visible order.
+        self._pending_writes: list[_PendingWrite] = []
+        # Guards double-scheduling of the flush task when many ops enqueue
+        # before the next tick fires.
         self._flush_scheduled: bool = False
 
     async def get(self, key: Any) -> Any:
         """Coalesced GET. Identical semantics to ``Redis.get(key)`` —
-        returns the value (as bytes or str depending on the underlying
-        client's ``decode_responses`` setting) or ``None`` if the key
-        does not exist.
+        returns the value (bytes/str depending on ``decode_responses``)
+        or ``None`` for a missing key.
         """
         key_str = _normalize_key(key)
         loop = asyncio.get_event_loop()
         fut: asyncio.Future[Any] = loop.create_future()
-        bucket = self._pending.setdefault(key_str, [])
+        bucket = self._pending_gets.setdefault(key_str, [])
         bucket.append(fut)
-        if not self._flush_scheduled:
-            self._flush_scheduled = True
-            # ``ensure_future`` not strictly needed — ``create_task`` is
-            # the standard primitive. The flush coroutine itself yields
-            # via ``asyncio.sleep(0)`` so peer gets enqueued in the same
-            # microtask have time to join the batch before MGET fires.
-            asyncio.create_task(self._flush())
+        self._schedule_flush()
         return await fut
 
+    async def setex(self, name: Any, time: int, value: Any) -> Any:
+        """Coalesced SETEX. Identical semantics to ``Redis.setex(name, time, value)``
+        — sets the key with an expiration, returns the redis "OK" reply.
+        """
+        loop = asyncio.get_event_loop()
+        fut: asyncio.Future[Any] = loop.create_future()
+        self._pending_writes.append(
+            _PendingWrite(op="setex", key=_normalize_key(name), ttl=int(time), value=value, future=fut)
+        )
+        self._schedule_flush()
+        return await fut
+
+    async def expire(self, name: Any, time: int) -> bool:
+        """Coalesced EXPIRE. Identical semantics to ``Redis.expire(name, time)``
+        — sets TTL on existing key, returns True/False.
+        """
+        loop = asyncio.get_event_loop()
+        fut: asyncio.Future[Any] = loop.create_future()
+        self._pending_writes.append(
+            _PendingWrite(op="expire", key=_normalize_key(name), ttl=int(time), value=None, future=fut)
+        )
+        self._schedule_flush()
+        return await fut
+
+    def _schedule_flush(self) -> None:
+        if not self._flush_scheduled:
+            self._flush_scheduled = True
+            asyncio.create_task(self._flush())
+
     async def _flush(self) -> None:
-        # Yield once so peer ``.get()`` awaits scheduled in the same tick
-        # get a chance to enqueue before MGET fires. Without this we
-        # would degenerate back to one-key-per-MGET.
+        # Yield once so peer awaits scheduled in the same tick get a chance
+        # to enqueue before the pipeline fires. Without this we'd degenerate
+        # back to one-op-per-pipeline.
         await asyncio.sleep(0)
-        # Snapshot + reset before issuing MGET so any further gets enqueued
-        # mid-flush start a fresh batch instead of mutating the in-flight one.
-        pending = self._pending
-        self._pending = {}
+        # Snapshot + reset before issuing pipeline so any further ops
+        # enqueued mid-flush start a fresh batch.
+        pending_gets = self._pending_gets
+        pending_writes = self._pending_writes
+        self._pending_gets = {}
+        self._pending_writes = []
         self._flush_scheduled = False
-        if not pending:
+        if not pending_gets and not pending_writes:
             return
-        keys = list(pending.keys())
+
+        get_keys = list(pending_gets.keys())
         try:
-            values = await self._client.mget(keys)
-        except Exception as exc:  # noqa: BLE001 — fan out to all waiters
-            logger.warning("BatchedRedis: mget(%d keys) failed: %s", len(keys), exc)
-            for bucket in pending.values():
+            # ``transaction=False`` — we don't need MULTI/EXEC atomicity,
+            # just pipelined dispatch (one network round-trip).
+            async with self._client.pipeline(transaction=False) as pipe:
+                if get_keys:
+                    pipe.mget(get_keys)
+                for w in pending_writes:
+                    if w.op == "setex":
+                        pipe.setex(w.key, w.ttl, w.value)
+                    elif w.op == "expire":
+                        pipe.expire(w.key, w.ttl)
+                results = await pipe.execute()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "BatchedRedis: pipeline failed (%d gets, %d writes): %s",
+                len(get_keys), len(pending_writes), exc,
+            )
+            for bucket in pending_gets.values():
                 for f in bucket:
                     if not f.done():
                         f.set_exception(exc)
+            for w in pending_writes:
+                if not w.future.done():
+                    w.future.set_exception(exc)
             return
-        # Dispatch results. ``mget`` returns a list aligned with ``keys``.
-        for k, v in zip(keys, values):
-            for f in pending[k]:
-                if not f.done():
-                    f.set_result(v)
+
+        # Dispatch results. Pipeline returns one entry per queued command,
+        # in queue order: MGET (if any), then each write.
+        idx = 0
+        if get_keys:
+            values = results[idx]
+            idx += 1
+            for k, v in zip(get_keys, values):
+                for f in pending_gets[k]:
+                    if not f.done():
+                        f.set_result(v)
+        for i, w in enumerate(pending_writes):
+            if not w.future.done():
+                w.future.set_result(results[idx + i])
 
     def __getattr__(self, name: str) -> Any:
-        """Pass through every non-GET operation directly to the underlying
-        client. ``__getattr__`` only fires for missing attributes, so this
-        doesn't shadow ``get``/``_client``/``_pending``/``_flush_scheduled``.
+        """Pass through every non-batched operation directly to the
+        underlying client. ``__getattr__`` only fires for missing attributes,
+        so this doesn't shadow ``get`` / ``setex`` / ``expire`` /
+        ``_client`` / ``_pending_*`` / ``_flush_*``.
         """
         return getattr(self._client, name)
 
 
 def _normalize_key(key: Any) -> str:
-    """MGET requires a list of comparable keys. Accept str or bytes and
-    return a canonical str so duplicate-key deduplication works.
+    """MGET / pipeline ops need str keys for the dedup-by-key map. Accept
+    str or bytes and return a canonical str.
     """
     if isinstance(key, bytes):
         return key.decode()
