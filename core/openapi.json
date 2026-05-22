@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.43"
+    "version": "1.0.45"
   },
   "paths": {
     "/persona/title": {
@@ -24582,6 +24582,18 @@
             ],
             "title": "Summary Profile Id",
             "description": "Profile ID to focus the summary card"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -28628,6 +28640,18 @@
             "title": "History Sort Order",
             "description": "History sort direction",
             "default": "desc"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -31892,6 +31916,19 @@
               }
             ],
             "title": "Audios Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -36658,6 +36695,19 @@
             ],
             "title": "Run Id",
             "description": "Run ID for audit linkage"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -36942,6 +36992,19 @@
             "title": "Full",
             "description": "When true, server resolves the rubric and assigns score=total_points (max marks). Callers don't need to know the rubric ceiling ahead of time. Overrides any caller-supplied score.",
             "default": false
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -37109,6 +37172,19 @@
               }
             ],
             "title": "Modality Ids"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -41482,6 +41558,18 @@
             ],
             "title": "Scenario Search",
             "description": "Search string for scenarios"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54392,6 +54480,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -56924,6 +57024,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -57071,6 +57183,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -58291,6 +58415,18 @@
             "format": "uuid",
             "title": "Attempt Id",
             "description": "UUID of the attempt to fetch"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -64250,7 +64386,20 @@
         "title": "GetHealthResponse"
       },
       "GetHomeRequest": {
-        "properties": {},
+        "properties": {
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          }
+        },
         "type": "object",
         "title": "GetHomeRequest",
         "description": "Request for home get endpoint \u2014 simulation cards only."
@@ -67381,7 +67530,20 @@
         "description": "Response model for persona drafts list endpoint."
       },
       "GetPracticeRequest": {
-        "properties": {},
+        "properties": {
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          }
+        },
         "type": "object",
         "title": "GetPracticeRequest",
         "description": "Request for practice get endpoint \u2014 simulation cards only."
@@ -70394,6 +70556,18 @@
             "format": "uuid",
             "title": "Session Id",
             "description": "UUID of the session to fetch"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -72814,6 +72988,18 @@
             "type": "array",
             "title": "Configs Selected",
             "description": "Run IDs currently selected in the picker; messages preloaded for preview"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -78498,6 +78684,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -81512,6 +81710,18 @@
             "title": "Sort Order",
             "description": "Sort direction (asc or desc)",
             "default": "desc"
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -100365,6 +100575,18 @@
             "title": "Page Offset",
             "description": "Chart pagination offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -100697,6 +100919,19 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -102069,6 +102304,19 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -102118,6 +102366,19 @@
             "type": "string",
             "title": "Message",
             "description": "Problem description (max 1000 chars)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -106628,6 +106889,19 @@
             "title": "Resolved",
             "description": "Whether the problem is resolved",
             "default": true
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",
@@ -111982,6 +112256,18 @@
             "type": "integer",
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -118019,6 +118305,19 @@
             "type": "string",
             "title": "Message",
             "default": ""
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call instead of re-running"
           }
         },
         "type": "object",

@@ -155,10 +155,9 @@ async def create_tool_call(
             except Exception:
                 pass  # Fall back to raw output
 
-    # 3. Write .txt — rendered template with INPUT/OUTPUT if available
+    # 3. Build text + receipt payloads (CPU-only, no IO yet).
     text_upload_id = uuid4()
     if rendered_output:
-        # Format arguments concisely
         args_lines = []
         for k, v in arguments.items():
             if v is not None:
@@ -167,17 +166,11 @@ async def create_tool_call(
         text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
     else:
         text_content = output_raw
-    with timed("text_save"):
-        text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
-        text_full_path = upload_folder / text_rel_path
-        text_size = text_full_path.stat().st_size
 
-    # 4. Write .json receipt (only with tool_id)
     call_upload_id: UUID | None = None
-    call_upload_db_id: UUID | None = None
+    call_payload: dict | None = None
     if tool_id is not None:
         call_upload_id = call_id
-        # Use rendered output string if available, raw dict otherwise
         if rendered_output:
             output_for_json = rendered_output
         else:
@@ -185,25 +178,101 @@ async def create_tool_call(
                 json.loads(output_raw) if isinstance(output_raw, str)
                 else output_raw
             )
-        # raw_output: full API response for idempotent playback
         raw_output_dict = (
             json.loads(output_raw) if isinstance(output_raw, str)
             else output_raw
         )
-        with timed("receipt_save"):
-            payload = build_call_payload(
-                call_id=call_upload_id,
-                tool_id=tool_id,
-                arguments=arguments,
-                output=output_for_json,
-                raw_output=raw_output_dict,
-            )
-            call_rel_path = save_call_upload(payload, call_upload_id, upload_folder)
-            call_full_path = upload_folder / call_rel_path
-            call_size = call_full_path.stat().st_size
+        call_payload = build_call_payload(
+            call_id=call_upload_id,
+            tool_id=tool_id,
+            arguments=arguments,
+            output=output_for_json,
+            raw_output=raw_output_dict,
+        )
 
-    # 5. Create upload DB rows
-    with timed("upload_inserts"):
+    # 4. Fire-and-forget the audit persistence chain (file IO + 5 INSERTs).
+    # Saves ~30ms p50 on the response critical path. The caller — and the
+    # response object — does not need msg_id / text_id / junction_ids; the
+    # only fields audit.py reads are ``result``, ``error``, ``call_id``,
+    # ``call_upload_id``. Background failures log via async_tasks helper,
+    # never propagate. See ``async_tasks.py`` for the strong-ref pattern.
+    from app.utils.async_tasks import schedule_background
+
+    schedule_background(
+        _persist_audit_writes(
+            session_id=session_id,
+            mcp=mcp,
+            role=role,
+            started_at=started_at,
+            run_id=effective_run_id,
+            call_id=call_id,
+            tool_id=tool_id,
+            upload_folder=upload_folder,
+            text_content=text_content,
+            text_upload_id=text_upload_id,
+            call_payload=call_payload,
+            call_upload_id=call_upload_id,
+        ),
+        label=f"audit_persist:tool={tool_id}",
+    )
+
+    response = CreateToolSetupResponse(
+        result_id=result_id,
+        result=raw_result,
+        error=tool_error,
+        run_id=effective_run_id,
+        call_id=call_id,
+        call_upload_id=call_upload_id,
+        message_id=None,
+        text_id=None,
+        text_upload_junction_id=None,
+        call_upload_junction_id=None,
+        message_text_upload_junction_id=None,
+        message_call_upload_junction_id=None,
+    )
+
+    if raise_on_error and tool_error is not None:
+        raise tool_error
+
+    return response
+
+
+async def _persist_audit_writes(
+    *,
+    session_id: UUID,
+    mcp: bool,
+    role: str,
+    started_at: "datetime | None",
+    run_id: UUID,
+    call_id: UUID | None,
+    tool_id: UUID | None,
+    upload_folder: Path,
+    text_content: str,
+    text_upload_id: UUID,
+    call_payload: dict | None,
+    call_upload_id: UUID | None,
+) -> None:
+    """Background-task body: persist all audit metadata (file IO + INSERTs).
+
+    Acquires its own pool conn — the caller's conn has been released by
+    the time we run. Every call site is a single ``schedule_background``
+    invocation; if anything here raises, the task helper logs and moves on.
+    """
+    from app.infra.globals import get_pool, get_redis_client
+    pool = get_pool()
+    redis = get_redis_client()
+
+    # File IO (sync, ~1ms total — too small to async-thread)
+    text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
+    text_size = (upload_folder / text_rel_path).stat().st_size
+
+    call_rel_path: str | None = None
+    call_size = 0
+    if call_payload is not None and call_upload_id is not None:
+        call_rel_path = save_call_upload(call_payload, call_upload_id, upload_folder)
+        call_size = (upload_folder / call_rel_path).stat().st_size
+
+    async with pool.acquire() as conn:
         text_upload = await create_upload(
             conn, redis,
             session_id=session_id,
@@ -213,7 +282,8 @@ async def create_tool_call(
             mcp=mcp,
         )
 
-        if tool_id is not None and call_upload_db_id is None:
+        call_upload_db_id: UUID | None = None
+        if tool_id is not None and call_rel_path is not None:
             call_upload = await create_upload(
                 conn, redis,
                 session_id=session_id,
@@ -224,18 +294,10 @@ async def create_tool_call(
             )
             call_upload_db_id = call_upload.id
 
-    # 6. Text message path (always). ``created_at=started_at`` stamps
-    # this audit row at the moment the tool was DISPATCHED, not the
-    # moment audit finishes writing (which is post-``await runner()``).
-    # Without this the row stamps ``now()`` and the FE chat panel
-    # global time-sort renders the tool-call indicator AFTER its own
-    # produced media (the nested run's outputs that happened between
-    # dispatch and audit-write).
-    with timed("msg_insert"):
         msg = await create_run_message(
             conn,
             redis,
-            run_id=effective_run_id,
+            run_id=run_id,
             session_id=session_id,
             role=role,
             upload_id=text_upload.id,
@@ -243,46 +305,18 @@ async def create_tool_call(
             created_at=started_at,
         )
 
-    # 7. Call upload junctions (only when tool_id is provided)
-    call_upload_junction_id: UUID | None = None
-    message_call_upload_junction_id: UUID | None = None
-
-    if call_id is not None and call_upload_db_id is not None:
-        with timed("junction_inserts"):
-            call_upload_junction = await create_call_upload(
+        if call_id is not None and call_upload_db_id is not None:
+            await create_call_upload(
                 conn, redis,
                 call_id=call_id,
                 upload_id=call_upload_db_id,
                 session_id=session_id,
                 mcp=mcp,
             )
-            call_upload_junction_id = call_upload_junction.id
-
-            msg_call_upload = await create_message_upload(
+            await create_message_upload(
                 conn, redis,
                 message_id=msg.message_id,
                 upload_id=call_upload_db_id,
                 session_id=session_id,
                 mcp=mcp,
             )
-            message_call_upload_junction_id = msg_call_upload.id
-
-    response = CreateToolSetupResponse(
-        result_id=result_id,
-        result=raw_result,
-        error=tool_error,
-        run_id=effective_run_id,
-        call_id=call_id,
-        call_upload_id=call_upload_id,
-        message_id=msg.message_id,
-        text_id=msg.text_id,
-        text_upload_junction_id=msg.text_upload_junction_id,
-        call_upload_junction_id=call_upload_junction_id,
-        message_text_upload_junction_id=msg.message_upload_junction_id,
-        message_call_upload_junction_id=message_call_upload_junction_id,
-    )
-
-    if raise_on_error and tool_error is not None:
-        raise tool_error
-
-    return response

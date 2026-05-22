@@ -473,13 +473,10 @@ async def _search_cohort_build(
 
 
 def _empty_response(
-    actor_name: str | None = None,
-    role_level: int = 99,
-    total_count: int = 0,
+    actor_name: str | None = None, total_count: int = 0
 ) -> ListCohortApiResponse:
     return ListCohortApiResponse(
         actor_name=actor_name,
-        role_level=user_role_level, role_permissions=profile.role_permissions,
         cohorts=[],
         profiles=[],
         simulations=[],
