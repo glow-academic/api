@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.messages.types import CreateMessageResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_message(
@@ -65,5 +66,23 @@ async def create_message(
                 row["id"],
                 agent_id,
             )
+
+    fresh_row = {
+        "id": str(row["id"]),
+        "run_id": str(run_id),
+        "role": role,
+        "created_at": row["created_at"].isoformat(),
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+        "agent_ids": [str(a) for a in (agent_ids or [])],
+    }
+    await write_back_row(
+        redis,
+        "messages",
+        row["id"],
+        fresh_row,
+        score_ms=int(row["created_at"].timestamp() * 1000),
+    )
 
     return CreateMessageResponse(id=row["id"], created_at=row["created_at"])

@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.messages.types import GetMessageResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_message(
@@ -13,8 +14,18 @@ async def get_message(
     message_id: UUID,
     redis: Redis,
     agents: bool = False,
+    *,
+    bypass_cache: bool = False,
 ) -> GetMessageResponse | None:
     """Get a messages entry by ID, optionally with agent connections."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "messages", message_id)
+        if cached is not None:
+            resp = GetMessageResponse.model_validate(cached)
+            if not agents:
+                resp = resp.model_copy(update={"agent_ids": []})
+            return resp
+
     row = await conn.fetchrow(
         """
         SELECT m.id, m.run_id, m.role, m.created_at, m.active, m.mcp, m.generated,

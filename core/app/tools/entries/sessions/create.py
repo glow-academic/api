@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.sessions.types import CreateSessionResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_session(
@@ -20,11 +21,11 @@ async def create_session(
     soft: bool = False,
 ) -> CreateSessionResponse:
     """Create a sessions entry with profile link via connection table."""
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO sessions_entry (id, active, mcp, generated, created_at)
         VALUES (COALESCE($3, uuidv7()), $1, $2, true, COALESCE($4, NOW()))
-        RETURNING id
+        RETURNING id, created_at
     """,
         not soft,
         mcp,
@@ -32,8 +33,11 @@ async def create_session(
         created_at,
     )
 
-    if entry_id is None:
+    if row is None:
         raise ValueError("Failed to create sessions entry")
+
+    entry_id = row["id"]
+    actual_created_at = row["created_at"]
 
     if profile_id is not None:
         await conn.execute(
@@ -43,6 +47,22 @@ async def create_session(
         """,
             profile_id,
             entry_id,
+        )
+
+    if profile_id is not None:
+        fresh_row = {
+            "id": str(entry_id),
+            "profile_id": str(profile_id),
+            "created_at": actual_created_at.isoformat(),
+            "active": not soft,
+            "mcp": mcp,
+        }
+        await write_back_row(
+            redis,
+            "sessions",
+            entry_id,
+            fresh_row,
+            score_ms=int(actual_created_at.timestamp() * 1000),
         )
 
     return CreateSessionResponse(id=entry_id)

@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.calls.types import GetCallResponse
+from app.utils.cache.hedged_row import hedged_search
 
 MV_NAME = "calls_mv"
 
@@ -20,6 +21,7 @@ async def search_calls(
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
+    bypass_cache: bool = False,
 ) -> list[GetCallResponse]:
     """Search calls from calls_mv with declarative filters.
 
@@ -43,20 +45,44 @@ async def search_calls(
         run_ids,
         tool_ids,
         operation_keys,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
     )
 
-    return [
-        GetCallResponse(
-            id=r["call_id"],
-            run_id=r["run_id"],
-            created_at=r["call_created_at"],
-            operation_key=r["operation_key"],
-            upload_id=r["upload_id"],
-            file_path=r["file_path"],
-            mime_type=r["mime_type"],
-            tool_id=r["tool_id"],
-        )
+    mv_dicts = [
+        {
+            "id": str(r["call_id"]),
+            "run_id": str(r["run_id"]) if r["run_id"] else None,
+            "created_at": r["call_created_at"],
+            "operation_key": str(r["operation_key"]) if r["operation_key"] else None,
+            "upload_id": str(r["upload_id"]) if r["upload_id"] else None,
+            "file_path": r["file_path"],
+            "mime_type": r["mime_type"],
+            "tool_id": str(r["tool_id"]) if r["tool_id"] else None,
+        }
         for r in rows
     ]
+
+    run_ids_str = {str(x) for x in run_ids} if run_ids else None
+    tool_ids_str = {str(x) for x in tool_ids} if tool_ids else None
+    op_keys_str = {str(x) for x in operation_keys} if operation_keys else None
+
+    def matches(row: dict) -> bool:
+        if run_ids_str is not None and str(row.get("run_id")) not in run_ids_str:
+            return False
+        if tool_ids_str is not None and str(row.get("tool_id")) not in tool_ids_str:
+            return False
+        if op_keys_str is not None and str(row.get("operation_key")) not in op_keys_str:
+            return False
+        return True
+
+    merged = await hedged_search(
+        redis,
+        "calls",
+        mv_rows=mv_dicts,
+        matches_filter=matches,
+        limit=limit,
+        offset=offset,
+        bypass_cache=bypass_cache,
+    )
+    return [GetCallResponse.model_validate(r) for r in merged]

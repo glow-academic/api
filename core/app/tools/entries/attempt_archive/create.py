@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_archive.types import (
     CreateAttemptArchiveResponse,
 )
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_attempt_archive(
@@ -21,11 +22,11 @@ async def create_attempt_archive(
     soft: bool = False,
 ) -> CreateAttemptArchiveResponse:
     """Create an attempt_archive entry."""
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO attempt_archive_entry (id, attempt_id, session_id, archived, active, mcp, generated)
         VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
-        RETURNING id
+        RETURNING id, created_at
         """,
         attempt_id,
         session_id,
@@ -34,4 +35,25 @@ async def create_attempt_archive(
         mcp,
         id,
     )
+    entry_id = row["id"]
+    created_at = row["created_at"]
+
+    fresh_row = {
+        "id": str(entry_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp,
+        "active": not soft,
+        "attempt_id": str(attempt_id),
+        "archived": archived,
+        "session_id": str(session_id) if session_id is not None else None,
+    }
+    await write_back_row(
+        redis,
+        "attempt_archive",
+        entry_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
+
     return CreateAttemptArchiveResponse(id=entry_id)

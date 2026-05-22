@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.runs.types import CreateRunResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_run(
@@ -21,11 +22,11 @@ async def create_run(
     created_at: datetime | None = None,
 ) -> CreateRunResponse:
     """Create a runs entry with optional agent links."""
-    run_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO runs_entry (id, session_id, group_id, active, mcp, generated, created_at)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true, COALESCE($6, NOW()))
-        RETURNING id
+        RETURNING id, created_at
     """,
         session_id,
         group_id,
@@ -35,8 +36,11 @@ async def create_run(
         created_at,
     )
 
-    if run_id is None:
+    if row is None:
         raise ValueError("Failed to create runs entry")
+
+    run_id = row["id"]
+    actual_created_at = row["created_at"]
 
     # Link run → agents_resource
     if agent_ids:
@@ -51,5 +55,20 @@ async def create_run(
             agent_ids,
             created_at,
         )
+
+    fresh_row = {
+        "id": str(run_id),
+        "session_id": str(session_id),
+        "group_id": str(group_id),
+        "mcp": mcp,
+        "generated": True,
+    }
+    await write_back_row(
+        redis,
+        "runs",
+        run_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreateRunResponse(id=run_id)
