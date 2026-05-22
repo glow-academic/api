@@ -1328,7 +1328,7 @@ async def _run_text_seeds(
 
     # Create a session for entry ownership (no profile link — avoids FK issues)
     async with pool.acquire() as conn:
-        session = await create_session(conn)
+        session = await create_session(conn, redis)
     session_id = session.id
 
     for dt in document_text_defs:
@@ -1371,7 +1371,7 @@ async def _run_file_seeds(
 
     # Create a session for entry ownership (no profile link — avoids FK issues)
     async with pool.acquire() as conn:
-        session = await create_session(conn)
+        session = await create_session(conn, redis)
     session_id = session.id
 
     for df in document_file_defs:
@@ -1405,7 +1405,7 @@ async def _run_video_seeds(
     upload_folder.mkdir(parents=True, exist_ok=True)
 
     async with pool.acquire() as conn:
-        session = await create_session(conn)
+        session = await create_session(conn, redis)
     session_id = session.id
 
     for sv in scenario_video_defs:
@@ -1443,7 +1443,7 @@ async def _run_image_seeds(
     upload_folder.mkdir(parents=True, exist_ok=True)
 
     async with pool.acquire() as conn:
-        session = await create_session(conn)
+        session = await create_session(conn, redis)
     session_id = session.id
 
     for si in standalone_image_defs:
