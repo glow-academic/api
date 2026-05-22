@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.home_chat.types import CreateHomeChatResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_home_chat(
@@ -19,11 +20,11 @@ async def create_home_chat(
     soft: bool = False,
 ) -> CreateHomeChatResponse:
     """Create a home_chat_entry bridge row."""
-    row_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO home_chat_entry (id, home_id, chat_id, session_id, active, mcp, generated)
         VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
-        RETURNING id
+        RETURNING id, created_at, active, mcp
         """,
         home_id,
         chat_id,
@@ -33,7 +34,27 @@ async def create_home_chat(
         id,
     )
 
-    if row_id is None:
+    if row is None:
         raise ValueError("Failed to create home_chat_entry")
+    row_id = row["id"]
+    created_at = row["created_at"]
+
+    fresh_row = {
+        "id": str(row_id),
+        "home_id": str(home_id),
+        "chat_id": str(chat_id),
+        "created_at": created_at.isoformat(),
+        "active": row["active"],
+        "generated": True,
+        "mcp": row["mcp"],
+        "session_id": str(session_id),
+    }
+    await write_back_row(
+        redis,
+        "home_chat",
+        row_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateHomeChatResponse(id=row_id)

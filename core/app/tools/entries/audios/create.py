@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.audios.types import CreateAudioResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_audio(
@@ -24,11 +25,11 @@ async def create_audio(
     provided, also inserts a row into ``audios_audios_connection`` so the
     entry is promoted to a library asset reference.
     """
-    audio_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO audios_entry (id, session_id, length_seconds, active, mcp, generated)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, $4, true)
-        RETURNING id
+        RETURNING id, created_at
     """,
         session_id,
         length_seconds,
@@ -37,8 +38,11 @@ async def create_audio(
         id,
     )
 
-    if audio_id is None:
+    if row is None:
         raise ValueError("Failed to create audios entry")
+
+    audio_id = row["id"]
+    actual_created_at = row["created_at"]
 
     if audios_id is not None:
         await conn.execute(
@@ -50,5 +54,22 @@ async def create_audio(
             audios_id,
             mcp,
         )
+
+    fresh_row = {
+        "id": str(audio_id),
+        "session_id": str(session_id),
+        "length_seconds": length_seconds,
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+        "created_at": actual_created_at.isoformat(),
+    }
+    await write_back_row(
+        redis,
+        "audios",
+        audio_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreateAudioResponse(id=audio_id)

@@ -6,13 +6,22 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.texts.types import GetTextResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_text(
     conn: asyncpg.Connection,
     text_id: UUID,
-    redis: Redis) -> GetTextResponse | None:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> GetTextResponse | None:
     """Get a texts entry by ID."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "texts", text_id)
+        if cached is not None:
+            return GetTextResponse.model_validate(cached)
+
     row = await conn.fetchrow(
         """
         SELECT id, session_id, active, mcp, generated

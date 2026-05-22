@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.department_drafts.types import (
     GetDepartmentDraftResponse,
 )
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_department_drafts(
@@ -15,6 +16,8 @@ async def get_department_drafts(
     ids: list[UUID],
     redis: Redis,
     active: bool | None = True,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetDepartmentDraftResponse]:
     """Get department_drafts entries by IDs with connection data.
 
@@ -22,6 +25,21 @@ async def get_department_drafts(
     """
     if not ids:
         return []
+
+    cached_results: dict[str, GetDepartmentDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for rid in ids:
+            cached = await read_back_row(redis, "department_drafts", rid)
+            if cached is not None and (active is None or cached.get("active") == active):
+                cached_results[str(rid)] = GetDepartmentDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(rid)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(rid)] for rid in ids if str(rid) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -50,12 +68,13 @@ async def get_department_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
         active,
     )
 
-    return [
-        GetDepartmentDraftResponse(
+    mv_results: dict[str, GetDepartmentDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetDepartmentDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -73,5 +92,12 @@ async def get_department_drafts(
             pending_name_ids=r["pending_name_ids"],
             pending_setting_ids=r["pending_setting_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetDepartmentDraftResponse] = []
+    for rid in ids:
+        key = str(rid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

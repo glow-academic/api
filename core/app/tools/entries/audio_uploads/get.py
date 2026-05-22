@@ -6,13 +6,22 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.audio_uploads.types import GetAudioUploadResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_audio_upload(
     conn: asyncpg.Connection,
     audio_upload_id: UUID,
-    redis: Redis) -> GetAudioUploadResponse | None:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> GetAudioUploadResponse | None:
     """Get an audio_uploads entry by ID."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "audio_uploads", audio_upload_id)
+        if cached is not None:
+            return GetAudioUploadResponse.model_validate(cached)
+
     row = await conn.fetchrow(
         """
         SELECT id, audio_id, upload_id, session_id,

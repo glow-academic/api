@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.texts.types import CreateTextResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_text(
@@ -19,11 +20,11 @@ async def create_text(
     soft: bool = False,
 ) -> CreateTextResponse:
     """Create a texts entry and optionally link it to a texts resource."""
-    text_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO texts_entry (id, session_id, active, mcp, generated)
         VALUES (COALESCE($4, uuidv7()), $1, $2, $3, true)
-        RETURNING id
+        RETURNING id, created_at
     """,
         session_id,
         not soft,
@@ -31,8 +32,11 @@ async def create_text(
         id,
     )
 
-    if text_id is None:
+    if row is None:
         raise ValueError("Failed to create texts entry")
+
+    text_id = row["id"]
+    actual_created_at = row["created_at"]
 
     if texts_id is not None:
         await conn.execute(
@@ -43,5 +47,21 @@ async def create_text(
             texts_id,
             text_id,
         )
+
+    fresh_row = {
+        "id": str(text_id),
+        "session_id": str(session_id),
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+        "created_at": actual_created_at.isoformat(),
+    }
+    await write_back_row(
+        redis,
+        "texts",
+        text_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreateTextResponse(id=text_id)

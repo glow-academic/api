@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.chat_drafts.types import CreateChatDraftResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_chat_draft(
@@ -37,12 +38,12 @@ async def create_chat_draft(
     pending_ids: set[UUID] | None = None,
 ) -> CreateChatDraftResponse:
     """Create or update a chat_drafts entry with optional connection table links."""
-    draft_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO chat_drafts_entry (id, session_id, active, mcp, generated, name)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at, active
         """,
         session_id,
         not soft,
@@ -51,8 +52,12 @@ async def create_chat_draft(
         id,
     )
 
-    if draft_id is None:
+    if row is None:
         raise ValueError("Failed to create chat_drafts entry")
+
+    draft_id = row["id"]
+    created_at = row["created_at"]
+    actual_active = row["active"]
 
     connections: list[tuple[str, str, list[UUID]]] = [
         ("chat_drafts_departments_connection", "departments_id", department_ids or []),
@@ -96,5 +101,63 @@ async def create_chat_draft(
                 rid,
                 False if soft else (rid not in _pending),
             )
+
+    def _committed(ids: list[UUID] | None) -> list[str]:
+        return [str(rid) for rid in (ids or [])]
+
+    def _pending_only(ids: list[UUID] | None) -> list[str]:
+        if soft:
+            return [str(rid) for rid in (ids or [])]
+        return [str(rid) for rid in (ids or []) if rid in _pending]
+
+    fresh_row = {
+        "id": str(draft_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp,
+        "active": actual_active,
+        "session_id": str(session_id),
+        "name": name,
+        "department_ids": _committed(department_ids),
+        "pending_department_ids": _pending_only(department_ids),
+        "description_ids": _committed(description_ids),
+        "pending_description_ids": _pending_only(description_ids),
+        "document_ids": _committed(document_ids),
+        "pending_document_ids": _pending_only(document_ids),
+        "field_ids": _committed(field_ids),
+        "pending_field_ids": _pending_only(field_ids),
+        "flag_ids": _committed(flag_ids),
+        "pending_flag_ids": _pending_only(flag_ids),
+        "image_ids": _committed(image_ids),
+        "pending_image_ids": _pending_only(image_ids),
+        "name_ids": _committed(name_ids),
+        "pending_name_ids": _pending_only(name_ids),
+        "objective_ids": _committed(objective_ids),
+        "pending_objective_ids": _pending_only(objective_ids),
+        "option_ids": _committed(option_ids),
+        "pending_option_ids": _pending_only(option_ids),
+        "parameter_field_ids": _committed(parameter_field_ids),
+        "pending_parameter_field_ids": _pending_only(parameter_field_ids),
+        "parameter_ids": _committed(parameter_ids),
+        "pending_parameter_ids": _pending_only(parameter_ids),
+        "persona_ids": _committed(persona_ids),
+        "pending_persona_ids": _pending_only(persona_ids),
+        "problem_statement_ids": _committed(problem_statement_ids),
+        "pending_problem_statement_ids": _pending_only(problem_statement_ids),
+        "profile_ids": _committed(profile_ids),
+        "question_ids": _committed(question_ids),
+        "pending_question_ids": _pending_only(question_ids),
+        "scenario_ids": _committed(scenario_ids),
+        "pending_scenario_ids": _pending_only(scenario_ids),
+        "video_ids": _committed(video_ids),
+        "pending_video_ids": _pending_only(video_ids),
+    }
+    await write_back_row(
+        redis,
+        "chat_drafts",
+        draft_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateChatDraftResponse(id=draft_id)

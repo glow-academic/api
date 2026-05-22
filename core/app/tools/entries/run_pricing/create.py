@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.run_pricing.types import CreateRunPricingEntryResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_run_pricing_entry_internal(
@@ -22,11 +23,11 @@ async def create_run_pricing_entry_internal(
     created_at: datetime | None = None,
 ) -> CreateRunPricingEntryResponse:
     """Create a run_pricing entry."""
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO run_pricing_entry (session_id, pricing_type, count, run_id, mcp, generated, active, created_at)
         VALUES ($1, $2, $3, $4, $5, true, $6, COALESCE($7, NOW()))
-        RETURNING id
+        RETURNING id, created_at
         """,
         session_id,
         pricing_type,
@@ -37,8 +38,10 @@ async def create_run_pricing_entry_internal(
         created_at,
     )
 
-    if entry_id is None:
+    if row is None:
         raise ValueError("Failed to create run_pricing entry")
+    entry_id = row["id"]
+    actual_created_at = row["created_at"]
 
     if pricing_id is not None:
         await conn.execute(
@@ -51,5 +54,24 @@ async def create_run_pricing_entry_internal(
             pricing_id,
             mcp,
         )
+
+    fresh_row = {
+        "id": str(entry_id),
+        "pricing_type": pricing_type,
+        "count": count,
+        "run_id": str(run_id),
+        "session_id": str(session_id),
+        "created_at": actual_created_at.isoformat(),
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+    }
+    await write_back_row(
+        redis,
+        "run_pricing",
+        entry_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreateRunPricingEntryResponse(id=entry_id)

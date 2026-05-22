@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.32"
+    "version": "1.0.34"
   },
   "paths": {
     "/persona/title": {
@@ -50137,6 +50137,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50160,6 +50178,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50461,6 +50492,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50484,6 +50533,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50648,6 +50710,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50671,6 +50751,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50709,6 +50802,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50732,6 +50843,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50770,6 +50894,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50793,6 +50935,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50843,6 +50998,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           },
           "search": {
             "anyOf": [
@@ -50923,6 +51096,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -51027,6 +51213,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51050,6 +51254,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -51281,6 +51498,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51304,6 +51539,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -51399,6 +51647,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51422,6 +51688,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -51633,6 +51912,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51656,6 +51953,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",

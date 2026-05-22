@@ -8,13 +8,22 @@ from redis.asyncio import Redis
 from app.tools.entries.upload_completion.types import (
     GetUploadCompletionResponse,
 )
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_upload_completion(
     conn: asyncpg.Connection,
     completion_id: UUID,
-    redis: Redis) -> GetUploadCompletionResponse | None:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> GetUploadCompletionResponse | None:
     """Get an upload_completion entry by ID."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "upload_completion", completion_id)
+        if cached is not None:
+            return GetUploadCompletionResponse.model_validate(cached)
+
     row = await conn.fetchrow(
         """
         SELECT id, upload_id, session_id,

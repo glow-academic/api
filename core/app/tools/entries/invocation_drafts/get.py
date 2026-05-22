@@ -11,16 +11,35 @@ from app.tools.entries.invocation_drafts.types import (
 )
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
+from app.utils.cache.hedged_row import read_back_row
 from app.utils.cache.set_cached import set_cached
 
 
 async def get_invocation_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
-    redis: Redis) -> list[GetInvocationDraftResponse]:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> list[GetInvocationDraftResponse]:
     """Get invocation_drafts entries by IDs with connection data."""
     if not ids:
         return []
+
+    cached_results: dict[str, GetInvocationDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for rid in ids:
+            cached = await read_back_row(redis, "invocation_drafts", rid)
+            if cached is not None and cached.get("active"):
+                cached_results[str(rid)] = GetInvocationDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(rid)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(rid)] for rid in ids if str(rid) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -85,11 +104,12 @@ async def get_invocation_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
     )
 
-    return [
-        GetInvocationDraftResponse(
+    mv_results: dict[str, GetInvocationDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetInvocationDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -131,8 +151,15 @@ async def get_invocation_drafts(
             pending_pricing_ids=r["pending_pricing_ids"],
             pending_endpoint_ids=r["pending_endpoint_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetInvocationDraftResponse] = []
+    for rid in ids:
+        key = str(rid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out
 
 
 async def get_invocation_drafts_entries_internal(

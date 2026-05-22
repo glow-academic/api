@@ -1,12 +1,14 @@
 """Rubric drafts SEARCH — declarative filters on base table + connections."""
 
 from datetime import datetime
+from datetime import datetime as _dt
 from uuid import UUID
 
 import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
+from app.utils.cache.hedged_row import hedged_search
 
 
 async def search_rubric_drafts(
@@ -20,6 +22,7 @@ async def search_rubric_drafts(
     mcp: bool | None = None,
     limit: int = 20,
     offset: int = 0,
+    bypass_cache: bool = False,
 ) -> list[GetRubricDraftResponse]:
     """Search rubric_drafts with declarative filters and connection data."""
     rows = await conn.fetch(
@@ -70,34 +73,80 @@ async def search_rubric_drafts(
         date_to,
         mcp,
         name,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
     )
 
-    return [
-        GetRubricDraftResponse(
-            id=r["id"],
-            created_at=r["created_at"],
-            generated=r["generated"],
-            mcp=r["mcp"],
-            active=r["active"],
-            session_id=r["session_id"],
-            name=r["name"],
-            department_ids=r["department_ids"],
-            description_ids=r["description_ids"],
-            flag_ids=r["flag_ids"],
-            name_ids=r["name_ids"],
-            point_ids=r["point_ids"],
-            profile_ids=r["profile_ids"],
-            standard_group_ids=r["standard_group_ids"],
-            standard_ids=r["standard_ids"],
-            pending_department_ids=r["pending_department_ids"],
-            pending_description_ids=r["pending_description_ids"],
-            pending_flag_ids=r["pending_flag_ids"],
-            pending_name_ids=r["pending_name_ids"],
-            pending_point_ids=r["pending_point_ids"],
-            pending_standard_group_ids=r["pending_standard_group_ids"],
-            pending_standard_ids=r["pending_standard_ids"],
-        )
+    def _strs(v):
+        return [str(x) for x in (v or [])]
+
+    mv_dicts: list[dict] = [
+        {
+            "id": str(r["id"]),
+            "created_at": r["created_at"],
+            "generated": r["generated"],
+            "mcp": r["mcp"],
+            "active": r["active"],
+            "session_id": str(r["session_id"]) if r["session_id"] else None,
+            "name": r["name"],
+            "department_ids": _strs(r["department_ids"]),
+            "description_ids": _strs(r["description_ids"]),
+            "flag_ids": _strs(r["flag_ids"]),
+            "name_ids": _strs(r["name_ids"]),
+            "point_ids": _strs(r["point_ids"]),
+            "profile_ids": _strs(r["profile_ids"]),
+            "standard_group_ids": _strs(r["standard_group_ids"]),
+            "standard_ids": _strs(r["standard_ids"]),
+            "pending_department_ids": _strs(r["pending_department_ids"]),
+            "pending_description_ids": _strs(r["pending_description_ids"]),
+            "pending_flag_ids": _strs(r["pending_flag_ids"]),
+            "pending_name_ids": _strs(r["pending_name_ids"]),
+            "pending_point_ids": _strs(r["pending_point_ids"]),
+            "pending_standard_group_ids": _strs(r["pending_standard_group_ids"]),
+            "pending_standard_ids": _strs(r["pending_standard_ids"]),
+        }
         for r in rows
     ]
+
+    session_ids_str = {str(x) for x in session_ids} if session_ids else None
+    profile_ids_str = {str(x) for x in profile_ids} if profile_ids else None
+
+    def _parse_ts(ts):
+        if isinstance(ts, str):
+            return _dt.fromisoformat(ts)
+        return ts
+
+    name_lc = name.lower() if name else None
+
+    def matches(row: dict) -> bool:
+        if not row.get("active"):
+            return False
+        if session_ids_str is not None and str(row.get("session_id")) not in session_ids_str:
+            return False
+        if profile_ids_str is not None:
+            row_profiles = {str(x) for x in (row.get("profile_ids") or [])}
+            if not (row_profiles & profile_ids_str):
+                return False
+        ts = _parse_ts(row.get("created_at"))
+        if date_from is not None and (ts is None or ts < date_from):
+            return False
+        if date_to is not None and (ts is None or ts > date_to):
+            return False
+        if mcp is not None and row.get("mcp") != mcp:
+            return False
+        if name_lc is not None:
+            row_name = (row.get("name") or "").lower()
+            if name_lc not in row_name:
+                return False
+        return True
+
+    merged = await hedged_search(
+        redis,
+        "rubric_drafts",
+        mv_rows=mv_dicts,
+        matches_filter=matches,
+        limit=limit,
+        offset=offset,
+        bypass_cache=bypass_cache,
+    )
+    return [GetRubricDraftResponse.model_validate(r) for r in merged]

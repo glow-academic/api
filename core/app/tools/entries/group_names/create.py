@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.group_names.types import CreateGroupNameResponse
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_group_name(
@@ -33,13 +34,13 @@ async def create_group_name(
         Lets the ack flow flip a dormant rename to active without
         re-rolling the row id.
     """
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO group_names_entry
                 (id, group_id, name, session_id, generated, mcp, active, created_at)
         VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7, COALESCE($8, NOW()))
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at
         """,
         id,
         group_id,
@@ -51,7 +52,32 @@ async def create_group_name(
         created_at,
     )
 
-    if entry_id is None:
+    if row is None:
         raise ValueError("Failed to create group_names entry")
+    entry_id = row["id"]
+    actual_created_at = row["created_at"]
+
+    # Cache key = group_id (MV is DISTINCT ON group_id; GET is keyed by group_id).
+    # Only cache active rows — dormant (soft) rows are hidden from the MV.
+    if not soft:
+        fresh_row = {
+            "id": str(entry_id),
+            "group_id": str(group_id),
+            "name": name,
+            "created_at": actual_created_at.isoformat(),
+            "generated": generated,
+            "mcp": mcp,
+        }
+        await write_back_row(
+            redis,
+            "group_names",
+            group_id,
+            fresh_row,
+            score_ms=int(actual_created_at.timestamp() * 1000),
+        )
+    else:
+        # Dormant write: previous cached active row may now be stale if this
+        # upsert deactivated an existing active row. Best-effort invalidate.
+        await invalidate_row(redis, "group_names", group_id)
 
     return CreateGroupNameResponse(id=entry_id)

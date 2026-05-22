@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.practice_chat.types import CreatePracticeChatResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_practice_chat(
@@ -19,11 +20,11 @@ async def create_practice_chat(
     soft: bool = False,
 ) -> CreatePracticeChatResponse:
     """Create a practice_chat_entry bridge row."""
-    row_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO practice_chat_entry (id, practice_id, chat_id, session_id, active, mcp, generated)
         VALUES (COALESCE($6, uuidv7()), $1, $2, $3, $4, $5, true)
-        RETURNING id
+        RETURNING id, created_at
         """,
         practice_id,
         chat_id,
@@ -33,7 +34,27 @@ async def create_practice_chat(
         id,
     )
 
-    if row_id is None:
+    if row is None:
         raise ValueError("Failed to create practice_chat_entry")
+    row_id = row["id"]
+    actual_created_at = row["created_at"]
+
+    fresh_row = {
+        "id": str(row_id),
+        "practice_id": str(practice_id),
+        "chat_id": str(chat_id),
+        "created_at": actual_created_at.isoformat(),
+        "active": not soft,
+        "generated": True,
+        "mcp": mcp,
+        "session_id": str(session_id),
+    }
+    await write_back_row(
+        redis,
+        "practice_chat",
+        row_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreatePracticeChatResponse(id=row_id)

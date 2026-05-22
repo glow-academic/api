@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.practice.types import CreatePracticeResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_practice(
@@ -28,11 +29,11 @@ async def create_practice(
     end_time: datetime | None = None,
 ) -> CreatePracticeResponse:
     """Create a practice entry with all connection tables."""
-    practice_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO practice_entry (id, session_id, "position", active, mcp, generated, start_time, end_time)
         VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, true, $5, $6)
-        RETURNING id
+        RETURNING id, created_at, updated_at
         """,
         session_id,
         position,
@@ -43,8 +44,11 @@ async def create_practice(
         id,
     )
 
-    if practice_id is None:
+    if row is None:
         raise ValueError("Failed to create practice entry")
+    practice_id = row["id"]
+    actual_created_at = row["created_at"]
+    actual_updated_at = row["updated_at"]
 
     for cohorts_id in cohorts_ids:
         await conn.execute(
@@ -115,5 +119,28 @@ async def create_practice(
             practice_id,
             simulation_positions_id,
         )
+
+    # Cache row mirrors GET response shape. chat_ids/scenario_ids default
+    # to [] — they accrue later via practice_chat_entry; cache self-heals on TTL.
+    fresh_row = {
+        "id": str(practice_id),
+        "session_id": str(session_id),
+        "simulation_ids": [str(s) for s in simulations_ids],
+        "cohort_ids": [str(c) for c in cohorts_ids],
+        "department_ids": [str(d) for d in departments_ids],
+        "profile_ids": [str(p) for p in profiles_ids],
+        "chat_ids": [],
+        "scenario_ids": [],
+        "created_at": actual_created_at.isoformat(),
+        "updated_at": actual_updated_at.isoformat(),
+        "active": not soft,
+    }
+    await write_back_row(
+        redis,
+        "practice",
+        practice_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreatePracticeResponse(id=practice_id)

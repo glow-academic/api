@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_setting_drafts(
@@ -13,6 +14,8 @@ async def get_setting_drafts(
     ids: list[UUID],
     redis: Redis,
     active: bool | None = True,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetSettingDraftResponse]:
     """Get setting_drafts entries by IDs with connection data.
 
@@ -22,6 +25,23 @@ async def get_setting_drafts(
     """
     if not ids:
         return []
+
+    cached_results: dict[str, GetSettingDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for did in ids:
+            cached = await read_back_row(redis, "setting_drafts", did)
+            if cached is not None:
+                if active is not None and cached.get("active") != active:
+                    continue
+                cached_results[str(did)] = GetSettingDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(did)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(did)] for did in ids if str(did) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -79,12 +99,13 @@ async def get_setting_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
         active,
     )
 
-    return [
-        GetSettingDraftResponse(
+    mv_results: dict[str, GetSettingDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetSettingDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -121,5 +142,12 @@ async def get_setting_drafts(
             logins_ids=r["logins_ids"],
             pending_logins_ids=r["pending_logins_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetSettingDraftResponse] = []
+    for did in ids:
+        key = str(did)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

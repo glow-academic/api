@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.auth_drafts.types import CreateAuthDraftResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_auth_draft(
@@ -27,12 +28,12 @@ async def create_auth_draft(
     pending_ids: set[UUID] | None = None,
 ) -> CreateAuthDraftResponse:
     """Create an auth_drafts entry with optional connection table links."""
-    draft_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO auth_drafts_entry (id, session_id, active, mcp, generated, name)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at, active
         """,
         session_id,
         not soft,
@@ -41,8 +42,12 @@ async def create_auth_draft(
         id,
     )
 
-    if draft_id is None:
+    if row is None:
         raise ValueError("Failed to create auth_drafts entry")
+
+    draft_id = row["id"]
+    created_at = row["created_at"]
+    actual_active = row["active"]
 
     connections: list[tuple[str, str, list[UUID]]] = [
         ("auth_drafts_departments_connection", "departments_id", department_ids or []),
@@ -70,5 +75,45 @@ async def create_auth_draft(
                 rid,
                 is_active,
             )
+
+    def _committed(ids: list[UUID] | None) -> list[str]:
+        return [str(rid) for rid in (ids or [])]
+
+    def _pending_only(ids: list[UUID] | None) -> list[str]:
+        if soft:
+            return [str(rid) for rid in (ids or [])]
+        return [str(rid) for rid in (ids or []) if rid in _pending]
+
+    fresh_row = {
+        "id": str(draft_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp,
+        "active": actual_active,
+        "session_id": str(session_id),
+        "name": name,
+        "department_ids": _committed(department_ids),
+        "description_ids": _committed(description_ids),
+        "flag_ids": _committed(flag_ids),
+        "item_ids": _committed(item_ids),
+        "name_ids": _committed(name_ids),
+        "profile_ids": _committed(profile_ids),
+        "protocol_ids": _committed(protocol_ids),
+        "slug_ids": _committed(slug_ids),
+        "pending_department_ids": _pending_only(department_ids),
+        "pending_description_ids": _pending_only(description_ids),
+        "pending_flag_ids": _pending_only(flag_ids),
+        "pending_item_ids": _pending_only(item_ids),
+        "pending_name_ids": _pending_only(name_ids),
+        "pending_protocol_ids": _pending_only(protocol_ids),
+        "pending_slug_ids": _pending_only(slug_ids),
+    }
+    await write_back_row(
+        redis,
+        "auth_drafts",
+        draft_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateAuthDraftResponse(id=draft_id)

@@ -6,13 +6,22 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.uploads.types import GetUploadResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_upload(
     conn: asyncpg.Connection,
     upload_id: UUID,
-    redis: Redis) -> GetUploadResponse | None:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> GetUploadResponse | None:
     """Get an uploads entry by ID."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "uploads", upload_id)
+        if cached is not None:
+            return GetUploadResponse.model_validate(cached)
+
     row = await conn.fetchrow(
         """
         SELECT id, session_id, file_path, mime_type, size,

@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.model_drafts.types import CreateModelDraftResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_model_draft(
@@ -32,12 +33,12 @@ async def create_model_draft(
     pending_ids: set[UUID] | None = None,
 ) -> CreateModelDraftResponse:
     """Create a model_drafts entry with optional connection table links."""
-    draft_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO model_drafts_entry (id, session_id, active, mcp, generated, name)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at, active
         """,
         session_id,
         not soft,
@@ -46,8 +47,12 @@ async def create_model_draft(
         id,
     )
 
-    if draft_id is None:
+    if row is None:
         raise ValueError("Failed to create model_drafts entry")
+
+    draft_id = row["id"]
+    created_at = row["created_at"]
+    actual_active = row["active"]
 
     connections: list[tuple[str, str, list[UUID]]] = [
         ("model_drafts_departments_connection", "departments_id", department_ids or []),
@@ -87,5 +92,56 @@ async def create_model_draft(
                 rid,
                 False if soft else (rid not in _pending),
             )
+
+    def _all(ids: list[UUID] | None) -> list[str]:
+        return [str(rid) for rid in (ids or [])]
+
+    def _pending_only(ids: list[UUID] | None) -> list[str]:
+        if soft:
+            return [str(rid) for rid in (ids or [])]
+        return [str(rid) for rid in (ids or []) if rid in _pending]
+
+    value_ids_for_cache: list[UUID] = [value_id] if value_id else []
+    fresh_row = {
+        "id": str(draft_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp,
+        "active": actual_active,
+        "session_id": str(session_id),
+        "name": name,
+        "department_ids": _all(department_ids),
+        "description_ids": _all(description_ids),
+        "flag_ids": _all(flag_ids),
+        "modality_ids": _all(modality_ids),
+        "name_ids": _all(name_ids),
+        "pricing_ids": _all(pricing_ids),
+        "profile_ids": _all(profile_ids),
+        "provider_ids": _all(provider_ids),
+        "quality_ids": _all(quality_ids),
+        "reasoning_level_ids": _all(reasoning_level_ids),
+        "temperature_level_ids": _all(temperature_level_ids),
+        "value_id": str(value_id) if value_id else None,
+        "voice_ids": _all(voice_ids),
+        "pending_department_ids": _pending_only(department_ids),
+        "pending_description_ids": _pending_only(description_ids),
+        "pending_flag_ids": _pending_only(flag_ids),
+        "pending_modality_ids": _pending_only(modality_ids),
+        "pending_name_ids": _pending_only(name_ids),
+        "pending_pricing_ids": _pending_only(pricing_ids),
+        "pending_provider_ids": _pending_only(provider_ids),
+        "pending_quality_ids": _pending_only(quality_ids),
+        "pending_reasoning_level_ids": _pending_only(reasoning_level_ids),
+        "pending_temperature_level_ids": _pending_only(temperature_level_ids),
+        "pending_value_ids": _pending_only(value_ids_for_cache),
+        "pending_voice_ids": _pending_only(voice_ids),
+    }
+    await write_back_row(
+        redis,
+        "model_drafts",
+        draft_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateModelDraftResponse(id=draft_id)

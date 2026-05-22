@@ -10,16 +10,35 @@ from app.infra.globals import get_redis_client
 from app.tools.entries.invocation.types import GetInvocationResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
+from app.utils.cache.hedged_row import read_back_row
 from app.utils.cache.set_cached import set_cached
 
 
 async def get_invocations(
     conn: asyncpg.Connection,
     ids: list[UUID],
-    redis: Redis) -> list[GetInvocationResponse]:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> list[GetInvocationResponse]:
     """Get invocation entries by IDs with connection data."""
     if not ids:
         return []
+
+    cached_results: dict[str, GetInvocationResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for iid in ids:
+            cached = await read_back_row(redis, "invocation", iid)
+            if cached is not None:
+                cached_results[str(iid)] = GetInvocationResponse.model_validate(cached)
+            else:
+                missing_ids.append(iid)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(i)] for i in ids if str(i) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -60,11 +79,12 @@ async def get_invocations(
                  e.created_at, e.active, e.generated, e.mcp
         ORDER BY e.created_at DESC
         """,
-        ids,
+        missing_ids,
     )
 
-    return [
-        GetInvocationResponse(
+    mv_results: dict[str, GetInvocationResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetInvocationResponse(
             id=r["id"],
             benchmark_id=r["benchmark_id"],
             session_id=r["session_id"],
@@ -89,8 +109,15 @@ async def get_invocations(
             temperature_level_ids=r["temperature_level_ids"],
             voice_ids=r["voice_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetInvocationResponse] = []
+    for iid in ids:
+        key = str(iid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out
 
 
 async def get_invocation_entries_internal(

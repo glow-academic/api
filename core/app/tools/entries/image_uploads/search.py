@@ -6,6 +6,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.tools.entries.image_uploads.types import GetImageUploadResponse
+from app.utils.cache.hedged_row import hedged_search
 
 
 async def search_image_uploads(
@@ -16,6 +17,7 @@ async def search_image_uploads(
     session_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,
+    bypass_cache: bool = False,
 ) -> list[GetImageUploadResponse]:
     """Search image_uploads entries with declarative filters."""
     rows = await conn.fetch(
@@ -32,19 +34,46 @@ async def search_image_uploads(
         image_ids,
         upload_ids,
         session_ids,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
     )
-    return [
-        GetImageUploadResponse(
-            id=r["id"],
-            image_id=r["image_id"],
-            upload_id=r["upload_id"],
-            session_id=r["session_id"],
-            created_at=r["created_at"],
-            active=r["active"],
-            mcp=r["mcp"],
-            generated=r["generated"],
-        )
+
+    mv_dicts = [
+        {
+            "id": str(r["id"]),
+            "image_id": str(r["image_id"]) if r["image_id"] else None,
+            "upload_id": str(r["upload_id"]) if r["upload_id"] else None,
+            "session_id": str(r["session_id"]) if r["session_id"] else None,
+            "created_at": r["created_at"],
+            "active": r["active"],
+            "mcp": r["mcp"],
+            "generated": r["generated"],
+        }
         for r in rows
     ]
+
+    image_ids_str = {str(x) for x in image_ids} if image_ids else None
+    upload_ids_str = {str(x) for x in upload_ids} if upload_ids else None
+    session_ids_str = {str(x) for x in session_ids} if session_ids else None
+
+    def matches(row: dict) -> bool:
+        if row.get("active") is not True:
+            return False
+        if image_ids_str is not None and str(row.get("image_id")) not in image_ids_str:
+            return False
+        if upload_ids_str is not None and str(row.get("upload_id")) not in upload_ids_str:
+            return False
+        if session_ids_str is not None and str(row.get("session_id")) not in session_ids_str:
+            return False
+        return True
+
+    merged = await hedged_search(
+        redis,
+        "image_uploads",
+        mv_rows=mv_dicts,
+        matches_filter=matches,
+        limit=limit,
+        offset=offset,
+        bypass_cache=bypass_cache,
+    )
+    return [GetImageUploadResponse.model_validate(r) for r in merged]

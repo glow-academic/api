@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.simulation_drafts.types import (
     GetSimulationDraftResponse,
 )
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_simulation_drafts(
@@ -15,6 +16,8 @@ async def get_simulation_drafts(
     ids: list[UUID],
     redis: Redis,
     active: bool | None = True,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetSimulationDraftResponse]:
     """Get simulation_drafts entries by IDs with connection data.
 
@@ -24,6 +27,23 @@ async def get_simulation_drafts(
     """
     if not ids:
         return []
+
+    cached_results: dict[str, GetSimulationDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for did in ids:
+            cached = await read_back_row(redis, "simulation_drafts", did)
+            if cached is not None:
+                if active is not None and cached.get("active") != active:
+                    continue
+                cached_results[str(did)] = GetSimulationDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(did)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(did)] for did in ids if str(did) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -67,12 +87,13 @@ async def get_simulation_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
         active,
     )
 
-    return [
-        GetSimulationDraftResponse(
+    mv_results: dict[str, GetSimulationDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetSimulationDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -100,5 +121,12 @@ async def get_simulation_drafts(
             pending_scenario_time_limit_ids=r["pending_scenario_time_limit_ids"],
             pending_scenario_ids=r["pending_scenario_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetSimulationDraftResponse] = []
+    for did in ids:
+        key = str(did)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

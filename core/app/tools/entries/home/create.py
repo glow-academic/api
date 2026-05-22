@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.home.types import CreateHomeResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_home(
@@ -28,11 +29,11 @@ async def create_home(
     end_time: datetime | None = None,
 ) -> CreateHomeResponse:
     """Create a home entry with all connection tables."""
-    home_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO home_entry (id, session_id, "position", active, mcp, generated, start_time, end_time)
         VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, true, $5, $6)
-        RETURNING id
+        RETURNING id, created_at, active
         """,
         session_id,
         position,
@@ -43,8 +44,11 @@ async def create_home(
         id,
     )
 
-    if home_id is None:
+    if row is None:
         raise ValueError("Failed to create home entry")
+    home_id = row["id"]
+    created_at = row["created_at"]
+    active_val = row["active"]
 
     # Connection tables
     for cohorts_id in cohorts_ids:
@@ -116,5 +120,28 @@ async def create_home(
             home_id,
             simulation_positions_id,
         )
+
+    # Write-back cache row. chat_ids and scenario_ids are sourced
+    # from joins in home_mv that aren't known at create-time; empty
+    # at creation, populated via MV refresh.
+    fresh_row = {
+        "id": str(home_id),
+        "simulation_ids": [str(s) for s in simulations_ids],
+        "cohort_ids": [str(c) for c in cohorts_ids],
+        "department_ids": [str(d) for d in departments_ids],
+        "profile_ids": [str(p) for p in profiles_ids],
+        "chat_ids": [],
+        "scenario_ids": [],
+        "created_at": created_at.isoformat(),
+        "updated_at": created_at.isoformat(),
+        "active": active_val,
+    }
+    await write_back_row(
+        redis,
+        "home",
+        home_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateHomeResponse(id=home_id)

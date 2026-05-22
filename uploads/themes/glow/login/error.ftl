@@ -7,7 +7,7 @@
       <div class="sparkles-background" id="sparkles-container"></div>
 
       <#-- Back button -->
-      <#assign appBase = client.baseUrl!"" />
+      <#assign appBase = (client.baseUrl)!"" />
       <#if appBase?has_content>
         <div class="back-button-container">
           <a href="${appBase}" class="back-button">

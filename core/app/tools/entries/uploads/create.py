@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.uploads.types import CreateUploadResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_upload(
@@ -21,11 +22,11 @@ async def create_upload(
     soft: bool = False,
 ) -> CreateUploadResponse:
     """Create an uploads entry."""
-    upload_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO uploads_entry (id, session_id, file_path, mime_type, size, active, mcp, generated)
         VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, $5, $6, true)
-        RETURNING id
+        RETURNING id, created_at
     """,
         session_id,
         file_path,
@@ -36,7 +37,29 @@ async def create_upload(
         id,
     )
 
-    if upload_id is None:
+    if row is None:
         raise ValueError("Failed to create uploads entry")
+
+    upload_id = row["id"]
+    actual_created_at = row["created_at"]
+
+    fresh_row = {
+        "id": str(upload_id),
+        "session_id": str(session_id),
+        "file_path": file_path,
+        "mime_type": mime_type,
+        "size": size,
+        "created_at": actual_created_at.isoformat(),
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+    }
+    await write_back_row(
+        redis,
+        "uploads",
+        upload_id,
+        fresh_row,
+        score_ms=int(actual_created_at.timestamp() * 1000),
+    )
 
     return CreateUploadResponse(id=upload_id)

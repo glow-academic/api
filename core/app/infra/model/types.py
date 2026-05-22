@@ -753,6 +753,8 @@ class ExportModelApiRequest(BaseModel):
 
     model_id: UUID | None = Field(None, description="Model identifier to export")
     idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
+    soft: bool = Field(False, description="Stage the export dormant (active=False); ack with accept activates it")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key")
 
 
 class ExportModelApiResponse(BaseModel):
@@ -761,6 +763,7 @@ class ExportModelApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadModelApiRequest(BaseModel):

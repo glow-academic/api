@@ -10,6 +10,7 @@ from app.infra.globals import get_redis_client
 from app.tools.entries.home_chat.types import GetHomeChatResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
+from app.utils.cache.hedged_row import read_back_row
 from app.utils.cache.set_cached import set_cached
 
 MV_NAME = "home_chat_mv"
@@ -18,33 +19,56 @@ MV_NAME = "home_chat_mv"
 async def get_home_chats(
     conn: asyncpg.Connection,
     ids: list[UUID],
-    redis: Redis) -> list[GetHomeChatResponse]:
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> list[GetHomeChatResponse]:
     """Get home_chat entries by IDs from home_chat_mv."""
     if not ids:
         return []
 
-    rows = await conn.fetch(
-        f"""
-        SELECT id, home_id, chat_id, created_at, active, generated, mcp, session_id
-        FROM {MV_NAME}
-        WHERE id = ANY($1)
-        """,
-        ids,
-    )
+    cached_results: dict[str, GetHomeChatResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for hid in ids:
+            cached = await read_back_row(redis, "home_chat", hid)
+            if cached is not None:
+                cached_results[str(hid)] = GetHomeChatResponse.model_validate(cached)
+            else:
+                missing_ids.append(hid)
+    else:
+        missing_ids = list(ids)
 
-    return [
-        GetHomeChatResponse(
-            id=r["id"],
-            home_id=r["home_id"],
-            chat_id=r["chat_id"],
-            created_at=r["created_at"],
-            active=r["active"],
-            generated=r["generated"],
-            mcp=r["mcp"],
-            session_id=r["session_id"],
+    mv_results: dict[str, GetHomeChatResponse] = {}
+    if missing_ids:
+        rows = await conn.fetch(
+            f"""
+            SELECT id, home_id, chat_id, created_at, active, generated, mcp, session_id
+            FROM {MV_NAME}
+            WHERE id = ANY($1)
+            """,
+            missing_ids,
         )
-        for r in rows
-    ]
+        for r in rows:
+            mv_results[str(r["id"])] = GetHomeChatResponse(
+                id=r["id"],
+                home_id=r["home_id"],
+                chat_id=r["chat_id"],
+                created_at=r["created_at"],
+                active=r["active"],
+                generated=r["generated"],
+                mcp=r["mcp"],
+                session_id=r["session_id"],
+            )
+
+    out: list[GetHomeChatResponse] = []
+    for hid in ids:
+        key = str(hid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out
 
 
 async def get_home_chat_entries_internal(
