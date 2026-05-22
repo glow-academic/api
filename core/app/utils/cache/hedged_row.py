@@ -188,6 +188,73 @@ async def hedged_search(
     return combined[offset : offset + limit]
 
 
+async def hedged_search_with_total(
+    redis: Redis,
+    entry: str,
+    *,
+    mv_rows: list[dict[str, Any]],
+    mv_total: int,
+    matches_filter: Callable[[dict[str, Any]], bool],
+    sort_key: Callable[[dict[str, Any]], Any] | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    id_key: str = "id",
+    bypass_cache: bool = False,
+) -> tuple[list[dict[str, Any]], int]:
+    """Same as ``hedged_search`` but returns ``(items, total_count)``.
+
+    For searches whose response shape is ``tuple[list, int]`` (paginated
+    UIs that surface a total like "Showing 20 of 137"). ``mv_total`` is
+    the MV-side ``COUNT(*) OVER()`` for the unpaginated result; we add
+    the count of cached rows that aren't already in the MV result to
+    capture write-after-MV-refresh deltas.
+
+    ``mv_rows`` is the unsorted / unpaginated MV slice (already padded
+    via the standard ``LIMIT + offset + 1000`` trick); this function
+    sorts + paginates the merged list internally.
+    """
+    if bypass_cache:
+        rows = list(mv_rows)
+        rows.sort(key=sort_key or _default_sort, reverse=True)
+        return rows[offset : offset + limit], mv_total
+
+    cached_matches: list[dict[str, Any]] = []
+    try:
+        recent_ids_raw = await redis.zrevrange(_recent_key(entry), 0, -1)
+    except Exception:
+        recent_ids_raw = []
+
+    if recent_ids_raw:
+        ids = [
+            rid.decode() if isinstance(rid, bytes) else rid for rid in recent_ids_raw
+        ]
+        try:
+            raws = await redis.mget(*[_row_key(entry, rid) for rid in ids])
+        except Exception:
+            raws = []
+        for raw in raws or []:
+            if raw is None:
+                continue
+            if isinstance(raw, bytes):
+                raw = raw.decode()
+            try:
+                row = json.loads(raw)
+            except Exception:
+                continue
+            if matches_filter(row):
+                cached_matches.append(row)
+
+    mv_ids = {str(r.get(id_key)) for r in mv_rows}
+    extra = sum(1 for c in cached_matches if str(c.get(id_key)) not in mv_ids)
+
+    cached_ids = {str(r.get(id_key)) for r in cached_matches}
+    mv_kept = [r for r in mv_rows if str(r.get(id_key)) not in cached_ids]
+
+    combined = cached_matches + mv_kept
+    combined.sort(key=sort_key or _default_sort, reverse=True)
+    return combined[offset : offset + limit], mv_total + extra
+
+
 def _default_sort(row: dict[str, Any]) -> datetime:
     """Default sort key: created_at. Handles both datetime and ISO str shapes
     so cache rows (serialized) and MV rows (asyncpg datetime) sort together."""
