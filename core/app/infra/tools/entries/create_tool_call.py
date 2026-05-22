@@ -63,17 +63,19 @@ async def create_tool_call(
         )
         effective_run_id = run.id
 
+    from app.infra.server_timing import timed
     call_id: UUID | None = None
     if tool_id is not None:
-        call_result = await create_call(
-            conn, redis,
-            run_id=effective_run_id,
-            session_id=session_id,
-            tool_id=tool_id,
-            operation_key=operation_key,
-            mcp=mcp,
-            id=pre_minted_call_id,
-        )
+        with timed("call_insert"):
+            call_result = await create_call(
+                conn, redis,
+                run_id=effective_run_id,
+                session_id=session_id,
+                tool_id=tool_id,
+                operation_key=operation_key,
+                mcp=mcp,
+                id=pre_minted_call_id,
+            )
         call_id = call_result.id
 
     # 1b. Notify caller that call record exists (for emitting "started" events)
@@ -161,9 +163,10 @@ async def create_tool_call(
         text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
     else:
         text_content = output_raw
-    text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
-    text_full_path = upload_folder / text_rel_path
-    text_size = text_full_path.stat().st_size
+    with timed("text_save"):
+        text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
+        text_full_path = upload_folder / text_rel_path
+        text_size = text_full_path.stat().st_size
 
     # 4. Write .json receipt (only with tool_id)
     call_upload_id: UUID | None = None
@@ -183,37 +186,39 @@ async def create_tool_call(
             json.loads(output_raw) if isinstance(output_raw, str)
             else output_raw
         )
-        payload = build_call_payload(
-            call_id=call_upload_id,
-            tool_id=tool_id,
-            arguments=arguments,
-            output=output_for_json,
-            raw_output=raw_output_dict,
-        )
-        call_rel_path = save_call_upload(payload, call_upload_id, upload_folder)
-        call_full_path = upload_folder / call_rel_path
-        call_size = call_full_path.stat().st_size
+        with timed("receipt_save"):
+            payload = build_call_payload(
+                call_id=call_upload_id,
+                tool_id=tool_id,
+                arguments=arguments,
+                output=output_for_json,
+                raw_output=raw_output_dict,
+            )
+            call_rel_path = save_call_upload(payload, call_upload_id, upload_folder)
+            call_full_path = upload_folder / call_rel_path
+            call_size = call_full_path.stat().st_size
 
     # 5. Create upload DB rows
-    text_upload = await create_upload(
-        conn, redis,
-        session_id=session_id,
-        file_path=text_rel_path,
-        mime_type="text/plain",
-        size=text_size,
-        mcp=mcp,
-    )
-
-    if tool_id is not None and call_upload_db_id is None:
-        call_upload = await create_upload(
+    with timed("upload_inserts"):
+        text_upload = await create_upload(
             conn, redis,
             session_id=session_id,
-            file_path=call_rel_path,
-            mime_type="application/json",
-            size=call_size,
+            file_path=text_rel_path,
+            mime_type="text/plain",
+            size=text_size,
             mcp=mcp,
         )
-        call_upload_db_id = call_upload.id
+
+        if tool_id is not None and call_upload_db_id is None:
+            call_upload = await create_upload(
+                conn, redis,
+                session_id=session_id,
+                file_path=call_rel_path,
+                mime_type="application/json",
+                size=call_size,
+                mcp=mcp,
+            )
+            call_upload_db_id = call_upload.id
 
     # 6. Text message path (always). ``created_at=started_at`` stamps
     # this audit row at the moment the tool was DISPATCHED, not the
@@ -222,43 +227,46 @@ async def create_tool_call(
     # global time-sort renders the tool-call indicator AFTER its own
     # produced media (the nested run's outputs that happened between
     # dispatch and audit-write).
-    msg = await create_run_message(
-        conn,
-        redis,
-        run_id=effective_run_id,
-        session_id=session_id,
-        role=role,
-        upload_id=text_upload.id,
-        mcp=mcp,
-        created_at=started_at,
-    )
+    with timed("msg_insert"):
+        msg = await create_run_message(
+            conn,
+            redis,
+            run_id=effective_run_id,
+            session_id=session_id,
+            role=role,
+            upload_id=text_upload.id,
+            mcp=mcp,
+            created_at=started_at,
+        )
 
     # 7. Call upload junctions (only when tool_id is provided)
     call_upload_junction_id: UUID | None = None
     message_call_upload_junction_id: UUID | None = None
 
     if call_id is not None and call_upload_db_id is not None:
-        call_upload_junction = await create_call_upload(
-            conn, redis,
-            call_id=call_id,
-            upload_id=call_upload_db_id,
-            session_id=session_id,
-            mcp=mcp,
-        )
-        call_upload_junction_id = call_upload_junction.id
+        with timed("junction_inserts"):
+            call_upload_junction = await create_call_upload(
+                conn, redis,
+                call_id=call_id,
+                upload_id=call_upload_db_id,
+                session_id=session_id,
+                mcp=mcp,
+            )
+            call_upload_junction_id = call_upload_junction.id
 
-        msg_call_upload = await create_message_upload(
-            conn, redis,
-            message_id=msg.message_id,
-            upload_id=call_upload_db_id,
-            session_id=session_id,
-            mcp=mcp,
-        )
-        message_call_upload_junction_id = msg_call_upload.id
+            msg_call_upload = await create_message_upload(
+                conn, redis,
+                message_id=msg.message_id,
+                upload_id=call_upload_db_id,
+                session_id=session_id,
+                mcp=mcp,
+            )
+            message_call_upload_junction_id = msg_call_upload.id
 
     response = CreateToolSetupResponse(
         result_id=result_id,
         result=raw_result,
+        error=tool_error,
         run_id=effective_run_id,
         call_id=call_id,
         call_upload_id=call_upload_id,

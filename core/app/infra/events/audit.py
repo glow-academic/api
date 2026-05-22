@@ -181,11 +181,13 @@ async def run_artifact_operation_with_audit(
     # ``resolve_artifact_operation_tool`` (which is agent-scoped via
     # tool_graph and stays around for generation-side callers that
     # need that view).
+    from app.infra.server_timing import timed
     from app.infra.tools.resolve_for_operation import resolve_tool_for_operation
-    async with pool.acquire() as _conn:
-        resolved_op_tool = await resolve_tool_for_operation(
-            _conn, redis, artifact=artifact, operation=operation,
-        )
+    with timed("tool_resolve"):
+        async with pool.acquire() as _conn:
+            resolved_op_tool = await resolve_tool_for_operation(
+                _conn, redis, artifact=artifact, operation=operation,
+            )
     tool_id = resolved_op_tool.tool_id if resolved_op_tool else None
     resolved_template = (
         resolved_op_tool.instruction_template if resolved_op_tool else None
@@ -219,16 +221,17 @@ async def run_artifact_operation_with_audit(
     # and is re-raised.
     if operation_key is not None and not bypass_cache and not _is_bare_ack(arguments):
         try:
-            async with pool.acquire() as _idem_conn:
-                # bypass_mv=True reads through the base-table index, so a
-                # just-completed call is visible immediately (no MV-refresh lag).
-                _prior = await search_calls(
-                    _idem_conn,
-                    redis,
-                    operation_keys=[operation_key],
-                    limit=1,
-                    bypass_mv=True,
-                )
+            with timed("idempotency"):
+                async with pool.acquire() as _idem_conn:
+                    # bypass_mv=True reads through the base-table index, so a
+                    # just-completed call is visible immediately (no MV-refresh lag).
+                    _prior = await search_calls(
+                        _idem_conn,
+                        redis,
+                        operation_keys=[operation_key],
+                        limit=1,
+                        bypass_mv=True,
+                    )
             _prior = [c for c in _prior if c.file_path]
             if _prior:
                 _receipt_path = effective_upload_folder / _prior[0].file_path
@@ -379,19 +382,20 @@ async def run_artifact_operation_with_audit(
     # were silently emitting only ``.completed`` and the client could
     # never render their started bubble.
     if not suppress_started:
-        await internal_sio.emit(f"{event_prefix}.started", {
-            "sid": sid,
-            "rooms": effective_rooms,
-            "role": role,
-            **arguments,
-            # Framework-owned identity trails the spread so request bodies
-            # that happen to carry ``call_id``/``group_id`` keys (download
-            # routes, etc.) don't overwrite the audit's own ids.
-            "call_id": str(emit_call_id),
-            "group_id": str(effective_group_id) if effective_group_id else None,
-            "operation_key": str(operation_key) if operation_key else None,
-            "tool": tool_payload,
-        })
+        with timed("started_emit"):
+            await internal_sio.emit(f"{event_prefix}.started", {
+                "sid": sid,
+                "rooms": effective_rooms,
+                "role": role,
+                **arguments,
+                # Framework-owned identity trails the spread so request bodies
+                # that happen to carry ``call_id``/``group_id`` keys (download
+                # routes, etc.) don't overwrite the audit's own ids.
+                "call_id": str(emit_call_id),
+                "group_id": str(effective_group_id) if effective_group_id else None,
+                "operation_key": str(operation_key) if operation_key else None,
+                "tool": tool_payload,
+            })
 
     # --- Execute ---
     call_upload_id: UUID | None = None
@@ -432,27 +436,28 @@ async def run_artifact_operation_with_audit(
         async def _on_call_created(_cid: UUID | None) -> None:
             return
 
-        async with pool.acquire() as conn:
-            audit_result = await create_tool_call(
-                conn,
-                redis,
-                group_id=effective_group_id,  # type: ignore[arg-type]
-                session_id=effective_session_id,  # type: ignore[arg-type]
-                profile_id=effective_profiles_id,  # type: ignore[arg-type]
-                upload_folder=effective_upload_folder,
-                tool_fn=_tool_fn,
-                arguments=arguments,
-                tool_id=tool_id,
-                run_id=run_id,
-                operation_key=operation_key,
-                role=role,
-                mcp=mcp,
-                instruction_template=instruction_template,
-                raise_on_error=False,
-                on_call_created=_on_call_created,
-                pre_minted_call_id=emit_call_id,
-                started_at=started_at,
-            )
+        with timed("audit_write"):
+            async with pool.acquire() as conn:
+                audit_result = await create_tool_call(
+                    conn,
+                    redis,
+                    group_id=effective_group_id,  # type: ignore[arg-type]
+                    session_id=effective_session_id,  # type: ignore[arg-type]
+                    profile_id=effective_profiles_id,  # type: ignore[arg-type]
+                    upload_folder=effective_upload_folder,
+                    tool_fn=_tool_fn,
+                    arguments=arguments,
+                    tool_id=tool_id,
+                    run_id=run_id,
+                    operation_key=operation_key,
+                    role=role,
+                    mcp=mcp,
+                    instruction_template=instruction_template,
+                    raise_on_error=False,
+                    on_call_created=_on_call_created,
+                    pre_minted_call_id=emit_call_id,
+                    started_at=started_at,
+                )
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
 
@@ -546,9 +551,10 @@ async def run_artifact_operation_with_audit(
     ledger_artifact: str | None = None
     ledger_artifact_id: str | None = None
     try:
-        from app.tools.entries.soft_calls.get import get_soft_call
-        async with pool.acquire() as ledger_conn:
-            entry = await get_soft_call(ledger_conn, emit_call_id, redis, artifact=artifact)
+        with timed("ledger"):
+            from app.tools.entries.soft_calls.get import get_soft_call
+            async with pool.acquire() as ledger_conn:
+                entry = await get_soft_call(ledger_conn, emit_call_id, redis, artifact=artifact)
         if entry is not None:
             ledger_status = entry.status
             ledger_operation = entry.operation
@@ -565,23 +571,25 @@ async def run_artifact_operation_with_audit(
     # accidentally clobber the audit's own row id. Uses ``emit_call_id``
     # (always set), not ``call_upload_id`` (None in the non-audit branch),
     # so the wire-level identity is consistent regardless of audit branch.
-    await internal_sio.emit(f"{event_prefix}.completed", {
-        "sid": sid,
-        "rooms": effective_rooms,
-        "role": role,
-        **output,
-        "call_id": str(emit_call_id),
-        "group_id": str(effective_group_id) if effective_group_id else None,
-        "operation_key": str(operation_key) if operation_key else None,
-        "tool": tool_payload,
-        "ledger_status": ledger_status,
-        "ledger_operation": ledger_operation,
-        "ledger_artifact": ledger_artifact,
-        "ledger_artifact_id": ledger_artifact_id,
-    })
+    with timed("completed_emit"):
+        await internal_sio.emit(f"{event_prefix}.completed", {
+            "sid": sid,
+            "rooms": effective_rooms,
+            "role": role,
+            **output,
+            "call_id": str(emit_call_id),
+            "group_id": str(effective_group_id) if effective_group_id else None,
+            "operation_key": str(operation_key) if operation_key else None,
+            "tool": tool_payload,
+            "ledger_status": ledger_status,
+            "ledger_operation": ledger_operation,
+            "ledger_artifact": ledger_artifact,
+            "ledger_artifact_id": ledger_artifact_id,
+        })
 
     if response_model is not None:
-        return response_model.model_validate(result_data)
+        with timed("serialize"):
+            return response_model.model_validate(result_data)
     return result_data
 
 

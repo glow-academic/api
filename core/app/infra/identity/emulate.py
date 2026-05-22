@@ -159,6 +159,12 @@ async def resolve_emulation(
                 profile_id=target.profiles_id,
             )
 
+    # Bust the emulation-chain cache for the requester so the next
+    # request resolves their new active emulation immediately, not
+    # after the 60s TTL.
+    from app.infra.identity.resolve_identity import invalidate_emulation_cache
+    await invalidate_emulation_cache(requester_profile_id)
+
     # Enqueue async refresh of grants_mv + emulations_mv via the per-MV worker.
     from app.infra.refresh.queue import enqueue_refreshes
     await enqueue_refreshes(
@@ -226,6 +232,11 @@ async def resolve_unemulation(
     from app.infra.globals import get_redis_client
     async with pool.acquire() as conn:
         await create_grant_consumption(conn, get_redis_client(), grant_id=link.grant_id)
+
+    # Bust the actor's cached chain so the next request sees one fewer
+    # layer, not the stale 60s-TTL chain.
+    from app.infra.identity.resolve_identity import invalidate_emulation_cache
+    await invalidate_emulation_cache(actor_profile_id)
 
     logger.info(
         f"Unemulated: consumed grant {link.grant_id}, "

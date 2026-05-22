@@ -506,7 +506,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 # ---------------------------------------------------------------------------
 from app.version import __version__ as _app_version  # noqa: E402
 
-fastapi_app = FastAPI(title="GLOW API", version=_app_version, lifespan=lifespan, redirect_slashes=False)
+from fastapi.responses import ORJSONResponse  # noqa: E402
+
+fastapi_app = FastAPI(
+    title="GLOW API",
+    version=_app_version,
+    lifespan=lifespan,
+    redirect_slashes=False,
+    # orjson is 2-5× faster than the stdlib json module FastAPI uses by
+    # default. Hot endpoints serializing 40KB+ Pydantic responses see a
+    # measurable shave (~5-10ms warm) per request.
+    default_response_class=ORJSONResponse,
+)
 
 fastapi_app.add_middleware(
     CORSMiddleware,

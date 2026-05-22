@@ -545,6 +545,31 @@ async def _find_active_grant_target(
     return None
 
 
+_EMULATION_CACHE_KEY = "auth:emulation:{profile_id}"
+_EMULATION_CACHE_TTL = 60  # seconds; explicit invalidation on write sites
+
+
+def _emulation_cache_key(profile_id: UUID) -> str:
+    return _EMULATION_CACHE_KEY.format(profile_id=profile_id)
+
+
+async def invalidate_emulation_cache(profile_id: UUID) -> None:
+    """Bust the cached emulation chain for ``profile_id``.
+
+    Call from any write site that changes a profile's outgoing grants
+    (grant create, emulation activate, unemulation). Best-effort: errors
+    are swallowed since the TTL is the safety net.
+    """
+    from app.infra.globals import get_redis_client
+    redis = get_redis_client()
+    if redis is None:
+        return
+    try:
+        await redis.delete(_emulation_cache_key(profile_id))
+    except Exception:
+        pass
+
+
 async def resolve_emulation_chain(
     pool: asyncpg.Pool, profile_id: UUID
 ) -> list[EmulationChainLink]:
@@ -555,7 +580,39 @@ async def resolve_emulation_chain(
 
     Returns the full chain as a list of EmulationChainLink.
     Empty list means no active emulation.
+
+    Cached in Redis for ``_EMULATION_CACHE_TTL`` seconds; 99% of users
+    have an empty chain so the cache hit is the dominant path. Write
+    sites must call ``invalidate_emulation_cache`` for snappy UX —
+    the TTL is the safety net.
     """
+    import json
+    from app.infra.globals import get_redis_client
+
+    redis = get_redis_client()
+    cache_key = _emulation_cache_key(profile_id)
+    cached_raw: Any = None
+    if redis is not None:
+        try:
+            cached_raw = await redis.get(cache_key)
+        except Exception:
+            cached_raw = None
+    if cached_raw is not None:
+        if isinstance(cached_raw, bytes):
+            cached_raw = cached_raw.decode()
+        try:
+            data = json.loads(cached_raw)
+            return [
+                EmulationChainLink(
+                    grant_id=UUID(link["grant_id"]),
+                    target_profile_id=UUID(link["target_profile_id"]),
+                )
+                for link in data
+            ]
+        except Exception:
+            # Bad cache entry — fall through to DB and overwrite below.
+            pass
+
     chain: list[EmulationChainLink] = []
     current = profile_id
     visited: set[UUID] = set()
@@ -579,6 +636,20 @@ async def resolve_emulation_chain(
                 + " → ".join(str(link.target_profile_id) for link in chain)
                 + f" (depth {len(chain)})"
             )
+
+        # Cache the result (empty chain too — the common case).
+        if redis is not None:
+            try:
+                payload = json.dumps([
+                    {
+                        "grant_id": str(link.grant_id),
+                        "target_profile_id": str(link.target_profile_id),
+                    }
+                    for link in chain
+                ])
+                await redis.setex(cache_key, _EMULATION_CACHE_TTL, payload)
+            except Exception:
+                pass
 
         return chain
     except Exception as e:
