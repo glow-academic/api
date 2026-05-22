@@ -19,6 +19,8 @@ class ExportCohortApiRequest(BaseModel):
 
     cohort_id: UUID | None = None
     idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
+    soft: bool = Field(False, description="Stage the export dormant (active=False); ack with accept activates it")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key")
 
 
 @router.post("/export", response_model=ExportCohortApiResponse)
@@ -41,13 +43,19 @@ async def export_cohorts(
         )
         group_id = group_result.group_id
 
-    async def _runner() -> ExportCohortApiResponse:
+    is_ack = body.accept is not None and body.idempotency_key is not None
+
+    async def _runner(call_id: UUID | None = None) -> ExportCohortApiResponse:
         return await export_cohort_impl(
             pool,
             redis,
             profile_id=profile_id,
             session_id=session_id,
             cohort_id=body.cohort_id,
+            soft=body.soft,
+            accept=body.accept,
+            idempotency_key=body.idempotency_key,
+            call_id=call_id,
         )
 
     return await run_artifact_operation_with_audit(
@@ -58,7 +66,7 @@ async def export_cohorts(
         session_id=session_id,
         group_id=group_id,
         operation="export",
-        arguments=body.model_dump(mode="json"),
+        arguments={"accept": body.accept} if is_ack else body.model_dump(mode="json"),
         response_model=ExportCohortApiResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),

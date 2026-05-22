@@ -1,33 +1,36 @@
-"""Scenario video upload logic — composable infra architecture.
+"""Scenario video upload — permission + canonical media chain.
 
-Composes existing black-box tools:
-  1. resolve_profile_identity_context — profile (role, departments)
-  2. has_permission — permission check for scenario:video_upload
-  3. create_upload — raw file metadata (uploads_entry)
-  4. create_video — semantic metadata (videos_resource)
-  5. create_video_upload — link video <-> upload (video_uploads_entry)
+Thin wrapper around ``media_upload_impl`` (now shares the canonical chain with
+scenario/image_upload and attempt/audio_upload):
+  1. resolve_profile_identity_context
+  2. has_permission("scenario", "video_upload")
+  3. media_upload_impl(modality="video", ...)
+
+Soft/accept follows the canonical CRUD lifecycle (see document/file_upload):
+  - ``soft=True`` → stage the whole chain dormant + a pending ``soft_calls_entry``.
+  - ``{idempotency_key, accept}`` → promote (``activate_rows`` per row) or reject.
 
 Does NOT link the video to any scenario — that is a separate update operation.
 """
 
 from __future__ import annotations
 
-import os
-import uuid as _uuid
 from uuid import UUID
 
 import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.globals import VIDEO_FOLDER
+from app.infra.activate.activate import activate_rows
+from app.infra.media.upload import media_upload_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.types import VideoUploadScenarioApiResponse
-from app.tools.entries.uploads.create import create_upload
-from app.tools.entries.video_uploads.create import create_video_upload
-from app.tools.resources.videos.create import create_video
-from app.utils.cache.invalidate_tags import invalidate_tags
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+
+ARTIFACT = "scenario"
+OPERATION = "video_upload"
 
 
 async def video_upload_scenario_impl(
@@ -36,23 +39,17 @@ async def video_upload_scenario_impl(
     *,
     profile_id: UUID,
     session_id: UUID | None = None,
-    file_bytes: bytes,
-    filename: str,
-    content_type: str,
+    file_bytes: bytes | None = None,
+    filename: str | None = None,
+    content_type: str | None = None,
     name: str | None = None,
     description: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
 ) -> VideoUploadScenarioApiResponse:
-    """Upload a video for later use in scenarios.
-
-    Flow:
-      1. resolve_profile_identity_context -> role, permissions
-      2. has_permission check (scenario:video_upload)
-      3. Write file to disk
-      4. create_upload -> uploads_entry
-      5. create_video -> videos_resource
-      6. create_video_upload -> video_uploads_entry (link)
-      7. invalidate_tags
-    """
+    """Upload a video for later use in scenarios (canonical chain + soft/accept)."""
     # -- Step 1: Profile context ------------------------------------------------
     profile = await resolve_profile_identity_context(
         pool, profile_id, redis, session_id=session_id,
@@ -70,51 +67,84 @@ async def video_upload_scenario_impl(
             detail="You don't have permission to upload scenario videos.",
         )
 
-    # -- Step 3: Write file to disk ---------------------------------------------
-    upload_uuid = _uuid.uuid4()
+    # ── Short-circuit: ack path (mirrors document/file_upload) ─────────────────
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+        if entry is None or entry.status != "pending" or entry.operation != OPERATION:
+            raise HTTPException(
+                status_code=404, detail="No pending video upload for this call.",
+            )
+        ids = entry.patch or {}
 
-    _, ext = os.path.splitext(filename)
-    if not ext:
-        ext = ".bin"
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
+                    await activate_rows(conn, table="videos_resource", ids=[UUID(ids["resource_id"])])
+                    await activate_rows(conn, table="videos_entry", ids=[UUID(ids["entry_id"])])
+                    await activate_rows(conn, table="video_uploads_entry", ids=[UUID(ids["junction_id"])])
+        # accept=False: dormant rows stay inactive; the 'rejected' ledger row is canonical.
 
-    relative_path = f"video/{upload_uuid}{ext}"
-    full_path = VIDEO_FOLDER / f"{upload_uuid}{ext}"
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                redis,
+                call_id=idempotency_key,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=entry.artifact_id,
+                status="accepted" if accept else "rejected",
+            )
 
-    with open(full_path, "wb") as f:
-        f.write(file_bytes)
-
-    # -- Step 4-6: DB records in single connection ------------------------------
-    session_uuid = session_id or UUID(int=0)
-    video_name = name or os.path.splitext(filename)[0]
-    video_description = description or ""
-
-    async with pool.acquire() as conn:
-        upload_result = await create_upload(
-            conn,
-            redis, session_id=session_uuid,
-            file_path=relative_path,
-            mime_type=content_type,
-            size=len(file_bytes),
+        return VideoUploadScenarioApiResponse(
+            video_id=entry.artifact_id,
+            upload_id=UUID(ids["upload_id"]),
+            idempotency_key=idempotency_key,
         )
 
-        video_result = await create_video(
-            conn,
-            name=video_name,
-            description=video_description,
-            redis=redis,
+    # ── First-call requirements ────────────────────────────────────────────────
+    if file_bytes is None or not filename:
+        raise HTTPException(
+            status_code=400,
+            detail="A file is required for upload (or pass `idempotency_key` + "
+            "`accept` for the ack call).",
         )
 
-        await create_video_upload(
-            conn,
-            redis, video_id=video_result.id,
-            upload_id=upload_result.id,
-            session_id=session_uuid,
-        )
+    session_uuid = session_id or profile.session_id or UUID(int=0)
 
-    # -- Step 7: Invalidate cache -----------------------------------------------
-    await invalidate_tags(["uploads", "resources", "videos"], redis=redis)
+    result = await media_upload_impl(
+        pool, redis,
+        modality="video",
+        session_id=session_uuid,
+        file_bytes=file_bytes,
+        filename=filename,
+        content_type=content_type or "",
+        soft=soft,
+        name=name or "",
+        description=description or "",
+    )
+
+    if soft and call_id is not None:
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn,
+                redis,
+                call_id=call_id,
+                artifact=ARTIFACT,
+                operation=OPERATION,
+                artifact_id=result.resource_id,
+                status="pending",
+                patch={
+                    "upload_id": str(result.upload_id),
+                    "resource_id": str(result.resource_id),
+                    "entry_id": str(result.entry_id),
+                    "junction_id": str(result.junction_id),
+                },
+            )
 
     return VideoUploadScenarioApiResponse(
-        video_id=video_result.id,
-        upload_id=upload_result.id,
+        video_id=result.resource_id,
+        upload_id=result.upload_id,
+        idempotency_key=call_id,
     )

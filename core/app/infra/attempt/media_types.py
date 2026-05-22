@@ -14,6 +14,7 @@ class AudioUploadAttemptApiResponse(BaseModel):
     audio_id: UUID = Field(..., description="UUID of the audios_entry (server plumbing; public handle is audios_id)")
     audios_id: UUID = Field(..., description="UUID of the audios_resource — use this for /generate, /chat/message, download")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (primitive raw file)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key; echo with accept to promote/reject the staged upload.")
 
 
 class AudioDownloadAttemptApiRequest(BaseModel):

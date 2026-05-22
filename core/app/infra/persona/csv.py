@@ -27,6 +27,9 @@ from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.infra.persona.search import PERSONA_IMPORT_FIELDS
 from app.infra.server_timing import timed
 from app.infra.persona.types import CreatePersonaItem
+from app.infra.activate.activate import activate_rows
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.uploads.create import create_upload
 
 # ---------------------------------------------------------------------------
@@ -41,6 +44,7 @@ class ParsePersonaCsvApiResponse(BaseModel):
     items: list[CreatePersonaItem] = Field(..., description="Parsed persona items for preview")
     mapped_fields: list[str] = Field(..., description="Column keys that were auto-mapped")
     row_count: int = Field(..., description="Number of data rows parsed")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose).")
 
 
 # ---------------------------------------------------------------------------
@@ -109,15 +113,58 @@ async def parse_persona_csv_impl(
     pool: asyncpg.Pool,
     *,
     session_id: UUID,
-    file_bytes: bytes,
-    file_name: str,
-    content_type: str,
+    file_bytes: bytes | None = None,
+    file_name: str | None = None,
+    content_type: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
     **_kwargs,
 ) -> ParsePersonaCsvApiResponse:
     """Parse a CSV file and return mapped persona items for preview.
 
     Accepts pre-read bytes (UploadFile must be read at the route boundary).
+
+    Soft/accept (degenerate — csv's value is the preview, returned on the propose):
+    ``soft`` stages the raw-CSV uploads_entry inactive + a pending soft_call keyed
+    by the server ``call_id`` (which FKs calls_entry); the ack activates that row
+    but returns no items (there's no file to re-parse on the ack).
     """
+    redis = get_redis_client()
+
+    # ── Short-circuit: ack path — promote/reject the staged raw-CSV upload ──
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact="persona")
+        if entry is None or entry.status != "pending" or entry.operation != "csv":
+            raise HTTPException(
+                status_code=404, detail="No pending CSV upload for this call.",
+            )
+        ids = entry.patch or {}
+        if accept:
+            async with pool.acquire() as conn:
+                await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn, redis, call_id=idempotency_key, artifact="persona",
+                operation="csv", artifact_id=entry.artifact_id,
+                status="accepted" if accept else "rejected",
+            )
+        return ParsePersonaCsvApiResponse(
+            upload_id=entry.artifact_id,
+            items=[],
+            mapped_fields=list(ids.get("mapped_fields", [])),
+            row_count=int(ids.get("row_count", 0)),
+            idempotency_key=idempotency_key,
+        )
+
+    if file_bytes is None or not file_name:
+        raise HTTPException(
+            status_code=400,
+            detail="A CSV file is required (or pass `idempotency_key` + `accept` for the ack call).",
+        )
+
     # ── Step 1: Save to disk + create upload entry ────────────────────
 
     with timed("upload"):
@@ -132,11 +179,12 @@ async def parse_persona_csv_impl(
         async with pool.acquire() as conn:
             upload_result = await create_upload(
                 conn,
-                get_redis_client(),
+                redis,
                 session_id=session_id,
                 file_path=relative_path,
                 mime_type=content_type,
                 size=len(file_bytes),
+                soft=soft,
             )
 
     # ── Step 2: Parse CSV ─────────────────────────────────────────────
@@ -184,9 +232,24 @@ async def parse_persona_csv_impl(
     with timed("build_items"):
         items = [_row_to_item(row, field_map) for row in data_rows]
 
+    # Soft: stash the raw upload as a pending soft_call (keyed by the server
+    # call_id) so the ack can activate it. The preview above is returned now.
+    if soft and call_id is not None:
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn, redis, call_id=call_id, artifact="persona",
+                operation="csv", artifact_id=upload_result.id, status="pending",
+                patch={
+                    "upload_id": str(upload_result.id),
+                    "mapped_fields": mapped_fields,
+                    "row_count": len(data_rows),
+                },
+            )
+
     return ParsePersonaCsvApiResponse(
         upload_id=upload_result.id,
         items=items,
         mapped_fields=mapped_fields,
         row_count=len(data_rows),
+        idempotency_key=call_id,
     )

@@ -616,6 +616,7 @@ class ExportRubricApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of rows in the export (rubric standards)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadRubricApiRequest(BaseModel):

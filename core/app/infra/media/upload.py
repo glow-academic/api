@@ -94,6 +94,7 @@ class MediaUploadResult(BaseModel):
     upload_id: UUID
     entry_id: UUID
     resource_id: UUID
+    junction_id: UUID
     file_path: str
     mime_type: str
     file_size: int
@@ -116,6 +117,7 @@ async def media_upload_impl(
     upload_id: UUID | None = None,
     filename: str = "",
     content_type: str = "",
+    soft: bool = False,
     length_seconds: int = 0,
     name: str = "",
     description: str = "",
@@ -189,6 +191,7 @@ async def media_upload_impl(
                 file_path=relative_path,
                 mime_type=mime_type,
                 size=file_size,
+                soft=soft,
             )
             upload_id = upload_row.id
         else:
@@ -205,18 +208,21 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_audio(
                 conn,
                 redis, session_id=session_id,
                 audios_id=resource.id,
                 length_seconds=length_seconds,
+                soft=soft,
             )
-            await create_audio_upload(
+            junction = await create_audio_upload(
                 conn,
                 redis, audio_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
         elif modality == "image":
             resource = await create_image_resource(
@@ -224,17 +230,20 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_image(
                 conn,
                 redis, session_id=session_id,
                 images_id=resource.id,
+                soft=soft,
             )
-            await create_image_upload(
+            junction = await create_image_upload(
                 conn,
                 redis, image_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
         else:
             resource = await create_video_resource(
@@ -242,18 +251,21 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_video(
                 conn,
                 redis, session_id=session_id,
                 videos_id=resource.id,
                 length_seconds=length_seconds,
+                soft=soft,
             )
-            await create_video_upload(
+            junction = await create_video_upload(
                 conn,
                 redis, video_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
 
         # Initialize before the conditional so the return-shape path
@@ -341,6 +353,7 @@ async def media_upload_impl(
         upload_id=upload_id,
         entry_id=entry.id,
         resource_id=resource.id,
+        junction_id=junction.id,
         file_path=relative_path,
         mime_type=mime_type,
         file_size=file_size,

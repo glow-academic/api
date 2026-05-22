@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Form, HTTPException, Query, Request, Response, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, Response, UploadFile
 
 from app.infra.attempt.audio_upload import audio_upload_attempt_impl
 from app.infra.attempt.group import group_attempt_impl
@@ -37,11 +37,14 @@ ALLOWED_AUDIO_TYPES = {
 async def upload_audio(
     http_request: Request,
     response: Response,
-    file: UploadFile | None = None,
+    file: UploadFile | None = File(None),
     length_seconds: int = Form(0),
     upload_id: UUID | None = Query(None),
     name: str = Form(""),
     description: str = Form(""),
+    idempotency_key: UUID | None = Form(None),
+    soft: bool = Form(False),
+    accept: bool | None = Form(None),
 ) -> AudioUploadAttemptApiResponse:
     """Upload audio or promote an existing raw upload.
 
@@ -67,40 +70,43 @@ async def upload_audio(
                 detail="Profile ID is required. Please sign in again.",
             )
 
-        if upload_id is None and file is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Either a multipart 'file' or an 'upload_id' query param is required.",
-            )
+        is_ack = accept is not None and idempotency_key is not None
 
         file_bytes: bytes | None = None
         filename: str = ""
         content_type: str = "audio/pcm"
 
-        if file is not None:
-            if not file.filename:
-                raise HTTPException(status_code=400, detail="Missing filename")
-
-            filename = file.filename
-            content_type = file.content_type or get_content_type(filename)
-            # ``MediaRecorder`` returns codec-tagged content types like
-            # ``audio/webm;codecs=opus`` — valid HTTP but a literal
-            # string mismatch against the bare ``audio/webm`` in
-            # ALLOWED_AUDIO_TYPES. Normalize by stripping parameters
-            # before the membership check; persist the bare base type
-            # so the upload row matches what other consumers (entry
-            # search, MV) expect.
-            base_content_type = content_type.split(";", 1)[0].strip().lower()
-            if base_content_type not in ALLOWED_AUDIO_TYPES:
+        if not is_ack:
+            if upload_id is None and file is None:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Unsupported audio type: {content_type}",
+                    detail="Either a multipart 'file' or an 'upload_id' query param is required.",
                 )
-            content_type = base_content_type
 
-            file_bytes = await file.read()
-            if not file_bytes:
-                raise HTTPException(status_code=400, detail="Empty file")
+            if file is not None:
+                if not file.filename:
+                    raise HTTPException(status_code=400, detail="Missing filename")
+
+                filename = file.filename
+                content_type = file.content_type or get_content_type(filename)
+                # ``MediaRecorder`` returns codec-tagged content types like
+                # ``audio/webm;codecs=opus`` — valid HTTP but a literal
+                # string mismatch against the bare ``audio/webm`` in
+                # ALLOWED_AUDIO_TYPES. Normalize by stripping parameters
+                # before the membership check; persist the bare base type
+                # so the upload row matches what other consumers (entry
+                # search, MV) expect.
+                base_content_type = content_type.split(";", 1)[0].strip().lower()
+                if base_content_type not in ALLOWED_AUDIO_TYPES:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Unsupported audio type: {content_type}",
+                    )
+                content_type = base_content_type
+
+                file_bytes = await file.read()
+                if not file_bytes:
+                    raise HTTPException(status_code=400, detail="Empty file")
 
         # -- Run with audit ----------------------------------------------------
         pool = get_pool()
@@ -115,7 +121,9 @@ async def upload_audio(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> AudioUploadAttemptApiResponse:
+        # ``call_id`` is threaded in by the audit wrapper (signature opt-in) —
+        # it's the server-minted calls_entry id the soft ledger keys on.
+        async def _runner(call_id: UUID | None = None) -> AudioUploadAttemptApiResponse:
             return await audio_upload_attempt_impl(
                 pool,
                 redis,
@@ -128,23 +136,32 @@ async def upload_audio(
                 length_seconds=length_seconds,
                 name=name,
                 description=description,
+                soft=soft,
+                accept=accept,
+                idempotency_key=idempotency_key,
+                call_id=call_id,
             )
 
-        audit_arguments: dict = {
-            "length_seconds": length_seconds,
-        }
-        if upload_id is not None:
-            audit_arguments["upload_id"] = str(upload_id)
-            audit_arguments["mode"] = "promote"
+        if is_ack:
+            # Ack call: carry `accept` in arguments so the replay gate's
+            # _is_bare_ack skips it (don't replay the propose receipt).
+            audit_arguments: dict = {"accept": accept}
         else:
-            audit_arguments.update(
-                {
-                    "filename": filename,
-                    "content_type": content_type,
-                    "size": len(file_bytes or b""),
-                    "mode": "file",
-                }
-            )
+            audit_arguments = {
+                "length_seconds": length_seconds,
+            }
+            if upload_id is not None:
+                audit_arguments["upload_id"] = str(upload_id)
+                audit_arguments["mode"] = "promote"
+            else:
+                audit_arguments.update(
+                    {
+                        "filename": filename,
+                        "content_type": content_type,
+                        "size": len(file_bytes or b""),
+                        "mode": "file",
+                    }
+                )
 
         response_data = await run_artifact_operation_with_audit(
             pool,
@@ -158,6 +175,7 @@ async def upload_audio(
             response_model=AudioUploadAttemptApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "uploads,entries,audios"

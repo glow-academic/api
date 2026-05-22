@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.34"
+    "version": "1.0.41"
   },
   "paths": {
     "/persona/title": {
@@ -212,7 +212,7 @@
           "persona"
         ],
         "summary": "Parse Persona Csv",
-        "description": "Parse a CSV file and return mapped items for preview.",
+        "description": "Parse a CSV file and return mapped items for preview (soft/accept on the raw upload).",
         "operationId": "parse_persona_csv_persona_csv_post",
         "requestBody": {
           "content": {
@@ -221,8 +221,7 @@
                 "$ref": "#/components/schemas/Body_parse_persona_csv_persona_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2054,7 +2053,7 @@
           "scenario"
         ],
         "summary": "Upload Image",
-        "description": "Upload an image for later use in scenarios.",
+        "description": "Upload an image for later use in scenarios (soft/accept dormant flow).",
         "operationId": "upload_image_scenario_image_upload_post",
         "security": [
           {
@@ -2096,7 +2095,6 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -2186,7 +2184,7 @@
           "scenario"
         ],
         "summary": "Upload Video",
-        "description": "Upload a video for later use in scenarios.",
+        "description": "Upload a video for later use in scenarios (soft/accept dormant flow).",
         "operationId": "upload_video_scenario_video_upload_post",
         "security": [
           {
@@ -2228,7 +2226,6 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
@@ -27429,6 +27426,19 @@
             "format": "uuid",
             "title": "Upload Id",
             "description": "UUID of the uploads_entry (primitive raw file)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key; echo with accept to promote/reject the staged upload."
           }
         },
         "type": "object",
@@ -28954,8 +28964,15 @@
       "Body_parse_persona_csv_persona_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28969,12 +28986,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_persona_csv_persona_csv_post"
       },
       "Body_parse_profile_csv_profile_csv_post": {
@@ -29187,6 +29217,34 @@
             "type": "string",
             "title": "Description",
             "default": ""
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
@@ -29241,8 +29299,15 @@
       "Body_upload_image_scenario_image_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29256,12 +29321,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_image_scenario_image_upload_post"
       },
       "Body_upload_text_document_text_upload_post": {
@@ -29313,8 +29391,15 @@
       "Body_upload_video_scenario_video_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29328,12 +29413,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_video_scenario_video_upload_post"
       },
       "CallDownloadAgentApiRequest": {
@@ -50431,6 +50529,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50454,6 +50570,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -50649,6 +50778,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -50672,6 +50819,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -51311,6 +51471,24 @@
             ],
             "title": "Idempotency Key",
             "description": "Idempotency key \u2014 replays the prior export instead of re-running"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (active=False); ack with accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51337,6 +51515,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of rows in the export (rubric standards)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export."
           }
         },
         "type": "object",
@@ -78575,6 +78766,19 @@
             "format": "uuid",
             "title": "Upload Id",
             "description": "UUID of the uploads_entry (file on disk)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key; echo with accept to promote/reject the staged upload."
           }
         },
         "type": "object",
@@ -90641,6 +90845,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows parsed"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -132695,6 +132912,19 @@
             "format": "uuid",
             "title": "Upload Id",
             "description": "UUID of the uploads_entry (file on disk)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key; echo with accept to promote/reject the staged upload."
           }
         },
         "type": "object",

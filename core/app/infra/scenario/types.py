@@ -989,6 +989,7 @@ class ImageUploadScenarioApiResponse(BaseModel):
 
     image_id: UUID = Field(..., description="UUID of the created images_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key; echo with accept to promote/reject the staged upload.")
 
 
 class ImageDownloadScenarioApiRequest(BaseModel):
@@ -1020,6 +1021,7 @@ class VideoUploadScenarioApiResponse(BaseModel):
 
     video_id: UUID = Field(..., description="UUID of the created videos_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key; echo with accept to promote/reject the staged upload.")
 
 
 class VideoDownloadScenarioApiRequest(BaseModel):
