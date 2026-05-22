@@ -529,7 +529,7 @@ async def test_start_impl(
             if eval_id:
                 from app.tools.entries.benchmark.search import search_benchmarks
                 benchmarks = await search_benchmarks(
-                    conn, redis, eval_ids=[eval_id], limit=1, bypass_mv=True,
+                    conn, redis, eval_ids=[eval_id], limit=1,
                 )
                 if not benchmarks:
                     raise ValueError(f"No benchmark found for eval {eval_id}")

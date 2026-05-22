@@ -121,13 +121,13 @@ async def attempt_start_impl(
         from app.tools.entries.practice_chat.search import search_practice_chats
         async with pool.acquire() as conn:
             chat_entries = await search_practice_chats(
-                conn, redis, practice_ids=[parent_id], limit=1000, bypass_mv=True,
+                conn, redis, practice_ids=[parent_id], limit=1000,
             )
     else:
         from app.tools.entries.home_chat.search import search_home_chats
         async with pool.acquire() as conn:
             chat_entries = await search_home_chats(
-                conn, redis, home_ids=[parent_id], limit=1000, bypass_mv=True,
+                conn, redis, home_ids=[parent_id], limit=1000,
             )
 
     if not chat_entries:

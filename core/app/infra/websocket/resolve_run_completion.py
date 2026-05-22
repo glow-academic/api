@@ -117,7 +117,6 @@ async def resolve_run_completion(
         get_redis_client(),
         run_ids=[run_id],
         limit=200,
-        bypass_mv=True,
     )
     all_tool_ids = [c.tool_id for c in calls if c.tool_id]
 

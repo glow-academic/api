@@ -730,7 +730,6 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
                 conn, redis,
                 session_ids=[session.id],
                 limit=1,
-                bypass_mv=True,
             )
             last_seen = recent[0].created_at if recent else session.created_at
             cutoff = datetime.now(timezone.utc) - timedelta(

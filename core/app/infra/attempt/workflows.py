@@ -656,14 +656,12 @@ async def attempt_start_impl(
                     conn, redis,
                     practice_ids=[payload.practice_id],
                     limit=1000,
-                    bypass_mv=True,
                 )
             else:
                 chat_entries = await search_home_chats(
                     conn, redis,
                     home_ids=[payload.home_id],
                     limit=1000,
-                    bypass_mv=True,
                 )
         num_chats = max(len(chat_entries), 1)
 
@@ -986,13 +984,13 @@ async def attempt_proceed_impl(
 
             if is_practice:
                 practice_entries = await search_attempt_practice_entries(
-                    conn, redis, attempt_ids=[attempt_id], bypass_mv=True
+                    conn, redis, attempt_ids=[attempt_id]
                 )
                 if not practice_entries:
                     raise ValueError("No practice link for this attempt")
                 practice_id = practice_entries[0].practice_id
                 parent_chat_links = await search_practice_chats(
-                    conn, redis, practice_ids=[practice_id], limit=1000, bypass_mv=True
+                    conn, redis, practice_ids=[practice_id], limit=1000
                 )
             else:
                 home_entries = await search_attempt_homes(
@@ -1002,7 +1000,7 @@ async def attempt_proceed_impl(
                     raise ValueError("No home link for this attempt")
                 home_id = home_entries[0].home_id
                 parent_chat_links = await search_home_chats(
-                    conn, redis, home_ids=[home_id], limit=1000, bypass_mv=True
+                    conn, redis, home_ids=[home_id], limit=1000
                 )
 
             all_parent_chat_ids = [

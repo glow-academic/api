@@ -178,10 +178,9 @@ async def resolve_test_context(
         """Fetch tool calls from the original run (the agent output being graded)."""
         if not original_run_id:
             return []
-        # bypass_mv=True for the same reason as _fetch_messages above.
         async with pool.acquire() as c:
             return await search_calls(
-                c, redis, run_ids=[original_run_id], limit=1000, bypass_mv=True,
+                c, redis, run_ids=[original_run_id], limit=1000,
             )
 
     feedback, messages, original_calls = await asyncio.gather(
