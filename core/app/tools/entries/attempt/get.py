@@ -6,6 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.attempt.types import GetAttemptResponse
+from app.utils.cache.hedged_row import read_back_row
 
 MV_NAME = "attempt_mv"
 
@@ -13,10 +14,40 @@ MV_NAME = "attempt_mv"
 async def get_attempts(
     conn: asyncpg.Connection,
     ids: list[UUID],
-    redis: Redis) -> list[GetAttemptResponse]:
-    """Get attempt entries by IDs from attempt_mv."""
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
+) -> list[GetAttemptResponse]:
+    """Get attempt entries by IDs from attempt_mv.
+
+    Hedged: try the per-id write-back cache first for each id; fall through
+    to the MV for any cache misses. Returns rows in MV insertion order
+    followed by cached rows (callers historically don't rely on input
+    ordering — both ``get_attempt`` (single) and bulk callers iterate the
+    full list).
+    """
     if not ids:
         return []
+
+    cached_responses: list[GetAttemptResponse] = []
+    missing_ids: list[UUID] = []
+
+    if not bypass_cache:
+        for attempt_id in ids:
+            cached = await read_back_row(redis, "attempt", attempt_id)
+            if cached is not None:
+                try:
+                    cached_responses.append(GetAttemptResponse.model_validate(cached))
+                    continue
+                except Exception:
+                    # Malformed cache row — fall through to MV for this id.
+                    pass
+            missing_ids.append(attempt_id)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return cached_responses
 
     rows = await conn.fetch(
         f"""
@@ -27,10 +58,10 @@ async def get_attempts(
         FROM {MV_NAME}
         WHERE attempt_id = ANY($1)
         """,
-        ids,
+        missing_ids,
     )
 
-    return [
+    db_responses = [
         GetAttemptResponse(
             attempt_id=r["attempt_id"],
             simulation_id=r["simulation_id"],
@@ -51,3 +82,5 @@ async def get_attempts(
         )
         for r in rows
     ]
+
+    return cached_responses + db_responses

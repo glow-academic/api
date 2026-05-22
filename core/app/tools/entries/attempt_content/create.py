@@ -46,20 +46,16 @@ async def create_attempt_content(
     entry_id = row["id"]
     actual_created_at = row["created_at"]
 
-    # Pattern A only: ``idx`` is computed via row_number() OVER PARTITION BY
-    # message_id in the MV — not knowable race-free at insert time. The
-    # GetAttemptContentResponse declares ``idx: int`` (not Optional), so we
-    # can't surface a cache row to readers without widening that type. We
-    # still write the row so future child-invalidate flows can target it.
-    # Use a placeholder idx in the cached payload; readers that opt-in via
-    # Pattern B/C must filter this row out. FLAG: widen ``idx`` to
-    # ``int | None`` (with default) to enable Pattern B/C.
+    # ``idx`` is computed via row_number() OVER PARTITION BY message_id in
+    # the MV — not knowable race-free at insert time. Cache row stores None;
+    # readers tolerate it (types.py defaults idx to None). Search has no idx
+    # filter, so cached rows merge into results cleanly.
     fresh_row = {
         "content_id": str(entry_id),
         "message_id": str(message_id),
         "content": content,
         "persona_entry_id": str(persona_id),
-        "idx": -1,  # placeholder; MV-derived
+        "idx": None,
         "created_at": actual_created_at.isoformat() if actual_created_at else None,
         "id": str(entry_id),
     }

@@ -9,7 +9,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_completion.types import (
     CreateAttemptCompletionResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_completion(
@@ -71,5 +71,7 @@ async def create_attempt_completion(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    # Parent attempt's MV ``is_completed`` flag flips.
+    await invalidate_row(redis, "attempt", attempt_id)
 
     return CreateAttemptCompletionResponse(id=entry_id)

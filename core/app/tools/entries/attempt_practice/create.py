@@ -9,7 +9,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_practice.types import (
     CreateAttemptPracticeResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_practice(
@@ -58,5 +58,8 @@ async def create_attempt_practice(
             fresh_row,
             score_ms=int(actual_created_at.timestamp() * 1000),
         )
+    # Parent attempt's MV ``practice`` flag + simulation/cohort/department
+    # ids derive from this junction; invalidate parent.
+    await invalidate_row(redis, "attempt", attempt_id)
 
     return CreateAttemptPracticeResponse(attempt_id=attempt_id, practice_id=practice_id)

@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_archive.types import (
     CreateAttemptArchiveResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_archive(
@@ -55,5 +55,7 @@ async def create_attempt_archive(
         fresh_row,
         score_ms=int(created_at.timestamp() * 1000),
     )
+    # Parent attempt's MV ``is_archived`` flag flips.
+    await invalidate_row(redis, "attempt", attempt_id)
 
     return CreateAttemptArchiveResponse(id=entry_id)

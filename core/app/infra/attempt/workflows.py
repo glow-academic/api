@@ -330,7 +330,6 @@ async def user_complete_impl(
             attempts, _ = await search_attempts(
                 conn, redis,
                 attempt_ids=[message.attempt_id],
-                bypass_mv=True,
                 limit=1,
             )
             if not attempts:

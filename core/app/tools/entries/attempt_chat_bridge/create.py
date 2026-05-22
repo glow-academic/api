@@ -9,7 +9,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_chat_bridge.types import (
     CreateAttemptChatBridgeResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_chat_bridge(
@@ -60,6 +60,9 @@ async def create_attempt_chat_bridge(
             fresh_row,
             score_ms=int(actual_created_at.timestamp() * 1000),
         )
+    # Parent attempt's cached attempt_chat_id / chat_entry_id / scenario_ids
+    # derive from this bridge; invalidate so the next read picks up MV.
+    await invalidate_row(redis, "attempt", attempt_id)
 
     return CreateAttemptChatBridgeResponse(
         attempt_id=attempt_id, attempt_chat_id=attempt_chat_id

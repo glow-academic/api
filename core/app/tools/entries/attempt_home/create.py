@@ -7,7 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.attempt_home.types import CreateAttemptHomeResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_home(
@@ -58,5 +58,9 @@ async def create_attempt_home(
             fresh_row,
             score_ms=int(actual_created_at.timestamp() * 1000),
         )
+    # Parent attempt's cached simulation/cohort/department/chat_entry/
+    # attempt_chat ids derive from the home junction; invalidate so the
+    # next read picks up the fresh MV value.
+    await invalidate_row(redis, "attempt", attempt_id)
 
     return CreateAttemptHomeResponse(attempt_id=attempt_id, home_id=home_id)

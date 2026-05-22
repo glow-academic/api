@@ -61,18 +61,25 @@ async def create_attempt_feedback(
                 standard_id,
             )
 
-    # Pattern A only: write-back a single cache row per feedback_id so
-    # downstream child writes (e.g. additional feedbacks_standards_connection
-    # inserts) can invalidate_row("attempt_feedback", entry_id). We do NOT
-    # consume this row in get/search because the MV fans out one row per
-    # linked standard via LEFT JOIN feedbacks_standards_connection — see
-    # ``C infeasible`` note in the round-2 report. We emit one row with the
-    # first standard_id (if any) for forward-compat with future read paths.
-    first_standard = standard_ids[0] if standard_ids else None
+    # Pattern A + B: write-back ONE cache row per feedback_id, carrying the
+    # full list of linked standard_ids. The MV LEFT JOINs
+    # feedbacks_standards_connection so it fans out N rows per feedback
+    # (one per linked standard); the cache stores the *aggregate* and the
+    # GET/SEARCH paths fan it out client-side to match MV shape.
+    #
+    # Pattern C (search merge) is INFEASIBLE here — hedged_search dedupes
+    # by id, but the MV emits multiple rows sharing the same feedback_id.
+    # A cached row would silently mask MV rows for the same feedback. See
+    # search.py for the explicit skip comment.
+    #
+    # Child writers (e.g. additional feedbacks_standards_connection inserts
+    # after create) MUST call invalidate_row("attempt_feedback", feedback_id)
+    # so a subsequent link mutates the parent cache row.
+    standard_ids_list = [str(sid) for sid in (standard_ids or [])]
     fresh_row = {
         "feedback_id": str(entry_id),
         "grade_id": str(grade_id),
-        "standard_id": str(first_standard) if first_standard else None,
+        "standard_ids": standard_ids_list,
         "total": total,
         "feedback": feedback,
         "created_at": actual_created_at.isoformat() if actual_created_at else None,
