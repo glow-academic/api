@@ -16,6 +16,7 @@ import asyncpg
 from fastapi import HTTPException
 
 from app.infra.common_context import resolve_common_context
+from app.infra.runs_context import resolve_runs_context
 from app.infra.globals import get_redis_client
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.session.context import resolve_session_context
@@ -176,7 +177,10 @@ async def get_session_impl(
                 pool, [common.profile.profiles_id], redis, bypass_cache
             )
 
-        runs_today = common.runs if common.runs else None
+        # Direct call — runs is no longer carried on CommonContext.
+        runs_today = await resolve_runs_context(
+            pool, profile_id=common.profile.profiles_id,
+        )
 
     return SessionInternalData(
         session_exists=True,

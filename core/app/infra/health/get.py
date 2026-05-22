@@ -22,7 +22,8 @@ from app.infra.health.types import (
     HealthResponse,
     HealthViews,
 )
-from app.infra.tool_graph import score_tools
+from app.infra.runs_context import resolve_runs_context
+from app.infra.tool_graph import resolve_tool_graph, score_tools
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.get import get_providers
@@ -90,11 +91,20 @@ async def get_health_internal(
     config_systems: list = []
     config_profile: list = []
     runs_today = None
+    tool_graph = None
     resource_agent_ids: dict[str, UUID | None] = {}
     resource_system_ids: dict[str, UUID | None] = {}
 
     if common:
-        scores = score_tools(common.tool_graph, HEALTH_BUNDLE_ENTRIES)
+        # Health page IS the tool-graph view. Pull it directly here —
+        # not via CommonContext, which no longer carries it.
+        tool_graph = (
+            await resolve_tool_graph(pool, common.profile.settings_id, redis, bypass_cache)
+            if common.profile.settings_id
+            else None
+        )
+    if common and tool_graph:
+        scores = score_tools(tool_graph, HEALTH_BUNDLE_ENTRIES)
         resource_agent_ids = {
             target: (tool.agent_id if tool else None)
             for target, tool in scores.best.items()
@@ -105,13 +115,13 @@ async def get_health_internal(
         }
 
         all_system_ids = list(
-            dict.fromkeys(tool.system_id for tool in common.tool_graph.tools)
+            dict.fromkeys(tool.system_id for tool in tool_graph.tools)
         )
         all_agent_ids = list(
-            dict.fromkeys(tool.agent_id for tool in common.tool_graph.tools)
+            dict.fromkeys(tool.agent_id for tool in tool_graph.tools)
         )
         all_tool_ids = list(
-            dict.fromkeys(tool.tool_id for tool in common.tool_graph.tools)
+            dict.fromkeys(tool.tool_id for tool in tool_graph.tools)
         )
 
         async def _fetch_systems() -> list:
@@ -160,7 +170,10 @@ async def get_health_internal(
                 bypass_cache,
             )
 
-        runs_today = common.runs if common.runs else None
+        # Direct call — runs is no longer carried on CommonContext.
+        runs_today = await resolve_runs_context(
+            pool, profile_id=common.profile.profiles_id,
+        )
 
     return HealthInternalData(
         health=health,
