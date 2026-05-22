@@ -619,6 +619,12 @@ from app.infra.mcp.oauth import McpOAuthMiddleware  # noqa: E402
 
 fastapi_app.add_middleware(McpOAuthMiddleware)
 
+# Server-Timing: per-request phase timing exposed via W3C Server-Timing
+# response header. Code paths register phases via app.infra.server_timing.timed().
+from app.infra.server_timing import ServerTimingMiddleware  # noqa: E402
+
+fastapi_app.add_middleware(ServerTimingMiddleware)
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------

@@ -204,8 +204,10 @@ async def require_auth(
         request.state.identity = identity
         return identity
 
+    from app.infra.server_timing import timed
     try:
-        identity = await resolve_identity(credentials.credentials, pool)
+        with timed("auth"):
+            identity = await resolve_identity(credentials.credentials, pool)
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e)) from e
 

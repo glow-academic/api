@@ -68,6 +68,33 @@ def _fingerprint_arguments(arguments: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+_ACK_CONTROL_KEYS = frozenset({
+    "idempotency_key", "operation_key", "accept", "sid", "session_id", "profile_id",
+})
+
+
+def _is_bare_ack(arguments: dict[str, Any]) -> bool:
+    """True when this is a soft/accept *ack* call, not a fresh operation.
+
+    An ack explicitly sets ``accept`` (True/False) and carries no substantive
+    payload — it only promotes/rejects a dormant entry the soft-call ledger
+    already tracks, intentionally reusing the key with a different body. The
+    replay gate skips these (the ledger owns their idempotency).
+
+    Crucially this must NOT skip a normal request that merely *defaults*
+    ``accept`` — e.g. ``generate``'s ``accept=True`` — because those carry real
+    payload. So we require ``accept`` set AND no non-None field outside the
+    control set; a generate request always has live content (instructions etc.).
+    """
+    if arguments.get("accept") is None:
+        return False
+    payload = {
+        k: v for k, v in arguments.items()
+        if v is not None and k not in _ACK_CONTROL_KEYS
+    }
+    return not payload
+
+
 def resolve_artifact_operation_tool(
     tool_graph: SettingsToolGraph,
     *,
@@ -181,14 +208,16 @@ async def run_artifact_operation_with_audit(
     # before any side effect (group mint, ``.started`` emit, execution).
     #   • A prior completed call with this key → replay its persisted receipt.
     #   • Otherwise take a short-lived lock so only one concurrent first-run runs.
-    # The soft/accept ack phase (``accept`` present) is SKIPPED — it deliberately
-    # reuses the key with a different body, and the soft-call ledger already makes
-    # that phase idempotent; the gate only guards the first (propose) call.
+    # The soft/accept ack phase (a *bare* ack — ``accept`` set + no payload) is
+    # SKIPPED: it deliberately reuses the key with a different body, and the
+    # soft-call ledger already makes that phase idempotent; the gate only guards
+    # the first (propose) call. A normal request that merely defaults ``accept``
+    # (e.g. ``generate``'s ``accept=True``) is NOT a bare ack — see ``_is_bare_ack``.
     # FAIL-OPEN: any unexpected error logs and falls through to normal execution
     # — the gate must never break a request that would otherwise succeed. A 409
     # is intentional (reused key with a different body, or in-flight duplicate)
     # and is re-raised.
-    if operation_key is not None and not bypass_cache and arguments.get("accept") is None:
+    if operation_key is not None and not bypass_cache and not _is_bare_ack(arguments):
         try:
             async with pool.acquire() as _idem_conn:
                 # bypass_mv=True reads through the base-table index, so a
@@ -377,12 +406,14 @@ async def run_artifact_operation_with_audit(
     _runner_accepts_group_id = "group_id" in _runner_params
 
     async def _invoke_runner(call_id: UUID | None = None) -> Any:
+        from app.infra.server_timing import timed
         kwargs: dict[str, Any] = {}
         if _runner_accepts_call_id:
             kwargs["call_id"] = call_id
         if _runner_accepts_group_id:
             kwargs["group_id"] = effective_group_id
-        return await runner(**kwargs)
+        with timed("runner"):
+            return await runner(**kwargs)
 
     if can_audit:
         async def _tool_fn(
@@ -425,9 +456,14 @@ async def run_artifact_operation_with_audit(
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
 
-        # Check if the runner failed (captured by create_tool_call)
+        # Check if the runner failed (captured by create_tool_call). Re-raise the
+        # ORIGINAL exception type (HTTPException, CsvParseError, …) so routes' typed
+        # handlers and 4xx status codes survive the audit wrapper; fall back to a
+        # generic Exception only if the original wasn't captured.
         if isinstance(result_data, dict) and result_data.get("success") is False:
-            tool_error = Exception(result_data.get("message", "Unknown error"))
+            tool_error = audit_result.error or Exception(
+                result_data.get("message", "Unknown error")
+            )
     else:
         try:
             result_data = await _invoke_runner()
