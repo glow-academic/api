@@ -8,7 +8,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.infra.cohort.group import group_cohort_impl
 from app.infra.cohort.search import search_cohort_impl
@@ -36,6 +36,7 @@ class SearchCohortApiRequest(BaseModel):
     # Pagination
     page_size: int | None = 10
     page_offset: int | None = 0
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=ListCohortApiResponse)
@@ -97,6 +98,7 @@ async def search_cohort(
             response_model=ListCohortApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

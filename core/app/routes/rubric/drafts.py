@@ -79,6 +79,7 @@ async def get_rubric_drafts(
             response_model=GetRubricDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "rubrics,drafts"
         return result

@@ -52,6 +52,7 @@ async def tool_refresh(
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=request.idempotency_key,  # idempotency replay gate
         group_id=group_id,
     )
 

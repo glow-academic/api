@@ -80,6 +80,7 @@ async def get_field(
             response_model=GetFieldApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "fields"

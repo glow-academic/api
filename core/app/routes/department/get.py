@@ -78,6 +78,7 @@ async def get_department(
             response_model=GetDepartmentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "departments"

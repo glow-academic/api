@@ -69,6 +69,7 @@ async def create_simulation(
             response_model=CreateSimulationApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "simulations"

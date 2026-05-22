@@ -77,6 +77,7 @@ async def generate_simulation(
             response_model=ArtifactGenerateResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
     except HTTPException:
         raise

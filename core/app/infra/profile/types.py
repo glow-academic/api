@@ -227,6 +227,7 @@ class GetProfileDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetProfileDraftsApiResponse(BaseModel):
@@ -588,6 +589,7 @@ class ExportProfileApiRequest(BaseModel):
     """Request model for profile export."""
 
     profile_export_id: UUID | None = Field(None, description="UUID of the profile to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
 
 class ExportProfileApiResponse(BaseModel):
@@ -607,6 +609,7 @@ class EmulateProfileApiRequest(BaseModel):
 
     target_profile_id: UUID = Field(..., description="UUID of the profile to emulate")
     ttl_minutes: int | None = Field(120, description="Emulation duration in minutes")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for safe retries")
 
 
 class EmulateProfileApiResponse(BaseModel):
@@ -625,6 +628,7 @@ class UnemulateProfileApiRequest(BaseModel):
     """Request model for exiting emulation of a specific profile."""
 
     target_profile_id: str = Field(..., description="Profile ID to stop emulating")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key for safe retries")
 
 
 class UnemulateProfileApiResponse(BaseModel):
@@ -768,6 +772,7 @@ class GenerationsProfileApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsProfileListItem(BaseModel):

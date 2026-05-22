@@ -6,7 +6,7 @@ Thin route handler. Core logic lives in app.infra.setting.search.
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -21,7 +21,7 @@ router = APIRouter()
 class SearchSettingApiRequest(BaseModel):
     """Request model for setting search endpoint."""
 
-    pass
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=ListSettingApiResponse)
@@ -74,6 +74,7 @@ async def search_setting(
             response_model=ListSettingApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

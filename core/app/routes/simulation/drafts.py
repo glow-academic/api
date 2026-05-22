@@ -78,6 +78,7 @@ async def get_simulation_drafts(
             response_model=GetSimulationDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "simulations,drafts"
         return result

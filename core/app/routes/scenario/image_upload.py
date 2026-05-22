@@ -5,7 +5,9 @@ Thin route handler. Core logic lives in app.infra.scenario.image_upload.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
+from uuid import UUID
+
+from fastapi import APIRouter, Form, HTTPException, Request, Response, UploadFile
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -35,6 +37,7 @@ async def upload_image(
     response: Response,
     name: str | None = None,
     description: str | None = None,
+    idempotency_key: UUID | None = Form(None),
 ) -> ImageUploadScenarioApiResponse:
     """Upload an image for later use in scenarios."""
     try:
@@ -104,6 +107,7 @@ async def upload_image(
             response_model=ImageUploadScenarioApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
             group_id=group_id,
         )
 

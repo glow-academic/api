@@ -79,6 +79,7 @@ async def get_setting_drafts(
             response_model=GetSettingDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "settings,drafts"
         return result

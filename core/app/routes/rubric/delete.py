@@ -82,6 +82,7 @@ async def delete_rubric(
             response_model=DeleteRubricApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

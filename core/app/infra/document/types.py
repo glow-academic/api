@@ -28,6 +28,7 @@ class GetDocumentDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetDocumentDraftsApiResponse(BaseModel):
@@ -700,6 +701,7 @@ class ExportDocumentApiRequest(BaseModel):
     """Request model for document export."""
 
     document_id: UUID | None = Field(None, description="Document UUID to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
 
 class ExportDocumentApiResponse(BaseModel):
@@ -751,6 +753,11 @@ class FileUploadDocumentApiResponse(BaseModel):
     """Response model for document file upload endpoint."""
 
     file_id: UUID = Field(..., description="UUID of the created files_resource")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Server-minted soft-call key (the audit call_id). On a soft "
+        "propose, echo this back with `accept` to promote/reject the staged upload.",
+    )
 
 
 class FileDownloadDocumentApiRequest(BaseModel):
@@ -791,6 +798,7 @@ class GenerationsDocumentApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsDocumentListItem(BaseModel):

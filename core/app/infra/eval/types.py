@@ -27,6 +27,7 @@ class GetEvalDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetEvalDraftsApiResponse(BaseModel):
@@ -691,6 +692,7 @@ class GenerationsEvalApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsEvalListItem(BaseModel):

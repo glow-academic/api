@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.17"
+    "version": "1.0.29"
   },
   "paths": {
     "/persona/title": {
@@ -814,6 +814,16 @@
         "summary": "Persona Refresh",
         "description": "Refresh persona materialized views and invalidate caches.",
         "operationId": "persona_refresh_persona_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshPersonaApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -821,6 +831,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -4630,7 +4650,7 @@
           "document"
         ],
         "summary": "Upload File",
-        "description": "Upload a file for later use in documents.",
+        "description": "Upload a file for later use in documents (soft/accept dormant flow).",
         "operationId": "upload_file_document_file_upload_post",
         "requestBody": {
           "content": {
@@ -4639,8 +4659,7 @@
                 "$ref": "#/components/schemas/Body_upload_file_document_file_upload_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -28705,6 +28724,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28719,6 +28750,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28733,6 +28776,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28747,6 +28802,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28761,6 +28828,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28775,6 +28854,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28789,6 +28880,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28803,6 +28906,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28817,6 +28932,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28831,6 +28958,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28845,6 +28984,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28859,6 +29010,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28873,6 +29036,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28887,6 +29062,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28901,6 +29088,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28915,6 +29114,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28929,6 +29140,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -28973,15 +29196,47 @@
       "Body_upload_file_document_file_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_file_document_file_upload_post"
       },
       "Body_upload_image_scenario_image_upload_post": {
@@ -28990,6 +29245,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -29004,6 +29271,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -29018,6 +29297,18 @@
             "type": "string",
             "format": "binary",
             "title": "File"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -48773,6 +49064,19 @@
             "title": "Ttl Minutes",
             "description": "Emulation duration in minutes",
             "default": 120
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for safe retries"
           }
         },
         "type": "object",
@@ -49801,6 +50105,19 @@
             ],
             "title": "Agent Id",
             "description": "UUID of the agent to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -49986,6 +50303,19 @@
             ],
             "title": "Auth Id",
             "description": "UUID of the auth provider to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50038,6 +50368,19 @@
               }
             ],
             "title": "Cohort Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50086,6 +50429,19 @@
             ],
             "title": "Department Id",
             "description": "UUID of the department to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50134,6 +50490,19 @@
             ],
             "title": "Document Id",
             "description": "Document UUID to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50186,6 +50555,19 @@
               }
             ],
             "title": "Eval Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50234,6 +50616,19 @@
             ],
             "title": "Field Id",
             "description": "UUID of the field to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50282,6 +50677,19 @@
             ],
             "title": "Model Id",
             "description": "Model identifier to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50330,6 +50738,19 @@
             ],
             "title": "Parameter Id",
             "description": "Parameter identifier to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50390,6 +50811,19 @@
             ],
             "title": "Snapshot Key",
             "description": "Cache snapshot key for consistent reads across related requests"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           },
           "search": {
             "anyOf": [
@@ -50495,6 +50929,19 @@
             ],
             "title": "Profile Export Id",
             "description": "UUID of the profile to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50548,6 +50995,19 @@
             ],
             "title": "Provider Id",
             "description": "Provider identifier to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50602,6 +51062,19 @@
             ],
             "title": "Chat Id",
             "description": "Optional attempt chat UUID. When provided, the PDF highlights achieved/passed standards and renders per-standard feedback resolved from the chat's latest grade. Without it, an empty rubric template is returned."
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50710,6 +51183,19 @@
             ],
             "title": "Filter Department Ids",
             "description": "Filter by department UUIDs"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50763,6 +51249,19 @@
             ],
             "title": "Setting Id",
             "description": "UUID of the setting to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -50868,6 +51367,19 @@
             ],
             "title": "Filter Department Ids",
             "description": "Filter by department UUIDs"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -51089,6 +51601,19 @@
             ],
             "title": "Tool Id",
             "description": "Tool identifier to export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export instead of re-running"
           }
         },
         "type": "object",
@@ -52049,6 +52574,19 @@
             "format": "uuid",
             "title": "File Id",
             "description": "UUID of the created files_resource"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (the audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged upload."
           }
         },
         "type": "object",
@@ -52836,6 +53374,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53130,6 +53680,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53277,6 +53839,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53424,6 +53998,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53571,6 +54157,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53718,6 +54316,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -53865,6 +54475,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54012,6 +54634,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54159,6 +54793,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54465,6 +55111,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54612,6 +55270,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54759,6 +55429,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -54906,6 +55588,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -55053,6 +55747,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -55200,6 +55906,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -55641,6 +56359,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -56655,6 +57385,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -57751,6 +58493,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -59815,6 +60569,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -60319,6 +61085,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -61081,6 +61859,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -61822,6 +62612,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -62406,6 +63208,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -64308,6 +65122,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -64879,6 +65705,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -65643,6 +66481,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -66373,6 +67223,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -67039,6 +67901,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -67689,6 +68563,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -68602,6 +69488,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -69822,6 +70720,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -70604,6 +71514,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -72644,6 +73566,18 @@
             "title": "Page Offset",
             "description": "Offset for pagination",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -102467,6 +103401,53 @@
         "title": "RefreshParameterApiRequest",
         "description": "Request model for parameter refresh endpoint."
       },
+      "RefreshPersonaApiRequest": {
+        "properties": {
+          "targets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets",
+            "description": "MV targets to refresh (omit for all). Options: personas_mv, persona_drafts_mv"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Operation key for ack"
+          },
+          "accept": {
+            "type": "boolean",
+            "title": "Accept",
+            "description": "Accept or reject. Only meaningful with idempotency_key",
+            "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "RefreshPersonaApiRequest",
+        "description": "Request model for persona refresh endpoint."
+      },
       "RefreshProfileApiRequest": {
         "properties": {
           "targets": {
@@ -107634,6 +108615,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -107932,6 +108925,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108063,6 +109068,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108105,6 +109122,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108225,6 +109254,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108293,6 +109334,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108413,6 +109466,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108634,6 +109699,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -108754,6 +109831,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109059,6 +110148,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109167,6 +110268,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109261,6 +110374,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109392,6 +110517,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109399,7 +110536,20 @@
         "description": "Request model for scenario search endpoint."
       },
       "SearchSettingApiRequest": {
-        "properties": {},
+        "properties": {
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
+          }
+        },
         "type": "object",
         "title": "SearchSettingApiRequest",
         "description": "Request model for setting search endpoint."
@@ -109529,6 +110679,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -109934,6 +111096,18 @@
             ],
             "title": "Page Offset",
             "default": 0
+          },
+          "snapshot_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Key",
+            "description": "Cache snapshot key for consistent reads across related requests"
           }
         },
         "type": "object",
@@ -119744,6 +120918,19 @@
             "type": "string",
             "title": "Target Profile Id",
             "description": "Profile ID to stop emulating"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key for safe retries"
           }
         },
         "type": "object",

@@ -5,7 +5,10 @@ Core logic lives in app.infra.scenario.csv.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile
+import hashlib
+from uuid import UUID
+
+from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -20,6 +23,7 @@ router = APIRouter()
 async def parse_scenario_csv(
     file: UploadFile,
     http_request: Request,
+    idempotency_key: UUID | None = Form(None),
 ) -> ParseScenarioCsvApiResponse:
     """Parse a CSV file and return mapped items for preview."""
     try:
@@ -59,10 +63,14 @@ async def parse_scenario_csv(
             session_id=session_id,
             group_id=group_id,
             operation="csv",
-            arguments={"filename": file_name},
+            arguments={
+                "file_name": file_name,
+                "content_sha256": hashlib.sha256(file_bytes).hexdigest(),
+            },
             response_model=ParseScenarioCsvApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
         )
     except HTTPException:
         raise

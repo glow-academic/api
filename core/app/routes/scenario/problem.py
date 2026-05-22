@@ -77,6 +77,7 @@ async def problem_scenario(
             response_model=ProblemScenarioApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

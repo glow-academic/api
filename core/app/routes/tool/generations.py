@@ -76,6 +76,7 @@ async def generations_tool(
             response_model=GenerationsToolApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

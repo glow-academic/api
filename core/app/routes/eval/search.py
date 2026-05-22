@@ -8,7 +8,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.infra.eval.group import group_eval_impl
 from app.infra.eval.search import search_eval_impl
@@ -31,6 +31,7 @@ class SearchEvalApiRequest(BaseModel):
     # Pagination
     page_size: int | None = 50
     page_offset: int | None = 0
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=ListEvalApiResponse)
@@ -88,6 +89,7 @@ async def search_eval(
             response_model=ListEvalApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

@@ -82,6 +82,7 @@ async def get_rubric(
             response_model=GetRubricApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "rubrics"

@@ -79,6 +79,7 @@ async def get_field_drafts(
             response_model=GetFieldDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "fields,drafts"
         return result

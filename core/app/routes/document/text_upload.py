@@ -5,7 +5,9 @@ Thin route handler. Core logic lives in app.infra.document.text_upload.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
+from uuid import UUID
+
+from fastapi import APIRouter, Form, HTTPException, Request, Response, UploadFile
 
 from app.infra.document.group import group_document_impl
 from app.infra.document.text_upload import text_upload_document_impl
@@ -33,6 +35,7 @@ async def upload_text(
     file: UploadFile,
     http_request: Request,
     response: Response,
+    idempotency_key: UUID | None = Form(None),
 ) -> TextUploadDocumentApiResponse:
     """Upload a text file for later use in documents."""
     try:
@@ -99,6 +102,7 @@ async def upload_text(
             response_model=TextUploadDocumentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "uploads,resources,texts"

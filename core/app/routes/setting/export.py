@@ -2,8 +2,10 @@
 
 from fastapi import APIRouter, Request
 
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.setting.export import export_setting_impl
+from app.infra.setting.group import group_setting_impl
 from app.infra.setting.types import ExportSettingApiRequest, ExportSettingApiResponse
 
 router = APIRouter()
@@ -20,10 +22,35 @@ async def export_settings(
     pool = get_pool()
     redis = get_redis_client()
 
-    return await export_setting_impl(
+    # Resolve time-windowed group for audit linking
+    group_id = None
+    if session_id:
+        group_result = await group_setting_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
+        )
+        group_id = group_result.group_id
+
+    async def _runner() -> ExportSettingApiResponse:
+        return await export_setting_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            setting_id=body.setting_id,
+        )
+
+    return await run_artifact_operation_with_audit(
         pool,
         redis,
+        artifact="setting",
         profile_id=profile_id,
         session_id=session_id,
-        setting_id=body.setting_id,
+        group_id=group_id,
+        operation="export",
+        arguments=body.model_dump(mode="json"),
+        response_model=ExportSettingApiResponse,
+        runner=_runner,
+        upload_folder=get_upload_folder(),
+        operation_key=body.idempotency_key,  # idempotency replay gate
     )

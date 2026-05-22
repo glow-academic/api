@@ -59,6 +59,7 @@ async def export_scenarios(
             response_model=ExportScenarioApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=body.idempotency_key,  # idempotency replay gate
         )
     except Exception as e:
         handle_route_error(

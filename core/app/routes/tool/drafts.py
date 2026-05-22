@@ -79,6 +79,7 @@ async def get_tool_drafts(
             response_model=GetToolDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "tools,drafts"
         return result

@@ -78,6 +78,7 @@ async def get_profile_drafts(
             response_model=GetProfileDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "profiles,drafts"
         return result

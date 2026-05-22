@@ -58,6 +58,7 @@ async def get_agent_context(
         response_model=ComposedContextResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=body.snapshot_key,  # read snapshot: replay this view if echoed
     )
 
     response.headers["X-Cache-Tags"] = "agents"

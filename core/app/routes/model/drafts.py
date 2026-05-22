@@ -79,6 +79,7 @@ async def get_model_drafts(
             response_model=GetModelDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = "models,drafts"
         return result

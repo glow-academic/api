@@ -79,6 +79,7 @@ async def problem_auth(
             response_model=ProblemAuthApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)
