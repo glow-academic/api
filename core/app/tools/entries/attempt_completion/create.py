@@ -62,6 +62,7 @@ async def create_attempt_completion(
         "message": message,
         "active": not soft,
         "mcp": mcp,
+        "generated": True,
         "created_at": actual_created_at.isoformat(),
     }
     await write_back_row(

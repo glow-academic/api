@@ -51,6 +51,7 @@ async def create_attempt_audio(
         "session_id": str(session_id),
         "active": not soft,
         "mcp": mcp,
+        "generated": True,
         "created_at": actual_created_at.isoformat(),
     }
     await write_back_row(
