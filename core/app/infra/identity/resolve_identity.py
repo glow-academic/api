@@ -247,14 +247,19 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     Raises:
         ValueError: If token is invalid or profile cannot be resolved
     """
-    claims = verify_jwt(token)
+    from app.infra.server_timing import timed
+
+    with timed("jwt_verify"):
+        claims = verify_jwt(token)
 
     # Resolve profile_id
-    profile_id = await _resolve_profile_id(claims, pool)
+    with timed("profile_lookup"):
+        profile_id = await _resolve_profile_id(claims, pool)
 
     # Auto-create guest profile if email exists but no profile found
     if profile_id is None:
-        profile_id = await _auto_create_guest_profile(claims, pool)
+        with timed("guest_create"):
+            profile_id = await _auto_create_guest_profile(claims, pool)
 
     if profile_id is None:
         raise ValueError(
@@ -265,7 +270,8 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     actor_profile_id: UUID | None = None
     is_emulation = False
     emulation_depth = 0
-    chain = await resolve_emulation_chain(pool, profile_id)
+    with timed("emulation"):
+        chain = await resolve_emulation_chain(pool, profile_id)
     if chain:
         actor_profile_id = profile_id
         profile_id = chain[-1].target_profile_id
@@ -273,8 +279,9 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
         emulation_depth = len(chain)
 
     # Get or create session for the effective profile
-    async with pool.acquire() as conn:
-        session_id = await get_or_create_session(conn, profile_id)
+    with timed("session"):
+        async with pool.acquire() as conn:
+            session_id = await get_or_create_session(conn, profile_id)
 
     return Identity(
         profile_id=profile_id,

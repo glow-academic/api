@@ -308,6 +308,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
         except Exception as e:
             logger.warning(f"Keycloak sync error (non-blocking): {e}")
 
+        # JWKS prewarm — populate the 60s in-process JWKS cache during
+        # startup so the first authenticated request doesn't pay the ~140ms
+        # network fetch to Keycloak. Non-blocking: if Keycloak isn't ready
+        # the first request will fall through to the lazy fetch (existing
+        # behavior). Best-effort cache priming, not a correctness gate.
+        try:
+            from app.infra.identity.resolve_identity import _get_jwks
+
+            keys = _get_jwks()
+            logger.info(f"JWKS prewarm: cached {len(keys)} key(s)")
+        except Exception as e:
+            logger.warning(f"JWKS prewarm failed (non-blocking, lazy fetch will retry): {e}")
+
         # MV refresh scheduler — debounces REFRESH MATERIALIZED VIEW calls
         # across the whole instance + replicas. Caller path enqueues O(1)
         # in Redis; one worker per MV per replica drains via Redis lock.
