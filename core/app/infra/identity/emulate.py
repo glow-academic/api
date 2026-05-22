@@ -46,6 +46,7 @@ class EmulationResult:
     reason: str | None
     grant_id: UUID | None
     expires_at: datetime | None
+    emulation_id: UUID | None = None
 
 
 async def resolve_emulation(
@@ -57,6 +58,7 @@ async def resolve_emulation(
     ttl_minutes: int = 120,
     bypass_cache: bool = False,
     actor_profile_id: UUID | None = None,
+    soft: bool = False,
 ) -> EmulationResult:
     """Create an emulation grant using canonical black boxes.
 
@@ -150,13 +152,15 @@ async def resolve_emulation(
                 redis, session_id=requester_session_id,
                 expires_at=expires_at,
                 profiles_id=requester.profiles_id,
+                soft=soft,
             )
 
-            await create_emulation(
+            emulation_result = await create_emulation(
                 conn,
                 redis, grant_id=grant_result.id,
                 session_id=target_session_id,
                 profile_id=target.profiles_id,
+                soft=soft,
             )
 
     # Bust the emulation-chain cache for the requester so the next
@@ -180,6 +184,7 @@ async def resolve_emulation(
         reason=None,
         grant_id=grant_result.id,
         expires_at=expires_at,
+        emulation_id=emulation_result.id,
     )
 
 

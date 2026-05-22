@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.41"
+    "version": "1.0.42"
   },
   "paths": {
     "/persona/title": {
@@ -90517,6 +90517,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90553,6 +90566,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90589,6 +90615,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90625,6 +90664,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90661,6 +90713,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90697,6 +90762,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90733,6 +90811,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90769,6 +90860,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90805,6 +90909,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90894,6 +91011,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90930,6 +91060,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -90966,6 +91109,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -91042,6 +91198,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -91078,6 +91247,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -91114,6 +91296,19 @@
           "row_count": {
             "type": "integer",
             "title": "Row Count"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",

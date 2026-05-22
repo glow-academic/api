@@ -607,9 +607,11 @@ class ExportProfileApiResponse(BaseModel):
 class EmulateProfileApiRequest(BaseModel):
     """Request model for profile emulation."""
 
-    target_profile_id: UUID = Field(..., description="UUID of the profile to emulate")
+    target_profile_id: UUID | None = Field(None, description="UUID of the profile to emulate (omit on the ack call)")
     ttl_minutes: int | None = Field(120, description="Emulation duration in minutes")
-    idempotency_key: UUID | None = Field(None, description="Idempotency key for safe retries")
+    idempotency_key: UUID | None = Field(None, description="Idempotency / soft-call key. Echo the server-minted value with accept to promote/reject a staged emulation.")
+    soft: bool = Field(False, description="Stage the emulation grant dormant (active=False) — it impersonates nothing until accepted")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged emulation, False rejects. Only meaningful with idempotency_key")
 
 
 class EmulateProfileApiResponse(BaseModel):
@@ -619,6 +621,7 @@ class EmulateProfileApiResponse(BaseModel):
     reason: str | None = Field(None, description="Reason if emulation is denied")
     grant_id: UUID | None = Field(None, description="UUID of the emulation grant")
     expires_at: datetime | None = Field(None, description="When the emulation grant expires")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to promote/reject the staged emulation.")
 
 
 # ========== Unemulate Endpoint Types ==========
@@ -627,8 +630,10 @@ class EmulateProfileApiResponse(BaseModel):
 class UnemulateProfileApiRequest(BaseModel):
     """Request model for exiting emulation of a specific profile."""
 
-    target_profile_id: str = Field(..., description="Profile ID to stop emulating")
-    idempotency_key: UUID | None = Field(None, description="Idempotency key for safe retries")
+    target_profile_id: str | None = Field(None, description="Profile ID to stop emulating (omit on the ack call)")
+    idempotency_key: UUID | None = Field(None, description="Idempotency / soft-call key. Echo the server-minted value with accept to perform/reject a proposed unemulation.")
+    soft: bool = Field(False, description="Propose the unemulation without performing it — emulation continues until accepted (record-and-hold)")
+    accept: bool | None = Field(None, description="Ack: True performs the proposed unemulation, False discards it. Only meaningful with idempotency_key")
 
 
 class UnemulateProfileApiResponse(BaseModel):
@@ -636,6 +641,7 @@ class UnemulateProfileApiResponse(BaseModel):
 
     ok: bool = Field(..., description="Whether unemulation succeeded")
     reason: str | None = Field(None, description="Reason if unemulation failed")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to perform/reject the proposed unemulation.")
 
 
 class ListProfilesApiProfile(BaseModel):

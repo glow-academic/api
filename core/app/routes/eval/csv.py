@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from uuid import UUID
 
-from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from app.infra.eval.csv import (
     CsvParseError,
@@ -22,17 +22,16 @@ router = APIRouter()
 
 @router.post("/csv", response_model=ParseEvalCsvApiResponse)
 async def parse_eval_csv(
-    file: UploadFile,
     http_request: Request,
+    file: UploadFile | None = File(None),
     idempotency_key: UUID | None = Form(None),
+    soft: bool = Form(False),
+    accept: bool | None = Form(None),
 ) -> ParseEvalCsvApiResponse:
     """Parse a CSV file and return mapped items for preview."""
     try:
         profile_id = http_request.state.profile_id
         session_id = http_request.state.session_id
-        file_bytes = await file.read()
-        file_name = file.filename or "file.csv"
-        content_type = file.content_type or "text/csv"
         pool = get_pool()
         redis = get_redis_client()
 
@@ -45,13 +44,37 @@ async def parse_eval_csv(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> ParseEvalCsvApiResponse:
+        is_ack = accept is not None and idempotency_key is not None
+
+        if is_ack:
+            # Ack call: no file. Carry `accept` in arguments so the gate skips it.
+            file_bytes = None
+            file_name = None
+            content_type = None
+            arguments: dict = {"accept": accept}
+        else:
+            if file is None or not file.filename:
+                raise HTTPException(status_code=400, detail="Missing CSV file")
+            # Read file bytes at route boundary (UploadFile can only be read once)
+            file_bytes = await file.read()
+            file_name = file.filename or "file.csv"
+            content_type = file.content_type or "text/csv"
+            arguments = {
+                "file_name": file_name,
+                "content_sha256": hashlib.sha256(file_bytes).hexdigest(),
+            }
+
+        async def _runner(call_id: UUID | None = None) -> ParseEvalCsvApiResponse:
             return await parse_eval_csv_impl(
                 pool,
                 session_id=session_id,
                 file_bytes=file_bytes,
                 file_name=file_name,
                 content_type=content_type,
+                soft=soft,
+                accept=accept,
+                idempotency_key=idempotency_key,
+                call_id=call_id,
             )
 
         return await run_artifact_operation_with_audit(
@@ -62,12 +85,7 @@ async def parse_eval_csv(
             session_id=session_id,
             group_id=group_id,
             operation="csv",
-            # Fingerprint on filename + content hash so a retry of the SAME
-            # upload replays, and a different file under the same key → 409.
-            arguments={
-                "file_name": file_name,
-                "content_sha256": hashlib.sha256(file_bytes).hexdigest(),
-            },
+            arguments=arguments,
             response_model=ParseEvalCsvApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
