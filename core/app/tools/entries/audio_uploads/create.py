@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.audio_uploads.types import CreateAudioUploadResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_audio_upload(
@@ -57,5 +57,6 @@ async def create_audio_upload(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    await invalidate_row(redis, "audios", audio_id)
 
     return CreateAudioUploadResponse(id=row_id)

@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.call_uploads.types import CreateCallUploadResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_call_upload(
@@ -57,5 +57,7 @@ async def create_call_upload(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    # Parent call's cached upload_id/file_path/mime_type are now stale.
+    await invalidate_row(redis, "calls", call_id)
 
     return CreateCallUploadResponse(id=row_id)

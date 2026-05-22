@@ -7,7 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.run_pricing.types import CreateRunPricingEntryResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_run_pricing_entry_internal(
@@ -73,5 +73,7 @@ async def create_run_pricing_entry_internal(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    # Parent run's cached pricing breakdown is now stale.
+    await invalidate_row(redis, "runs", run_id)
 
     return CreateRunPricingEntryResponse(id=entry_id)

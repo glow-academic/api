@@ -63,7 +63,7 @@ async def resolve_trace_context(
     trace = traces[0]
 
     invs = await get_test_invocations(
-        conn, [trace.test_invocation_id], redis, bypass_mv=True
+        conn, [trace.test_invocation_id], redis,
     )
     if not invs:
         raise ValueError(

@@ -313,7 +313,6 @@ async def user_complete_impl(
             messages, _ = await search_attempt_messages(
                 conn, redis,
                 chat_ids=[uuid.UUID(chat_id)],
-                bypass_mv=True,
                 limit=1000,
             )
 
@@ -467,7 +466,6 @@ async def attempt_message_impl(
         attempt_chats, _ = await search_attempt_chats(
             conn, redis,
             attempt_chat_ids=[attempt_chat_id],
-            bypass_mv=True,
             limit=1,
         )
 
@@ -914,7 +912,6 @@ async def attempt_proceed_impl(
                     conn, redis,
                     attempt_ids=[attempt_id],
                     limit=1000,
-                    bypass_mv=True,
                 )
 
                 for bridge in bridges:
@@ -966,7 +963,6 @@ async def attempt_proceed_impl(
                 conn, redis,
                 attempt_ids=[attempt_id],
                 limit=1000,
-                bypass_mv=True,
             )
             completed_count = len(bridges)
 
@@ -975,7 +971,6 @@ async def attempt_proceed_impl(
                 attempt_chats, _ = await search_attempt_chats(
                     conn, redis,
                     attempt_chat_ids=bridge_attempt_chat_ids,
-                    bypass_mv=True,
                     limit=1000,
                 )
                 resolved_chat_ids = {ac.chat_entry_id for ac in attempt_chats}
@@ -994,7 +989,7 @@ async def attempt_proceed_impl(
                 )
             else:
                 home_entries = await search_attempt_homes(
-                    conn, redis, attempt_ids=[attempt_id], bypass_mv=True
+                    conn, redis, attempt_ids=[attempt_id]
                 )
                 if not home_entries:
                     raise ValueError("No home link for this attempt")

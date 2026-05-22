@@ -63,7 +63,7 @@ async def create_grade_impl(
     async with pool.acquire() as conn:
         # Step 1: Get invocation → rubric_id, test_id, created_at
         invocations = await get_test_invocations(
-            conn, [invocation_id], redis, bypass_mv=True
+            conn, [invocation_id], redis,
         )
         if not invocations:
             raise ValueError(f"Invocation {invocation_id} not found")

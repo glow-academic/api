@@ -73,7 +73,7 @@ async def terminate_invocation(
                 )
             run = runs[0]
             invs = await get_test_invocations(
-                conn, [run.test_invocation_id], redis, bypass_mv=True,
+                conn, [run.test_invocation_id], redis,
             )
             if not invs:
                 raise HTTPException(status_code=404, detail="parent invocation not found")

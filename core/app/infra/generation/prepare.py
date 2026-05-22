@@ -235,7 +235,7 @@ async def prepare_generation(
         async with pool.acquire() as conn:
             trace_ctx = await resolve_trace_context(conn, trace_uuid)
             invs = await get_test_invocations(
-                conn, [trace_ctx.test_invocation_id], redis, bypass_mv=True
+                conn, [trace_ctx.test_invocation_id], redis,
             )
         if not invs:
             raise ValueError(

@@ -70,7 +70,6 @@ async def resolve_run_completion(
         conn, redis,
         group_ids=[group_id],
         limit=1,
-        bypass_mv=True,
     )
 
     if not runs:
@@ -96,7 +95,6 @@ async def resolve_run_completion(
         run_ids=[run_id],
         role="assistant",
         limit=100,
-        bypass_mv=True,
     )
 
     # Count unique agents from messages (if agent_ids populated)

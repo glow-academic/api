@@ -46,7 +46,7 @@ async def _mark_all_invocations_complete(
     )
 
     invs, _total = await search_test_invocation_entries_internal(
-        conn, redis, test_ids=[test_id], limit=1000, bypass_mv=True,
+        conn, redis, test_ids=[test_id], limit=1000,
     )
 
     count = 0

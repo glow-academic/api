@@ -85,7 +85,7 @@ async def resolve_test_context(
     async def _fetch_invocations() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_test_invocation_entries_internal(
-                c, redis, test_ids=[test_id], limit=100000, bypass_mv=True,
+                c, redis, test_ids=[test_id], limit=100000,
             )
             return items
 
@@ -164,13 +164,9 @@ async def resolve_test_context(
     async def _fetch_messages() -> list:
         if not run_ids:
             return []
-        # bypass_mv=True reads through to the source table — needed because
-        # we no longer sync-refresh messages_mv here (that's now async via
-        # the MVRefresher background worker, which is fine for cached reads
-        # elsewhere but not for this read-after-write codepath).
         async with pool.acquire() as c:
             msgs, _ = await search_messages(
-                c, redis, run_ids=run_ids, limit=100000, bypass_mv=True,
+                c, redis, run_ids=run_ids, limit=100000,
             )
             return msgs
 

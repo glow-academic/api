@@ -66,7 +66,7 @@ async def test_invocation_complete_internal_impl(
 
         async with get_pool().acquire() as conn:
             invs = await get_test_invocations(
-                conn, [payload.test_invocation_id], redis, bypass_mv=True,
+                conn, [payload.test_invocation_id], redis,
             )
             if not invs:
                 raise ValueError(

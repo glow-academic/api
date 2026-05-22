@@ -70,7 +70,6 @@ async def attempt_response_internal_impl(
             attempt_chats, _ = await search_attempt_chats(
                 conn, redis,
                 attempt_chat_ids=[chat_id],
-                bypass_mv=True,
                 limit=1,
             )
             if not attempt_chats:

@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.image_uploads.types import CreateImageUploadResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_image_upload(
@@ -57,5 +57,6 @@ async def create_image_upload(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    await invalidate_row(redis, "images", image_id)
 
     return CreateImageUploadResponse(id=row_id)

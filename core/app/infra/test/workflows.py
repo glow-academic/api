@@ -268,7 +268,6 @@ async def test_group_impl(
                 conn, redis,
                 group_ids=[group_id],
                 sort_order="asc",
-                bypass_mv=True,
                 limit=1000,
             )
 
@@ -365,7 +364,6 @@ async def test_next_impl(
                 conn, redis,
                 test_ids=[test_id],
                 limit=1000,
-                bypass_mv=True,
             )
     except Exception as e:
         logger.exception(f"Error in test_next: {e}")

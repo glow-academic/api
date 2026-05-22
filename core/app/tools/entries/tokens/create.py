@@ -7,6 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.tokens.types import CreateTokenResponse
+from app.utils.cache.hedged_row import invalidate_row
 
 
 async def create_token(
@@ -43,5 +44,9 @@ async def create_token(
 
     if token_id is None:
         raise ValueError("Failed to create tokens entry")
+
+    # Parent run's cached input/output/cached_input_tokens aggregates are
+    # now stale; let the next read pick up the fresh MV value.
+    await invalidate_row(redis, "runs", run_id)
 
     return CreateTokenResponse(id=token_id)

@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.message_uploads.types import (
     CreateMessageUploadResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_message_upload(
@@ -59,5 +59,10 @@ async def create_message_upload(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    # Parent message + attempt_message cache rows hold empty *_ids arrays
+    # until the upload links in via this junction. Invalidate both so the
+    # next read falls through to the MV.
+    await invalidate_row(redis, "messages", message_id)
+    await invalidate_row(redis, "attempt_message", message_id)
 
     return CreateMessageUploadResponse(id=row_id)

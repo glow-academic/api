@@ -870,21 +870,21 @@ async def get_attempt_internal(
             async with pool.acquire() as conn:
                 if practice:
                     practice_entries = await search_attempt_practice_entries(
-                        conn, redis, attempt_ids=[attempt_id], bypass_mv=True,
+                        conn, redis, attempt_ids=[attempt_id],
                     )
                     if practice_entries:
                         parent_links = await search_practice_chats(
                             conn, redis, practice_ids=[practice_entries[0].practice_id],
-                            limit=1000, bypass_mv=True,
+                            limit=1000,
                         )
                 else:
                     home_entries = await search_attempt_homes(
-                        conn, redis, attempt_ids=[attempt_id], bypass_mv=True,
+                        conn, redis, attempt_ids=[attempt_id],
                     )
                     if home_entries:
                         parent_links = await search_home_chats(
                             conn, redis, home_ids=[home_entries[0].home_id],
-                            limit=1000, bypass_mv=True,
+                            limit=1000,
                         )
                     else:
                         parent_links = []
