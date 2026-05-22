@@ -20,6 +20,7 @@ from app.infra.attempt.types import (
 )
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.groups.search import search_groups
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
@@ -79,7 +80,8 @@ async def _generations_attempt_build(
     page_offset: int = 0,
 ) -> GenerationsAttemptApiResponse:
     """List attempt generation groups."""
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
@@ -88,7 +90,8 @@ async def _generations_attempt_build(
 
     session_ids = [session_id] if session_id else None
 
-    async with pool.acquire() as conn:
+    with timed("search_groups"):
+     async with pool.acquire() as conn:
         results = await search_groups(
             conn,
             redis, session_ids=session_ids,

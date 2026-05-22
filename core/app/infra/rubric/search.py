@@ -21,6 +21,7 @@ from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.rubric.permissions import (
     compute_can_delete,
     compute_can_duplicate,
@@ -152,7 +153,8 @@ async def _search_rubric_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -170,7 +172,8 @@ async def _search_rubric_build(
 
     # ── Step 3: Search rubrics ────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         rubric_ids_list, total_count = await search_rubrics(
             conn,
             search=search,
@@ -292,7 +295,8 @@ async def _search_rubric_build(
                 conn, redis, search=flag_search, rubric=True, limit_count=100
             )
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         points_data,
@@ -301,7 +305,7 @@ async def _search_rubric_build(
         department_facet,
         simulation_facet,
         flag_facet,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_names() if all_name_ids else _empty_list(),
         _get_descriptions() if all_description_ids else _empty_list(),
         _get_points() if all_point_ids else _empty_list(),
@@ -325,7 +329,8 @@ async def _search_rubric_build(
     all_standard_groups_out: list[ListRubricApiStandardGroup] = []
     all_standards_out: list[ListRubricApiStandard] = []
 
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

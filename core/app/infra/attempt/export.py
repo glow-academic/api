@@ -30,6 +30,7 @@ from redis.asyncio import Redis
 
 from app.infra.exports.file_modality import wrap_bytes_as_file
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
 from app.tools.entries.attempt_message.search import search_attempt_messages
@@ -116,10 +117,12 @@ async def export_attempt_impl(
                 status_code=400,
                 detail="attempt_id is required for view='single'.",
             )
-        bytes_, row_count = await _export_single_attempt_bytes(
-            pool, redis, profile_id=profile_id, attempt_id=attempt_id,
-        )
-        file_id, file_name = await wrap_bytes_as_file(
+        with timed("single_attempt_build"):
+            bytes_, row_count = await _export_single_attempt_bytes(
+                pool, redis, profile_id=profile_id, attempt_id=attempt_id,
+            )
+        with timed("wrap_as_file"):
+         file_id, file_name = await wrap_bytes_as_file(
             pool,
             redis,
             content=bytes_,
@@ -218,7 +221,8 @@ async def _export_single_attempt_bytes(
 ) -> tuple[bytes, int]:
     """Build the single-attempt ZIP (attempts.csv + chats.csv + messages.csv) and return (bytes, row_count)."""
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -246,11 +250,12 @@ async def _export_single_attempt_bytes(
             )
             return items
 
-    attempts, chats, messages = await asyncio.gather(
-        _fetch_attempts(),
-        _fetch_chats(),
-        _fetch_messages(),
-    )
+    with timed("fetch_gather"):
+        attempts, chats, messages = await asyncio.gather(
+            _fetch_attempts(),
+            _fetch_chats(),
+            _fetch_messages(),
+        )
 
     if not attempts:
         # Empty ZIP, zero rows — still passes through the file-modality chain.

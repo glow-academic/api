@@ -25,6 +25,7 @@ from app.infra.document.permissions_context import (
 from app.infra.document.refresh import refresh_document_impl
 from app.infra.document.types import UpdateDocumentApiRequest, UpdateDocumentApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.document.get import get_documents
 from app.tools.artifacts.document.update import (
     _UNSET,
@@ -242,12 +243,13 @@ async def update_document_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(

@@ -76,6 +76,9 @@ def _resolve_modality_pair(
     return input_set, output_set
 
 
+from app.infra.server_timing import timed
+
+
 async def prepare_generation(
     pool: asyncpg.Pool,
     redis: Any,
@@ -132,21 +135,22 @@ async def prepare_generation(
     # Thread modalities to filter systems by capability
     requested_modalities = payload.modalities
 
-    ws_ctx = await resolve_websocket_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        requests=[
-            ArtifactRequest(
-                artifact_type=artifact_type,
-                artifact_id=artifact_id,
-                group_id=group_id,
-                draft_id=draft_id,
-            )
-        ],
-        modalities=requested_modalities,
-        bypass_cache=True,
-    )
+    with timed("prepare"):
+        ws_ctx = await resolve_websocket_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            requests=[
+                ArtifactRequest(
+                    artifact_type=artifact_type,
+                    artifact_id=artifact_id,
+                    group_id=group_id,
+                    draft_id=draft_id,
+                )
+            ],
+            modalities=requested_modalities,
+            bypass_cache=True,
+        )
 
     if ws_ctx is None:
         raise ValueError("Failed to resolve context.")
@@ -549,7 +553,8 @@ async def prepare_generation(
         # Reuse existing run (e.g., grading pipeline passes its own run_id)
         run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
     else:
-        async with pool.acquire() as conn:
+        with timed("db_write"):
+          async with pool.acquire() as conn:
             run = await create_run(
                 conn, redis,
                 group_id=group_id,
@@ -660,7 +665,8 @@ async def prepare_generation(
         )
 
         # Persist messages to the run
-        async with pool.acquire() as conn:
+        with timed("audit_write"):
+          async with pool.acquire() as conn:
             for msg in dispatch.messages:
                 if msg.persist:
                     await persist_run_message(

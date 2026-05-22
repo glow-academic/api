@@ -20,6 +20,7 @@ from app.tools.entries.calls.create import create_call
 from app.tools.entries.calls.get import get_calls
 from app.tools.entries.test.get import get_tests
 from app.infra.test.refresh import refresh_test_impl
+from app.infra.server_timing import timed
 from app.tools.entries.test_grade.create import create_test_grade
 from app.tools.entries.test_invocation.get import get_test_invocations
 from app.tools.resources.rubrics.get import get_rubrics
@@ -60,7 +61,8 @@ async def create_grade_impl(
     if not invocation_id:
         raise ValueError("invocation_id is required")
 
-    async with pool.acquire() as conn:
+    with timed("grade_compute"):
+      async with pool.acquire() as conn:
         # Step 1: Get invocation → rubric_id, test_id, created_at
         invocations = await get_test_invocations(
             conn, [invocation_id], redis,
@@ -134,10 +136,11 @@ async def create_grade_impl(
             score=score,
         )
 
-    await refresh_test_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["test_grade_mv"],
-    )
+    with timed("refresh"):
+        await refresh_test_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_grade_mv"],
+        )
 
     await invalidate_tags(["test", "tests", "grades"], redis=redis)
 

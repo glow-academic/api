@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_audio.create import create_attempt_audio
 from app.utils.cache.invalidate_tags import invalidate_tags
 
@@ -41,9 +42,10 @@ async def attempt_chat_audio_internal_impl(
     """Create an ``attempt_audio_entry`` row linking ``message_id`` to
     ``audios_id``. Returns the new entry's id.
     """
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again.",
@@ -55,7 +57,8 @@ async def attempt_chat_audio_internal_impl(
             status_code=400, detail="session_id is required for attempt_chat_audio.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         result = await create_attempt_audio(
             conn,
             redis, message_id=message_id,

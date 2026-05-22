@@ -24,6 +24,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.profile.types import GetProfileDraftsApiResponse
+from app.infra.server_timing import timed
 from app.tools.entries.profile_drafts.search import search_profile_drafts
 
 
@@ -42,16 +43,18 @@ async def list_profile_drafts_impl(
     **_kwargs,
 ) -> GetProfileDraftsApiResponse:
     """List/search profile drafts owned by the current profile."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         drafts = await search_profile_drafts(
             conn,
             redis, profile_ids=[profile.profiles_id],

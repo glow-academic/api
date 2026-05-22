@@ -47,6 +47,7 @@ from app.infra.provider.types import (
     ProviderValueResource,
     SectionFilter,
 )
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "values", "endpoints", "keys"]
@@ -108,14 +109,15 @@ async def get_provider_impl(
     resolved_filters = dict(filters or {})
     provider_id = id or provider_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -124,20 +126,22 @@ async def get_provider_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="provider",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="provider",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     perms = None
     if provider_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_provider_permissions_context(conn, provider_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_provider_permissions_context(conn, provider_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -149,7 +153,8 @@ async def get_provider_impl(
                 detail="You don't have access to this provider. It may be restricted to other departments.",
             )
 
-    provider_ctx = await resolve_provider_context(
+    with timed("provider_ctx"):
+     provider_ctx = await resolve_provider_context(
         pool,
         redis,
         provider_id=provider_id,
@@ -369,7 +374,8 @@ async def get_provider_impl(
         for item in all_keys
     ]
 
-    return GetProviderApiResponse(
+    with timed("build"):
+     return GetProviderApiResponse(
         actor_name=actor.name,
         provider_exists=provider_ctx.artifact_id is not None,
         can_edit=can_edit,

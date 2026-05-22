@@ -18,6 +18,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.clean_content import clean_for_grading
 from app.infra.test.media_types import TextDownloadTestApiResult
 from app.tools.entries.text_uploads.search import search_text_uploads
@@ -42,16 +43,18 @@ async def text_download_test_impl(
     if not effective_text_id:
         raise HTTPException(status_code=400, detail="text_id is required")
 
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found.")
 
     if not has_permission(profile.role_permissions, "test", "text_download"):
         raise HTTPException(status_code=403, detail="No permission for test text download.")
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         junctions = await search_text_uploads(conn, redis, text_ids=[effective_text_id], limit=1)
         if not junctions:
             raise HTTPException(status_code=404, detail="No upload found for this text.")

@@ -22,6 +22,7 @@ from app.infra.activate.activate import activate_rows
 from app.infra.identity.emulate import resolve_emulation
 from app.infra.profile.types import EmulateProfileApiResponse
 from app.infra.refresh.queue import enqueue_refreshes
+from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -86,21 +87,23 @@ async def emulate_profile_impl(
         )
 
     # ── Propose (soft) / immediate (soft=False) ──
-    result = await resolve_emulation(
-        pool,
-        redis,
-        requester_profile_id=profile_id,
-        target_profile_id=target_profile_id,
-        ttl_minutes=ttl_minutes,
-        bypass_cache=bypass_cache,
-        actor_profile_id=actor_profile_id,
-        soft=soft,
-    )
+    with timed("emulation_check"):
+        result = await resolve_emulation(
+            pool,
+            redis,
+            requester_profile_id=profile_id,
+            target_profile_id=target_profile_id,
+            ttl_minutes=ttl_minutes,
+            bypass_cache=bypass_cache,
+            actor_profile_id=actor_profile_id,
+            soft=soft,
+        )
 
     if not result.allowed:
         raise HTTPException(status_code=403, detail=result.reason or "Forbidden")
 
     if soft and call_id is not None and result.grant_id and result.emulation_id:
+      with timed("db_write"):
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,

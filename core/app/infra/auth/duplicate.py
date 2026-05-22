@@ -12,6 +12,7 @@ from app.infra.auth.permissions import compute_can_duplicate
 from app.infra.auth.refresh import refresh_auth_impl
 from app.infra.auth.types import DuplicateAuthApiResponse, ListAuthApiAuth
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.auth.create import create_auth as create_auth_artifact
 from app.tools.artifacts.auth.get import get_auths
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -38,12 +39,13 @@ async def duplicate_auth_impl(
 ) -> DuplicateAuthApiResponse:
     """Duplicate an auth artifact."""
     auth_id = id  # alias: tools send 'id', internal code uses 'auth_id'
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -100,7 +102,8 @@ async def duplicate_auth_impl(
             idempotency_key=idempotency_key,
         )
 
-    async with pool.acquire() as conn:
+    with timed("fetch_original"):
+     async with pool.acquire() as conn:
         originals = await get_auths(
             conn,
             [auth_id],
@@ -121,7 +124,8 @@ async def duplicate_auth_impl(
 
     original = originals[0]
 
-    async with pool.acquire() as conn:
+    with timed("new_name_and_flag"):
+     async with pool.acquire() as conn:
         original_name = "Unknown"
         if original.name_ids:
             name_resources = await get_names(pool, original.name_ids, redis)
@@ -144,7 +148,8 @@ async def duplicate_auth_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_auth_artifact(
                 conn,
@@ -175,13 +180,14 @@ async def duplicate_auth_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_auth_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_auth_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # Hydrate full row content for the client. See
     # ``hydrate_auth_list_rows``. Soft-pending duplicates skip

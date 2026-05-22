@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from app.infra.model.search import MODEL_IMPORT_FIELDS
 from app.infra.model.types import CreateModelItem
 from app.infra.globals import UPLOAD_FOLDER, get_redis_client
+from app.infra.server_timing import timed
 from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
@@ -138,51 +139,55 @@ async def parse_model_csv_impl(
             status_code=400,
             detail="A CSV file is required (or pass `idempotency_key` + `accept` for the ack call).",
         )
-    upload_uuid = uuid_mod.uuid4()
-    ext = os.path.splitext(file_name)[1] or ".csv"
-    relative_path = f"{upload_uuid}{ext}"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(file_bytes)
+    with timed("upload"):
+        upload_uuid = uuid_mod.uuid4()
+        ext = os.path.splitext(file_name)[1] or ".csv"
+        relative_path = f"{upload_uuid}{ext}"
+        disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        with open(disk_path, "wb") as f:
+            f.write(file_bytes)
 
-    async with pool.acquire() as conn:
-        upload_result = await create_upload(
-            conn,
-            redis,
-            session_id=session_id,
-            file_path=relative_path,
-            mime_type=content_type,
-            size=len(file_bytes),
-            soft=soft,
-        )
+        async with pool.acquire() as conn:
+            upload_result = await create_upload(
+                conn,
+                redis,
+                session_id=session_id,
+                file_path=relative_path,
+                mime_type=content_type,
+                size=len(file_bytes),
+                soft=soft,
+            )
 
-    content = file_bytes.decode("utf-8-sig")
-    reader = csv.reader(io.StringIO(content))
-    all_rows = list(reader)
+    with timed("parse"):
+        content = file_bytes.decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(content))
+        all_rows = list(reader)
 
-    if len(all_rows) < 2:
-        raise CsvParseError("CSV must have a header row and at least one data row")
+        if len(all_rows) < 2:
+            raise CsvParseError("CSV must have a header row and at least one data row")
 
-    headers = all_rows[0]
-    data_rows = all_rows[1:]
+        headers = all_rows[0]
+        data_rows = all_rows[1:]
 
-    field_map = _build_field_map(headers)
-    if not field_map:
-        labels = ", ".join(f["label"] for f in MODEL_IMPORT_FIELDS)
-        raise CsvParseError(
-            f"No CSV columns matched import fields. Expected: {labels}",
-        )
+    with timed("map_fields"):
+        field_map = _build_field_map(headers)
+        if not field_map:
+            labels = ", ".join(f["label"] for f in MODEL_IMPORT_FIELDS)
+            raise CsvParseError(
+                f"No CSV columns matched import fields. Expected: {labels}",
+            )
 
-    mapped_fields = [field_map[idx]["key"] for idx in sorted(field_map.keys())]
+        mapped_fields = [field_map[idx]["key"] for idx in sorted(field_map.keys())]
 
-    required_keys = {f["key"] for f in MODEL_IMPORT_FIELDS if f.get("required")}
-    mapped_keys = {f["key"] for f in field_map.values()}
-    missing = required_keys - mapped_keys
-    if missing:
-        raise CsvParseError(f"Missing required columns: {', '.join(missing)}")
+        required_keys = {f["key"] for f in MODEL_IMPORT_FIELDS if f.get("required")}
+        mapped_keys = {f["key"] for f in field_map.values()}
+        missing = required_keys - mapped_keys
+        if missing:
+            raise CsvParseError(f"Missing required columns: {', '.join(missing)}")
 
-    items = [_row_to_item(row, field_map) for row in data_rows]
+    with timed("build_items"):
+        items = [_row_to_item(row, field_map) for row in data_rows]
 
     # Soft: stash the raw upload as a pending soft_call (keyed by the server
     # call_id) so the ack can activate it. The preview above is returned now.

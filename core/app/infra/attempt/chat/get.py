@@ -13,6 +13,7 @@ from app.infra.attempt.chat.permissions import CHAT_BUNDLE_RESOURCES
 from app.infra.attempt.chat.sections import build_chat_get_result
 from app.infra.attempt.chat.types import GetChatRequest, GetChatResponse, SectionFilter
 from app.infra.common_context import resolve_common_context
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = [
@@ -71,13 +72,14 @@ async def get_chat_impl(
         }
     chat_entry_id = chat_entry_id or id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            bypass_cache=bypass_cache,
+        )
 
     if common is None:
         raise HTTPException(
@@ -87,15 +89,17 @@ async def get_chat_impl(
 
     # Chat is an attempt-scoped resource — use the canonical attempt group.
     from app.infra.attempt.group import group_attempt_impl
-    group_result = await group_attempt_impl(
-        pool, redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await group_attempt_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
-    context = await resolve_chat_context(
+    with timed("chat_ctx"):
+     context = await resolve_chat_context(
         pool,
         redis,
         group_id=group_id,
@@ -137,7 +141,8 @@ async def get_chat_impl(
     )
 
     scores = score_tools(common.tool_graph, CHAT_BUNDLE_RESOURCES)
-    return build_chat_get_result(
+    with timed("build"):
+     return build_chat_get_result(
         common=common,
         context=context,
         scores=scores,

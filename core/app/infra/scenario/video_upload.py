@@ -25,6 +25,7 @@ from app.infra.activate.activate import activate_rows
 from app.infra.media.upload import media_upload_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.scenario.types import VideoUploadScenarioApiResponse
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
@@ -51,9 +52,10 @@ async def video_upload_scenario_impl(
 ) -> VideoUploadScenarioApiResponse:
     """Upload a video for later use in scenarios (canonical chain + soft/accept)."""
     # -- Step 1: Profile context ------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -61,11 +63,12 @@ async def video_upload_scenario_impl(
         )
 
     # -- Step 2: Permission check -----------------------------------------------
-    if not has_permission(profile.role_permissions, "scenario", "video_upload"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to upload scenario videos.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, "scenario", "video_upload"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to upload scenario videos.",
+            )
 
     # ── Short-circuit: ack path (mirrors document/file_upload) ─────────────────
     if accept is not None and idempotency_key is not None:
@@ -113,19 +116,21 @@ async def video_upload_scenario_impl(
 
     session_uuid = session_id or profile.session_id or UUID(int=0)
 
-    result = await media_upload_impl(
-        pool, redis,
-        modality="video",
-        session_id=session_uuid,
-        file_bytes=file_bytes,
-        filename=filename,
-        content_type=content_type or "",
-        soft=soft,
-        name=name or "",
-        description=description or "",
-    )
+    with timed("media_decode"):
+        result = await media_upload_impl(
+            pool, redis,
+            modality="video",
+            session_id=session_uuid,
+            file_bytes=file_bytes,
+            filename=filename,
+            content_type=content_type or "",
+            soft=soft,
+            name=name or "",
+            description=description or "",
+        )
 
     if soft and call_id is not None:
+      with timed("db_insert"):
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,

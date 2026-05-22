@@ -20,6 +20,7 @@ from app.infra.auth.types import (
     ListAuthApiAuth,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.auth.create import create_auth as create_auth_artifact
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
@@ -56,12 +57,13 @@ async def create_auth_impl(
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -125,7 +127,8 @@ async def create_auth_impl(
     has_errors = False
     error_results: list[AuthResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_auth_values(conn, redis, item, is_create=True)
             if item_errors:
@@ -163,7 +166,8 @@ async def create_auth_impl(
             )
             snapshot_ids.append(auths_resource_id)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
                 result = await create_auth_artifact(
@@ -209,14 +213,15 @@ async def create_auth_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_auth_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].auth_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_auth_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].auth_id if results else None),
+            )
 
         try:
             await perform_keycloak_sync(department_id=None)
@@ -231,12 +236,13 @@ async def create_auth_impl(
     # creates skip hydration: the dormant row isn't fully active yet.
     auths_hydrated: list[ListAuthApiAuth] | None = None
     if not soft:
-        from app.infra.auth.hydrate_list_rows import hydrate_auth_list_rows
-        new_ids = [r.auth_id for r in results if r.success and r.auth_id is not None]
-        if new_ids:
-            auths_hydrated = await hydrate_auth_list_rows(
-                pool, redis, profile_id=profile_id, auth_ids=new_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.auth.hydrate_list_rows import hydrate_auth_list_rows
+            new_ids = [r.auth_id for r in results if r.success and r.auth_id is not None]
+            if new_ids:
+                auths_hydrated = await hydrate_auth_list_rows(
+                    pool, redis, profile_id=profile_id, auth_ids=new_ids,
+                )
 
     return CreateAuthApiResponse(
         results=results,

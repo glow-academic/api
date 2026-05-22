@@ -19,6 +19,7 @@ from redis.asyncio import Redis
 
 from app.infra.identity.emulate import resolve_unemulation
 from app.infra.profile.types import UnemulateProfileApiResponse
+from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
@@ -87,11 +88,12 @@ async def unemulate_profile_impl(
         )
 
     # ── Immediate (soft=False): consume now (original behavior) ──
-    result = await resolve_unemulation(
-        pool,
-        actor_profile_id=origin,
-        target_profile_id=target_profile_id,
-    )
+    with timed("emulation_check"):
+        result = await resolve_unemulation(
+            pool,
+            actor_profile_id=origin,
+            target_profile_id=target_profile_id,
+        )
 
     if not result.ok:
         raise HTTPException(

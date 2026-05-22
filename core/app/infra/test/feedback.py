@@ -15,6 +15,7 @@ from redis.asyncio import Redis
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.calls.get import get_calls
 from app.infra.test.refresh import refresh_test_impl
+from app.infra.server_timing import timed
 from app.tools.entries.test_feedback.create import create_test_feedback
 from app.tools.entries.test_grade.get import get_test_grades
 from app.tools.resources.standard_groups.get import get_standard_groups
@@ -58,7 +59,8 @@ async def create_feedback_impl(
     if not standard_group_id:
         raise ValueError("standard_group_id is required")
 
-    async with pool.acquire() as conn:
+    with timed("feedback_write"):
+      async with pool.acquire() as conn:
         # Step 1: Get standard group → total_points, pass_points + standards.
         # The grader scores at the group level (one tool call → one score
         # for the group). We fan that out at write time into one feedback
@@ -126,10 +128,11 @@ async def create_feedback_impl(
             )
             feedback_ids.append(result.id)
 
-    await refresh_test_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["test_feedback_mv"],
-    )
+    with timed("refresh"):
+        await refresh_test_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_feedback_mv"],
+        )
 
     await invalidate_tags(["test", "tests", "feedbacks"], redis=redis)
 

@@ -14,6 +14,7 @@ from app.infra.events.audit import (
     run_artifact_operation_with_audit,
 )
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client
+from app.infra.server_timing import timed
 from app.infra.websocket.attempt_types import (
     AttemptErrorData,
     AttemptResponseResultData,
@@ -66,7 +67,8 @@ async def attempt_response_internal_impl(
             recorded.extend(events)
             await downstream_emit(events)
 
-        async with get_pool().acquire() as conn:
+        with timed("db_write"):
+         async with get_pool().acquire() as conn:
             attempt_chats, _ = await search_attempt_chats(
                 conn, redis,
                 attempt_chat_ids=[chat_id],

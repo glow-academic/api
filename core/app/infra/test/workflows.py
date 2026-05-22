@@ -10,6 +10,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.websocket.socket_event import EmitFn, client_event, internal_event
+from app.infra.server_timing import timed
 
 
 async def test_progress_impl(
@@ -263,7 +264,8 @@ async def test_group_impl(
         group_id = uuid.UUID(str(group_id_raw))
         prev_run_id = payload.prev_run_id
 
-        async with pool.acquire() as conn:
+        with timed("fetch_runs"):
+          async with pool.acquire() as conn:
             runs, _ = await search_runs(
                 conn, redis,
                 group_ids=[group_id],
@@ -359,7 +361,8 @@ async def test_next_impl(
         return
 
     try:
-        async with pool.acquire() as conn:
+        with timed("fetch_runs"):
+          async with pool.acquire() as conn:
             invocations, _total_count = await search_test_invocation_entries_internal(
                 conn, redis,
                 test_ids=[test_id],
@@ -511,16 +514,18 @@ async def test_start_impl(
             logger.error("test_start_impl requires redis for canonical group resolve")
             return
 
-        group_result = await resolve_group_impl(
-            pool, redis,
-            artifact_type="test",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = group_result.group_id
+        with timed("group"):
+            group_result = await resolve_group_impl(
+                pool, redis,
+                artifact_type="test",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = group_result.group_id
 
-        async with pool.acquire() as conn:
+        with timed("db_write"):
+         async with pool.acquire() as conn:
             # Resolve eval → parent benchmark + dynamic flag.
             benchmark_id: uuid.UUID | None = None
             is_dynamic = True

@@ -30,6 +30,7 @@ from app.infra.profile.types import (
     ListProfilesApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.get import get_profiles
 from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.get import get_departments
@@ -144,7 +145,8 @@ async def _search_profile_build(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -159,13 +161,15 @@ async def _search_profile_build(
 
     # Resolve emulation chain once for is_emulated computation
     origin = actor_profile_id or profile_id
-    chain = await resolve_emulation_chain(pool, origin)
+    with timed("resolve_identity"):
+        chain = await resolve_emulation_chain(pool, origin)
     emulated_profile_ids: set[UUID] = {link.target_profile_id for link in chain}
 
     # -- Step 2: Scope by role hierarchy + optional role_filter --
     # Visible roles: roles at or below the requester's level (from DB).
 
-    all_roles = await get_roles(pool, None, redis)
+    with timed("resolve_values"):
+      all_roles = await get_roles(pool, None, redis)
     async with pool.acquire() as conn:
 
         # Show roles at or below the user's level
@@ -216,7 +220,8 @@ async def _search_profile_build(
 
     # -- Step 4: Get profile artifacts with junction IDs --
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         artifacts = await get_profiles(
             conn,
             merged_ids,
@@ -283,7 +288,8 @@ async def _search_profile_build(
         return await get_primary_departments(pool, all_primary_department_resource_ids, redis
         )
 
-    (
+    with timed("build"):
+     (
         names_data,
         emails_data,
         departments_data,
@@ -293,7 +299,7 @@ async def _search_profile_build(
         role_facet,
         flag_facet,
         primary_departments_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names() if all_name_ids else _empty_list(),
         _fetch_emails() if all_email_ids else _empty_list(),
         _fetch_departments() if all_department_ids else _empty_list(),

@@ -33,6 +33,7 @@ from app.tools.entries.test_invocation_traces.create import (
     create_test_invocation_traces,
 )
 from app.infra.invocation.refresh import refresh_invocation_impl
+from app.infra.server_timing import timed
 from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.prompts.create import create_prompt
 
@@ -108,7 +109,8 @@ async def test_trace_internal_impl(
     async def _run() -> TestTraceInternalResult:
         pool = get_pool()
         redis = get_redis_client()
-        async with pool.acquire() as conn:
+        with timed("db_write"):
+         async with pool.acquire() as conn:
             # Mint a prompt resource if free-text was provided.
             prompt_ids: list[UUID] = list(payload.prompt_ids or [])
             if payload.prompt_text and payload.prompt_text.strip():
@@ -146,12 +148,13 @@ async def test_trace_internal_impl(
                 reasoning_level_ids=payload.reasoning_level_ids,
                 quality_ids=payload.quality_ids,
             )
-        await refresh_invocation_impl(
-            get_pool(), get_redis_client(),
-            profile_id=UUID(str(profile_id)),
-            session_id=UUID(str(session_id)),
-            targets=["test_invocation_traces_mv"],
-        )
+        with timed("refresh"):
+            await refresh_invocation_impl(
+                get_pool(), get_redis_client(),
+                profile_id=UUID(str(profile_id)),
+                session_id=UUID(str(session_id)),
+                targets=["test_invocation_traces_mv"],
+            )
         return TestTraceInternalResult(test_invocation_trace_id=str(result.id))
 
     if not audit:

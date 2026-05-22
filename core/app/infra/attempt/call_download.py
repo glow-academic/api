@@ -23,6 +23,7 @@ from app.infra.attempt.types import CallDownloadAttemptApiResult
 from app.infra.globals import CALL_FOLDER, UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.call_uploads.search import search_call_uploads
 from app.tools.entries.uploads.get import get_upload
 
@@ -36,9 +37,10 @@ async def call_download_attempt_impl(
     session_id: UUID | None = None,
 ) -> CallDownloadAttemptApiResult:
     """Resolve a call resource to its file on disk."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -51,7 +53,8 @@ async def call_download_attempt_impl(
             detail="You don\'t have permission to download attempt calls.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_upload"):
+     async with pool.acquire() as conn:
         junctions = await search_call_uploads(conn, redis, call_ids=[call_id], limit=1)
 
         if not junctions:

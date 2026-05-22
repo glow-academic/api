@@ -31,6 +31,7 @@ from app.infra.profile.permissions import (
     has_access,
 )
 from app.infra.profile.permissions_context import resolve_profile_permissions_context
+from app.infra.server_timing import timed
 from app.infra.profile.types import (
     GetProfileApiResponse,
     ProfileDepartmentResource,
@@ -104,14 +105,15 @@ async def get_profile_impl(
     resolved_filters = dict(filters or {})
     target_profile_id = id or target_profile_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -120,14 +122,15 @@ async def get_profile_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="profile",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="profile",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     target_is_self = (
         target_profile_id is not None and profile_id == target_profile_id
@@ -135,8 +138,9 @@ async def get_profile_impl(
 
     perms = None
     if target_profile_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_profile_permissions_context(conn, target_profile_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_profile_permissions_context(conn, target_profile_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -148,7 +152,8 @@ async def get_profile_impl(
                 detail="You don't have access to this profile. It may be restricted to other departments.",
             )
 
-    profile_ctx = await resolve_profile_context(
+    with timed("profile_ctx"):
+      profile_ctx = await resolve_profile_context(
         pool,
         redis,
         profile_id=target_profile_id,
@@ -234,6 +239,7 @@ async def get_profile_impl(
     role_icon_ids = [item.icon_id for item in all_roles if item.icon_id]
     role_color_ids = [item.color_id for item in all_roles if item.color_id]
     if role_icon_ids or role_color_ids:
+      with timed("hydrate"):
         async with pool.acquire() as conn:
             if role_icon_ids:
                 icons = await get_icons(
@@ -364,7 +370,8 @@ async def get_profile_impl(
         for item in all_roles
     ]
 
-    return GetProfileApiResponse(
+    with timed("build"):
+      return GetProfileApiResponse(
         actor_name=actor.name,
         profile_exists=profile_ctx.artifact_id is not None,
         can_edit=can_edit,

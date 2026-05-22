@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.field.types import GetFieldDraftsApiResponse
 from app.tools.entries.field_drafts.search import search_field_drafts
 
@@ -42,16 +43,18 @@ async def list_field_drafts_impl(
     **_kwargs,
 ) -> GetFieldDraftsApiResponse:
     """List/search field drafts owned by the current profile."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("search"):
+     async with pool.acquire() as conn:
         drafts = await search_field_drafts(
             conn,
             redis, profile_ids=[profile.profiles_id],

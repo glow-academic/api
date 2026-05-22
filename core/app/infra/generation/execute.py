@@ -228,6 +228,9 @@ async def _call_chat_completions_api(
 # ---------------------------------------------------------------------------
 
 
+from app.infra.server_timing import timed
+
+
 async def execute_generation(
     pool: Any,
     redis: Any,
@@ -315,31 +318,32 @@ async def execute_generation(
 
     # Run all agent dispatches in parallel (enables A/B evals when
     # multiple agents in the winning system handle the same operations)
-    if len(prepared.dispatches) > 1:
-        import asyncio
-        agent_results = await asyncio.gather(
-            *[_run_one(dispatch) for dispatch in prepared.dispatches],
-            return_exceptions=True,
-        )
-        for agent_result in agent_results:
-            if isinstance(agent_result, Exception):
-                logger.error(f"Agent dispatch failed: {agent_result}")
-                continue
-            if agent_result is None:
-                continue
-            total_result.total_input_tokens += agent_result.total_input_tokens
-            total_result.total_output_tokens += agent_result.total_output_tokens
-            total_result.tool_results.extend(agent_result.tool_results)
-            total_result.assistant_output = agent_result.assistant_output
-            total_result.reasoning_output = agent_result.reasoning_output
-    elif prepared.dispatches:
-        agent_result = await _run_one(prepared.dispatches[0])
-        if agent_result is not None:
-            total_result.total_input_tokens += agent_result.total_input_tokens
-            total_result.total_output_tokens += agent_result.total_output_tokens
-            total_result.tool_results.extend(agent_result.tool_results)
-            total_result.assistant_output = agent_result.assistant_output
-            total_result.reasoning_output = agent_result.reasoning_output
+    with timed("model_call"):
+        if len(prepared.dispatches) > 1:
+            import asyncio
+            agent_results = await asyncio.gather(
+                *[_run_one(dispatch) for dispatch in prepared.dispatches],
+                return_exceptions=True,
+            )
+            for agent_result in agent_results:
+                if isinstance(agent_result, Exception):
+                    logger.error(f"Agent dispatch failed: {agent_result}")
+                    continue
+                if agent_result is None:
+                    continue
+                total_result.total_input_tokens += agent_result.total_input_tokens
+                total_result.total_output_tokens += agent_result.total_output_tokens
+                total_result.tool_results.extend(agent_result.tool_results)
+                total_result.assistant_output = agent_result.assistant_output
+                total_result.reasoning_output = agent_result.reasoning_output
+        elif prepared.dispatches:
+            agent_result = await _run_one(prepared.dispatches[0])
+            if agent_result is not None:
+                total_result.total_input_tokens += agent_result.total_input_tokens
+                total_result.total_output_tokens += agent_result.total_output_tokens
+                total_result.tool_results.extend(agent_result.tool_results)
+                total_result.assistant_output = agent_result.assistant_output
+                total_result.reasoning_output = agent_result.reasoning_output
 
     return total_result
 

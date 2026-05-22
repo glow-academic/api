@@ -12,6 +12,7 @@ from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.agent.types import ProblemAgentApiResponse
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 
 ARTIFACT_TYPE = "agent"
@@ -48,7 +49,8 @@ async def problem_agent_impl(
             detail="Message must be less than 1000 characters",
         )
 
-    identity = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(pool, profile_id, redis)
     if identity is None:
         raise HTTPException(
             status_code=401,
@@ -71,7 +73,8 @@ async def problem_agent_impl(
             )
         soft = False
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         problem_result = await create_problem_entry(
             conn,
             session_id=session_id,
@@ -84,14 +87,15 @@ async def problem_agent_impl(
             soft=soft,
         )
 
-    await refresh_agent_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or problem_result.id,
-    )
+    with timed("refresh"):
+        await refresh_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or problem_result.id,
+        )
 
     return ProblemAgentApiResponse(
         problem_id=problem_result.id,

@@ -16,6 +16,7 @@ from app.infra.eval.permissions_context import (
 from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import UpdateEvalApiRequest, UpdateEvalApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.eval.get import get_evals as get_eval_artifacts
 from app.tools.artifacts.eval.update import _UNSET
 from app.tools.artifacts.eval.update import update_eval as update_eval_artifact
@@ -66,38 +67,40 @@ async def update_eval_impl(
     # know which rows were touched without a registry hop, so we just
     # echo the operation key back as a single result.
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "update":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending eval update for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await update_eval_artifact(conn, target_id, soft=False)
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "update":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending eval update for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                redis,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="update",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await update_eval_artifact(conn, target_id, soft=False)
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_eval_impl(
+                pool, redis,
+                profile_id=profile_id, session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_eval_impl(
-            pool, redis,
-            profile_id=profile_id, session_id=session_id,
-            operation_key=idempotency_key,
-        )
 
         return UpdateEvalApiResponse(
             results=[
@@ -157,12 +160,13 @@ async def update_eval_impl(
 
     items = request.evals
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -170,7 +174,8 @@ async def update_eval_impl(
         )
 
     permitted_items: list = []
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_eval_permissions_context(conn, item.id)
             if not perms.exists:
@@ -211,7 +216,8 @@ async def update_eval_impl(
     has_errors = False
     error_results: list[EvalResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_eval_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -235,7 +241,8 @@ async def update_eval_impl(
     results: list[EvalResultItem] = []
     sync_items: list[tuple[UUID, object]] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         async with pool.acquire() as conn:
             existing = await get_eval_artifacts(
                 conn,
@@ -327,16 +334,18 @@ async def update_eval_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_eval_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].eval_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_eval_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].eval_id if results else None),
+            )
 
-        for resource_id, item in sync_items:
+        with timed("benchmark_sync"):
+         for resource_id, item in sync_items:
             try:
                 from app.infra.benchmark.sync import sync_benchmark_entries
 
@@ -361,15 +370,16 @@ async def update_eval_impl(
     # Soft-pending updates skip hydration (dormant artifact stays).
     evals_payload = None
     if not soft:
-        from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
+        with timed("hydrate"):
+            from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
 
-        updated_ids = [
-            r.eval_id for r in results if r.success and r.eval_id is not None
-        ]
-        if updated_ids:
-            evals_payload = await hydrate_eval_list_rows(
-                pool, redis, profile_id=profile_id, eval_ids=updated_ids,
-            )
+            updated_ids = [
+                r.eval_id for r in results if r.success and r.eval_id is not None
+            ]
+            if updated_ids:
+                evals_payload = await hydrate_eval_list_rows(
+                    pool, redis, profile_id=profile_id, eval_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

@@ -33,6 +33,7 @@ from app.infra.auth.types import (
     ListAuthApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.auth.get import get_auths
 from app.tools.artifacts.auth.search import (
     search_auths as search_auth_artifacts,
@@ -119,7 +120,8 @@ async def _search_auth_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -132,7 +134,8 @@ async def _search_auth_build(
 
     # ── Step 2: Search auths ──────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("search_auths"):
+     async with pool.acquire() as conn:
         auth_ids, total_count = await search_auth_artifacts(
             conn,
             search=search,
@@ -143,7 +146,8 @@ async def _search_auth_build(
 
     # Pending ledger entries — see project_soft_calls_entry_pattern.
     from app.tools.entries.soft_calls.search import search_soft_calls
-    async with pool.acquire() as conn:
+    with timed("pending_ledger"):
+     async with pool.acquire() as conn:
         pending_entries = await search_soft_calls(
             conn, redis, artifact="auth", status="pending", limit=1000,
         )
@@ -201,7 +205,8 @@ async def _search_auth_build(
 
     # ── Step 3: Get auth artifacts with junction IDs ──────────────────
 
-    async with pool.acquire() as conn:
+    with timed("get_auths"):
+     async with pool.acquire() as conn:
         artifacts = await get_auths(
             conn,
             auth_ids,
@@ -294,13 +299,14 @@ async def _search_auth_build(
 
     perm_tasks = [_fetch_perms(a.id) for a in artifacts]
 
-    (
+    with timed("hydrate_and_facets"):
+     (
         names_data,
         descriptions_data,
         department_facet,
         flag_facet,
         *perm_results,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names_data(),
         _fetch_descriptions_data(),
         _fetch_department_facet(),

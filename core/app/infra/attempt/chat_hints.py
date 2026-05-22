@@ -9,6 +9,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_hint.create import create_attempt_hint
 
 
@@ -33,17 +34,19 @@ async def chat_hints_attempt_impl(
     if not message_id:
         raise ValueError("message_id is required")
 
-    async with pool.acquire() as conn:
-        result = await create_attempt_hint(
-            conn,
-            redis, message_id=message_id,
-            session_id=session_id,
-            hint=hint or "No hint provided",
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            result = await create_attempt_hint(
+                conn,
+                redis, message_id=message_id,
+                session_id=session_id,
+                hint=hint or "No hint provided",
+            )
 
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["attempt_hint_mv"],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_hint_mv"],
+        )
 
     return {"hint_id": str(result.id)}

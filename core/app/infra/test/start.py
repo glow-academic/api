@@ -21,6 +21,7 @@ from app.infra.events.audit import (
 )
 from app.infra.globals import get_pool, get_redis_client
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.client_types import TestStartPayload
 from app.infra.test.workflows import test_start_impl
 from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
@@ -50,12 +51,13 @@ async def test_start_internal_impl(
     if not session_id:
         raise ValueError("Missing session_id for test_start")
 
-    identity = await resolve_profile_identity_context(
-        get_pool(),
-        UUID(profile_id),
-        get_redis_client(),
-        session_id=UUID(session_id),
-    )
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(
+            get_pool(),
+            UUID(profile_id),
+            get_redis_client(),
+            session_id=UUID(session_id),
+        )
     if not identity or not identity.profiles_id:
         raise ValueError("Profile context not found for test_start")
 
@@ -74,12 +76,13 @@ async def test_start_internal_impl(
             "profiles_id": str(identity.profiles_id),
         }
 
-        await test_start_impl(
-            runner_data,
-            emit=_emit,
-            pool=get_pool(),
-            redis=get_redis_client(),
-        )
+        with timed("db_write"):
+            await test_start_impl(
+                runner_data,
+                emit=_emit,
+                pool=get_pool(),
+                redis=get_redis_client(),
+            )
 
         # test_start_impl is now setup-only. Any error propagates via
         # internal events; surface them as ValueError so the audit

@@ -29,6 +29,7 @@ from app.infra.eval.types import (
     ListEvalApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.eval.get import get_evals
 from app.tools.artifacts.eval.search import (
     search_evals as search_eval_artifacts,
@@ -139,7 +140,8 @@ async def _search_eval_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -152,7 +154,8 @@ async def _search_eval_build(
 
     # ── Step 2: Search evals ──────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         eval_ids, total_count = await search_eval_artifacts(
             conn,
             search=search,
@@ -298,19 +301,20 @@ async def _search_eval_build(
                 conn, redis, search=flag_search, eval=True, limit_count=100
             )
 
-    (
-        names_data,
-        descriptions_data,
-        flags_data,
-        department_facet,
-        flag_facet,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_descriptions(),
-        _fetch_flags(),
-        _fetch_department_facet(),
-        _fetch_flag_facet(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            flags_data,
+            department_facet,
+            flag_facet,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_descriptions(),
+            _fetch_flags(),
+            _fetch_department_facet(),
+            _fetch_flag_facet(),
+        )
 
     flag_map = {f.id: f for f in flags_data}
 
@@ -322,7 +326,8 @@ async def _search_eval_build(
 
     evals_list: list[ListEvalApiEval] = []
 
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

@@ -63,6 +63,7 @@ from app.infra.model.types import (
     ModelVoiceResource,
     SectionFilter,
 )
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = [
@@ -118,14 +119,15 @@ async def get_model_impl(
     resolved_filters = dict(filters or {})
     model_id = id or model_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -134,20 +136,22 @@ async def get_model_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="model",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="model",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     perms = None
     if model_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_model_permissions_context(conn, model_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_model_permissions_context(conn, model_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
         if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
@@ -156,7 +160,8 @@ async def get_model_impl(
                 detail="You don't have access to this model. It may be restricted to other departments.",
             )
 
-    model_ctx = await resolve_model_context(
+    with timed("model_ctx"):
+     model_ctx = await resolve_model_context(
         pool,
         redis,
         model_id=model_id,
@@ -486,7 +491,8 @@ async def get_model_impl(
         for item in all_voices
     ]
 
-    return GetModelApiResponse(
+    with timed("build"):
+     return GetModelApiResponse(
         actor_name=actor.name,
         model_exists=perms.exists if perms else (model_id is None),
         can_edit=can_edit,

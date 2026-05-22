@@ -33,6 +33,7 @@ from app.infra.parameter.types import (
     ParameterNameResource,
     SectionFilter,
 )
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "parameter_fields"]
@@ -108,14 +109,15 @@ async def get_parameter_impl(
         for value in (raw_parameter_ids or [])
     ] or None
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -124,19 +126,21 @@ async def get_parameter_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="parameter",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="parameter",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if parameter_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_parameter_permissions_context(conn, parameter_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_parameter_permissions_context(conn, parameter_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -148,7 +152,8 @@ async def get_parameter_impl(
                 detail="You don't have access to this parameter. It may be restricted to other departments.",
             )
 
-    parameter = await resolve_parameter_context(
+    with timed("parameter_ctx"):
+     parameter = await resolve_parameter_context(
         pool,
         redis,
         parameter_id=parameter_id,
@@ -346,7 +351,8 @@ async def get_parameter_impl(
             )
         return items
 
-    return GetParameterApiResponse(
+    with timed("build"):
+     return GetParameterApiResponse(
         actor_name=profile.name,
         parameter_exists=parameter.artifact_id is not None,
         can_edit=can_edit,

@@ -22,6 +22,7 @@ from app.infra.test.client_types import TestCompletePayload
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.socket_event import EmitFn
+from app.infra.server_timing import timed
 
 
 class TestCompleteInternalResult(BaseModel):
@@ -97,15 +98,17 @@ async def test_complete_internal_impl(
     async def _run() -> TestCompleteInternalResult:
         from app.infra.invocation.refresh import refresh_invocation_impl
 
-        async with get_pool().acquire() as conn:
-            count = await _mark_all_invocations_complete(conn, payload.test_id)
+        with timed("db_write"):
+            async with get_pool().acquire() as conn:
+                count = await _mark_all_invocations_complete(conn, payload.test_id)
         if count:
-            await refresh_invocation_impl(
-                get_pool(), get_redis_client(),
-                profile_id=UUID(str(profile_id)),
-                session_id=UUID(str(session_id)),
-                targets=["test_invocation_completion_mv"],
-            )
+            with timed("refresh"):
+                await refresh_invocation_impl(
+                    get_pool(), get_redis_client(),
+                    profile_id=UUID(str(profile_id)),
+                    session_id=UUID(str(session_id)),
+                    targets=["test_invocation_completion_mv"],
+                )
         return TestCompleteInternalResult(
             test_id=str(payload.test_id), completed_count=count,
         )

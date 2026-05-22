@@ -12,6 +12,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_chat_completion.create import (
     create_attempt_chat_completion,
 )
@@ -36,17 +37,19 @@ async def chat_complete_attempt_impl(
     if not chat_id:
         raise ValueError("chat_id is required")
 
-    async with pool.acquire() as conn:
-        result = await create_attempt_chat_completion(
-            conn,
-            redis, chat_id=chat_id,
-            session_id=session_id,
-            message=message,
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            result = await create_attempt_chat_completion(
+                conn,
+                redis, chat_id=chat_id,
+                session_id=session_id,
+                message=message,
+            )
 
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["attempt_chat_completion_mv", "attempt_chat_mv"],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_chat_completion_mv", "attempt_chat_mv"],
+        )
 
     return {"completion_id": str(result.id), "chat_id": str(chat_id)}

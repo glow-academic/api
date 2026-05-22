@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.42"
+    "version": "1.0.43"
   },
   "paths": {
     "/persona/title": {
@@ -1289,8 +1289,7 @@
                 "$ref": "#/components/schemas/Body_parse_scenario_csv_scenario_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2718,8 +2717,7 @@
                 "$ref": "#/components/schemas/Body_parse_simulation_csv_simulation_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -4337,8 +4335,7 @@
                 "$ref": "#/components/schemas/Body_parse_document_csv_document_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -5302,8 +5299,7 @@
                 "$ref": "#/components/schemas/Body_parse_department_csv_department_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -6321,8 +6317,7 @@
                 "$ref": "#/components/schemas/Body_parse_cohort_csv_cohort_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -7090,8 +7085,7 @@
                 "$ref": "#/components/schemas/Body_parse_eval_csv_eval_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -8509,8 +8503,7 @@
                 "$ref": "#/components/schemas/Body_parse_rubric_csv_rubric_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -9578,8 +9571,7 @@
                 "$ref": "#/components/schemas/Body_parse_setting_csv_setting_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -10397,8 +10389,7 @@
                 "$ref": "#/components/schemas/Body_parse_agent_csv_agent_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -11766,8 +11757,7 @@
                 "$ref": "#/components/schemas/Body_parse_model_csv_model_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -12835,8 +12825,7 @@
                 "$ref": "#/components/schemas/Body_parse_provider_csv_provider_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -13954,8 +13943,7 @@
                 "$ref": "#/components/schemas/Body_parse_parameter_csv_parameter_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -15023,8 +15011,7 @@
                 "$ref": "#/components/schemas/Body_parse_field_csv_field_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -15742,8 +15729,7 @@
                 "$ref": "#/components/schemas/Body_parse_profile_csv_profile_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -16965,8 +16951,7 @@
                 "$ref": "#/components/schemas/Body_parse_auth_csv_auth_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -18384,8 +18369,7 @@
                 "$ref": "#/components/schemas/Body_parse_tool_csv_tool_csv_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -28730,8 +28714,15 @@
       "Body_parse_agent_csv_agent_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28745,19 +28736,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_agent_csv_agent_csv_post"
       },
       "Body_parse_auth_csv_auth_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28771,19 +28782,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_auth_csv_auth_csv_post"
       },
       "Body_parse_cohort_csv_cohort_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28797,19 +28828,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_cohort_csv_cohort_csv_post"
       },
       "Body_parse_department_csv_department_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28823,19 +28874,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_department_csv_department_csv_post"
       },
       "Body_parse_document_csv_document_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28849,19 +28920,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_document_csv_document_csv_post"
       },
       "Body_parse_eval_csv_eval_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28875,19 +28966,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_eval_csv_eval_csv_post"
       },
       "Body_parse_field_csv_field_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28901,19 +29012,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_field_csv_field_csv_post"
       },
       "Body_parse_model_csv_model_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28927,19 +29058,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_model_csv_model_csv_post"
       },
       "Body_parse_parameter_csv_parameter_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -28953,12 +29104,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_parameter_csv_parameter_csv_post"
       },
       "Body_parse_persona_csv_persona_csv_post": {
@@ -29010,8 +29174,15 @@
       "Body_parse_profile_csv_profile_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29025,19 +29196,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_profile_csv_profile_csv_post"
       },
       "Body_parse_provider_csv_provider_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29051,19 +29242,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_provider_csv_provider_csv_post"
       },
       "Body_parse_rubric_csv_rubric_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29077,19 +29288,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_rubric_csv_rubric_csv_post"
       },
       "Body_parse_scenario_csv_scenario_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29103,19 +29334,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_scenario_csv_scenario_csv_post"
       },
       "Body_parse_setting_csv_setting_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29129,19 +29380,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_setting_csv_setting_csv_post"
       },
       "Body_parse_simulation_csv_simulation_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29155,19 +29426,39 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_simulation_csv_simulation_csv_post"
       },
       "Body_parse_tool_csv_tool_csv_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29181,12 +29472,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_parse_tool_csv_tool_csv_post"
       },
       "Body_upload_audio_attempt_audio_upload_post": {
@@ -49164,10 +49468,17 @@
       "EmulateProfileApiRequest": {
         "properties": {
           "target_profile_id": {
-            "type": "string",
-            "format": "uuid",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Target Profile Id",
-            "description": "UUID of the profile to emulate"
+            "description": "UUID of the profile to emulate (omit on the ack call)"
           },
           "ttl_minutes": {
             "anyOf": [
@@ -49193,13 +49504,28 @@
               }
             ],
             "title": "Idempotency Key",
-            "description": "Idempotency key for safe retries"
+            "description": "Idempotency / soft-call key. Echo the server-minted value with accept to promote/reject a staged emulation."
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the emulation grant dormant (active=False) \u2014 it impersonates nothing until accepted",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True promotes the staged emulation, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
-        "required": [
-          "target_profile_id"
-        ],
         "title": "EmulateProfileApiRequest",
         "description": "Request model for profile emulation."
       },
@@ -49247,6 +49573,19 @@
             ],
             "title": "Expires At",
             "description": "When the emulation grant expires"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to promote/reject the staged emulation."
           }
         },
         "type": "object",
@@ -91162,6 +91501,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows parsed"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged raw-CSV upload. NOTE: ack returns no items (the preview is only on the propose)."
           }
         },
         "type": "object",
@@ -121765,9 +122117,16 @@
       "UnemulateProfileApiRequest": {
         "properties": {
           "target_profile_id": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Target Profile Id",
-            "description": "Profile ID to stop emulating"
+            "description": "Profile ID to stop emulating (omit on the ack call)"
           },
           "idempotency_key": {
             "anyOf": [
@@ -121780,13 +122139,28 @@
               }
             ],
             "title": "Idempotency Key",
-            "description": "Idempotency key for safe retries"
+            "description": "Idempotency / soft-call key. Echo the server-minted value with accept to perform/reject a proposed unemulation."
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Propose the unemulation without performing it \u2014 emulation continues until accepted (record-and-hold)",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True performs the proposed unemulation, False discards it. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
-        "required": [
-          "target_profile_id"
-        ],
         "title": "UnemulateProfileApiRequest",
         "description": "Request model for exiting emulation of a specific profile."
       },
@@ -121808,6 +122182,19 @@
             ],
             "title": "Reason",
             "description": "Reason if unemulation failed"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to perform/reject the proposed unemulation."
           }
         },
         "type": "object",

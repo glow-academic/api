@@ -18,6 +18,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.docs.build_profile_summary import build_profile_summary
+from app.infra.server_timing import timed
 from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
@@ -140,7 +141,8 @@ async def _page_context_scenario_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -260,7 +262,8 @@ async def _page_context_scenario_build(
             return None
         return await _resolve_entity_name(pool, redis, entity_id)
 
-    (
+    with timed("docs"):
+     (
         artifact,
         drafts,
         names,
@@ -279,7 +282,7 @@ async def _page_context_scenario_build(
         videos,
         entity_perms,
         entity_name,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_scenario_docs(),
         _get_scenario_drafts_docs(),
         _get_names_docs(),
@@ -362,7 +365,8 @@ async def _page_context_scenario_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("profile_summary"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 

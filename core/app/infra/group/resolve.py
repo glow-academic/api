@@ -37,6 +37,7 @@ from app.infra.generation.chat_history import (
 from app.infra.group.refresh import refresh_group_impl
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.calls.search import search_calls
 from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.entries.group_names.create import create_group_name
@@ -276,9 +277,10 @@ async def resolve_group_impl(
         include_resources = False
 
     # ── Profile context ───────────────────────────────────────────────
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -399,9 +401,10 @@ async def resolve_group_impl(
     runs_data: list[GroupRun] | None = None
     run_items_raw: list[Any] = []
     if include_history and not created_new:
-        runs_data, run_items_raw = await _load_history(
-            pool, redis, resolved_group_id, bypass_cache=bypass_cache,
-        )
+        with timed("hydrate"):
+            runs_data, run_items_raw = await _load_history(
+                pool, redis, resolved_group_id, bypass_cache=bypass_cache,
+            )
 
     # ── Resolve current title from groups_mv ─────────────────────────
     # When the group already existed, surface its latest title so the
@@ -429,6 +432,7 @@ async def resolve_group_impl(
     total_message_count: int | None = None
     group_exists: bool | None = None
     if include_resources:
+     with timed("build"):
         all_model_ids: set[UUID] = set()
         all_agent_ids: set[UUID] = set()
         all_profile_ids: set[UUID] = set()

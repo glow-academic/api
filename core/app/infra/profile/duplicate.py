@@ -15,6 +15,7 @@ from app.infra.profile.types import (
     ListProfilesApiProfile,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.create import (
     create_profile as create_profile_artifact,
 )
@@ -41,12 +42,13 @@ async def duplicate_profile_impl(
     idempotency_key: UUID | None = None,
 ) -> DuplicateProfileApiResponse:
     """Duplicate a profile artifact."""
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -118,7 +120,8 @@ async def duplicate_profile_impl(
             idempotency_key=idempotency_key,
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         originals = await get_profiles(
             conn,
             [target_profile_id],
@@ -157,7 +160,8 @@ async def duplicate_profile_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_profile_artifact(
                 conn,
@@ -187,22 +191,24 @@ async def duplicate_profile_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_profile_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # Hydrate the duplicated row for the client ghost rail.
     # Soft-pending duplicates skip hydration (dormant artifact).
     profiles_rows: list[ListProfilesApiProfile] | None = None
     if not soft:
-        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
-        profiles_rows = await hydrate_profile_list_rows(
-            pool, redis, profile_id=profile_id, profile_ids=[result.id],
-        )
+        with timed("hydrate"):
+            from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+            profiles_rows = await hydrate_profile_list_rows(
+                pool, redis, profile_id=profile_id, profile_ids=[result.id],
+            )
 
     return DuplicateProfileApiResponse(
         success=True,

@@ -12,6 +12,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_completion.create import create_attempt_completion
 
 
@@ -34,17 +35,19 @@ async def complete_attempt_impl(
     if not attempt_id:
         raise ValueError("attempt_id is required")
 
-    async with pool.acquire() as conn:
-        result = await create_attempt_completion(
-            conn,
-            redis, attempt_id=attempt_id,
-            session_id=session_id,
-            message=message,
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            result = await create_attempt_completion(
+                conn,
+                redis, attempt_id=attempt_id,
+                session_id=session_id,
+                message=message,
+            )
 
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["attempt_completion_mv", "attempt_mv"],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_completion_mv", "attempt_mv"],
+        )
 
     return {"completion_id": str(result.id), "attempt_id": str(attempt_id)}

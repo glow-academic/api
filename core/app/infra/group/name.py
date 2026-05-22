@@ -22,6 +22,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.group.refresh import refresh_group_impl
+from app.infra.server_timing import timed
 from app.tools.entries.group_names.create import create_group_name
 from app.utils.cache.invalidate_tags import invalidate_tags
 
@@ -78,9 +79,10 @@ async def name_group_impl(
         resolved_name = request.name
 
     # Step 1: Profile context
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -88,7 +90,8 @@ async def name_group_impl(
         )
 
     # Step 2: Create group_names entry (append-only)
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         result = await create_group_name(
             conn,
             redis, group_id=resolved_group_id,
@@ -97,9 +100,10 @@ async def name_group_impl(
         )
 
     # Step 3: Refresh MVs (group_names_mv → groups_mv) — async via worker
-    await refresh_group_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-    )
+    with timed("refresh"):
+        await refresh_group_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+        )
 
     # Step 4: Invalidate cache
     await invalidate_tags(["groups"], redis=redis)

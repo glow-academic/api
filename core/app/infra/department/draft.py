@@ -18,6 +18,7 @@ from app.infra.department.types import (
     SaveDepartmentFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.department_drafts.create import create_department_draft
 from app.tools.entries.department_drafts.get import get_department_drafts
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -247,26 +248,28 @@ async def patch_department_draft_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit department drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit department drafts.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
@@ -334,7 +337,8 @@ async def patch_department_draft_impl(
             form_state=DraftFormState(),
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
@@ -342,7 +346,8 @@ async def patch_department_draft_impl(
             detail=[error.model_dump() for error in errors],
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_department_draft(
                 conn,
@@ -414,14 +419,15 @@ async def patch_department_draft_impl(
     )
 
     if not soft:
-        await refresh_department_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            targets=["department_drafts_mv"],
-            operation_key=result.id,
-        )
+        with timed("refresh"):
+            await refresh_department_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["department_drafts_mv"],
+                operation_key=result.id,
+            )
 
     return PatchDepartmentDraftApiResponse(
         success=True,

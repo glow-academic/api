@@ -14,6 +14,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.group.resolve import resolve_group_impl
+from app.infra.server_timing import timed
 from app.infra.test.types import ArchiveTestsRequest, ArchiveTestsResponse
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.runs.create import create_run
@@ -35,15 +36,17 @@ async def archive_test_impl(
     requested test. Cache invalidation lives at the HTTP-adapter layer
     (not part of this contract).
     """
-    group_result = await resolve_group_impl(
-        pool, redis,
-        artifact_type="test",
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type="test",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         run_result = await create_run(
             conn, redis, group_id=group_result.group_id, session_id=session_id,
         )

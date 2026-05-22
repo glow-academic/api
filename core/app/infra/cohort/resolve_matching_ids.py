@@ -26,6 +26,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.server_timing import timed
 from app.tools.artifacts.cohort.search import search_cohorts
 
 # Sentinel for "we want every matching row, not a page". The underlying
@@ -71,7 +72,8 @@ async def resolve_matching_cohort_ids(
     # simulations_resource ids. No reverse lookup needed (unlike
     # persona/scenario which translate through scenario/simulation
     # membership).
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         ids, _total = await search_cohorts(
             conn,
             search=search,

@@ -24,6 +24,7 @@ from app.infra.cohort.permissions_context import (
 )
 from app.infra.cohort.refresh import refresh_cohort_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.cohort.create import (
     create_cohort as create_cohort_artifact,
 )
@@ -102,20 +103,21 @@ async def create_cohort_impl(
         has_errors = False
         error_results: list[CohortResultItem] = []
 
-        for idx, item in enumerate(cohort_items):
-            async with pool.acquire() as conn:
-                item_errors = await resolve_cohort_values(conn, redis, item, is_create=True)
-            if item_errors:
-                has_errors = True
-                error_results.append(
-                    CohortResultItem(
-                        success=False,
-                        message=f"Item {idx}: Validation errors",
-                        errors=item_errors,
+        with timed("resolve_values"):
+            for idx, item in enumerate(cohort_items):
+                async with pool.acquire() as conn:
+                    item_errors = await resolve_cohort_values(conn, redis, item, is_create=True)
+                if item_errors:
+                    has_errors = True
+                    error_results.append(
+                        CohortResultItem(
+                            success=False,
+                            message=f"Item {idx}: Validation errors",
+                            errors=item_errors,
+                        )
                     )
-                )
-            else:
-                error_results.append(CohortResultItem(success=True, message="Validated"))
+                else:
+                    error_results.append(CohortResultItem(success=True, message="Validated"))
 
         if has_errors:
             return error_results
@@ -125,7 +127,8 @@ async def create_cohort_impl(
 
         snapshot_ids: list[UUID] = []
         if not soft_value:
-            for item in cohort_items:
+            with timed("snapshot"):
+              for item in cohort_items:
                 cohorts_resource_id = await create_denormalized_snapshot(
                     pool,
                     redis,
@@ -141,7 +144,8 @@ async def create_cohort_impl(
                 )
                 snapshot_ids.append(cohorts_resource_id)
 
-        for idx, item in enumerate(cohort_items):
+        with timed("db_write"):
+         for idx, item in enumerate(cohort_items):
             flag_ids = list(item.flag_ids) if item.flag_ids else None
 
             async with pool.acquire() as conn:
@@ -187,14 +191,16 @@ async def create_cohort_impl(
                 await refresh_soft_calls(conn)
 
         refresh_key = operation_key or (results[0].cohort_id if results else None)
-        await _refresh_cohort(
-            operation_key=refresh_key,
-            session_id_value=session_id,
-            soft_value=soft_value,
-        )
+        with timed("refresh"):
+            await _refresh_cohort(
+                operation_key=refresh_key,
+                session_id_value=session_id,
+                soft_value=soft_value,
+            )
 
         if not soft_value:
-            for resource_id, item in sync_items:
+            with timed("home_practice_sync"):
+             for resource_id, item in sync_items:
                 try:
                     from app.infra.home_practice_sync import sync_home_practice_entries
 
@@ -215,12 +221,13 @@ async def create_cohort_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -236,11 +243,12 @@ async def create_cohort_impl(
         if items and items[0].department_ids
         else []
     )
-    if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions, department_ids=request_department_ids):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create cohorts.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions, department_ids=request_department_ids):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create cohorts.",
+            )
 
     # ── Step 3: ACK short-circuit ─────────────────────────────────────
     if accept is not None and idempotency_key is not None:

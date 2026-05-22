@@ -23,6 +23,7 @@ from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.socket_event import EmitFn
 from app.infra.invocation.refresh import refresh_invocation_impl
+from app.infra.server_timing import timed
 from app.tools.entries.test_invocation_runs.create import (
     create_test_invocation_runs,
 )
@@ -58,19 +59,21 @@ async def test_run_internal_impl(
 
     async def _run() -> TestRunInternalResult:
         redis = get_redis_client()
-        async with get_pool().acquire() as conn:
-            result = await create_test_invocation_runs(
-                conn, redis,
-                test_invocation_id=payload.test_invocation_id,
-                run_id=payload.run_id,
-                test_invocation_traces_id=payload.test_invocation_trace_id,
+        with timed("db_write"):
+            async with get_pool().acquire() as conn:
+                result = await create_test_invocation_runs(
+                    conn, redis,
+                    test_invocation_id=payload.test_invocation_id,
+                    run_id=payload.run_id,
+                    test_invocation_traces_id=payload.test_invocation_trace_id,
+                )
+        with timed("refresh"):
+            await refresh_invocation_impl(
+                get_pool(), redis,
+                profile_id=UUID(str(profile_id)),
+                session_id=UUID(str(session_id)),
+                targets=["test_invocation_runs_mv"],
             )
-        await refresh_invocation_impl(
-            get_pool(), redis,
-            profile_id=UUID(str(profile_id)),
-            session_id=UUID(str(session_id)),
-            targets=["test_invocation_runs_mv"],
-        )
         return TestRunInternalResult(
             test_invocation_run_id=str(result.id),
         )

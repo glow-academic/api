@@ -21,6 +21,7 @@ from app.infra.profile.types import (
     SaveProfileFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.profile_drafts.create import create_profile_draft
 from app.tools.entries.profile_drafts.get import get_profile_drafts
@@ -350,12 +351,13 @@ async def patch_profile_draft_impl(
     if accept is None and idempotency_key is not None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -439,14 +441,16 @@ async def patch_profile_draft_impl(
             form_state=DraftFormState(),
         )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
             detail=[error.model_dump() for error in errors],
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             primary_departments_resource_id: UUID | None = None
             if request.primary_department_id is not None:
@@ -574,14 +578,15 @@ async def patch_profile_draft_impl(
         )
 
     if not soft:
-        await refresh_profile_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            targets=["profile_drafts_mv"],
-            operation_key=result.id,
-        )
+        with timed("refresh"):
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["profile_drafts_mv"],
+                operation_key=result.id,
+            )
 
     if auto_accepted:
         message = "Draft accepted (all fields resolved)"

@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.benchmark.search import search_benchmarks
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
@@ -92,7 +93,8 @@ async def export_benchmark_impl(
     """
 
     # -- Step 1: Profile context --
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -100,11 +102,13 @@ async def export_benchmark_impl(
         )
 
     # -- Step 2: Search all benchmarks (full dump) --
-    async with pool.acquire() as conn:
+    with timed("search_benchmarks"):
+     async with pool.acquire() as conn:
         benchmarks = await search_benchmarks(conn, redis, limit=100000)
 
     # -- Step 3: Search all test invocations (full dump) --
-    async with pool.acquire() as conn:
+    with timed("search_invocations"):
+     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
             conn, redis, limit=100000, offset=0
         )
@@ -138,18 +142,20 @@ async def export_benchmark_impl(
             return []
         return await get_profiles(pool, list(all_profile_ids), redis)
 
-    departments_data, profiles_data = await asyncio.gather(
-        _get_departments(),
-        _get_profiles(),
-    )
+    with timed("hydrate"):
+        departments_data, profiles_data = await asyncio.gather(
+            _get_departments(),
+            _get_profiles(),
+        )
 
     department_map: dict[UUID, str] = {d.id: d.name or "" for d in departments_data}
     profile_map: dict[UUID, str] = {p.id: p.name or "" for p in profiles_data}
 
     # -- Step 5: Generate CSVs --
 
-    # benchmarks.csv
-    bench_output = io.StringIO()
+    with timed("csv_build"):
+     # benchmarks.csv
+     bench_output = io.StringIO()
     bench_writer = csv.writer(bench_output)
     bench_writer.writerow(BENCHMARK_CSV_COLUMNS)
 

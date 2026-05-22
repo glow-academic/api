@@ -39,6 +39,7 @@ from app.infra.auth.types import (
 )
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
+from app.infra.server_timing import timed
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.tool_graph import score_tools
 
@@ -87,36 +88,40 @@ async def get_auth_impl(
     f = filters or {}
     resolved_auth_id = id or auth_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="auth",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="auth",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     profile = common.profile
 
     if resolved_auth_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_auth_permissions_context(conn, resolved_auth_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_auth_permissions_context(conn, resolved_auth_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Auth {resolved_auth_id} not found")
 
-    auth_ctx = await resolve_auth_context(
+    with timed("auth_ctx"):
+     auth_ctx = await resolve_auth_context(
         pool,
         redis,
         auth_id=resolved_auth_id,

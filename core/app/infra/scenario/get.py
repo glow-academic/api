@@ -16,6 +16,7 @@ from app.infra.scenario.permissions import SCENARIO_RESOURCES, has_access
 from app.infra.scenario.permissions_context import resolve_scenario_permissions_context
 from app.infra.scenario.sections import build_scenario_get_result
 from app.infra.scenario.types import GetScenarioApiResponse
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = [
@@ -55,14 +56,15 @@ async def get_scenario_impl(
     raw_param_ids = pf_filter.parameter_ids if pf_filter and pf_filter.parameter_ids else None
     parameter_ids = [UUID(pid) if isinstance(pid, str) else pid for pid in raw_param_ids] if raw_param_ids else None
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -70,18 +72,20 @@ async def get_scenario_impl(
         )
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="scenario",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="scenario",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if scenario_id is not None:
-        perms = await resolve_scenario_permissions_context(pool, scenario_id)
+        with timed("permissions"):
+            perms = await resolve_scenario_permissions_context(pool, scenario_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -98,7 +102,8 @@ async def get_scenario_impl(
                 "It may be restricted to other departments.",
             )
 
-    scenario = await resolve_scenario_context(
+    with timed("scenario_ctx"):
+        scenario = await resolve_scenario_context(
         pool,
         redis,
         scenario_id=scenario_id,
@@ -127,7 +132,8 @@ async def get_scenario_impl(
     selected_only = {s: _sf(f, s, "selected") or False for s in SECTIONS}
     suggested_only = {s: _sf(f, s, "suggested") or False for s in SECTIONS}
 
-    return build_scenario_get_result(
+    with timed("build"):
+      return build_scenario_get_result(
         common=common,
         scenario=scenario,
         scores=scores,

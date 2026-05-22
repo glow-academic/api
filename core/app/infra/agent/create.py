@@ -27,6 +27,7 @@ from app.infra.agent.types import (
     CreateAgentApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
 )
@@ -71,12 +72,13 @@ async def create_agent_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -149,20 +151,21 @@ async def create_agent_impl(
     has_errors = False
     error_results: list[AgentResultItem] = []
 
-    async with pool.acquire() as conn:
-        for idx, item in enumerate(items):
-            item_errors = await resolve_agent_values(conn, redis, item, is_create=True)
-            if item_errors:
-                has_errors = True
-                error_results.append(
-                    AgentResultItem(
-                        success=False,
-                        message=f"Item {idx}: Validation errors",
-                        errors=item_errors,
+    with timed("resolve_values"):
+        async with pool.acquire() as conn:
+            for idx, item in enumerate(items):
+                item_errors = await resolve_agent_values(conn, redis, item, is_create=True)
+                if item_errors:
+                    has_errors = True
+                    error_results.append(
+                        AgentResultItem(
+                            success=False,
+                            message=f"Item {idx}: Validation errors",
+                            errors=item_errors,
+                        )
                     )
-                )
-            else:
-                error_results.append(AgentResultItem(success=True, message="Validated"))
+                else:
+                    error_results.append(AgentResultItem(success=True, message="Validated"))
 
     if has_errors:
         return CreateAgentApiResponse(
@@ -193,9 +196,10 @@ async def create_agent_impl(
             )
             snapshot_ids.append(agents_resource_id)
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            for idx, item in enumerate(items):
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+             for idx, item in enumerate(items):
                 combined_flag_ids = list(item.flag_ids or [])
 
                 result = await create_agent_artifact(
@@ -254,14 +258,15 @@ async def create_agent_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_agent_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].agent_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_agent_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].agent_id if results else None),
+            )
 
     return CreateAgentApiResponse(
         results=results,

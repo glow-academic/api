@@ -39,6 +39,7 @@ from redis.asyncio import Redis
 
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.rubric.types import ExportRubricApiResponse
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
@@ -80,6 +81,7 @@ class _GradingState:
 
 async def _load_grading_state(
     pool: asyncpg.Pool,
+    redis: Redis,
     grade_id: UUID,
     standards: list[GetStandardResponse],
     standard_groups: list[GetStandardGroupResponse],
@@ -346,7 +348,8 @@ async def export_rubric_impl(
                  downstream context (analyses, notes, etc.) in future.
     """
     # 1. Auth — just verify the profile exists. No group/session work.
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again."
@@ -393,18 +396,19 @@ async def export_rubric_impl(
     #    so we stay at the resource layer here. The resource row
     #    already carries name + standard_group_ids — no junction fan-
     #    out needed.
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         rubrics = await get_rubrics_resource(conn, [rubric_id], redis)
-    if not rubrics:
+      if not rubrics:
         raise HTTPException(status_code=404, detail="Rubric not found")
-    resource = rubrics[0]
-    name = resource.name or "rubric"
+      resource = rubrics[0]
+      name = resource.name or "rubric"
 
-    # 3. Hydrate standard_groups by id and standards by group filter.
-    #    Standards are looked up via the group ids (search_standards
-    #    accepts a standard_group_ids filter) — more direct than
-    #    chasing another junction table.
-    async with pool.acquire() as conn:
+      # 3. Hydrate standard_groups by id and standards by group filter.
+      #    Standards are looked up via the group ids (search_standards
+      #    accepts a standard_group_ids filter) — more direct than
+      #    chasing another junction table.
+      async with pool.acquire() as conn:
         standard_groups = await get_standard_groups(
             conn, list(resource.standard_group_ids or []), redis
         )
@@ -431,25 +435,28 @@ async def export_rubric_impl(
             )
         grade_id = grades[0].grade_id
         grading = await _load_grading_state(
-            pool, grade_id, standards, standard_groups
+            pool, redis, grade_id, standards, standard_groups
         )
 
     # 5. Render. `name` was resolved from the resource row above.
-    pdf_bytes = _render_rubric_pdf(
-        standard_groups, standards, grading, title=name
-    )
+    with timed("render"):
+        pdf_bytes = _render_rubric_pdf(
+            standard_groups, standards, grading, title=name
+        )
 
     # 6. File-modality upload chain (mirrors persona/export.py).
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"{name}_{timestamp}.pdf"
-    upload_uuid = uuid_mod.uuid4()
-    relative_path = f"{upload_uuid}.pdf"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(pdf_bytes)
+    with timed("upload_save"):
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        file_name = f"{name}_{timestamp}.pdf"
+        upload_uuid = uuid_mod.uuid4()
+        relative_path = f"{upload_uuid}.pdf"
+        disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        with open(disk_path, "wb") as f:
+            f.write(pdf_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_insert"):
+      async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
             redis, session_id=session_id,
@@ -493,10 +500,11 @@ async def export_rubric_impl(
                     },
                 )
 
-    await enqueue_refreshes(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        artifact_type="file", targets=["files_mv"], tags=["files"],
-    )
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     # row_count = number of rubric standards rendered (closest analogue
     # to CSV row count for schema symmetry across artifacts).

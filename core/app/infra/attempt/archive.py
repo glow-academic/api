@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.attempt.group import group_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_archive.create import create_attempt_archive
 
@@ -69,14 +70,16 @@ async def archive_attempt_impl(
 
     # Resolve group_id (kept on the call path for parity with the rest of
     # the infra; the value isn't used inside this impl today).
-    await group_attempt_impl(
-        pool, redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        await group_attempt_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
 
-    async with pool.acquire() as conn:
+    with timed("db"):
+     async with pool.acquire() as conn:
         attempts, _ = await search_attempts(
             conn,
             redis, attempt_ids=request.attempt_ids or None,

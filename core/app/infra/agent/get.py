@@ -39,6 +39,7 @@ from app.infra.agent.types import (
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = [
@@ -120,14 +121,15 @@ async def get_agent_impl(
     resolved_filters = dict(filters or {})
     agent_id = id or agent_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -136,20 +138,22 @@ async def get_agent_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="agent",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="agent",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     perms = None
     if agent_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_agent_permissions_context(conn, agent_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_agent_permissions_context(conn, agent_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
         if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
@@ -158,7 +162,8 @@ async def get_agent_impl(
                 detail="You don't have access to this agent. It may be restricted to other departments.",
             )
 
-    agent_ctx = await resolve_agent_context(
+    with timed("agent_ctx"):
+        agent_ctx = await resolve_agent_context(
         pool,
         redis,
         agent_id=agent_id,
@@ -274,8 +279,9 @@ async def get_agent_impl(
         if getattr(flag, "id", None) is not None
     ]
 
-    response = GetAgentApiResponse(
-        actor_name=actor.name,
+    with timed("assemble"):
+        response = GetAgentApiResponse(
+            actor_name=actor.name,
         agent_exists=agent_ctx.artifact_id is not None,
         can_edit=can_edit,
         disabled_reason=disabled_reason,
@@ -373,6 +379,6 @@ async def get_agent_impl(
             "rubrics",
             selected_only=selected_only,
             suggested_only=suggested_only,
-        ) if include["rubrics"] else None,
-    )
+            ) if include["rubrics"] else None,
+        )
     return response

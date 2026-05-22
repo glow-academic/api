@@ -23,6 +23,7 @@ from app.infra.attempt.media_types import ImageDownloadAttemptApiResult
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.images.search import search_images
 
 
@@ -43,9 +44,10 @@ async def image_download_attempt_impl(
       4. Verify file exists on disk
     """
     # -- Step 1: Profile context -----------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -60,7 +62,8 @@ async def image_download_attempt_impl(
         )
 
     # -- Step 3: Resolve images_id -> file metadata via images_mv --------------
-    async with pool.acquire() as conn:
+    with timed("search_images"):
+     async with pool.acquire() as conn:
         results = await search_images(conn, redis, images_ids=[image_id], limit=1)
 
     if not results:

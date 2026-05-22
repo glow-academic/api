@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -85,9 +86,10 @@ async def attempt_message_internal_impl(
         content_items.append((resolved_text, persona_id))
 
     # Resolve profile
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found.")
 
@@ -104,7 +106,8 @@ async def attempt_message_internal_impl(
 
     effective_session_id = session_id or profile.session_id
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         # Auto-link to the chat's latest prior message when the caller
         # didn't specify one AND opted into auto-link (the default).
         # Makes every non-root message an explicit child of some parent
@@ -187,14 +190,15 @@ async def attempt_message_internal_impl(
     # (audio-link MV is best-effort — there's no attempt_audio_mv in the
     # registry, so we don't enqueue one here even when audios_id is set.)
     from app.infra.attempt.refresh import refresh_attempt_impl
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=[
-            "attempt_content_mv",
-            "attempt_message_completion_mv",
-            "attempt_message_mv",
-        ],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=[
+                "attempt_content_mv",
+                "attempt_message_completion_mv",
+                "attempt_message_mv",
+            ],
+        )
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

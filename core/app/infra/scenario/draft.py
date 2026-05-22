@@ -19,6 +19,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import compute_can_draft
+from app.infra.server_timing import timed
 from app.infra.scenario.refresh import refresh_scenario_impl
 from app.infra.scenario.types import (
     PatchScenarioDraftApiRequest,
@@ -298,9 +299,10 @@ async def patch_scenario_draft_impl(
     # ── Profile context (canonical: resolved BEFORE the ack short-circuit
     # so the ack branch can use ``profile.profiles_id`` without an inline
     # workaround). Mirrors persona/draft.py.
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -434,15 +436,17 @@ async def patch_scenario_draft_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit scenario drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit scenario drafts.",
+            )
 
     # ── Step 3: Value resolution (creatable only) ──────────────────────
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -451,7 +455,8 @@ async def patch_scenario_draft_impl(
 
     # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_scenario_draft(
                 conn,
@@ -551,16 +556,17 @@ async def patch_scenario_draft_impl(
 
     # ── Step 5: Refresh MV + cache invalidation ────────────────────────
 
-    await refresh_scenario_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["scenario_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_scenario_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["scenario_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     return PatchScenarioDraftApiResponse(
         success=True,

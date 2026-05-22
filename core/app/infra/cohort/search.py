@@ -34,6 +34,7 @@ from app.infra.cohort.types import (
     ListCohortApiSimulation,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.cohort.get import get_cohorts
 from app.tools.artifacts.cohort.search import search_cohorts
 from app.tools.resources.departments.get import get_departments
@@ -180,7 +181,8 @@ async def _search_cohort_build(
     from fastapi import HTTPException
 
     # -- Step 1: Profile context --
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -197,7 +199,8 @@ async def _search_cohort_build(
     # filter_simulation_ids are simulations_resource IDs — direct junction filter
 
     # -- Step 3: Search cohorts --
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         cohort_ids_result, total_count = await search_cohorts(
             conn,
             search=search,
@@ -307,25 +310,26 @@ async def _search_cohort_build(
                 conn, redis, search=flag_search, cohort=True, limit_count=100
             )
 
-    (
-        names_data,
-        profiles_data,
-        simulations_data,
-        departments_data,
-        profile_facet,
-        simulation_facet,
-        department_facet,
-        flag_facet,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_profiles(),
-        _fetch_simulations(),
-        _fetch_departments(),
-        _fetch_profile_facet(),
-        _fetch_simulation_facet(),
-        _fetch_department_facet(),
-        _fetch_flag_facet(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            profiles_data,
+            simulations_data,
+            departments_data,
+            profile_facet,
+            simulation_facet,
+            department_facet,
+            flag_facet,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_profiles(),
+            _fetch_simulations(),
+            _fetch_departments(),
+            _fetch_profile_facet(),
+            _fetch_simulation_facet(),
+            _fetch_department_facet(),
+            _fetch_flag_facet(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -361,7 +365,8 @@ async def _search_cohort_build(
 
     # -- Step 6: Build cohort list with permissions --
     api_cohorts: list[ListCohortApiCohort] = []
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         dept_ids_str = [str(d) for d in (a.department_ids or [])]
         profile_ids_str = [str(p) for p in (a.profiles_ids or [])]

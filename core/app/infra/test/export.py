@@ -28,6 +28,7 @@ from redis.asyncio import Redis
 
 from app.infra.exports.file_modality import extension_from_mime, wrap_bytes_as_file
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.test.search import search_tests
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
@@ -213,14 +214,16 @@ async def _export_single_test_bytes(
 ) -> tuple[bytes, int]:
     """Build the single-test ZIP (tests.csv + invocations.csv + runs.csv); return (bytes, row_count)."""
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_test"):
+      async with pool.acquire() as conn:
         tests, _total = await search_tests(conn, redis, test_ids=[test_id], limit=1)
 
     async with pool.acquire() as conn:
@@ -283,7 +286,8 @@ async def _export_single_test_bytes(
         async with pool.acquire() as c:
             return await get_voices(c, list(all_voice_ids), redis)
 
-    names_data, departments_data, voices_data = await asyncio.gather(
+    with timed("hydrate"):
+      names_data, departments_data, voices_data = await asyncio.gather(
         _fetch_names(),
         _fetch_departments(),
         _fetch_voices(),

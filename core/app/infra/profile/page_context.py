@@ -27,6 +27,7 @@ from app.infra.docs.types import (
 )
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 # Artifact tool docs
 from app.tools.artifacts.profile.docs import get_profile_docs
@@ -130,7 +131,8 @@ async def _page_context_profile_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -203,7 +205,8 @@ async def _page_context_profile_build(
             return None
         return await _resolve_entity_name(pool, redis, entity_id)
 
-    (
+    with timed("hydrate"):
+     (
         artifact,
         drafts,
         names,
@@ -214,7 +217,7 @@ async def _page_context_profile_build(
         roles,
         entity_perms,
         entity_name,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_profile_docs(),
         _get_profile_drafts_docs(),
         _get_names_docs(),
@@ -287,7 +290,8 @@ async def _page_context_profile_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("build"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 

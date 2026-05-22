@@ -25,6 +25,7 @@ from app.infra.attempt.history import build_history_response
 from app.infra.common_context import resolve_common_context
 from app.infra.dashboard.context import resolve_dashboard_search_context
 from app.infra.dashboard.visibility import resolve_visible_profile_ids
+from app.infra.server_timing import timed
 
 
 async def search_attempt_impl(
@@ -63,15 +64,17 @@ async def search_attempt_impl(
     set so a caller can never widen the visibility scope by guessing UUIDs.
     """
     # ── Step 1: Profile context + visibility ──────────────────────────
-    common = await resolve_common_context(
-        pool, redis, profile_id=profile_id, bypass_cache=bypass_cache
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool, redis, profile_id=profile_id, bypass_cache=bypass_cache
+        )
     if common is None:
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again."
         )
 
-    visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
+    with timed("visibility"):
+        visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
 
     scoped_profile_ids: list[UUID] | None = visible_profile_ids
     if profile_ids and visible_profile_ids is not None:
@@ -87,7 +90,8 @@ async def search_attempt_impl(
         date_to = datetime.fromisoformat(end_date.replace("Z", "+00:00")).date()
 
     # ── Step 3: Resolve context ───────────────────────────────────────
-    ctx = await resolve_dashboard_search_context(
+    with timed("search_ctx"):
+     ctx = await resolve_dashboard_search_context(
         pool,
         redis,
         profile_resource_ids=scoped_profile_ids,
@@ -110,7 +114,8 @@ async def search_attempt_impl(
     )
 
     # ── Step 4: Build response ────────────────────────────────────────
-    return build_history_response(
+    with timed("build_response"):
+     return build_history_response(
         ctx,
         practice=practice,
         simulation_search=simulation_search,

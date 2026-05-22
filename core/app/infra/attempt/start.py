@@ -18,6 +18,7 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -57,10 +58,11 @@ async def attempt_start_impl(
 
     # ── Step 1: Profile context + permissions ────────────────────────────────
 
-    identity = await resolve_profile_identity_context(
-        pool, profile_id, redis,
-        bypass_cache=True, session_id=session_id,
-    )
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(
+            pool, profile_id, redis,
+            bypass_cache=True, session_id=session_id,
+        )
     if identity is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
@@ -72,23 +74,25 @@ async def attempt_start_impl(
         raise HTTPException(status_code=400, detail="Profile resource not found.")
 
     from app.infra.attempt.group import group_attempt_impl
-    group_result = await group_attempt_impl(
-        pool, redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await group_attempt_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
     # ── Step 2: Resolve parent entry ─────────────────────────────────────────
 
-    if is_practice:
+    with timed("parent_entry"):
+     if is_practice:
         from app.tools.entries.practice.get import get_practices
         async with pool.acquire() as conn:
             entries = await get_practices(conn, [parent_id], redis)
         if not entries:
             raise HTTPException(status_code=404, detail="Practice entry not found.")
-    else:
+     else:
         from app.tools.entries.home.get import get_homes
         async with pool.acquire() as conn:
             entries = await get_homes(conn, [parent_id], redis)
@@ -104,7 +108,8 @@ async def attempt_start_impl(
     if not profile_ids:
         raise HTTPException(status_code=400, detail="No profile personas found.")
 
-    async with pool.acquire() as conn:
+    with timed("profile_personas"):
+     async with pool.acquire() as conn:
         profile_personas = await search_profile_personas(
             conn, redis=redis, profile_ids=profile_ids, bypass_cache=True,
         )
@@ -161,7 +166,8 @@ async def attempt_start_impl(
 
     # ── Step 4: Create attempt ───────────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             persona_result = await create_persona(conn, redis, personas_id=persona_id)
             attempt_result = await create_attempt(
@@ -197,10 +203,11 @@ async def attempt_start_impl(
 
     # ── Step 5: Refresh MVs ─────────────────────────────────────────────────
 
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["attempt_mv", "attempt_chat_mv"],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_mv", "attempt_chat_mv"],
+        )
 
     return AttemptStartResponse(
         attempt_id=attempt_result.id,

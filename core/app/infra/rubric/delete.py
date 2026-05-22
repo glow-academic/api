@@ -12,6 +12,7 @@ from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.rubric.permissions import compute_can_delete
 from app.infra.rubric.permissions_context import resolve_rubric_permissions_context
+from app.infra.server_timing import timed
 from app.infra.rubric.refresh import refresh_rubric_impl
 from app.infra.rubric.types import (
     DeleteRubricApiResponse,
@@ -138,12 +139,13 @@ async def delete_rubric_impl(
             "or `all=true` with filter fields).",
         )
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -158,7 +160,8 @@ async def delete_rubric_impl(
     skipped_results: list[DeleteRubricResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, rubric_id in enumerate(ids):
             ctx = await resolve_rubric_permissions_context(conn, rubric_id)
             if not ctx.exists:
@@ -200,7 +203,8 @@ async def delete_rubric_impl(
                 idempotency_key=idempotency_key,
             )
 
-    async with pool.acquire() as conn:
+    with timed("hydrate_names"):
+      async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
         artifacts = await get_rubrics(conn, ids, names=True)
         for artifact in artifacts:
@@ -211,7 +215,8 @@ async def delete_rubric_impl(
                     name = name_resources[0].name or "Unknown"
             name_map[artifact.id] = name
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_rubrics(conn, ids, soft=soft)
 
@@ -230,14 +235,15 @@ async def delete_rubric_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_rubric_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_rubric_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     results = [
         DeleteRubricResult(

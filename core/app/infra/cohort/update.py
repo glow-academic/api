@@ -26,6 +26,7 @@ from app.infra.cohort.permissions_context import (
 from app.infra.cohort.refresh import refresh_cohort_impl
 from app.infra.cohort.types import UpdateCohortApiRequest, UpdateCohortApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.cohort.get import get_cohorts
 from app.tools.artifacts.cohort.update import (
     _UNSET,
@@ -222,12 +223,13 @@ async def update_cohort_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -242,7 +244,8 @@ async def update_cohort_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    for idx, item in enumerate(items):
+    with timed("permissions"):
+     for idx, item in enumerate(items):
         async with pool.acquire() as conn:
             perms = await resolve_cohort_permissions_context(conn, item.id)
         if not perms.exists:
@@ -298,7 +301,8 @@ async def update_cohort_impl(
     has_errors = False
     error_results: list[CohortResultItem] = []
 
-    for idx, item in enumerate(items):
+    with timed("resolve_values"):
+     for idx, item in enumerate(items):
         async with pool.acquire() as conn:
             item_errors = await resolve_cohort_values(
                 conn, redis, item, is_create=False
@@ -326,7 +330,8 @@ async def update_cohort_impl(
     results: list[CohortResultItem] = []
     sync_items: list[tuple[UUID, object]] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         # Create denormalized snapshot OUTSIDE transaction (read-only hydration)
         cohorts_resource_id = None
         if not soft:
@@ -389,6 +394,7 @@ async def update_cohort_impl(
     # ── Step 5: Sync entry rows (non-fatal, non-soft only) ────────────
 
     if not soft:
+      with timed("home_practice_sync"):
         for resource_id, item in sync_items:
             try:
                 from app.infra.home_practice_sync import sync_home_practice_entries
@@ -413,14 +419,15 @@ async def update_cohort_impl(
             await refresh_soft_calls(conn)
 
     first_id = results[0].cohort_id if results else None
-    await refresh_cohort_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or first_id,
-    )
+    with timed("refresh"):
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or first_id,
+        )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

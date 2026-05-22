@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.rubric.permissions import compute_can_duplicate
 from app.infra.rubric.refresh import refresh_rubric_impl
 from app.infra.rubric.types import (
@@ -41,26 +42,28 @@ async def duplicate_rubric_impl(
 ) -> DuplicateRubricApiResponse:
     """Rubric duplicate using composable infra functions."""
     rubric_id = id  # alias: tools send 'id', internal code uses 'rubric_id'
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_duplicate(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this rubric.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this rubric.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
@@ -105,7 +108,8 @@ async def duplicate_rubric_impl(
             idempotency_key=idempotency_key,
         )
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         originals = await get_rubrics(
             conn,
             [rubric_id],
@@ -149,7 +153,8 @@ async def duplicate_rubric_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_rubric_artifact(
                 conn,
@@ -180,13 +185,14 @@ async def duplicate_rubric_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_rubric_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_rubric_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # Hydrate the freshly-duplicated row so the client's ghost rail can
     # materialize it without a ``router.refresh()``. Single-element list

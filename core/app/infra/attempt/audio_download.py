@@ -27,6 +27,7 @@ from app.infra.attempt.media_types import AudioDownloadAttemptApiResult
 from app.infra.globals import AUDIO_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.audio_uploads.search import search_audio_uploads
 from app.tools.entries.uploads.get import get_upload
 from app.tools.resources.audios.get import get_upload_by_audios_id
@@ -57,9 +58,10 @@ async def audio_download_attempt_impl(
       5. Verify file exists on disk
     """
     # -- Step 1: Profile context -----------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -80,7 +82,8 @@ async def audio_download_attempt_impl(
     # messages). Try entry-id lookup first; on miss, fall back to the
     # canonical resource→upload helper. Both paths land on the same
     # ``uploads_entry`` so the file-fetch downstream is uniform.
-    async with pool.acquire() as conn:
+    with timed("resolve_upload"):
+     async with pool.acquire() as conn:
         junctions = await search_audio_uploads(conn, redis, audio_ids=[audio_id], limit=1)
         upload = None
         if junctions:

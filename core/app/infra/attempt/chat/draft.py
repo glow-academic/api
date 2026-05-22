@@ -17,6 +17,7 @@ from app.infra.attempt.chat.types import (
 )
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.chat_drafts.create import create_chat_draft
 from app.tools.entries.chat_drafts.get import get_chat_drafts
 from app.tools.resources.descriptions.create import create_description
@@ -140,12 +141,13 @@ async def patch_chat_draft_impl(
     if accept is None and request.idempotency_key is not None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -219,7 +221,8 @@ async def patch_chat_draft_impl(
             form_state=ChatDraftFormState(),
         )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -229,7 +232,8 @@ async def patch_chat_draft_impl(
     pending_ids = set(request.pending_ids or [])
     target_draft_id = resolved_draft_id or idempotency_key
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_chat_draft(
                 conn,
@@ -280,16 +284,17 @@ async def patch_chat_draft_impl(
         pending_ids=list(pending_ids),
     )
 
-    await refresh_chat_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["chat_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=result.id,
-    )
+    with timed("refresh"):
+        await refresh_chat_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["chat_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=result.id,
+        )
 
     return PatchChatDraftApiResponse(
         success=True,

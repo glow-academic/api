@@ -20,6 +20,7 @@ from redis.asyncio import Redis
 
 from app.infra.attempt.chat.context import resolve_chat_context
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 PIPE = "|"
 
@@ -68,7 +69,8 @@ async def export_chat_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -78,12 +80,13 @@ async def export_chat_impl(
 
     # ── Step 2: Resolve chat context (draft-only) ──────────────────────
 
-    ctx = await resolve_chat_context(
-        pool,
-        redis,
-        group_id=group_id,
-        draft_id=draft_id,
-    )
+    with timed("chat_ctx"):
+        ctx = await resolve_chat_context(
+            pool,
+            redis,
+            group_id=group_id,
+            draft_id=draft_id,
+        )
 
     # ── Step 3: Flatten selected resources into CSV row ─────────────────
 
@@ -184,9 +187,10 @@ async def export_chat_impl(
 
     # ── Step 4: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("csv_build"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
     writer.writerow(
         [

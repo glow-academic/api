@@ -23,6 +23,7 @@ from app.infra.websocket.generation_types import (
     ProducedMedia,
 )
 from app.infra.websocket.socket_event import EmitFn
+from app.infra.server_timing import timed
 
 try:
     import litellm  # type: ignore
@@ -124,13 +125,14 @@ async def execute_tts_dispatch(
     )
 
     try:
-        response = await litellm.aspeech(  # type: ignore[attr-defined]
-            model=effective_model,
-            input=prompt,
-            voice=voice,
-            api_key=api_key,
-            api_base=base_url,
-        )
+        with timed("model_call"):
+            response = await litellm.aspeech(  # type: ignore[attr-defined]
+                model=effective_model,
+                input=prompt,
+                voice=voice,
+                api_key=api_key,
+                api_base=base_url,
+            )
         # litellm returns an OpenAI-compatible object; .content is the bytes.
         audio_bytes: bytes = (
             response.content if hasattr(response, "content") else bytes(response)
@@ -156,6 +158,7 @@ async def execute_tts_dispatch(
     # itself; double-attribution would create duplicate assistant
     # messages.
     try:
+      with timed("audit_write"):
         upload_result = await media_upload_impl(
             get_pool(),
             get_redis_client(),
@@ -182,7 +185,8 @@ async def execute_tts_dispatch(
     upload_id = upload_result.upload_id
     resource_id = upload_result.resource_id
 
-    await emit_modality_event(
+    with timed("response_emit"):
+     await emit_modality_event(
         emit, "audio", "complete",
         {
             "modality": "audio",

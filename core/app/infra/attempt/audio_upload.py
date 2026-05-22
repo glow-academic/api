@@ -29,6 +29,7 @@ from app.infra.attempt.media_types import AudioUploadAttemptApiResponse
 from app.infra.media.upload import media_upload_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 
@@ -54,9 +55,10 @@ async def audio_upload_attempt_impl(
     idempotency_key: UUID | None = None,
     call_id: UUID | None = None,
 ) -> AudioUploadAttemptApiResponse:
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -114,19 +116,20 @@ async def audio_upload_attempt_impl(
 
     session_uuid = session_id or profile.session_id or UUID(int=0)
 
-    result = await media_upload_impl(
-        pool, redis,
-        modality="audio",
-        session_id=session_uuid,
-        file_bytes=file_bytes,
-        upload_id=upload_id,
-        filename=filename,
-        content_type=content_type,
-        soft=soft,
-        length_seconds=length_seconds,
-        name=name,
-        description=description,
-    )
+    with timed("media_upload"):
+        result = await media_upload_impl(
+            pool, redis,
+            modality="audio",
+            session_id=session_uuid,
+            file_bytes=file_bytes,
+            upload_id=upload_id,
+            filename=filename,
+            content_type=content_type,
+            soft=soft,
+            length_seconds=length_seconds,
+            name=name,
+            description=description,
+        )
 
     if soft and call_id is not None:
         async with pool.acquire() as conn:

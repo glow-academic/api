@@ -24,6 +24,7 @@ from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.infra.activate.activate import activate_rows
+from app.infra.server_timing import timed
 
 
 class ParseProfileCsvApiResponse(BaseModel):
@@ -146,7 +147,8 @@ async def parse_profile_csv_impl(
     with open(disk_path, "wb") as f:
         f.write(file_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
             redis,
@@ -182,7 +184,8 @@ async def parse_profile_csv_impl(
     if missing:
         raise CsvParseError(f"Missing required columns: {', '.join(missing)}")
 
-    items = [_row_to_item(row, field_map) for row in data_rows]
+    with timed("build"):
+        items = [_row_to_item(row, field_map) for row in data_rows]
 
     # Soft: stash the raw upload as a pending soft_call (keyed by the server
     # call_id) so the ack can activate it. The preview above is returned now.

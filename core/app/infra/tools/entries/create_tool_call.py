@@ -50,20 +50,21 @@ async def create_tool_call(
     3. Writes .txt (always) and .json receipt (when tool_id is provided).
     4. Creates upload DB rows + junctions.
     """
+    from app.infra.server_timing import timed
     # 1. Create or reuse run, create call upfront (call_id available before execution)
     if run_id is not None:
         # Reuse existing run (e.g. main generation run)
         effective_run_id = run_id
     else:
-        run = await create_run(
-            conn, redis,
-            group_id=group_id,
-            session_id=session_id,
-            mcp=mcp,
-        )
+        with timed("run_insert"):
+            run = await create_run(
+                conn, redis,
+                group_id=group_id,
+                session_id=session_id,
+                mcp=mcp,
+            )
         effective_run_id = run.id
 
-    from app.infra.server_timing import timed
     call_id: UUID | None = None
     if tool_id is not None:
         with timed("call_insert"):
@@ -80,7 +81,8 @@ async def create_tool_call(
 
     # 1b. Notify caller that call record exists (for emitting "started" events)
     if on_call_created is not None:
-        await on_call_created(call_id)
+        with timed("on_call_created_cb"):
+            await on_call_created(call_id)
 
     # 2. Execute — call tool_fn with call_id available
     # NOTE: ``call_id`` here is the audit tool-call entry id (what create_call
@@ -92,7 +94,8 @@ async def create_tool_call(
     tool_error: Exception | None = None
     try:
         spread_args = {k: v for k, v in arguments.items() if k != "call_id"}
-        raw_result = await tool_fn(conn, call_id=call_id, **spread_args)
+        with timed("tool_fn"):
+            raw_result = await tool_fn(conn, call_id=call_id, **spread_args)
     except Exception as exc:
         # Capture the full failure trail into the call receipt. The
         # ``message`` + ``error_type`` fields stay shape-compatible with
@@ -132,24 +135,25 @@ async def create_tool_call(
     # 2b. Render instruction template (Layer 3) if available
     rendered_output: str | None = None
     if instruction_template:
-        try:
-            from jinja2 import Environment, Undefined
-            env = Environment(undefined=Undefined, autoescape=False)
-            tmpl = env.from_string(instruction_template)
-            # Wrap in {success, results} structure that templates expect.
-            result_dict = (
-                json.loads(output_raw) if isinstance(output_raw, str)
-                else output_raw
-            )
-            template_ctx = {
-                "success": True,
-                "results": [{"result": result_dict}],
-            }
-            rendered = tmpl.render(**template_ctx).strip()
-            if rendered:
-                rendered_output = rendered
-        except Exception:
-            pass  # Fall back to raw output
+        with timed("template_render"):
+            try:
+                from jinja2 import Environment, Undefined
+                env = Environment(undefined=Undefined, autoescape=False)
+                tmpl = env.from_string(instruction_template)
+                # Wrap in {success, results} structure that templates expect.
+                result_dict = (
+                    json.loads(output_raw) if isinstance(output_raw, str)
+                    else output_raw
+                )
+                template_ctx = {
+                    "success": True,
+                    "results": [{"result": result_dict}],
+                }
+                rendered = tmpl.render(**template_ctx).strip()
+                if rendered:
+                    rendered_output = rendered
+            except Exception:
+                pass  # Fall back to raw output
 
     # 3. Write .txt — rendered template with INPUT/OUTPUT if available
     text_upload_id = uuid4()

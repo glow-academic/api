@@ -15,6 +15,7 @@ from redis.asyncio import Redis
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.types import ProblemTestApiResponse
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.problems.create import create_problem as create_problem_entry
@@ -63,7 +64,8 @@ async def problem_test_impl(
 
     # -- Step 2: Profile context --------------------------------------------
 
-    identity = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(pool, profile_id, redis)
     if identity is None:
         raise HTTPException(
             status_code=401,
@@ -80,15 +82,17 @@ async def problem_test_impl(
 
     # -- Step 4: Create entry chain -----------------------------------------
 
-    group_result = await resolve_group_impl(
-        pool, redis,
-        artifact_type=ARTIFACT_TYPE,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type=ARTIFACT_TYPE,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         run_result = await create_run(
             conn, redis, group_id=group_result.group_id, session_id=session_id
         )

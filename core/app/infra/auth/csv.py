@@ -24,6 +24,7 @@ from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.infra.activate.activate import activate_rows
+from app.infra.server_timing import timed
 
 
 class ParseAuthCsvApiResponse(BaseModel):
@@ -146,7 +147,8 @@ async def parse_auth_csv_impl(
     with open(disk_path, "wb") as f:
         f.write(file_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("upload"):
+     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
             redis,
@@ -157,9 +159,10 @@ async def parse_auth_csv_impl(
             soft=soft,
         )
 
-    content = file_bytes.decode("utf-8-sig")
-    reader = csv.reader(io.StringIO(content))
-    all_rows = list(reader)
+    with timed("csv_parse"):
+        content = file_bytes.decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(content))
+        all_rows = list(reader)
 
     if len(all_rows) < 2:
         raise CsvParseError("CSV must have a header row and at least one data row")

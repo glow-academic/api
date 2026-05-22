@@ -24,6 +24,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from app.infra.globals import UPLOAD_FOLDER, get_redis_client
+from app.infra.server_timing import timed
 from app.infra.scenario.search import SCENARIO_IMPORT_FIELDS
 from app.infra.scenario.types import CreateScenarioItem
 from app.tools.entries.uploads.create import create_upload
@@ -160,30 +161,33 @@ async def parse_scenario_csv_impl(
 
     # ── Step 1: Save to disk + create upload entry ────────────────────
 
-    upload_uuid = uuid_mod.uuid4()
-    ext = os.path.splitext(file_name)[1] or ".csv"
-    relative_path = f"{upload_uuid}{ext}"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(file_bytes)
+    with timed("upload_save"):
+        upload_uuid = uuid_mod.uuid4()
+        ext = os.path.splitext(file_name)[1] or ".csv"
+        relative_path = f"{upload_uuid}{ext}"
+        disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        with open(disk_path, "wb") as f:
+            f.write(file_bytes)
 
-    async with pool.acquire() as conn:
-        upload_result = await create_upload(
-            conn,
-            redis,
-            session_id=session_id,
-            file_path=relative_path,
-            mime_type=content_type,
-            size=len(file_bytes),
-            soft=soft,
-        )
+    with timed("db_insert"):
+        async with pool.acquire() as conn:
+            upload_result = await create_upload(
+                conn,
+                redis,
+                session_id=session_id,
+                file_path=relative_path,
+                mime_type=content_type,
+                size=len(file_bytes),
+                soft=soft,
+            )
 
     # ── Step 2: Parse CSV ─────────────────────────────────────────────
 
-    content = file_bytes.decode("utf-8-sig")
-    reader = csv.reader(io.StringIO(content))
-    all_rows = list(reader)
+    with timed("parse"):
+        content = file_bytes.decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(content))
+        all_rows = list(reader)
 
     if len(all_rows) < 2:
         raise HTTPException(

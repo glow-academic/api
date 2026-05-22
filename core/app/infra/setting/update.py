@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.setting.hydrate_list_rows import hydrate_setting_list_rows
 from app.infra.setting.permissions_context import (
     create_denormalized_snapshot,
@@ -199,12 +200,13 @@ async def update_setting_impl(
 
     items = request.settings
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -218,7 +220,8 @@ async def update_setting_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_setting_permissions_context(conn, item.id)
             if not perms.exists:
@@ -261,7 +264,8 @@ async def update_setting_impl(
     has_errors = False
     error_results: list[SettingResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_setting_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -283,7 +287,8 @@ async def update_setting_impl(
         )
 
     results: list[SettingResultItem] = []
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         async with pool.acquire() as conn:
             existing = await get_setting_artifacts(
                 conn,
@@ -422,25 +427,27 @@ async def update_setting_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_setting_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].setting_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_setting_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].setting_id if results else None),
+            )
 
     # Hydrate the updated rows so the client's ghost rail can swap the
     # live card without ``router.refresh()``. Skipped under soft —
     # dormant updates stay in pending state until ack-accept.
     hydrated_rows = None
     if not soft:
-        hydrated_ids = [r.setting_id for r in results if r.success and r.setting_id]
-        if hydrated_ids:
-            hydrated_rows = await hydrate_setting_list_rows(
-                pool, redis, profile_id=profile_id, setting_ids=hydrated_ids,
-            )
+        with timed("hydrate"):
+            hydrated_ids = [r.setting_id for r in results if r.success and r.setting_id]
+            if hydrated_ids:
+                hydrated_rows = await hydrate_setting_list_rows(
+                    pool, redis, profile_id=profile_id, setting_ids=hydrated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

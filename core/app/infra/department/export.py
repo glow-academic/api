@@ -24,6 +24,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.infra.refresh.queue import enqueue_refreshes
@@ -78,7 +79,8 @@ async def export_department_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -123,21 +125,23 @@ async def export_department_impl(
 
     # -- Step 2: Search all departments (full dump) --
 
-    if department_id:
-        department_ids = [department_id]
-    else:
-        async with pool.acquire() as conn:
-            department_ids, _total_count = await search_departments(
-                conn,
-                active_only=False,
-                limit_count=100000,
-                offset_count=0,
-            )
+    with timed("query"):
+        if department_id:
+            department_ids = [department_id]
+        else:
+            async with pool.acquire() as conn:
+                department_ids, _total_count = await search_departments(
+                    conn,
+                    active_only=False,
+                    limit_count=100000,
+                    offset_count=0,
+                )
 
 
     # -- Step 3: Get department artifacts with all junction IDs --
 
-    async with pool.acquire() as conn:
+    with timed("get_artifacts"):
+     async with pool.acquire() as conn:
         artifacts = await get_department_artifacts(
             conn,
             department_ids,
@@ -173,15 +177,16 @@ async def export_department_impl(
             return []
         return await get_settings(pool, all_settings_ids, redis)
 
-    (
-        names_data,
-        descriptions_data,
-        settings_data,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_descriptions(),
-        _fetch_settings(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            settings_data,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_descriptions(),
+            _fetch_settings(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n.name for n in names_data}
@@ -232,7 +237,8 @@ async def export_department_impl(
     with open(disk_path, "wb") as f:
         f.write(csv_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
             redis, session_id=session_id,
@@ -276,10 +282,11 @@ async def export_department_impl(
                     },
                 )
 
-    await enqueue_refreshes(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        artifact_type="file", targets=["files_mv"], tags=["files"],
-    )
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportDepartmentApiResponse(
         file_id=resource_row.id,

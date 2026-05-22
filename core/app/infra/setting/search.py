@@ -30,6 +30,7 @@ from app.infra.setting.types import (
     ListSettingApiSetting,
 )
 from app.tools.artifacts.setting.get import get_settings
+from app.infra.server_timing import timed
 from app.tools.artifacts.setting.search import (
     search_settings as search_setting_artifacts,
 )
@@ -121,7 +122,8 @@ async def _search_setting_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -135,7 +137,8 @@ async def _search_setting_build(
 
     # ── Step 2: Search settings ────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         setting_ids, _total_count = await search_setting_artifacts(
             conn,
             limit_count=1000,
@@ -201,11 +204,12 @@ async def _search_setting_build(
                 conn, redis, search=flag_search, setting=True, limit_count=100
             )
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         flag_facet,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_flag_facet(),
@@ -219,7 +223,8 @@ async def _search_setting_build(
 
     settings_list: list[ListSettingApiSetting] = []
 
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

@@ -9,6 +9,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_improvement.create import create_attempt_improvement
 
 
@@ -43,19 +44,21 @@ async def chat_improvements_attempt_impl(
     if not message_id:
         raise ValueError("message_id is required")
 
-    async with pool.acquire() as conn:
-        result = await create_attempt_improvement(
-            conn,
-            redis, grade_id=grade_id,
-            message_id=message_id,
-            session_id=session_id,
-            name=name or "Untitled improvement",
-            description=description or "No description provided",
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            result = await create_attempt_improvement(
+                conn,
+                redis, grade_id=grade_id,
+                message_id=message_id,
+                session_id=session_id,
+                name=name or "Untitled improvement",
+                description=description or "No description provided",
+            )
 
-    await refresh_attempt_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["attempt_improvement_mv"],
-    )
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_improvement_mv"],
+        )
 
     return {"improvement_id": str(result.id)}

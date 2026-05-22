@@ -21,6 +21,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.files.search import search_files
 from app.utils.document.pdf_first_page_to_image_bytes import (
     pdf_first_page_to_image_bytes,
@@ -46,9 +47,10 @@ async def file_preview_attempt_impl(
       5. Generate preview bytes
     """
     # -- Step 1: Profile context -----------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -63,7 +65,8 @@ async def file_preview_attempt_impl(
         )
 
     # -- Step 3: Resolve files_id -> file metadata via files_mv ----------------
-    async with pool.acquire() as conn:
+    with timed("search_files"):
+     async with pool.acquire() as conn:
         results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
@@ -87,7 +90,8 @@ async def file_preview_attempt_impl(
         )
 
     # -- Step 5: Generate preview bytes ----------------------------------------
-    preview_bytes = pdf_first_page_to_image_bytes(file_path)
+    with timed("pdf_preview"):
+        preview_bytes = pdf_first_page_to_image_bytes(file_path)
     if not preview_bytes:
         raise HTTPException(status_code=500, detail="Failed to generate preview")
 

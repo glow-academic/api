@@ -39,6 +39,7 @@ from app.infra.department.types import (
 )
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
+from app.infra.server_timing import timed
 from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "settings"]
@@ -99,14 +100,15 @@ async def get_department_impl(
     department_id = id or department_id
     resolved_filters = dict(filters or {})
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -115,19 +117,21 @@ async def get_department_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="department",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="department",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if department_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_department_permissions_context(conn, department_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_department_permissions_context(conn, department_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -139,7 +143,8 @@ async def get_department_impl(
                 detail="You don't have access to this department.",
             )
 
-    department = await resolve_department_context(
+    with timed("department_ctx"):
+     department = await resolve_department_context(
         pool,
         redis,
         department_id=department_id,
@@ -298,7 +303,8 @@ async def get_department_impl(
         role_permissions=profile.role_permissions,
     ) and any(scores.has_any.get(resource, False) for resource in DEPARTMENT_RESOURCES)
 
-    return GetDepartmentApiResponse(
+    with timed("build"):
+     return GetDepartmentApiResponse(
         actor_name=profile.name,
         department_exists=department.artifact_id is not None,
         can_edit=can_edit,

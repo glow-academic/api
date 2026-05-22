@@ -20,6 +20,7 @@ from app.infra.auth.types import (
     UpdateAuthApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.auth.get import get_auths as get_auth_artifacts
 from app.tools.artifacts.auth.update import _UNSET
 from app.tools.artifacts.auth.update import update_auth as update_auth_artifact
@@ -154,12 +155,13 @@ async def update_auth_impl(
 
     items = request.auths
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -173,7 +175,8 @@ async def update_auth_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_auth_permissions_context(conn, item.id)
             if not perms.exists:
@@ -216,7 +219,8 @@ async def update_auth_impl(
     has_errors = False
     error_results: list[AuthResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_auth_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -239,7 +243,8 @@ async def update_auth_impl(
 
     # ── Per-item update ───────────────────────────────────────────────
     results: list[AuthResultItem] = []
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         async with pool.acquire() as conn:
             existing = await get_auth_artifacts(
                 conn,
@@ -326,14 +331,15 @@ async def update_auth_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_auth_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].auth_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_auth_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].auth_id if results else None),
+            )
 
         try:
             await perform_keycloak_sync(department_id=None)

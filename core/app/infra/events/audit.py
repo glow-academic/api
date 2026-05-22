@@ -439,7 +439,10 @@ async def run_artifact_operation_with_audit(
             return
 
         with timed("audit_write"):
-            async with pool.acquire() as conn:
+            with timed("audit_pool_acquire"):
+                _aw_cm = pool.acquire()
+                conn = await _aw_cm.__aenter__()
+            try:
                 audit_result = await create_tool_call(
                     conn,
                     redis,
@@ -460,6 +463,8 @@ async def run_artifact_operation_with_audit(
                     pre_minted_call_id=emit_call_id,
                     started_at=started_at,
                 )
+            finally:
+                await _aw_cm.__aexit__(None, None, None)
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
 

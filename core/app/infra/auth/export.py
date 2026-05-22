@@ -21,6 +21,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.auth.get import get_auths
 from app.tools.artifacts.auth.search import search_auths
 from app.tools.resources.departments.get import get_departments
@@ -66,7 +67,8 @@ async def export_auth_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -79,7 +81,8 @@ async def export_auth_impl(
     if auth_id:
         auth_ids = [auth_id]
     else:
-        async with pool.acquire() as conn:
+        with timed("search_auths"):
+         async with pool.acquire() as conn:
             auth_ids, _total_count = await search_auths(
                 conn,
                 active_only=False,
@@ -97,7 +100,8 @@ async def export_auth_impl(
 
     # -- Step 3: Get auth artifacts with all junction IDs --
 
-    artifacts = await get_auths(
+    with timed("get_auths"):
+     artifacts = await get_auths(
         pool,
         auth_ids,
         names=True,
@@ -160,14 +164,15 @@ async def export_auth_impl(
         async with pool.acquire() as c:
             return await get_slugs(c, all_slug_ids, redis)
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         departments_data,
         items_data,
         protocols_data,
         slugs_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_departments(),
@@ -186,8 +191,9 @@ async def export_auth_impl(
 
     # -- Step 5: Generate CSV + upload --
 
-    output = io.StringIO()
-    writer = csv.writer(output)
+    with timed("csv_build"):
+     output = io.StringIO()
+     writer = csv.writer(output)
     writer.writerow(CSV_COLUMNS)
 
     for a in artifacts:

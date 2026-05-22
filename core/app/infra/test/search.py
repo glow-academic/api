@@ -16,6 +16,7 @@ from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.types import (
     SearchTestApiResponse,
     SearchTestItem,
@@ -112,7 +113,8 @@ async def _search_test_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -133,7 +135,8 @@ async def _search_test_build(
 
     # ── Step 3: Search tests ───────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         items, total_count = await search_tests(
             conn,
             redis, eval_ids=eval_ids,
@@ -162,10 +165,11 @@ async def _search_test_build(
                 conn, redis, search=department_search, eval=True, limit_count=100
             )
 
-    eval_facet, department_facet = await asyncio.gather(
-        _get_eval_facet(),
-        _get_department_facet(),
-    )
+    with timed("build"):
+        eval_facet, department_facet = await asyncio.gather(
+            _get_eval_facet(),
+            _get_department_facet(),
+        )
 
     # ── Step 5: Build test list ────────────────────────────────────────
 

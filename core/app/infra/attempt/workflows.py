@@ -25,6 +25,7 @@ from app.infra.websocket.attempt_types import (
     GenerateRequestData,
 )
 from app.infra.globals import get_redis_client
+from app.infra.server_timing import timed
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.session_store import get_session_by_group_id
@@ -406,21 +407,23 @@ async def attempt_message_impl(
     attempt_chat_id = uuid.UUID(str(chat_id))
     attempt_id_uuid = uuid.UUID(str(attempt_id))
 
-    identity = await resolve_profile_identity_context(
-        pool,
-        profile_id_uuid,
-        redis or Redis(),
-        session_id=session_id_uuid,
-    )
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(
+            pool,
+            profile_id_uuid,
+            redis or Redis(),
+            session_id=session_id_uuid,
+        )
     profiles_id = identity.profiles_id if identity else None
 
     from app.infra.attempt.group import group_attempt_impl
-    group_result = await group_attempt_impl(
-        pool, redis or Redis(),
-        profile_id=profile_id_uuid,
-        session_id=session_id_uuid,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await group_attempt_impl(
+            pool, redis or Redis(),
+            profile_id=profile_id_uuid,
+            session_id=session_id_uuid,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
     run_id = data.get("run_id")

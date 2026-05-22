@@ -33,6 +33,7 @@ from app.infra.cohort.types import (
     SaveCohortFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.cohort_drafts.create import create_cohort_draft
 from app.tools.entries.cohort_drafts.get import get_cohort_drafts
@@ -401,9 +402,10 @@ async def patch_cohort_draft_impl(
     # branch can use ``profile.profiles_id`` (the canonical pattern that
     # persona uses; cohort previously had a NameError waiting to happen).
     # ------------------------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -520,19 +522,21 @@ async def patch_cohort_draft_impl(
     # ------------------------------------------------------------------
     # Step 2: Permission check
     # ------------------------------------------------------------------
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit cohort drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit cohort drafts.",
+            )
 
     # ------------------------------------------------------------------
     # Step 3: Value resolution
     # ------------------------------------------------------------------
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -544,7 +548,8 @@ async def patch_cohort_draft_impl(
     # ------------------------------------------------------------------
     resolved_pending_ids = list(getattr(request, "pending_ids", None) or [])
     resolved_flag_ids = list(request.flag_ids or [])
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_cohort_draft(
                 conn,
@@ -637,16 +642,17 @@ async def patch_cohort_draft_impl(
     # ------------------------------------------------------------------
     # Step 6: Refresh MV
     # ------------------------------------------------------------------
-    await refresh_cohort_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["cohort_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["cohort_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     return PatchCohortDraftApiResponse(
         success=True,
