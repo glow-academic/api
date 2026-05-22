@@ -26,8 +26,12 @@ from pathlib import Path
 
 import asyncpg  # type: ignore
 
-# Match `v0.2.0_01_description.sql`. Captures (version, number).
-_MIGRATION_RE = re.compile(r"^(v\d+\.\d+\.\d+)_(\d+)_.+\.sql$")
+# Two accepted conventions:
+#   v<version>_<NN>_<description>.sql    e.g. v0.2.0_01_add_widget.sql
+#   <YYYYMMDD>_<description>.sql         e.g. 20260520_add_operation_key_indexes.sql
+# The version/number is just for ordering + dedup; either shape is fine.
+_VERSIONED_RE = re.compile(r"^(v\d+\.\d+\.\d+)_(\d+)_.+\.sql$")
+_DATED_RE = re.compile(r"^(\d{8})_.+\.sql$")
 
 # Migrations live next to this script, baked into the image at
 # `/app/database/migrate/` (see core/Dockerfile `COPY database/`).
@@ -74,7 +78,7 @@ async def _apply(mtype: str) -> None:
         print(f"No {mtype} migration directory at {mdir}")
         return
 
-    files = sorted(mdir.glob("v*.sql"))
+    files = sorted(p for p in mdir.glob("*.sql") if p.name != "README.md")
     if not files:
         print(f"No {mtype} migration files in {mdir}")
         return
@@ -86,12 +90,20 @@ async def _apply(mtype: str) -> None:
         applied = 0
         skipped = 0
         for sql_file in files:
-            m = _MIGRATION_RE.match(sql_file.name)
-            if not m:
+            m_v = _VERSIONED_RE.match(sql_file.name)
+            m_d = _DATED_RE.match(sql_file.name)
+            if m_v:
+                version, number_str = m_v.group(1), m_v.group(2)
+                number = int(number_str)
+            elif m_d:
+                # Use the date as the version slot; number=0 since dated
+                # filenames have no per-day ordinal. (If multiple migrations
+                # land the same day, give them distinct dates.)
+                version = m_d.group(1)
+                number = 0
+            else:
                 print(f"Skipping {sql_file.name} (unrecognized filename)")
                 continue
-            version, number_str = m.group(1), m.group(2)
-            number = int(number_str)
 
             already = await conn.fetchval(
                 """
