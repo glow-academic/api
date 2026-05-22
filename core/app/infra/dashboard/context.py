@@ -302,8 +302,8 @@ async def _compute_rubric_scores(
     # Step 3: Collect unique standard_ids from feedback, fetch standards for mapping
     standard_ids_set: set[UUID] = set()
     for fb in feedbacks:
-        if fb.standard_id:
-            standard_ids_set.add(fb.standard_id)
+        for sid in fb.standard_ids:
+            standard_ids_set.add(sid)
 
     async with pool.acquire() as c:
         standards_list = await get_standards(
@@ -342,18 +342,18 @@ async def _compute_rubric_scores(
 
     for fb in feedbacks:
         chat_id = grade_to_chat.get(fb.grade_id)
-        if not chat_id or not fb.standard_id:
+        if not chat_id:
             continue
-        sg_id = std_to_sg.get(fb.standard_id)
-        if not sg_id:
-            continue
-        # Only include if this standard_group belongs to the chat's rubric
         rubric_id = chat_to_rubric.get(chat_id)
-        if rubric_id:
-            valid_sgs = rubric_sg_map.get(rubric_id, set())
-            if sg_id not in valid_sgs:
+        valid_sgs = rubric_sg_map.get(rubric_id, set()) if rubric_id else None
+        for sid in fb.standard_ids:
+            sg_id = std_to_sg.get(sid)
+            if not sg_id:
                 continue
-        score_agg[(chat_id, sg_id)] += fb.total
+            # Only include if this standard_group belongs to the chat's rubric
+            if valid_sgs is not None and sg_id not in valid_sgs:
+                continue
+            score_agg[(chat_id, sg_id)] += fb.total
 
     # Step 7: Build RubricScoreItems
     chat_meta: dict[UUID, ChatItem] = {item.chat_id: item for item in chat_items}

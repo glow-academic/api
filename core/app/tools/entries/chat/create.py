@@ -324,12 +324,17 @@ async def create_chat(
             s_id,
         )
 
-    # Write-back cache row matching GetChatResponse shape. Fields
-    # populated by chat_mv joins (parent_id, scenario_id singular,
-    # name_ids, description_ids, flag_ids) aren't known at create-time
-    # and default to None/empty; the MV refresh path populates them.
+    # Write-back cache row — superset of GetChatResponse (canonical get
+    # shape) AND the legacy ``list[dict]`` shape returned by
+    # ``search_chat_entries_internal``. The latter needs ``chat_entry_id``,
+    # ``session_id``, ``name``, ``description``, ``created_at``, ``active``
+    # at the top level; the former needs the various *_ids and flag fields
+    # below. MV-derived fields (parent_id, scenario_id singular, name_ids,
+    # description_ids, flag_ids) aren't known at create-time and default
+    # to None/empty; the MV refresh path populates them.
     _scenario_list = scenario_ids or []
     fresh_row = {
+        # ── Canonical GET shape ──
         "id": str(chat_id),
         "parent_id": None,
         "scenario_id": str(_scenario_list[0]) if _scenario_list else None,
@@ -357,6 +362,13 @@ async def create_chat(
         "position": position,
         "time_limit": time_limit,
         "negative_time": negative_time,
+        # ── Legacy list[dict] SEARCH shape additions ──
+        "chat_entry_id": str(chat_id),
+        "session_id": str(session_id),
+        "name": name,
+        "description": description,
+        "created_at": created_at.isoformat() if created_at else None,
+        "active": not soft,
     }
     await write_back_row(
         redis,

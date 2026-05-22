@@ -14,31 +14,6 @@ from app.utils.cache.hedged_row import read_back_row
 MV_NAME = "attempt_feedback_mv"
 
 
-def _fan_out_cached(cached: dict) -> list[GetAttemptFeedbackResponse]:
-    """Expand a cached aggregate row into N MV-shape rows (one per standard).
-
-    The cache stores ``standard_ids: list[str]`` (the aggregate of linked
-    standards at write-time). The MV LEFT JOINs feedbacks_standards_connection
-    so each feedback fans out to N rows (one per linked standard); rows with
-    no linked standards still produce one row with ``standard_id=None``.
-    This helper mirrors that shape so callers get an identical view from
-    cache vs MV.
-    """
-    base = {
-        "feedback_id": cached["feedback_id"],
-        "grade_id": cached["grade_id"],
-        "total": cached["total"],
-        "feedback": cached["feedback"],
-        "created_at": cached["created_at"],
-    }
-    sids = cached.get("standard_ids") or []
-    if not sids:
-        return [GetAttemptFeedbackResponse(**base, standard_id=None)]
-    return [
-        GetAttemptFeedbackResponse(**base, standard_id=sid) for sid in sids
-    ]
-
-
 async def get_attempt_feedbacks(
     conn: asyncpg.Connection,
     ids: list[UUID],
@@ -47,32 +22,62 @@ async def get_attempt_feedbacks(
     *,
     bypass_cache: bool = False,
 ) -> list[GetAttemptFeedbackResponse]:
-    """Get attempt_feedback rows by id (MV-shape: one row per (feedback, standard)).
+    """Get attempt_feedback rows by id, aggregated one-row-per-feedback.
 
-    Hedged read: per-id cache check first, MV fall-through on miss. Cache rows
-    store the aggregate ``standard_ids`` list; we fan out client-side so the
-    response matches the MV's LEFT JOIN shape.
+    The MV LEFT JOINs feedbacks_standards_connection (fanning out one
+    feedback into N rows per linked standard); we collapse the MV result
+    via GROUP BY in SQL so the response is one row per feedback with
+    ``standard_ids`` as a list. Cache row already stores the aggregate
+    shape, so cache and MV slices share the same Pydantic model.
     """
     if not ids:
         return []
 
-    out: list[GetAttemptFeedbackResponse] = []
+    cached_results: dict[str, GetAttemptFeedbackResponse] = {}
     missing_ids: list[UUID] = []
     if not bypass_cache:
         for fid in ids:
             cached = await read_back_row(redis, "attempt_feedback", fid)
             if cached is not None:
-                out.extend(_fan_out_cached(cached))
+                cached_results[str(fid)] = (
+                    GetAttemptFeedbackResponse.model_validate(cached)
+                )
             else:
                 missing_ids.append(fid)
     else:
         missing_ids = list(ids)
 
+    mv_results: dict[str, GetAttemptFeedbackResponse] = {}
     if missing_ids:
         source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
         rows = await conn.fetch(
-            f"SELECT * FROM {source} WHERE feedback_id = ANY($1)", missing_ids
+            f"""
+            SELECT feedback_id, grade_id, total, feedback, created_at,
+                   COALESCE(
+                       ARRAY_AGG(standard_id) FILTER (WHERE standard_id IS NOT NULL),
+                       '{{}}'::uuid[]
+                   ) AS standard_ids
+            FROM {source}
+            WHERE feedback_id = ANY($1)
+            GROUP BY feedback_id, grade_id, total, feedback, created_at
+            """,
+            missing_ids,
         )
-        out.extend(GetAttemptFeedbackResponse(**dict(r)) for r in rows)
+        for r in rows:
+            mv_results[str(r["feedback_id"])] = GetAttemptFeedbackResponse(
+                feedback_id=r["feedback_id"],
+                grade_id=r["grade_id"],
+                standard_ids=list(r["standard_ids"] or []),
+                total=r["total"],
+                feedback=r["feedback"],
+                created_at=r["created_at"],
+            )
 
+    out: list[GetAttemptFeedbackResponse] = []
+    for fid in ids:
+        key = str(fid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
     return out
