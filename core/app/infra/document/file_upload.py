@@ -61,8 +61,15 @@ async def file_upload_document_impl(
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
 ) -> FileUploadDocumentApiResponse:
-    """Upload a file for later use in documents (canonical chain + soft/accept)."""
+    """Upload a file for later use in documents (canonical chain + soft/accept).
+
+    Soft-call key: ``soft_calls_entry.call_id`` FKs ``calls_entry``, so the
+    pending row is keyed by the audit wrapper's server-minted ``call_id`` (not a
+    client key). On a soft propose we stash it under ``call_id`` and echo it in
+    the response; the ack arrives with ``idempotency_key`` set to that value.
+    """
     # -- Profile context + permission (always) ----------------------------------
     profile = await resolve_profile_identity_context(
         pool, profile_id, redis, session_id=session_id,
@@ -110,7 +117,9 @@ async def file_upload_document_impl(
             )
 
         await invalidate_tags(["uploads", "resources", "files"], redis=redis)
-        return FileUploadDocumentApiResponse(file_id=entry.artifact_id)
+        return FileUploadDocumentApiResponse(
+            file_id=entry.artifact_id, idempotency_key=idempotency_key,
+        )
 
     # ── First-call requirements ───────────────────────────────────────────────
     if file_bytes is None or not filename:
@@ -156,11 +165,11 @@ async def file_upload_document_impl(
             session_id=session_uuid,
             soft=soft,
         )
-        if soft and idempotency_key is not None:
+        if soft and call_id is not None:
             await create_soft_call(
                 conn,
                 redis,
-                call_id=idempotency_key,
+                call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
                 artifact_id=resource.id,
@@ -176,4 +185,4 @@ async def file_upload_document_impl(
     # -- Invalidate cache -------------------------------------------------------
     await invalidate_tags(["uploads", "resources", "files"], redis=redis)
 
-    return FileUploadDocumentApiResponse(file_id=resource.id)
+    return FileUploadDocumentApiResponse(file_id=resource.id, idempotency_key=call_id)

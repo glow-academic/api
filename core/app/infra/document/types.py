@@ -723,6 +723,11 @@ class TextUploadDocumentApiResponse(BaseModel):
 
     text_id: UUID = Field(..., description="UUID of the created texts_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Server-minted soft-call key (the audit call_id). On a soft "
+        "propose, echo this back with `accept` to promote/reject the staged upload.",
+    )
 
 
 class TextDownloadDocumentApiRequest(BaseModel):

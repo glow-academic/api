@@ -80,7 +80,9 @@ async def upload_file(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> FileUploadDocumentApiResponse:
+        # ``call_id`` is threaded in by the audit wrapper (signature opt-in) —
+        # it's the server-minted calls_entry id the soft ledger keys on.
+        async def _runner(call_id: UUID | None = None) -> FileUploadDocumentApiResponse:
             return await file_upload_document_impl(
                 pool,
                 redis,
@@ -92,6 +94,7 @@ async def upload_file(
                 soft=soft,
                 accept=accept,
                 idempotency_key=idempotency_key,
+                call_id=call_id,
             )
 
         response_data = await run_artifact_operation_with_audit(

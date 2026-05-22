@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.29"
+    "version": "1.0.32"
   },
   "paths": {
     "/persona/title": {
@@ -4504,7 +4504,7 @@
           "document"
         ],
         "summary": "Upload Text",
-        "description": "Upload a text file for later use in documents.",
+        "description": "Upload a text file for later use in documents (soft/accept dormant flow).",
         "operationId": "upload_text_document_text_upload_post",
         "requestBody": {
           "content": {
@@ -4513,8 +4513,7 @@
                 "$ref": "#/components/schemas/Body_upload_text_document_text_upload_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -29268,8 +29267,15 @@
       "Body_upload_text_document_text_upload_post": {
         "properties": {
           "file": {
-            "type": "string",
-            "format": "binary",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "File"
           },
           "idempotency_key": {
@@ -29283,12 +29289,25 @@
               }
             ],
             "title": "Idempotency Key"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept"
           }
         },
         "type": "object",
-        "required": [
-          "file"
-        ],
         "title": "Body_upload_text_document_text_upload_post"
       },
       "Body_upload_video_scenario_video_upload_post": {
@@ -103067,6 +103086,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103108,6 +103133,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103149,6 +103180,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103190,6 +103227,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103231,6 +103274,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103272,6 +103321,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103313,6 +103368,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103354,6 +103415,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103395,6 +103462,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103483,6 +103556,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103524,6 +103603,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103608,6 +103693,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103649,6 +103740,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103690,6 +103787,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103731,6 +103834,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -103772,6 +103881,12 @@
             "title": "Accept",
             "description": "Accept or reject. Only meaningful with idempotency_key",
             "default": true
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the refresh as a pending (held) request \u2014 recorded but not enqueued; ack with accept releases/enqueues it",
+            "default": false
           }
         },
         "type": "object",
@@ -117634,6 +117749,19 @@
             "format": "uuid",
             "title": "Upload Id",
             "description": "UUID of the uploads_entry (file on disk)"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (the audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged upload."
           }
         },
         "type": "object",
