@@ -6,6 +6,7 @@ Thin route handler. Core logic lives in app.infra.persona.file_download.
 from __future__ import annotations
 
 import urllib.parse
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
@@ -51,7 +52,7 @@ async def download_file(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> FileDownloadPersonaApiResult:
+        async def _runner(group_id: UUID | None = None) -> FileDownloadPersonaApiResult:
             return await file_download_persona_impl(
                 pool,
                 redis,

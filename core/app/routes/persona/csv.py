@@ -5,7 +5,10 @@ Core logic lives in app.infra.persona.csv.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, UploadFile
+import hashlib
+from uuid import UUID
+
+from fastapi import APIRouter, Form, HTTPException, Request, UploadFile
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -20,6 +23,7 @@ router = APIRouter()
 async def parse_persona_csv(
     file: UploadFile,
     http_request: Request,
+    idempotency_key: UUID | None = Form(None),
 ) -> ParsePersonaCsvApiResponse:
     """Parse a CSV file and return mapped items for preview."""
     try:
@@ -42,7 +46,7 @@ async def parse_persona_csv(
         file_name = file.filename or "file.csv"
         content_type = file.content_type or "text/csv"
 
-        async def _runner() -> ParsePersonaCsvApiResponse:
+        async def _runner(group_id: UUID | None = None) -> ParsePersonaCsvApiResponse:
             return await parse_persona_csv_impl(
                 pool,
                 session_id=session_id,
@@ -59,10 +63,14 @@ async def parse_persona_csv(
             session_id=session_id,
             group_id=group_id,
             operation="csv",
-            arguments={"filename": file_name},
+            arguments={
+                "file_name": file_name,
+                "content_sha256": hashlib.sha256(file_bytes).hexdigest(),
+            },
             response_model=ParsePersonaCsvApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
         )
     except HTTPException:
         raise

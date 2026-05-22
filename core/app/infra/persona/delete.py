@@ -20,6 +20,7 @@ from app.infra.delete.delete_artifact import restore_artifacts
 from app.infra.persona.permissions import compute_can_delete
 from app.infra.persona.permissions_context import resolve_persona_permissions_context
 from app.infra.persona.refresh import refresh_persona_impl
+from app.infra.server_timing import timed
 from app.infra.persona.types import (
     DeletePersonaApiResponse,
     DeletePersonaResult,
@@ -42,6 +43,7 @@ async def delete_persona_impl(
     profile_id: UUID,
     ids: list[UUID] | None = None,
     session_id: UUID | None = None,
+    group_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
@@ -175,12 +177,13 @@ async def delete_persona_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -196,38 +199,39 @@ async def delete_persona_impl(
     skipped_results: list[DeletePersonaResult] = []
     permitted_ids: list[UUID] = []
 
-    for idx, persona_id in enumerate(ids):
-        ctx = await resolve_persona_permissions_context(pool, persona_id)
+    with timed("permissions"):
+        for idx, persona_id in enumerate(ids):
+            ctx = await resolve_persona_permissions_context(pool, persona_id)
 
-        if not ctx.exists:
-            if all:
-                skipped_results.append(DeletePersonaResult(
-                    success=False, id=persona_id,
-                    message=f"Persona {persona_id} not found (skipped)",
-                ))
-                continue
-            raise HTTPException(
-                status_code=404,
-                detail=f"Item {idx}: Persona {persona_id} not found.",
-            )
+            if not ctx.exists:
+                if all:
+                    skipped_results.append(DeletePersonaResult(
+                        success=False, id=persona_id,
+                        message=f"Persona {persona_id} not found (skipped)",
+                    ))
+                    continue
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Item {idx}: Persona {persona_id} not found.",
+                )
 
-        if not compute_can_delete(
-            role_level=profile.role_level, role_permissions=profile.role_permissions,
-            persona_department_ids=ctx.department_ids,
-            active_scenario_count=ctx.active_scenario_count,
-        ):
-            if all:
-                skipped_results.append(DeletePersonaResult(
-                    success=False, id=persona_id,
-                    message=f"No permission to delete persona {persona_id} (skipped)",
-                ))
-                continue
-            raise HTTPException(
-                status_code=403,
-                detail=f"Item {idx}: You don't have permission to delete this persona.",
-            )
+            if not compute_can_delete(
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
+                persona_department_ids=ctx.department_ids,
+                active_scenario_count=ctx.active_scenario_count,
+            ):
+                if all:
+                    skipped_results.append(DeletePersonaResult(
+                        success=False, id=persona_id,
+                        message=f"No permission to delete persona {persona_id} (skipped)",
+                    ))
+                    continue
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Item {idx}: You don't have permission to delete this persona.",
+                )
 
-        permitted_ids.append(persona_id)
+            permitted_ids.append(persona_id)
 
     # All-matching path: replace ``ids`` with the filtered set. Explicit
     # path leaves it alone (it already raised on any failure).
@@ -241,40 +245,43 @@ async def delete_persona_impl(
     # ── Step 4: Fetch names for result messages ───────────────────────
 
     name_map: dict[UUID, str] = {}
-    async with pool.acquire() as conn:
-        artifacts = await get_personas(conn, ids, names=True)
-        for artifact in artifacts:
-            name = "Unknown"
-            if artifact.name_ids:
-                name_resources = await get_names(pool, artifact.name_ids, redis)
-                if name_resources:
-                    name = name_resources[0].name or "Unknown"
-            name_map[artifact.id] = name
+    with timed("hydrate_names"):
+        async with pool.acquire() as conn:
+            artifacts = await get_personas(conn, ids, names=True)
+            for artifact in artifacts:
+                name = "Unknown"
+                if artifact.name_ids:
+                    name_resources = await get_names(pool, artifact.name_ids, redis)
+                    if name_resources:
+                        name = name_resources[0].name or "Unknown"
+                name_map[artifact.id] = name
 
     # ── Step 5: Single transaction — bulk delete ──────────────────────
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            result = await delete_personas(conn, ids, soft=soft)
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                result = await delete_personas(conn, ids, soft=soft)
 
-            # Soft delete: append a pending ledger row per id so ack
-            # lookups can resolve which persona to restore on reject.
-            if soft and idempotency_key is not None:
-                for pid in result.deleted_ids:
-                    await create_soft_call(
-                        conn,
-                        redis,
-                        call_id=idempotency_key,
-                        artifact=ARTIFACT,
-                        operation="delete",
-                        artifact_id=pid,
-                    )
+                # Soft delete: append a pending ledger row per id so ack
+                # lookups can resolve which persona to restore on reject.
+                if soft and idempotency_key is not None:
+                    for pid in result.deleted_ids:
+                        await create_soft_call(
+                            conn,
+                            redis,
+                            call_id=idempotency_key,
+                            artifact=ARTIFACT,
+                            operation="delete",
+                            artifact_id=pid,
+                        )
 
     # Refresh + invalidate (via canonical refresh)
-    await refresh_persona_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["personas_mv", "soft_calls_mv"],
-    )
+    with timed("refresh"):
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv", "soft_calls_mv"],
+        )
 
     results = [
         DeletePersonaResult(

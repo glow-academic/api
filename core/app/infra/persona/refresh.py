@@ -48,6 +48,7 @@ class RefreshPersonaApiRequest(BaseModel):
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack")
     accept: bool = Field(True, description="Accept or reject. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the refresh as a pending (held) request — recorded but not enqueued; ack with accept releases/enqueues it")
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +74,7 @@ async def refresh_persona_impl(
     if request is not None:
         targets = targets or request.targets
         idempotency_key = idempotency_key or request.idempotency_key
+        soft = soft or request.soft
         if idempotency_key and accept is None:
             accept = request.accept
 

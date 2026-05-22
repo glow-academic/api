@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.delete.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -50,13 +52,14 @@ async def delete_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> DeletePersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> DeletePersonaApiResponse:
             return await delete_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 ids=request.ids,
                 session_id=session_id,
+                group_id=group_id,
                 idempotency_key=request.idempotency_key,
                 accept=request.accept if request.idempotency_key else None,
                 # All-matching path
@@ -87,6 +90,7 @@ async def delete_persona(
             response_model=DeletePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

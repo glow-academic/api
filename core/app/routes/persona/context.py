@@ -1,5 +1,7 @@
 """Persona context endpoint — page bootstrap with docs + profile + permissions."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Request, Response
 
 from app.infra.docs.types import ComposedContextResponse
@@ -37,7 +39,7 @@ async def get_persona_context(
         )
         group_id = group_result.group_id
 
-    async def _runner() -> ComposedContextResponse:
+    async def _runner(group_id: UUID | None = None) -> ComposedContextResponse:
         return await page_context_persona_impl(
             pool,
             redis,
@@ -58,6 +60,7 @@ async def get_persona_context(
         response_model=ComposedContextResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=body.snapshot_key,  # read snapshot: replay this view if echoed
     )
 
     response.headers["X-Cache-Tags"] = "personas"

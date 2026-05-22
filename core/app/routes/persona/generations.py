@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.generations.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -51,7 +53,7 @@ async def generations_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> GenerationsPersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> GenerationsPersonaApiResponse:
             return await generations_persona_impl(
                 pool,
                 redis,
@@ -76,6 +78,7 @@ async def generations_persona(
             response_model=GenerationsPersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = ",".join(tags)

@@ -1,5 +1,7 @@
 """Persona export endpoint — composable infra architecture."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Request
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -36,7 +38,7 @@ async def export_personas(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> ExportPersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> ExportPersonaApiResponse:
             return await export_persona_impl(
                 pool,
                 redis,
@@ -57,6 +59,7 @@ async def export_personas(
             response_model=ExportPersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=body.idempotency_key,  # idempotency replay gate
         )
     except Exception as e:
         handle_route_error(

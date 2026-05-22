@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.update.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -48,13 +50,14 @@ async def update_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> UpdatePersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> UpdatePersonaApiResponse:
             return await update_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                group_id=group_id,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -75,6 +78,7 @@ async def update_persona(
             response_model=UpdatePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "personas"

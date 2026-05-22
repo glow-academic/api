@@ -53,7 +53,7 @@ async def get_persona_drafts(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> GetPersonaDraftsApiResponse:
+        async def _runner(group_id: UUID | None = None) -> GetPersonaDraftsApiResponse:
             return await list_persona_drafts_impl(
                 pool,
                 redis,
@@ -80,6 +80,7 @@ async def get_persona_drafts(
             response_model=GetPersonaDraftsApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "personas,drafts"

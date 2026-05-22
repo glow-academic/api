@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.create.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -48,13 +50,14 @@ async def create_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> CreatePersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> CreatePersonaApiResponse:
             return await create_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                group_id=group_id,
             )
 
         response_data = await run_artifact_operation_with_audit(

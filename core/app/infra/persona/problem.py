@@ -23,6 +23,7 @@ from app.infra.permissions_helpers import has_permission
 from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.persona.types import ProblemPersonaApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.problems.create import create_problem as create_problem_entry
 
 ARTIFACT_TYPE = "persona"
@@ -107,7 +108,8 @@ async def problem_persona_impl(
 
     # ── Step 2: Profile context ────────────────────────────────────────
 
-    identity = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(pool, profile_id, redis)
     if identity is None:
         raise HTTPException(
             status_code=401,
@@ -116,34 +118,37 @@ async def problem_persona_impl(
 
     # ── Step 3: Permission check ───────────────────────────────────────
 
-    if not has_permission(identity.role_permissions, ARTIFACT_TYPE, "problem"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to report persona problems.",
-        )
+    with timed("permissions"):
+        if not has_permission(identity.role_permissions, ARTIFACT_TYPE, "problem"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to report persona problems.",
+            )
 
     # ── Step 4: Create problem entry ──────────────────────────────────
 
-    async with pool.acquire() as conn:
-        problem_result = await create_problem_entry(
-            conn,
-            session_id=session_id,
-            call_id=call_id or UUID(int=0),
-            type=type,
-            artifact_type=ARTIFACT_TYPE,
-            message=message,
-            id=idempotency_key,
-            profile_id=identity.profiles_id,
-            soft=soft,
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            problem_result = await create_problem_entry(
+                conn,
+                session_id=session_id,
+                call_id=call_id or UUID(int=0),
+                type=type,
+                artifact_type=ARTIFACT_TYPE,
+                message=message,
+                id=idempotency_key,
+                profile_id=identity.profiles_id,
+                soft=soft,
+            )
 
     # ── Step 5: Refresh + invalidate ──────────────────────────────────
 
-    await refresh_persona_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["personas_mv"], soft=soft,
-        operation_key=idempotency_key or problem_result.id,
-    )
+    with timed("refresh"):
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv"], soft=soft,
+            operation_key=idempotency_key or problem_result.id,
+        )
 
     return ProblemPersonaApiResponse(
         problem_id=problem_result.id,

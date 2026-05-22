@@ -23,6 +23,7 @@ from redis.asyncio import Redis
 
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.entries.file_uploads.create import create_file_upload
@@ -86,7 +87,8 @@ async def export_persona_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -96,7 +98,8 @@ async def export_persona_impl(
 
     # ── Step 2: Search all personas (full dump) ────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+      async with pool.acquire() as conn:
         if persona_id:
             persona_ids = [persona_id]
         else:
@@ -198,27 +201,28 @@ async def export_persona_impl(
             return []
         return await get_voices(pool, all_voice_ids, redis)
 
-    (
-        names_data,
-        descriptions_data,
-        colors_data,
-        icons_data,
-        instructions_data,
-        examples_data,
-        departments_data,
-        parameter_fields_data,
-        voices_data,
-    ) = await asyncio.gather(
-        _get_names(),
-        _get_descriptions(),
-        _get_colors(),
-        _get_icons(),
-        _get_instructions(),
-        _get_examples(),
-        _get_departments(),
-        _get_parameter_fields(),
-        _get_voices(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            colors_data,
+            icons_data,
+            instructions_data,
+            examples_data,
+            departments_data,
+            parameter_fields_data,
+            voices_data,
+        ) = await asyncio.gather(
+            _get_names(),
+            _get_descriptions(),
+            _get_colors(),
+            _get_icons(),
+            _get_instructions(),
+            _get_examples(),
+            _get_departments(),
+            _get_parameter_fields(),
+            _get_voices(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n.name for n in names_data}
@@ -247,11 +251,12 @@ async def export_persona_impl(
 
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("build_csv"):
+      output = io.StringIO()
+      writer = csv.writer(output)
+      writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+      for a in artifacts:
         # Single-select: first resource value
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
@@ -322,35 +327,37 @@ async def export_persona_impl(
     #     file_files_connection) — needed because ``file_uploads_entry``
     #     FKs to ``files_entry``, not ``files_resource``
     #   → file_uploads junction (entry.id ↔ upload.id)
-    async with pool.acquire() as conn:
-        upload_row = await create_upload(
-            conn,
-            redis, session_id=session_id,
-            file_path=relative_path,
-            mime_type="text/csv",
-            size=len(csv_bytes),
-        )
-        resource_row = await create_file_resource(conn, redis)
-        if session_id is not None:
-            entry_row = await create_file_entry(
+    with timed("upload"):
+        async with pool.acquire() as conn:
+            upload_row = await create_upload(
                 conn,
-                session_id=session_id,
-                files_id=resource_row.id,
+                redis, session_id=session_id,
+                file_path=relative_path,
+                mime_type="text/csv",
+                size=len(csv_bytes),
             )
-            await create_file_upload(
-                conn,
-                redis, file_id=entry_row.id,
-                upload_id=upload_row.id,
-                session_id=session_id,
-            )
+            resource_row = await create_file_resource(conn, redis)
+            if session_id is not None:
+                entry_row = await create_file_entry(
+                    conn,
+                    session_id=session_id,
+                    files_id=resource_row.id,
+                )
+                await create_file_upload(
+                    conn,
+                    redis, file_id=entry_row.id,
+                    upload_id=upload_row.id,
+                    session_id=session_id,
+                )
     # Enqueue async files_mv refresh via the MV worker. The client's
     # follow-up download will retry briefly if it loses the race; this
     # path is rare enough that we accept the trade-off vs. blocking the
     # request 50–200ms.
-    await enqueue_refreshes(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        artifact_type="file", targets=["files_mv"], tags=["files"],
-    )
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportPersonaApiResponse(
         file_id=resource_row.id,

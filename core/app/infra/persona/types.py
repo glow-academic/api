@@ -211,6 +211,7 @@ class GetPersonaDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetPersonaDraftsApiResponse(BaseModel):
@@ -872,6 +873,7 @@ class ExportPersonaApiRequest(BaseModel):
 
     persona_id: UUID | None = Field(None, description="UUID of a specific persona to export (omit for bulk export)")
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
     # Same filters as list endpoint
     search: str | None = Field(None, description="Filter personas by search text")

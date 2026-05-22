@@ -73,7 +73,7 @@ async def search_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> ListPersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> ListPersonaApiResponse:
             return await search_persona_impl(
                 pool,
                 redis,
@@ -105,6 +105,7 @@ async def search_persona(
             response_model=ListPersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = ",".join(tags)

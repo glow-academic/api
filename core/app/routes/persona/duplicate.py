@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.duplicate.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -53,13 +55,14 @@ async def duplicate_persona(
             )
             group_id = group_result.group_id
 
-        async def _runner() -> DuplicatePersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> DuplicatePersonaApiResponse:
             return await duplicate_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 id=request.id,
                 session_id=session_id,
+                group_id=group_id,
                 idempotency_key=request.idempotency_key,
                 accept=request.accept if request.idempotency_key else None,
             )
@@ -76,6 +79,7 @@ async def duplicate_persona(
             response_model=DuplicatePersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

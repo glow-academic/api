@@ -5,6 +5,8 @@ Thin route handler. Core logic lives in app.infra.persona.problem.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -55,7 +57,7 @@ async def problem_persona(
         )
         group_id = group_result.group_id
 
-        async def _runner() -> ProblemPersonaApiResponse:
+        async def _runner(group_id: UUID | None = None) -> ProblemPersonaApiResponse:
             return await problem_persona_impl(
                 pool,
                 redis,
@@ -79,6 +81,7 @@ async def problem_persona(
             response_model=ProblemPersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)
