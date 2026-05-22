@@ -49,6 +49,23 @@ _timings: contextvars.ContextVar[dict[str, float] | None] = contextvars.ContextV
 )
 
 
+def get_timings() -> dict[str, float]:
+    """Read the current request's accumulated timings as a {phase: ms} dict.
+
+    Returns an empty dict outside a request scope. Returns a copy — callers
+    can mutate freely without affecting the live request store.
+
+    Used by the audit wrapper to persist per-phase timings into the .json
+    receipt file at end of request, alongside the Server-Timing response
+    header. Lets you forensically debug "why was this call_id slow" months
+    later by reading the receipt.
+    """
+    store = _timings.get()
+    if store is None:
+        return {}
+    return dict(store)
+
+
 @contextmanager
 def timed(phase: str) -> Iterator[None]:
     """Record elapsed time for ``phase`` in the current request's timing store.

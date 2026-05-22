@@ -69,7 +69,7 @@ def _fingerprint_arguments(arguments: dict[str, Any]) -> str:
 
 
 _ACK_CONTROL_KEYS = frozenset({
-    "idempotency_key", "operation_key", "accept", "sid", "session_id", "profile_id",
+    "idempotency_key", "operation_key", "accept", "soft", "sid", "session_id", "profile_id",
 })
 
 
@@ -586,6 +586,27 @@ async def run_artifact_operation_with_audit(
             "ledger_artifact": ledger_artifact,
             "ledger_artifact_id": ledger_artifact_id,
         })
+
+    # Final receipt update — merge full per-phase timings + completed_at
+    # into the .json receipt for forensic post-mortem by call_id.
+    # Best-effort: file I/O errors don't block the response. Two-phase
+    # write pattern: the initial receipt (in create_tool_call) captures
+    # arguments + result; this final pass captures the full request
+    # timing once the audit lifecycle has completed. If a crash happens
+    # between the two phases, the absence of `timings_ms` in the file
+    # signals "audit lifecycle didn't finish for this call_id".
+    if call_upload_id is not None:
+        try:
+            from app.infra.server_timing import get_timings
+            receipt_path = effective_upload_folder / "call" / f"{call_upload_id}.json"
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            receipt["timings_ms"] = get_timings()
+            receipt["completed_at"] = datetime.now(timezone.utc).isoformat()
+            receipt_path.write_text(
+                json.dumps(receipt, indent=2, default=str), encoding="utf-8",
+            )
+        except Exception as e:
+            logger.debug(f"Best-effort receipt timing update failed: {e}")
 
     if response_model is not None:
         with timed("serialize"):
