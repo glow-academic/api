@@ -15,6 +15,7 @@ from jinja2 import Environment, TemplateError, TemplateSyntaxError, meta, nodes
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tool.types import (
     PreviewToolApiRequest,
     PreviewToolApiResponse,
@@ -75,12 +76,13 @@ async def preview_tool_impl(
     """
     # Identity check — minimal canonical guard (no permission gate; preview
     # is read-only against client-supplied data).
-    await resolve_profile_identity_context(
-        pool,
-        profile_id=profile_id,
-        redis=redis,
-        bypass_cache=bypass_cache,
-    )
+    with timed("profile"):
+        await resolve_profile_identity_context(
+            pool,
+            profile_id=profile_id,
+            redis=redis,
+            bypass_cache=bypass_cache,
+        )
 
     arg_names: set[str] = {a.name for a in request.args if a.name}
     mock_context: dict[str, Any] = {}
@@ -96,7 +98,8 @@ async def preview_tool_impl(
     undeclared_set: set[str] = set()
 
     output_results: list[ToolPreviewOutputResult] = []
-    for output in request.outputs:
+    with timed("render"):
+     for output in request.outputs:
         template_str = output.template or ""
         try:
             parsed = env.parse(template_str)

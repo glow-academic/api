@@ -26,6 +26,7 @@ from app.infra.parameter.types import (
     DuplicateParameterApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
@@ -65,12 +66,13 @@ async def duplicate_parameter_impl(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -80,11 +82,12 @@ async def duplicate_parameter_impl(
 
     # -- Step 2: Permission check -----------------------------------------------
 
-    if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this parameter.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this parameter.",
+            )
 
     # -- Short-circuit: ack path ----------------------------------------------
 
@@ -172,7 +175,8 @@ async def duplicate_parameter_impl(
 
     # -- Step 3: Fetch original parameter with all junctions --------------------
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         originals = await get_parameters(
             conn,
             [parameter_id],
@@ -204,7 +208,8 @@ async def duplicate_parameter_impl(
 
     # -- Step 5: Create new parameter artifact (no flag — no parameter_active) --
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_parameter_artifact(
                 conn,
@@ -236,24 +241,26 @@ async def duplicate_parameter_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_parameter_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or result.id,
+            )
 
     # -- Step 7: Hydrate list row (skip soft) ----------------------------------
     # Single-element list for shape consistency with create / update.
     hydrated_rows = None
     if not soft and result.id:
-        hydrated_rows = await hydrate_parameter_list_rows(
-            pool, redis,
-            profile_id=profile_id,
-            parameter_ids=[result.id],
-        )
+        with timed("hydrate"):
+            hydrated_rows = await hydrate_parameter_list_rows(
+                pool, redis,
+                profile_id=profile_id,
+                parameter_ids=[result.id],
+            )
 
     return DuplicateParameterApiResponse(
         success=True,

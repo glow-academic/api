@@ -264,7 +264,8 @@ async def update_document_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_document_permissions_context(conn, item.id)
             if not perms.exists:
@@ -310,7 +311,8 @@ async def update_document_impl(
     has_errors = False
     error_results: list[DocumentResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_document_values(
                 conn, redis, item, is_create=False
@@ -339,7 +341,8 @@ async def update_document_impl(
 
     results: list[DocumentResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         documents_resource_id = None
         if not soft:
             template = await _item_is_template(pool, redis, item.flag_ids)
@@ -398,14 +401,15 @@ async def update_document_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_document_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (results[0].document_id if results else None),
-    )
+    with timed("refresh"):
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].document_id if results else None),
+        )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

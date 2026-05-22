@@ -176,7 +176,8 @@ async def create_field_impl(
     results: list[FieldResultItem] = []
 
     if not soft:
-        for item in items:
+        with timed("db_write"):
+         for item in items:
             fields_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -213,14 +214,15 @@ async def create_field_impl(
                 )
             )
 
-        await refresh_field_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].field_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_field_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].field_id if results else None),
+            )
     else:
         for item in items:
             async with pool.acquire() as conn:

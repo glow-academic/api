@@ -26,6 +26,7 @@ from app.infra.docs.types import (
 )
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 # Entry tool docs
 from app.tools.entries.sessions.docs import get_sessions_docs
@@ -96,7 +97,8 @@ async def _page_context_session_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -112,7 +114,8 @@ async def _page_context_session_build(
         async with pool.acquire() as c:
             return await get_sessions_docs(c)
 
-    (sessions,) = await asyncio.gather(
+    with timed("hydrate"):
+     (sessions,) = await asyncio.gather(
         _fetch_sessions_docs(),
     )
 
@@ -131,7 +134,8 @@ async def _page_context_session_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("build"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 

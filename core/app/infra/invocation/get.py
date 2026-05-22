@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.helpers import dedupe_by_id
 from app.infra.invocation.context import resolve_invocation_context
+from app.infra.server_timing import timed
 from app.infra.invocation.types import (
     GetInvocationApiRequest,
     GetSuiteResponse,
@@ -136,13 +137,14 @@ async def get_invocation_impl(
     if "descriptions" not in resolved_filters and descriptions_search is not None:
         resolved_filters["descriptions"] = SectionFilter(search=descriptions_search)
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -151,15 +153,17 @@ async def get_invocation_impl(
 
     # Invocation is test-scoped — use the canonical test group.
     from app.infra.test.group import group_test_impl
-    group_result = await group_test_impl(
-        pool, redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await group_test_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
-    ctx = await resolve_invocation_context(
+    with timed("hydrate"):
+     ctx = await resolve_invocation_context(
         pool,
         redis,
         group_id=group_id,

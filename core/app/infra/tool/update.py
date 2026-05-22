@@ -18,6 +18,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tool.hydrate_list_rows import hydrate_tool_list_rows
+from app.infra.server_timing import timed
 from app.infra.tool.permissions_context import (
     create_denormalized_snapshot,
     resolve_tool_permissions_context,
@@ -185,12 +186,13 @@ async def update_tool_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -205,7 +207,8 @@ async def update_tool_impl(
     is_all_matching = request is not None and bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_tool_permissions_context(conn, item.id)
             if not perms.exists:
@@ -252,7 +255,8 @@ async def update_tool_impl(
     has_errors = False
     error_results: list[ToolResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_tool_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -274,7 +278,8 @@ async def update_tool_impl(
 
     results: list[ToolResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         # Create denormalized snapshot OUTSIDE transaction (skip when soft).
         tools_resource_id = None
         if not soft:
@@ -358,25 +363,27 @@ async def update_tool_impl(
     # ── Step 5: Refresh via canonical helper ────────────────────────────
 
     if not soft:
-        await refresh_tool_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].tool_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_tool_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].tool_id if results else None),
+            )
 
     # ── Step 6: Hydrate updated rows for the client's ghost rail ───────
     # Skip on soft writes — the dormant update isn't visible until the
     # ack-accept path promotes it.
     hydrated_tools: list | None = None
     if not soft:
-        updated_ids = [r.tool_id for r in results if r.tool_id is not None]
-        if updated_ids:
-            hydrated_tools = await hydrate_tool_list_rows(
-                pool, redis, profile_id=profile_id, tool_ids=updated_ids,
-            )
+        with timed("hydrate"):
+            updated_ids = [r.tool_id for r in results if r.tool_id is not None]
+            if updated_ids:
+                hydrated_tools = await hydrate_tool_list_rows(
+                    pool, redis, profile_id=profile_id, tool_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in one

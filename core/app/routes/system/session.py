@@ -71,6 +71,7 @@ async def get_session(
             response_model=GetSessionDetailResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,session"
         response.headers.setdefault("X-Cache-Hit", "0")

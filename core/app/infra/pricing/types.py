@@ -30,6 +30,7 @@ class PricingRequest(BaseModel):
     department_ids: list[UUID] = Field(default_factory=list, description="Department IDs to filter by")
     page_limit: int = Field(100, ge=1, le=500, description="Max chart items per page")
     page_offset: int = Field(0, ge=0, description="Chart pagination offset")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # History fields removed — paginated groups list fetched via /system/groups.
     # See ListPricingRequest below for the filter shape that endpoint accepts.
 

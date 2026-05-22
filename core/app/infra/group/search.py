@@ -20,6 +20,7 @@ from app.infra.group.types import (
     GroupListItem,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.groups.search import search_groups
 from app.utils.cache.big import (
     DEFAULT_BIG_CACHE_TTL_S,
@@ -90,7 +91,8 @@ async def _search_group_build(
     """
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -103,7 +105,8 @@ async def _search_group_build(
     # Scope to the user's session if provided
     session_ids = [session_id] if session_id else None
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         results = await search_groups(
             conn,
             redis, session_ids=session_ids,

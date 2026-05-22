@@ -23,6 +23,7 @@ from app.infra.simulation.permissions_context import (
     resolve_simulation_permissions_context,
 )
 from app.infra.simulation.refresh import refresh_simulation_impl
+from app.infra.server_timing import timed
 from app.infra.simulation.types import (
     DeleteSimulationApiResponse,
     DeleteSimulationResult,
@@ -185,12 +186,13 @@ async def delete_simulation_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -206,7 +208,8 @@ async def delete_simulation_impl(
     skipped_results: list[DeleteSimulationResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, simulation_id in enumerate(ids):
             ctx = await resolve_simulation_permissions_context(conn, simulation_id)
 
@@ -257,7 +260,8 @@ async def delete_simulation_impl(
     # ── Step 4: Fetch names for result messages ───────────────────────
 
     name_map: dict[UUID, str] = {}
-    async with pool.acquire() as conn:
+    with timed("hydrate_names"):
+      async with pool.acquire() as conn:
         artifacts = await get_simulations(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
@@ -269,7 +273,8 @@ async def delete_simulation_impl(
 
     # ── Step 5: Single transaction — bulk delete ──────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_simulations(conn, ids, soft=soft)
 
@@ -290,7 +295,8 @@ async def delete_simulation_impl(
 
     # ── Step 6: Canonical refresh ─────────────────────────────────────
 
-    await refresh_simulation_impl(
+    with timed("refresh"):
+      await refresh_simulation_impl(
         pool,
         redis,
         profile_id=profile_id,

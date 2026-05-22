@@ -34,6 +34,7 @@ class LeaderboardRequest(BaseModel):
     search: str | None = Field(None, description="Profile name search (ILIKE) for filter dropdowns")
     sort_by: str = Field(default="highest_score", description="Sort field name")
     sort_order: str = Field(default="desc", description="Sort direction (asc or desc)")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class ListLeaderboardRequest(BaseModel):

@@ -37,6 +37,7 @@ from app.infra.document.types import FileUploadDocumentApiResponse
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -71,17 +72,19 @@ async def file_upload_document_impl(
     the response; the ack arrives with ``idempotency_key`` set to that value.
     """
     # -- Profile context + permission (always) ----------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again.",
         )
-    if not has_permission(profile.role_permissions, "document", "file_upload"):
-        raise HTTPException(
-            status_code=403, detail="You don't have permission to upload document files.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, "document", "file_upload"):
+            raise HTTPException(
+                status_code=403, detail="You don't have permission to upload document files.",
+            )
 
     # ── Short-circuit: ack path (mirrors persona/create) ───────────────────────
     if accept is not None and idempotency_key is not None:
@@ -130,18 +133,20 @@ async def file_upload_document_impl(
         )
 
     # -- Write file to disk -----------------------------------------------------
-    upload_uuid = _uuid.uuid4()
-    _, ext = os.path.splitext(filename)
-    if not ext:
-        ext = ".bin"
-    file_path = f"{upload_uuid}{ext}"
-    full_path = UPLOAD_FOLDER / f"{upload_uuid}{ext}"
-    with open(full_path, "wb") as f:
-        f.write(file_bytes)
+    with timed("disk_write"):
+        upload_uuid = _uuid.uuid4()
+        _, ext = os.path.splitext(filename)
+        if not ext:
+            ext = ".bin"
+        file_path = f"{upload_uuid}{ext}"
+        full_path = UPLOAD_FOLDER / f"{upload_uuid}{ext}"
+        with open(full_path, "wb") as f:
+            f.write(file_bytes)
 
     # -- Create the canonical chain (dormant when soft) -------------------------
     session_uuid = session_id or UUID(int=0)
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
             redis, session_id=session_uuid,
@@ -183,6 +188,7 @@ async def file_upload_document_impl(
             )
 
     # -- Invalidate cache -------------------------------------------------------
-    await invalidate_tags(["uploads", "resources", "files"], redis=redis)
+    with timed("invalidate"):
+        await invalidate_tags(["uploads", "resources", "files"], redis=redis)
 
     return FileUploadDocumentApiResponse(file_id=resource.id, idempotency_key=call_id)

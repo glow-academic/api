@@ -27,6 +27,7 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.get import get_groups
 from app.tools.entries.invocation.get import get_invocations
@@ -63,6 +64,8 @@ class CreateInvocationApiRequest(BaseModel):
     temperature_level_ids: list[UUID] | None = None
     modality_ids: list[UUID] | None = None
 
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
+
 
 class CreateInvocationApiResponse(BaseModel):
     invocation_id: UUID = Field(..., description="UUID of the created test invocation")
@@ -78,9 +81,10 @@ async def create_invocation_impl(
     **_kwargs,
 ) -> CreateInvocationApiResponse:
     """Create a new test_invocation_entry bound to a test."""
-    identity = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        identity = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if not identity or not identity.profiles_id:
         raise HTTPException(status_code=401, detail="Profile context not found")
 
@@ -89,16 +93,18 @@ async def create_invocation_impl(
 
     # Canonical group resolve — same shape /attempt/chat/create uses.
     from app.infra.group.resolve import resolve_group_impl
-    group_result = await resolve_group_impl(
-        pool, redis,
-        artifact_type="test",
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type="test",
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         tests = await get_tests(conn, [request.test_id], redis)
         if not tests:
             raise HTTPException(status_code=404, detail=f"Test {request.test_id} not found")
@@ -234,9 +240,10 @@ async def create_invocation_impl(
             modality_ids=modality_ids,
         )
 
-    await refresh_invocation_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["test_invocation_mv"],
-    )
+    with timed("refresh"):
+        await refresh_invocation_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_invocation_mv"],
+        )
 
     return CreateInvocationApiResponse(invocation_id=result.id)

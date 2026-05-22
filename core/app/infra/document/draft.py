@@ -21,6 +21,7 @@ from app.infra.document.types import (
 )
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.document_drafts.create import create_document_draft
 from app.tools.entries.document_drafts.get import get_document_drafts
@@ -339,23 +340,25 @@ async def patch_document_draft_impl(
         if idempotency_key is not None and accept is None:
             accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit document drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit document drafts.",
+            )
 
     # ── Step 3: ACK short-circuit ──────────────────────────────────────
     if accept is not None and idempotency_key is not None:
@@ -434,14 +437,16 @@ async def patch_document_draft_impl(
     if draft_id is not None and request.input_draft_id is None:
         request.input_draft_id = draft_id
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request, session_id)
     if errors:
         raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
 
     operation_key = idempotency_key or uuid.uuid4()
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_document_draft(
                 conn,
@@ -525,16 +530,17 @@ async def patch_document_draft_impl(
             profile_ids=[profile.profiles_id],
         )
 
-    await refresh_document_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["document_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["document_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     response_idempotency_key = idempotency_key or result.id
 

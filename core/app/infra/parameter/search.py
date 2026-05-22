@@ -33,6 +33,7 @@ from app.infra.parameter.types import (
     ListParameterApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.artifacts.parameter.search import search_parameters
 from app.tools.resources.departments.search import search_departments
@@ -163,7 +164,8 @@ async def _search_parameter_build(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -178,7 +180,8 @@ async def _search_parameter_build(
     # -- Step 2: Search parameters --
     # The artifact search tool handles scenario_ids and field_ids filters internally
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         parameter_ids, total_count = await search_parameters(
             conn,
             search=search,
@@ -284,25 +287,26 @@ async def _search_parameter_build(
 
     perm_tasks = [_get_perm(a.id) for a in artifacts]
 
-    (
-        names_data,
-        descriptions_data,
-        parameter_fields_data,
-        scenario_facet,
-        field_facet,
-        department_facet,
-        flag_facet,
-        *perm_results,
-    ) = await asyncio.gather(
-        _get_names_data(),
-        _get_descriptions_data(),
-        _get_parameter_fields_data(),
-        _search_scenarios(),
-        _search_fields(),
-        _search_depts(),
-        _search_flags(),
-        *perm_tasks,
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            parameter_fields_data,
+            scenario_facet,
+            field_facet,
+            department_facet,
+            flag_facet,
+            *perm_results,
+        ) = await asyncio.gather(
+            _get_names_data(),
+            _get_descriptions_data(),
+            _get_parameter_fields_data(),
+            _search_scenarios(),
+            _search_fields(),
+            _search_depts(),
+            _search_flags(),
+            *perm_tasks,
+        )
 
     # Hydrate field names for sample_items
     all_fields_resource_ids = list({pf.field_id for pf in parameter_fields_data})
@@ -328,7 +332,8 @@ async def _search_parameter_build(
 
     parameters: list[ListParameterApiParameter] = []
 
-    for i, a in enumerate(artifacts):
+    with timed("build"):
+     for i, a in enumerate(artifacts):
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

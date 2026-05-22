@@ -67,6 +67,7 @@ async def get_dashboard(
             response_model=DashboardBundleResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=dashboard_request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,dashboard,views,analytics"
         response.headers.setdefault("X-Cache-Hit", "0")

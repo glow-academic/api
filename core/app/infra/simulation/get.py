@@ -43,6 +43,7 @@ from app.infra.simulation.types import (
     SimulationScenarioTimeLimit,
 )
 from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 from app.tools.resources.flags.search import search_flags
 
 SECTIONS = (
@@ -234,14 +235,15 @@ async def get_simulation_impl(
     for section in SECTIONS:
         effective_filters.setdefault(section, None)
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -249,19 +251,21 @@ async def get_simulation_impl(
         )
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="simulation",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="simulation",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if sim_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_simulation_permissions_context(conn, sim_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_simulation_permissions_context(conn, sim_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -277,7 +281,8 @@ async def get_simulation_impl(
                 detail="You don't have access to this simulation. It may be restricted to other departments.",
             )
 
-    simulation = await resolve_simulation_context(
+    with timed("simulation_ctx"):
+     simulation = await resolve_simulation_context(
         pool,
         redis,
         simulation_id=sim_id,
@@ -542,7 +547,8 @@ async def get_simulation_impl(
     names_has_tools = scores.has_any.get("names", False)
     basic_show_ai_generate = bool(can_ai_generate and names_has_tools)
 
-    return GetSimulationApiResponse(
+    with timed("build"):
+     return GetSimulationApiResponse(
         actor_name=profile.name,
         simulation_exists=simulation.artifact_id is not None,
         can_edit=can_edit,

@@ -95,6 +95,7 @@ class GetSessionDetailRequest(BaseModel):
     """Request for session detail endpoint."""
 
     session_id: UUID = Field(..., description="UUID of the session to fetch")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetSessionDetailResponse(BaseModel):

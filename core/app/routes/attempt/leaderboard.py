@@ -68,6 +68,7 @@ async def get_leaderboard(
             response_model=LeaderboardResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,leaderboard"
         response.headers.setdefault("X-Cache-Hit", "0")

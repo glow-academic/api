@@ -24,6 +24,7 @@ from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.infra.activate.activate import activate_rows
+from app.infra.server_timing import timed
 
 
 class ParseDocumentCsvApiResponse(BaseModel):
@@ -138,15 +139,17 @@ async def parse_document_csv_impl(
             status_code=400,
             detail="A CSV file is required (or pass `idempotency_key` + `accept` for the ack call).",
         )
-    upload_uuid = uuid_mod.uuid4()
-    ext = os.path.splitext(file_name)[1] or ".csv"
-    relative_path = f"{upload_uuid}{ext}"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(file_bytes)
+    with timed("disk_write"):
+        upload_uuid = uuid_mod.uuid4()
+        ext = os.path.splitext(file_name)[1] or ".csv"
+        relative_path = f"{upload_uuid}{ext}"
+        disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        with open(disk_path, "wb") as f:
+            f.write(file_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         upload_result = await create_upload(
             conn,
             redis,
@@ -157,9 +160,10 @@ async def parse_document_csv_impl(
             soft=soft,
         )
 
-    content = file_bytes.decode("utf-8-sig")
-    reader = csv.reader(io.StringIO(content))
-    all_rows = list(reader)
+    with timed("parse"):
+        content = file_bytes.decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(content))
+        all_rows = list(reader)
 
     if len(all_rows) < 2:
         raise CsvParseError("CSV must have a header row and at least one data row")

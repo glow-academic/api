@@ -19,6 +19,7 @@ from app.infra.common_context import resolve_common_context
 from app.infra.globals import get_redis_client
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.session.context import resolve_session_context
+from app.infra.server_timing import timed
 from app.infra.session.types import (
     ArtifactSessionGroup,
     GetSessionDetailResponse,
@@ -60,24 +61,26 @@ async def get_session_impl(
 
     # Resolve common/profile context first so session queries can use the
     # canonical profiles_resource id expected by sessions_mv.
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("permissions"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            bypass_cache=bypass_cache,
+        )
 
     session_profile_id = (
         common.profile.profiles_id if common is not None else profile_id
     )
 
-    ctx = await resolve_session_context(
-        pool,
-        redis,
-        session_id=session_id,
-        profile_id=session_profile_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("resolve_session"):
+        ctx = await resolve_session_context(
+            pool,
+            redis,
+            session_id=session_id,
+            profile_id=session_profile_id,
+            bypass_cache=bypass_cache,
+        )
 
     # Extract domain entries from session context
     session = ctx.entries.get("session")
@@ -152,11 +155,12 @@ async def get_session_impl(
             async with pool.acquire() as c:
                 return await get_tools(c, all_tool_ids, redis, bypass_cache)
 
-        config_systems, config_agents, config_tools = await asyncio.gather(
-            _fetch_systems(),
-            _fetch_agents(),
-            _fetch_tools_config(),
-        )
+        with timed("hydrate"):
+            config_systems, config_agents, config_tools = await asyncio.gather(
+                _fetch_systems(),
+                _fetch_agents(),
+                _fetch_tools_config(),
+            )
 
         # Walk agent → model → provider chain
         model_ids = list(dict.fromkeys(a.model_id for a in config_agents if a.model_id))
@@ -276,7 +280,8 @@ async def get_session_detail_impl(
             )
         )
 
-    timeline = _build_timeline(data)
+    with timed("build"):
+        timeline = _build_timeline(data)
 
     return GetSessionDetailResponse(
         actor_name=data.actor_name,

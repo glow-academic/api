@@ -76,6 +76,7 @@ async def chat_get(
             response_model=GetChatResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
     except HTTPException:
         raise

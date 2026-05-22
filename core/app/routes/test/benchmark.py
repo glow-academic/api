@@ -65,6 +65,7 @@ async def get_benchmark(
             response_model=BenchmarkResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
 
         response.headers["X-Cache-Tags"] = ",".join(tags)

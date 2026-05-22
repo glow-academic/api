@@ -33,6 +33,7 @@ from app.infra.document.types import (
     ListDocumentApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.document.get import get_documents
 from app.tools.artifacts.document.search import search_documents
 from app.tools.resources.departments.search import search_departments
@@ -181,7 +182,8 @@ async def _search_document_build(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -196,7 +198,8 @@ async def _search_document_build(
     # -- Step 2: Search documents --
     # The artifact search tool handles scenario_ids and field_ids filters internally
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         document_ids, total_count = await search_documents(
             conn,
             search=search,
@@ -323,27 +326,28 @@ async def _search_document_build(
 
     perm_tasks = [_fetch_perm(a.id) for a in artifacts]
 
-    (
-        names_data,
-        uploads_data,
-        flag_rows_data,
-        extension_map,
-        scenario_facet,
-        field_facet,
-        department_facet,
-        flag_facet,
-        *perm_results,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_uploads(),
-        _fetch_flag_rows(),
-        _fetch_file_extensions(),
-        _fetch_scenario_facet(),
-        _fetch_field_facet(),
-        _fetch_department_facet(),
-        _fetch_flag_facet(),
-        *perm_tasks,
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            uploads_data,
+            flag_rows_data,
+            extension_map,
+            scenario_facet,
+            field_facet,
+            department_facet,
+            flag_facet,
+            *perm_results,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_uploads(),
+            _fetch_flag_rows(),
+            _fetch_file_extensions(),
+            _fetch_scenario_facet(),
+            _fetch_field_facet(),
+            _fetch_department_facet(),
+            _fetch_flag_facet(),
+            *perm_tasks,
+        )
 
     # Build flag lookup: id -> (type, value) so we can derive booleans per-row
     flag_meta_map: dict[UUID, tuple[str | None, bool | None]] = {
@@ -365,7 +369,8 @@ async def _search_document_build(
 
     documents: list[ListDocumentApiDocument] = []
 
-    for i, a in enumerate(artifacts):
+    with timed("build"):
+     for i, a in enumerate(artifacts):
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
 
         dept_ids_str = [str(d) for d in (a.department_ids or [])]

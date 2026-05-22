@@ -21,6 +21,7 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.permissions import compute_can_draft
 from app.infra.simulation.refresh import refresh_simulation_impl
+from app.infra.server_timing import timed
 from app.infra.simulation.types import (
     DraftScenarioFlagDenormValue,
     PatchSimulationDraftApiRequest,
@@ -356,12 +357,13 @@ async def patch_simulation_draft_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -371,14 +373,15 @@ async def patch_simulation_draft_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit simulation drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit simulation drafts.",
+            )
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
@@ -491,7 +494,8 @@ async def patch_simulation_draft_impl(
 
     # ── Step 3: Value resolution (creatable only) ──────────────────────
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -500,7 +504,8 @@ async def patch_simulation_draft_impl(
 
     # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_simulation_draft(
                 conn,
@@ -547,16 +552,17 @@ async def patch_simulation_draft_impl(
 
     # ── Step 5: Canonical refresh ──────────────────────────────────────
 
-    await refresh_simulation_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["simulation_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["simulation_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     # ── Step 6: Build form state (server is source of truth) ──────────
 

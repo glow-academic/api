@@ -40,6 +40,7 @@ class TestRunEndPayload(BaseModel):
     success: bool = True
     error: bool = False
     message: str = ""
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 class TestRunEndResponse(BaseModel):
@@ -122,6 +123,7 @@ async def terminate_invocation(
             runner=_runner,
             arguments=build_audit_arguments(request.model_dump(mode="json")),
             response_model=TestRunEndResponse,
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

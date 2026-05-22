@@ -28,6 +28,7 @@ from app.infra.parameter.types import (
     UpdateParameterApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.get import get_parameters as get_parameter_artifacts
 from app.tools.artifacts.parameter.update import (
     _UNSET,
@@ -154,13 +155,14 @@ async def update_parameter_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-        await refresh_parameter_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key,
-        )
+        with timed("refresh"):
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
 
         return UpdateParameterApiResponse(
             results=[
@@ -236,7 +238,8 @@ async def update_parameter_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
+    with timed("profile"):
+     profile = await resolve_profile_identity_context(
         pool,
         profile_id,
         redis,
@@ -256,7 +259,8 @@ async def update_parameter_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_parameter_permissions_context(conn, item.id)
             if not perms.exists:
@@ -302,7 +306,8 @@ async def update_parameter_impl(
     has_errors = False
     error_results: list[ParameterResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_parameter_values(
                 conn, redis, item, is_create=False
@@ -331,7 +336,8 @@ async def update_parameter_impl(
 
     results: list[ParameterResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         # Create denormalized snapshot only for the live path.
         parameters_resource_id = None
         if not soft:
@@ -388,14 +394,15 @@ async def update_parameter_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_parameter_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (results[0].parameter_id if results else None),
-    )
+    with timed("refresh"):
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].parameter_id if results else None),
+        )
 
     # ── Step 6: Hydrate list rows (skip soft) ─────────────────────────
     # Returns rows in the same shape as ``/parameter/search`` so the
@@ -403,13 +410,14 @@ async def update_parameter_impl(
     # audit ``.completed`` payload — no follow-up search burst.
     hydrated_rows = None
     if not soft:
-        updated_ids = [r.parameter_id for r in results if r.success and r.parameter_id]
-        if updated_ids:
-            hydrated_rows = await hydrate_parameter_list_rows(
-                pool, redis,
-                profile_id=profile_id,
-                parameter_ids=updated_ids,
-            )
+        with timed("hydrate"):
+            updated_ids = [r.parameter_id for r in results if r.success and r.parameter_id]
+            if updated_ids:
+                hydrated_rows = await hydrate_parameter_list_rows(
+                    pool, redis,
+                    profile_id=profile_id,
+                    parameter_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

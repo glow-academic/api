@@ -36,7 +36,7 @@ class ExportHomeApiResponse(BaseModel):
 class GetHomeRequest(BaseModel):
     """Request for home get endpoint — simulation cards only."""
 
-    pass
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetHomeResponse(BaseModel):

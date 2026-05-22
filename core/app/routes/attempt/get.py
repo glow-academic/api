@@ -74,6 +74,7 @@ async def attempt_get(
             response_model=GetAttemptDetailResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
         cache_hit = cache_hit_holder["value"]
 

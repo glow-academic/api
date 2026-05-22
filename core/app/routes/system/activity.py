@@ -65,6 +65,7 @@ async def get_activity(
             response_model=ActivityResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,activity"
         response.headers.setdefault("X-Cache-Hit", "0")

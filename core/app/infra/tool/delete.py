@@ -21,6 +21,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.tool.permissions import compute_can_delete
 from app.infra.tool.permissions_context import resolve_tool_permissions_context
 from app.infra.tool.refresh import refresh_tool_impl
+from app.infra.server_timing import timed
 from app.infra.tool.types import (
     DeleteToolApiResponse,
     DeleteToolResult,
@@ -181,12 +182,13 @@ async def delete_tool_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -202,7 +204,8 @@ async def delete_tool_impl(
     skipped_results: list[DeleteToolResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, tool_id in enumerate(ids):
             ctx = await resolve_tool_permissions_context(conn, tool_id)
 
@@ -246,7 +249,8 @@ async def delete_tool_impl(
 
     # -- Step 4: Fetch names for result messages -------------------------------
 
-    async with pool.acquire() as conn:
+    with timed("hydrate_names"):
+      async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
         artifacts = await get_tools(conn, ids, names=True)
         for artifact in artifacts:
@@ -259,7 +263,8 @@ async def delete_tool_impl(
 
     # -- Step 5: Single transaction -- bulk delete -----------------------------
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_tools(conn, ids, soft=soft)
 
@@ -280,14 +285,15 @@ async def delete_tool_impl(
 
     # -- Step 6: Canonical refresh ---------------------------------------------
 
-    await refresh_tool_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_tool_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     results = [
         DeleteToolResult(

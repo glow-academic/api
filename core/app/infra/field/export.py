@@ -24,6 +24,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.infra.refresh.queue import enqueue_refreshes
@@ -81,7 +82,8 @@ async def export_field_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -126,9 +128,10 @@ async def export_field_impl(
 
     # ── Step 2: Search all fields (full dump) ────────────────────────
 
-    if field_id:
+    with timed("query"):
+     if field_id:
         field_ids = [field_id]
-    else:
+     else:
         async with pool.acquire() as conn:
             field_ids, _total_count = await search_fields(
                 conn,
@@ -140,7 +143,8 @@ async def export_field_impl(
 
     # ── Step 3: Get field artifacts with all junction IDs ────────────
 
-    artifacts = await get_fields(
+    with timed("hydrate"):
+     artifacts = await get_fields(
         pool,
         field_ids,
         names=True,
@@ -217,11 +221,12 @@ async def export_field_impl(
 
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("build_csv"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+     for a in artifacts:
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
             description_map.get(a.description_ids[0], "") if a.description_ids else ""
@@ -248,17 +253,18 @@ async def export_field_impl(
     csv_content = output.getvalue()
     row_count = len(artifacts)
 
-    csv_bytes = csv_content.encode("utf-8")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"fields_export_{timestamp}.csv"
-    upload_uuid = uuid_mod.uuid4()
-    relative_path = f"{upload_uuid}.csv"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(csv_bytes)
+    with timed("upload"):
+     csv_bytes = csv_content.encode("utf-8")
+     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+     file_name = f"fields_export_{timestamp}.csv"
+     upload_uuid = uuid_mod.uuid4()
+     relative_path = f"{upload_uuid}.csv"
+     disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+     with open(disk_path, "wb") as f:
+         f.write(csv_bytes)
 
-    async with pool.acquire() as conn:
+     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
             redis, session_id=session_id,
@@ -302,10 +308,11 @@ async def export_field_impl(
                     },
                 )
 
-    await enqueue_refreshes(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        artifact_type="file", targets=["files_mv"], tags=["files"],
-    )
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportFieldApiResponse(
         file_id=resource_row.id,

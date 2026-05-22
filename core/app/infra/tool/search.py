@@ -32,6 +32,7 @@ from app.infra.tool.types import (
 )
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
+from app.infra.server_timing import timed
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.get import get_descriptions
@@ -135,7 +136,8 @@ async def _search_tool_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -157,7 +159,8 @@ async def _search_tool_build(
 
     # ── Step 3: Search tools ────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         tool_ids_list, total_count = await search_tools(
             conn,
             search=search,
@@ -268,13 +271,14 @@ async def _search_tool_build(
         # would be cluttered with agents that have nothing to filter against.
         return [a for a in agent_rows if getattr(a, "tool_ids", None)]
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         department_facet,
         flag_facet,
         agent_facet,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_department_facet(),
@@ -290,7 +294,8 @@ async def _search_tool_build(
 
     tools_list: list[ListToolApiTool] = []
 
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

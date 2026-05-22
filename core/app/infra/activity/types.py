@@ -19,6 +19,7 @@ class ActivityRequest(BaseModel):
     page_limit: int = Field(50, ge=1, le=200, description="Max summary items per page")
     page_offset: int = Field(0, ge=0, description="Summary pagination offset")
     summary_profile_id: UUID | None = Field(None, description="Profile ID to focus the summary card")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # History fields removed — paginated sessions list fetched via /system/sessions.
     # See ListActivityRequest below for the filter shape that endpoint accepts.
 
@@ -154,6 +155,7 @@ class ResolveProblemApiRequest(BaseModel):
 
     problem_id: UUID = Field(..., description="ID of the problem to resolve")
     resolved: bool = Field(True, description="Whether the problem is resolved")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 class ResolveProblemApiResponse(BaseModel):

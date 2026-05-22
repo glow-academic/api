@@ -27,6 +27,7 @@ from app.infra.docs.types import (
 )
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 # Artifact tool docs
 from app.tools.artifacts.model.docs import get_model_docs
@@ -138,7 +139,8 @@ async def _page_context_model_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -247,41 +249,42 @@ async def _page_context_model_build(
             return None
         return await _resolve_entity_name(pool, redis, entity_id)
 
-    (
-        artifact,
-        drafts,
-        names,
-        descriptions,
-        departments,
-        flags,
-        modalities,
-        pricing,
-        providers,
-        qualities,
-        reasoning_levels,
-        temperature_levels,
-        values,
-        voices,
-        entity_perms,
-        entity_name,
-    ) = await asyncio.gather(
-        _get_model_docs(),
-        _get_model_drafts_docs(),
-        _get_names_docs(),
-        _get_descriptions_docs(),
-        _get_departments_docs(),
-        _get_flags_docs(),
-        _get_modalities_docs(),
-        _get_pricing_docs(),
-        _get_providers_docs(),
-        _get_qualities_docs(),
-        _get_reasoning_levels_docs(),
-        _get_temperature_levels_docs(),
-        _get_values_docs(),
-        _get_voices_docs(),
-        _get_entity_perms(),
-        _get_entity_name(),
-    )
+    with timed("docs"):
+        (
+            artifact,
+            drafts,
+            names,
+            descriptions,
+            departments,
+            flags,
+            modalities,
+            pricing,
+            providers,
+            qualities,
+            reasoning_levels,
+            temperature_levels,
+            values,
+            voices,
+            entity_perms,
+            entity_name,
+        ) = await asyncio.gather(
+            _get_model_docs(),
+            _get_model_drafts_docs(),
+            _get_names_docs(),
+            _get_descriptions_docs(),
+            _get_departments_docs(),
+            _get_flags_docs(),
+            _get_modalities_docs(),
+            _get_pricing_docs(),
+            _get_providers_docs(),
+            _get_qualities_docs(),
+            _get_reasoning_levels_docs(),
+            _get_temperature_levels_docs(),
+            _get_values_docs(),
+            _get_voices_docs(),
+            _get_entity_perms(),
+            _get_entity_name(),
+        )
 
     # -- Step 3: Page metadata --------------------------------------------------
 
@@ -344,7 +347,8 @@ async def _page_context_model_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("profile_summary"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 

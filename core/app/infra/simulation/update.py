@@ -24,6 +24,7 @@ from app.infra.simulation.permissions_context import (
     resolve_simulation_values,
 )
 from app.infra.simulation.refresh import refresh_simulation_impl
+from app.infra.server_timing import timed
 from app.infra.simulation.types import (
     UpdateSimulationApiRequest,
     UpdateSimulationApiResponse,
@@ -238,12 +239,13 @@ async def update_simulation_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -258,7 +260,8 @@ async def update_simulation_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_simulation_permissions_context(
                 conn, item.id
@@ -306,7 +309,8 @@ async def update_simulation_impl(
     has_errors = False
     error_results: list[SimulationResultItem] = []
 
-    for idx, item in enumerate(items):
+    with timed("resolve_values"):
+     for idx, item in enumerate(items):
         item_errors = await resolve_simulation_values(
             pool, redis, item, is_create=False
         )
@@ -334,7 +338,8 @@ async def update_simulation_impl(
 
     results: list[SimulationResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         # Create denormalized snapshot outside the transaction unless soft=True.
         simulations_resource_id = None
         if not soft:
@@ -415,14 +420,15 @@ async def update_simulation_impl(
 
     # ── Step 6: Canonical refresh ──────────────────────────────────────
 
-    await refresh_simulation_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (results[0].simulation_id if results else None),
-    )
+    with timed("refresh"):
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].simulation_id if results else None),
+        )
 
     # All-matching path threads soft-skipped rows back into the response
     # so the client can surface "X updated, Y skipped" in one toast.

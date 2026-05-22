@@ -18,6 +18,7 @@ from app.infra.invocation.types import (
 )
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.invocation_drafts.create import create_invocation_draft
 from app.tools.entries.invocation_drafts.get import get_invocation_drafts
 from app.tools.resources.descriptions.create import create_description
@@ -183,12 +184,13 @@ async def patch_invocation_draft_impl(
     if accept is None and request.idempotency_key is not None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -258,7 +260,8 @@ async def patch_invocation_draft_impl(
             form_state=DraftFormState(),
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
@@ -266,7 +269,8 @@ async def patch_invocation_draft_impl(
             detail=[error.model_dump() for error in errors],
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_invocation_draft(
                 conn,
@@ -294,16 +298,17 @@ async def patch_invocation_draft_impl(
                 pending_ids=set(request.pending_ids or []),
             )
 
-    await refresh_invocation_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["invocation_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=result.id,
-    )
+    with timed("refresh"):
+        await refresh_invocation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["invocation_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=result.id,
+        )
 
     # Derive the denormalized (model_id, type, value) echo for the form
     # state so the client can reconcile its Switch state without re-fetching.

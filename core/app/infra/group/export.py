@@ -23,6 +23,7 @@ from redis.asyncio import Redis
 
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.groups.get import get_groups
 from app.tools.entries.runs.search import search_runs
 from app.tools.resources.names.get import get_names
@@ -64,7 +65,8 @@ async def export_group_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -74,7 +76,8 @@ async def export_group_impl(
 
     # -- Step 2: Get group metadata --
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         groups = await get_groups(conn, [group_id], redis)
 
     if not groups:
@@ -115,9 +118,10 @@ async def export_group_impl(
     # -- Step 6: Generate ZIP (groups.csv + runs.csv) + upload --
 
     # Generate groups CSV
-    groups_output = io.StringIO()
-    groups_writer = csv.writer(groups_output)
-    groups_writer.writerow(GROUP_CSV_COLUMNS)
+    with timed("build"):
+     groups_output = io.StringIO()
+     groups_writer = csv.writer(groups_output)
+     groups_writer.writerow(GROUP_CSV_COLUMNS)
 
     for g in groups:
         groups_writer.writerow(

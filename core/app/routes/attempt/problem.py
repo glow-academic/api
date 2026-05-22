@@ -58,6 +58,7 @@ async def problem_attempt(
             group_id=group_id, operation="problem", arguments=request.model_dump(mode="json"),
             response_model=ProblemAttemptApiResponse, runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

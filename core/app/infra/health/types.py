@@ -20,6 +20,7 @@ class HealthRequest(BaseModel):
     date_to: datetime | None = Field(default=None, description="End date filter")
     page_limit: int = Field(default=168, ge=1, le=744, description="Maximum items per page")
     page_offset: int = Field(default=0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class HealthViews(BaseModel):

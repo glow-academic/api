@@ -60,6 +60,7 @@ async def get_test_context(
         response_model=ComposedContextResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=body.snapshot_key,  # read snapshot
     )
 
     response.headers["X-Cache-Tags"] = "tests"

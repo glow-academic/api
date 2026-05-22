@@ -28,6 +28,7 @@ from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
 from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
+from app.infra.server_timing import timed
 from app.tools.resources.files.create import create_file as create_file_resource
 from app.infra.activate.activate import activate_rows
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -78,7 +79,8 @@ async def export_setting_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -137,7 +139,8 @@ async def export_setting_impl(
 
     # -- Step 3: Get setting artifacts with all junction IDs --
 
-    artifacts = await get_settings(
+    with timed("query"):
+     artifacts = await get_settings(
         pool,
         setting_ids,
         names=True,
@@ -180,12 +183,13 @@ async def export_setting_impl(
             return []
         return await get_colors(pool, all_color_ids, redis)
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         departments_data,
         colors_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_departments(),
@@ -200,11 +204,12 @@ async def export_setting_impl(
 
     # -- Step 5: Generate CSV + upload --
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("render"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+     for a in artifacts:
         # Single-select: first resource value
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
@@ -234,17 +239,19 @@ async def export_setting_impl(
     csv_content = output.getvalue()
     row_count = len(artifacts)
 
-    csv_bytes = csv_content.encode("utf-8")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"settings_export_{timestamp}.csv"
-    upload_uuid = uuid_mod.uuid4()
-    relative_path = f"{upload_uuid}.csv"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
+    with timed("upload_save"):
+     csv_bytes = csv_content.encode("utf-8")
+     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+     file_name = f"settings_export_{timestamp}.csv"
+     upload_uuid = uuid_mod.uuid4()
+     relative_path = f"{upload_uuid}.csv"
+     disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+     with open(disk_path, "wb") as f:
         f.write(csv_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_insert"):
+     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
             redis, session_id=session_id,
@@ -288,10 +295,11 @@ async def export_setting_impl(
                     },
                 )
 
-    await enqueue_refreshes(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        artifact_type="file", targets=["files_mv"], tags=["files"],
-    )
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportSettingApiResponse(
         file_id=resource_row.id,

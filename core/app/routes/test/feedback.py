@@ -26,6 +26,7 @@ class CreateFeedbackApiRequest(BaseModel):
     score: int = Field(0, description="Score for this criterion (1-5)")
     feedback: str = Field("", description="Feedback text")
     run_id: UUID | None = Field(None, description="Run ID for audit linkage")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 @router.post("/feedback")
@@ -77,6 +78,7 @@ async def create_feedback(
             arguments=request.model_dump(mode="json"),
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "test,tests,feedbacks"

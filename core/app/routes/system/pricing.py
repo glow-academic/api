@@ -89,6 +89,7 @@ async def get_pricing(
             response_model=PricingResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
 
         await set_cached(

@@ -58,6 +58,7 @@ async def generations_attempt(
             group_id=group_id, operation="generations", arguments=request.model_dump(mode="json"),
             response_model=GenerationsAttemptApiResponse, runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)
