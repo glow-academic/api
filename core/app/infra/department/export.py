@@ -202,6 +202,7 @@ async def export_department_impl(
         if session_id is not None:
             entry_row = await create_file_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 files_id=resource_row.id,
             )
