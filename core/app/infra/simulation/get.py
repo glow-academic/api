@@ -17,7 +17,6 @@ from app.infra.simulation.context import (
     resolve_simulation_context,
 )
 from app.infra.simulation.permissions import (
-    SIMULATION_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -42,7 +41,6 @@ from app.infra.simulation.types import (
     SimulationScenarioRubric,
     SimulationScenarioTimeLimit,
 )
-from app.infra.tool_graph import score_tools
 from app.infra.server_timing import timed
 from app.tools.resources.flags.search import search_flags
 
@@ -295,7 +293,6 @@ async def get_simulation_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, SIMULATION_RESOURCES)
     profile = common.profile
 
     simulation_department_ids = [
@@ -544,8 +541,10 @@ async def get_simulation_impl(
                     )
                 )
 
-    names_has_tools = scores.has_any.get("names", False)
-    basic_show_ai_generate = bool(can_ai_generate and names_has_tools)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and agent dispatch happens server-side in
+    # ``prepare_generation``.
+    basic_show_ai_generate = bool(can_ai_generate)
 
     with timed("build"):
      return GetSimulationApiResponse(

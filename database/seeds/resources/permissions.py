@@ -329,6 +329,12 @@ permissions = [    dict(
         name="Benchmark Get Test",
     ),
     dict(
+        id=sid("permission/test/complete"),
+        artifact="test",
+        operation="complete",
+        name="Complete Test",
+    ),
+    dict(
         id=sid("permission/cohort/context"),
         artifact="cohort",
         operation="context",
@@ -2697,6 +2703,7 @@ PERMISSION_IDS = {
     ("test", "problem"): sid("permission/test/problem"),
     ("test", "refresh"): sid("permission/test/refresh"),
     ("test", "search"): sid("permission/test/search"),
+    ("test", "complete"): sid("permission/test/complete"),
     ("test", "start"): sid("permission/test/start"),
     ("test", "stop"): sid("permission/test/stop"),
     ("test", "text_download"): sid("permission/test/text_download"),

@@ -10,9 +10,6 @@ from redis.asyncio import Redis
 
 from app.infra.agent.context import resolve_agent_context
 from app.infra.agent.permissions import (
-    AGENT_BASIC_RESOURCES,
-    AGENT_GENERAL_RESOURCES,
-    AGENT_RESOURCES,
     compute_can_edit,
     compute_disabled_reason,
     get_missing_tools,
@@ -40,7 +37,6 @@ from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",
@@ -212,7 +208,6 @@ async def get_agent_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, AGENT_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -222,11 +217,14 @@ async def get_agent_impl(
         actor.department_ids,
         perms.department_ids if perms else [],
     )
+    # Tool-graph scoring decoration is dead weight — client always
+    # shows "AI generate" and dispatch happens server-side. Pass True
+    # for every "has tools" flag so missing_tools is always empty.
     missing_tools = get_missing_tools(
-        names_has_tools=scores.has_any.get("names", False),
-        models_has_tools=scores.has_any.get("models", False),
-        prompts_has_tools=scores.has_any.get("prompts", False),
-        instructions_has_tools=scores.has_any.get("instructions", False),
+        names_has_tools=True,
+        models_has_tools=True,
+        prompts_has_tools=True,
+        instructions_has_tools=True,
     )
     can_edit = compute_can_edit(
         role_level=actor.role_level,
@@ -287,9 +285,9 @@ async def get_agent_impl(
         disabled_reason=disabled_reason,
         group_id=effective_group_id,
         agent_id=agent_ctx.artifact_id,
-        show_ai_generate=any(scores.has_any.get(resource, False) for resource in AGENT_GENERAL_RESOURCES),
-        basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in AGENT_BASIC_RESOURCES),
-        general_show_ai_generate=any(scores.has_any.get(resource, False) for resource in AGENT_GENERAL_RESOURCES),
+        show_ai_generate=True,
+        basic_show_ai_generate=True,
+        general_show_ai_generate=True,
         pending_ids=sorted(pending_ids) or None,
         names=_filter_items(
             [AgentNameResource(**item) for item in _decorate(names_items, agent_ctx.resources["names"].selected, agent_ctx.resources["names"].suggestions, pending_ids)],

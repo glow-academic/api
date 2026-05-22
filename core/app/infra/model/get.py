@@ -13,10 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.model.context import resolve_model_context
 from app.infra.model.permissions import (
-    MODEL_BASIC_RESOURCES,
-    MODEL_FEATURES_RESOURCES,
-    MODEL_PROVIDER_RESOURCES,
-    MODEL_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -64,7 +60,6 @@ from app.infra.model.types import (
     SectionFilter,
 )
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",
@@ -207,7 +202,6 @@ async def get_model_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, MODEL_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -235,9 +229,9 @@ async def get_model_impl(
         raise HTTPException(status_code=400, detail="No accessible departments found for user")
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
-        "values": compute_show_value(scores.has_any.get("values", False)),
+        "values": compute_show_value(True),
         "providers": compute_show_provider(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -263,9 +257,9 @@ async def get_model_impl(
         "voices": compute_voices_required(),
     }
 
-    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_BASIC_RESOURCES)
-    provider_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_PROVIDER_RESOURCES)
-    features_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_FEATURES_RESOURCES)
+    basic_show_ai_generate = True
+    provider_show_ai_generate = True
+    features_show_ai_generate = True
 
     names_selected = model_ctx.resources["names"].selected
     names_suggestions = model_ctx.resources["names"].suggestions

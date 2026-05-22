@@ -11,8 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.department.context import resolve_department_context
 from app.infra.department.permissions import (
-    DEPARTMENT_BASIC_RESOURCES,
-    DEPARTMENT_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_description_required,
@@ -40,7 +38,6 @@ from app.infra.department.types import (
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "settings"]
 
@@ -161,7 +158,9 @@ async def get_department_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, DEPARTMENT_RESOURCES)
+    # Tool-graph scoring decoration is dead weight — the client always
+    # shows "AI generate" regardless and agent dispatch happens
+    # server-side in ``prepare_generation``.
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -217,7 +216,7 @@ async def get_department_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "settings": compute_show_settings(len(all_settings)),
@@ -297,11 +296,11 @@ async def get_department_impl(
     basic_show_ai_generate = compute_can_draft(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in DEPARTMENT_BASIC_RESOURCES)
+    )
     show_ai_generate = compute_can_draft(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in DEPARTMENT_RESOURCES)
+    )
 
     with timed("build"):
      return GetDepartmentApiResponse(

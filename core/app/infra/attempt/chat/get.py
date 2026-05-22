@@ -9,12 +9,10 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.chat.context import resolve_chat_context
-from app.infra.attempt.chat.permissions import CHAT_BUNDLE_RESOURCES
 from app.infra.attempt.chat.sections import build_chat_get_result
 from app.infra.attempt.chat.types import GetChatRequest, GetChatResponse, SectionFilter
 from app.infra.common_context import resolve_common_context
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",
@@ -140,12 +138,10 @@ async def get_chat_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, CHAT_BUNDLE_RESOURCES)
     with timed("build"):
      return build_chat_get_result(
         common=common,
         context=context,
-        scores=scores,
         chat_entry_id=chat_entry_id,
         attempt_id=attempt_id,
         include={s: _sf(f, s, "include") is not False for s in SECTIONS},

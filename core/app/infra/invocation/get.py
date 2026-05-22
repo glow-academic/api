@@ -30,8 +30,6 @@ from app.infra.invocation.types import (
     InvocationVoiceResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
-
 INVOCATION_BUNDLE_RESOURCES: set[str] = {
     "names",
     "descriptions",
@@ -199,7 +197,6 @@ async def get_invocation_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, INVOCATION_BUNDLE_RESOURCES)
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
@@ -425,7 +422,7 @@ async def get_invocation_impl(
         can_edit=True,
         disabled_reason=None,
         group_id=group_id,
-        show_ai_generate=any(scores.best.get(section) is not None for section in SECTIONS),
+        show_ai_generate=True,
         pending_ids=sorted(pending_ids) if pending_ids else [],
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
         descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,

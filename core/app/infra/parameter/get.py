@@ -13,9 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.parameter.context import resolve_parameter_context
 from app.infra.parameter.permissions import (
-    PARAMETER_BASIC_RESOURCES,
-    PARAMETER_FIELDS_RESOURCES,
-    PARAMETER_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -34,7 +31,6 @@ from app.infra.parameter.types import (
     SectionFilter,
 )
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "parameter_fields"]
 
@@ -174,7 +170,6 @@ async def get_parameter_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, PARAMETER_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -198,12 +193,8 @@ async def get_parameter_impl(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
     )
-    basic_show_ai_generate = can_draft and any(
-        scores.has_any.get(resource, False) for resource in PARAMETER_BASIC_RESOURCES
-    )
-    fields_step_show_ai_generate = can_draft and any(
-        scores.has_any.get(resource, False) for resource in PARAMETER_FIELDS_RESOURCES
-    )
+    basic_show_ai_generate = can_draft
+    fields_step_show_ai_generate = can_draft
 
     pending_ids: set[UUID] = parameter.entries.get("pending_ids", set())
 

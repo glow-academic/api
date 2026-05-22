@@ -26,7 +26,6 @@ from app.infra.session.types import (
     SessionInternalData,
     SessionTimelineItem,
 )
-from app.infra.tool_graph import score_tools
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.get import get_providers
@@ -35,10 +34,6 @@ from app.tools.resources.tools.get import get_tools
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
-
-# Session entry types for tool scoring
-SESSION_BUNDLE_ENTRIES: set[str] = {"problems"}
-
 
 # =============================================================================
 # Layer 1: Core data fetcher (context resolver → pure Python assembly)
@@ -120,15 +115,11 @@ async def get_session_impl(
     resource_system_ids: dict[str, UUID | None] = {}
 
     if common:
-        scores = score_tools(common.tool_graph, SESSION_BUNDLE_ENTRIES)
-        resource_agent_ids = {
-            target: (tool.agent_id if tool else None)
-            for target, tool in scores.best.items()
-        }
-        resource_system_ids = {
-            target: (tool.system_id if tool else None)
-            for target, tool in scores.best.items()
-        }
+        # Tool-graph scoring decoration is dead weight — the client
+        # always shows "AI generate" regardless and the actual agent
+        # dispatch happens server-side in ``prepare_generation``.
+        # Keep empty maps to preserve the response shape.
+        pass
 
         # Hydrate config chain from tool_graph
         all_system_ids = list(

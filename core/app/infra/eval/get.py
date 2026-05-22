@@ -11,9 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.eval.context import resolve_eval_context
 from app.infra.eval.permissions import (
-    EVAL_BASIC_RESOURCES,
-    EVAL_MODEL_RESOURCES,
-    EVAL_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -52,7 +49,6 @@ from app.infra.eval.types import (
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",
@@ -168,7 +164,9 @@ async def get_eval_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, EVAL_RESOURCES)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and agent dispatch happens server-side in
+    # ``prepare_generation``.
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -264,7 +262,7 @@ async def get_eval_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_active_flag() or compute_show_groups_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -481,9 +479,9 @@ async def get_eval_impl(
         # Draft label sourced from ``entries['draft_name']`` (set by
         # ``resolve_eval_context``). ``None`` when no draft was active.
         draft_name=eval_ctx.entries.get("draft_name") if eval_ctx.entries else None,
-        basic_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_BASIC_RESOURCES),
-        model_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_MODEL_RESOURCES),
-        show_ai_generate=any(scores.has_any.values()),
+        basic_show_ai_generate=True,
+        model_show_ai_generate=True,
+        show_ai_generate=True,
         pending_ids=sorted(pending_ids) or None,
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
         descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,

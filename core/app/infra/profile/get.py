@@ -13,8 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.profile.context import resolve_profile_context
 from app.infra.profile.permissions import (
-    PROFILE_BASIC_RESOURCES,
-    PROFILE_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_disabled_reason,
@@ -43,7 +41,6 @@ from app.infra.profile.types import (
     ProfileRoleResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.icons.get import get_icons
 
@@ -178,7 +175,6 @@ async def get_profile_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, PROFILE_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -198,8 +194,11 @@ async def get_profile_impl(
         target_department_ids=perms_department_ids,
     )
 
-    names_has_tools = scores.has_any.get("names", False)
-    emails_has_tools = scores.has_any.get("emails", False)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and agent dispatch happens server-side in
+    # ``prepare_generation``.
+    names_has_tools = True
+    emails_has_tools = True
 
     names_selected = profile_ctx.resources["names"].selected
     names_suggestions = profile_ctx.resources["names"].suggestions
@@ -381,9 +380,9 @@ async def get_profile_impl(
         # ``resolve_profile_context``). ``None`` when no draft was active.
         draft_name=profile_ctx.entries.get("draft_name") if profile_ctx.entries else None,
         profile_id=target_profile_id,
-        show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_RESOURCES),
-        basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_BASIC_RESOURCES),
-        contact_show_ai_generate=scores.has_any.get("emails", False),
+        show_ai_generate=True,
+        basic_show_ai_generate=True,
+        contact_show_ai_generate=True,
         pending_ids=sorted(pending_ids) if pending_ids else [],
         role_options=sorted(allowed_role_names),
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)

@@ -16,7 +16,6 @@ from app.infra.persona.permissions_context import resolve_persona_permissions_co
 from app.infra.persona.sections import build_persona_get_result
 from app.infra.persona.types import GetPersonaApiResponse, SectionFilter
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names", "descriptions", "colors", "icons", "instructions",
@@ -137,8 +136,6 @@ async def get_persona_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, PERSONA_RESOURCES)
-
     include = {s: _sf(f, s, "include") is not False for s in SECTIONS}
     selected_only = {s: _sf(f, s, "selected") or False for s in SECTIONS}
     suggested_only = {s: _sf(f, s, "suggested") or False for s in SECTIONS}
@@ -147,7 +144,6 @@ async def get_persona_impl(
         return build_persona_get_result(
             common=common,
             persona=persona,
-            scores=scores,
             perms=perms,
             group_id=effective_group_id,
             include=include,

@@ -12,12 +12,11 @@ from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.persona.types import SectionFilter
 from app.infra.scenario.context import resolve_scenario_context
-from app.infra.scenario.permissions import SCENARIO_RESOURCES, has_access
+from app.infra.scenario.permissions import has_access
 from app.infra.scenario.permissions_context import resolve_scenario_permissions_context
 from app.infra.scenario.sections import build_scenario_get_result
 from app.infra.scenario.types import GetScenarioApiResponse
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names", "descriptions", "problem_statements", "flags", "departments",
@@ -126,8 +125,6 @@ async def get_scenario_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, SCENARIO_RESOURCES)
-
     include = {s: _sf(f, s, "include") is not False for s in SECTIONS}
     selected_only = {s: _sf(f, s, "selected") or False for s in SECTIONS}
     suggested_only = {s: _sf(f, s, "suggested") or False for s in SECTIONS}
@@ -136,7 +133,6 @@ async def get_scenario_impl(
       return build_scenario_get_result(
         common=common,
         scenario=scenario,
-        scores=scores,
         perms=perms,
         group_id=effective_group_id,
         video_enabled=_sf(f, "videos", "include"),

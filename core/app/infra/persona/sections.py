@@ -30,7 +30,6 @@ from app.infra.persona.types import (
     PersonaParameterFieldResource,
     PersonaVoiceResource,
 )
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext, ResourcePair
 
 
@@ -38,7 +37,6 @@ def build_persona_get_result(
     *,
     common: CommonContext,
     persona: ArtifactContext,
-    scores: ArtifactToolScores,
     perms: PersonaPermissionsContext | None,
     group_id: UUID | None,
     include: dict[str, bool] | None = None,
@@ -86,12 +84,12 @@ def build_persona_get_result(
     # Pending IDs from soft draft connections
     pending_ids: set[UUID] = persona.entries.get("pending_ids", set())
 
-    agent_ids: dict[str, UUID | None] = {
-        resource: (
-            scores.best[resource].agent_id if scores.best.get(resource) else None
-        )
-        for resource in PERSONA_RESOURCES
-    }
+    # ``agent_ids`` decoration is dead weight — the client always shows
+    # the "AI generate" button regardless, and the actual agent dispatch
+    # happens server-side in ``prepare_generation`` (which calls
+    # ``score_agents`` against the live tool graph). Surface an empty
+    # dict so the response shape stays stable for any FE still reading.
+    agent_ids: dict[str, UUID | None] = {}
     # Compose suggestions first so the natural DB order (created_at / search column)
     # is preserved. sorted_dedupe_by_id keeps the first occurrence, so a selected item
     # that also appears in suggestions stays in its suggestion-order slot instead

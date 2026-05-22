@@ -11,7 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.document.context import resolve_document_context
 from app.infra.document.permissions import (
-    DOCUMENT_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -34,7 +33,6 @@ from app.infra.document.types import (
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = [
     "names",
@@ -188,7 +186,6 @@ async def get_document_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, DOCUMENT_RESOURCES)
     include = {section: _sf(f, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(f, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(f, section, "suggested")) for section in SECTIONS}

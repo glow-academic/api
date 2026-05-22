@@ -13,8 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.provider.context import resolve_provider_context
 from app.infra.provider.permissions import (
-    PROVIDER_BASIC_RESOURCES,
-    PROVIDER_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -48,10 +46,8 @@ from app.infra.provider.types import (
     SectionFilter,
 )
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "values", "endpoints", "keys"]
-PROVIDER_INTEGRATIONS_RESOURCES: set[str] = {"values", "endpoints"}
 
 
 def _sf(
@@ -185,7 +181,6 @@ async def get_provider_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, PROVIDER_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -218,7 +213,7 @@ async def get_provider_impl(
         )
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -385,18 +380,9 @@ async def get_provider_impl(
         # ``resolve_provider_context``). ``None`` when no draft was active.
         draft_name=provider_ctx.entries.get("draft_name") if provider_ctx.entries else None,
         provider_id=provider_ctx.artifact_id,
-        show_ai_generate=any(
-            scores.has_any.get(resource, False)
-            for resource in PROVIDER_BASIC_RESOURCES | PROVIDER_INTEGRATIONS_RESOURCES
-        ),
-        basic_show_ai_generate=any(
-            scores.has_any.get(resource, False)
-            for resource in PROVIDER_BASIC_RESOURCES
-        ),
-        integrations_show_ai_generate=any(
-            scores.has_any.get(resource, False)
-            for resource in PROVIDER_INTEGRATIONS_RESOURCES
-        ),
+        show_ai_generate=True,
+        basic_show_ai_generate=True,
+        integrations_show_ai_generate=True,
         pending_ids=sorted(pending_ids),
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)
         if include["names"]

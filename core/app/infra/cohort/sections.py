@@ -51,7 +51,6 @@ from app.infra.cohort.types import (
 )
 from app.infra.common_context import CommonContext
 from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 
 
@@ -59,7 +58,6 @@ def build_cohort_get_result(
     *,
     common: CommonContext,
     cohort: ArtifactContext,
-    scores: ArtifactToolScores,
     perms: CohortPermissionsContext | None,
     cohort_id: UUID | None,
     group_id: UUID | None,
@@ -130,9 +128,9 @@ def build_cohort_get_result(
         "profiles": compute_profiles_required(),
         "profile_personas": compute_profile_personas_required(),
     }
-    show_ai_generate_map = {
-        resource: scores.best.get(resource) is not None for resource in COHORT_RESOURCES
-    }
+    # Always-show AI generate per product UX; dispatch resolves the
+    # actual agent at /generate time via score_agents.
+    show_ai_generate_map = {resource: True for resource in COHORT_RESOURCES}
     basic_show_ai_generate = any(
         show_ai_generate_map.get(resource, False)
         for resource in ("names", "descriptions", "flags", "departments")

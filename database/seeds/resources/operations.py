@@ -27,6 +27,7 @@ operations = [
     dict(id=sid("operation/message"), operation="message"),
     dict(id=sid("operation/grade"), operation="grade"),
     dict(id=sid("operation/stop"), operation="stop"),
+    dict(id=sid("operation/complete"), operation="complete"),
     dict(id=sid("operation/response"), operation="response"),
     dict(id=sid("operation/previous"), operation="previous"),
     dict(id=sid("operation/archive"), operation="archive"),

@@ -11,12 +11,11 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.setting.context import resolve_setting_context
-from app.infra.setting.permissions import SETTING_RESOURCES, has_access
+from app.infra.setting.permissions import has_access
 from app.infra.setting.permissions_context import resolve_setting_permissions_context
 from app.infra.setting.sections import SECTIONS, build_setting_get_result
 from app.infra.setting.types import GetSettingApiResponse, SectionFilter
 from app.infra.server_timing import timed
-from app.infra.tool_graph import score_tools
 
 
 def _sf(filters: dict[str, SectionFilter | None], section: str, attr: str, default=None):
@@ -136,7 +135,6 @@ async def get_setting_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, SETTING_RESOURCES)
     include = {s: _sf(resolved_filters, s, "include") is not False for s in SECTIONS}
     selected_only = {s: bool(_sf(resolved_filters, s, "selected")) for s in SECTIONS}
     suggested_only = {s: bool(_sf(resolved_filters, s, "suggested")) for s in SECTIONS}
@@ -145,7 +143,6 @@ async def get_setting_impl(
       return build_setting_get_result(
         common=common,
         setting=setting,
-        scores=scores,
         perms=perms,
         group_id=effective_group_id,
         include=include,

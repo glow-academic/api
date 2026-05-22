@@ -13,9 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.rubric.context import resolve_rubric_context
 from app.infra.rubric.permissions import (
-    RUBRIC_BASIC_RESOURCES,
-    RUBRIC_CONTENT_RESOURCES,
-    RUBRIC_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -47,8 +44,6 @@ from app.infra.rubric.types import (
     RubricStandardResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
-
 SECTIONS = [
     "names",
     "descriptions",
@@ -176,7 +171,6 @@ async def get_rubric_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, RUBRIC_RESOURCES)
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -258,7 +252,7 @@ async def get_rubric_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -401,8 +395,8 @@ async def get_rubric_impl(
         for item in all_standards
     ]
 
-    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_BASIC_RESOURCES)
-    content_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_CONTENT_RESOURCES)
+    basic_show_ai_generate = True
+    content_show_ai_generate = True
 
     with timed("build"):
         return GetRubricApiResponse(

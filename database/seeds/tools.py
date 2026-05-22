@@ -1899,6 +1899,16 @@ tools = [
         args_outputs=["artifact_attempt", "operation_stop"],
         instruction_id=_iid("Attempt Stop"),
     ),
+    dict(
+        id=sid("tool/attempt/complete"),
+        resource_id=sid("tool-resource/attempt/complete"),
+        name="Attempt Complete",
+        description="Complete operation for Attempt",
+        permission_ids=[sid("permission/attempt/complete")],
+        args=[],
+        args_outputs=["artifact_attempt", "operation_complete"],
+        instruction_id=_iid("Attempt Complete"),
+    ),
     # --- New attempt tools (unified agent) ---
     dict(
         id="ffa06f2e-c2a6-57b9-afe7-b604e0504424",
@@ -4414,6 +4424,16 @@ tools = [
         args=[],
         args_outputs=["artifact_test", "operation_stop"],
         instruction_id=_iid("Test Stop"),
+    ),
+    dict(
+        id=sid("tool/test/complete"),
+        resource_id=sid("tool-resource/test/complete"),
+        name="Test Complete",
+        description="Complete operation for Test",
+        permission_ids=[sid("permission/test/complete")],
+        args=[],
+        args_outputs=["artifact_test", "operation_complete"],
+        instruction_id=_iid("Test Complete"),
     ),
     dict(
         id=sid("tool/test/grade"),
