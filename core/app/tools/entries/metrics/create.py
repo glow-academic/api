@@ -25,7 +25,7 @@ async def create_metrics_entry_internal(
 ) -> CreateMetricsEntryResponse:
     """Create a metrics entry."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     out_ts = await conn.fetchval(

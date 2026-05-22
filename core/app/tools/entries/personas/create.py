@@ -20,7 +20,7 @@ async def create_personas(
 ) -> CreatePersonasResponse:
     """Create a personas entry with optional persona connections."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     entry_id = await conn.fetchval(

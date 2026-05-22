@@ -27,7 +27,7 @@ async def create_health(
     if ts is None:
         ts = datetime.now(UTC)
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     health_id = await conn.fetchval(

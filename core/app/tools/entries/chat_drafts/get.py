@@ -161,9 +161,9 @@ async def get_chat_drafts_entries_internal(
 
     if isinstance(pool_or_conn, asyncpg.Pool):
         async with pool_or_conn.acquire() as conn:
-            items = await get_chat_drafts(conn, ids)
+            items = await get_chat_drafts(conn, ids, get_redis_client())
     else:
-        items = await get_chat_drafts(pool_or_conn, ids)
+        items = await get_chat_drafts(pool_or_conn, ids, get_redis_client())
 
     await set_cached(
         cache_key_val,

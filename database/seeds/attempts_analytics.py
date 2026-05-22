@@ -437,6 +437,7 @@ async def _seed_one_attempt(
     attempt_chat_created_at = created_at + timedelta(minutes=1)
     seeded_session = await ensure_activity_session(
         conn,
+        redis,
         slug=slug,
         profile_id=profile_id,
         label=f"{type_label} attempt #{idx + 1}",

@@ -36,7 +36,7 @@ async def create_invocation(
 ) -> CreateInvocationResponse:
     """Create an invocation entry with optional connection table links."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     invocation_id = await conn.fetchval(

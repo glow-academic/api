@@ -120,9 +120,9 @@ async def get_invocation_entries_internal(
 
     if isinstance(pool_or_conn, asyncpg.Pool):
         async with pool_or_conn.acquire() as conn:
-            items = await get_invocations(conn, ids)
+            items = await get_invocations(conn, ids, get_redis_client())
     else:
-        items = await get_invocations(pool_or_conn, ids)
+        items = await get_invocations(pool_or_conn, ids, get_redis_client())
 
     await set_cached(
         cache_key_val,

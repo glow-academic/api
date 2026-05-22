@@ -24,7 +24,7 @@ async def create_benchmark(
 ) -> CreateBenchmarkResponse:
     """Create a benchmark entry with optional connection tables."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     benchmark_id = await conn.fetchval(

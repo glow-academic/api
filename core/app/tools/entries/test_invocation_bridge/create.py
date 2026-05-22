@@ -23,7 +23,7 @@ async def create_test_invocation_bridge(
 ) -> CreateTestInvocationBridgeResponse:
     """Create a test_invocation_bridge_entry bridge row."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     await conn.execute(

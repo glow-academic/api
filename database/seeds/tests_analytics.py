@@ -242,6 +242,7 @@ async def _seed_one_test(
     group_name_id = sid(f"{slug}/group-name")
     seeded_session = await ensure_activity_session(
         conn,
+        redis_client,
         slug=slug,
         profile_id=profile_id,
         label=f"Benchmark test seed #{test_idx + 1}",
