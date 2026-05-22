@@ -65,6 +65,7 @@ async def create_document_text(
     # 4. Create texts entry linked to resource
     text_entry = await create_text_entry(
         conn,
+        redis,
         session_id=session_id,
         texts_id=text_resource.id,
     )
