@@ -67,6 +67,7 @@ async def create_document_file(
     # 4. Create files entry linked to resource
     file_entry = await create_file_entry(
         conn,
+        redis,
         session_id=session_id,
         files_id=file_resource.id,
     )

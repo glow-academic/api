@@ -73,6 +73,7 @@ async def create_scenario_video(
     # 4. Create videos entry linked to resource
     video_entry = await create_video_entry(
         conn,
+        redis,
         session_id=session_id,
         videos_id=video_resource.id,
         length_seconds=length_seconds,

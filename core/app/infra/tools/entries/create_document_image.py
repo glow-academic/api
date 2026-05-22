@@ -72,6 +72,7 @@ async def create_document_image(
     # 4. Create images entry linked to resource
     image_entry = await create_image_entry(
         conn,
+        redis,
         session_id=session_id,
         images_id=image_resource.id,
     )
