@@ -223,14 +223,16 @@ async def run_artifact_operation_with_audit(
         try:
             with timed("idempotency"):
                 async with pool.acquire() as _idem_conn:
-                    # bypass_mv=True reads through the base-table index, so a
-                    # just-completed call is visible immediately (no MV-refresh lag).
+                    # search_calls now has a hedged-read cache (v1.0.31 +
+                    # v1.0.30 helpers): the cache catches recently-written
+                    # calls within its 1h window, and the MV covers older
+                    # ones. bypass_mv removed — the cache layer makes it
+                    # unnecessary.
                     _prior = await search_calls(
                         _idem_conn,
                         redis,
                         operation_keys=[operation_key],
                         limit=1,
-                        bypass_mv=True,
                     )
             _prior = [c for c in _prior if c.file_path]
             if _prior:

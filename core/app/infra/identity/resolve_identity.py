@@ -699,17 +699,15 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
     from app.tools.entries.sessions.create import create_session
     from app.tools.entries.sessions.search import search_sessions
 
-    # All three searches run with ``bypass_mv=True`` because this
-    # resolver is on the hot auth path and needs read-after-write
-    # consistency: a fresh ``create_session`` must be visible to the
-    # very next request (which would otherwise mint a duplicate
-    # before the MV's 30s refresh tick).
+    # search_sessions has a hedged-read cache (v1.0.31): fresh writes are
+    # served from the per-id cache within its 1h window; older sessions
+    # come from the MV. logouts/activity below still pass bypass_mv=True
+    # because they don't have cache coverage yet.
     sessions = await search_sessions(
         conn, redis,
         profile_ids=[profiles_resource_id],
         active=True,
         limit=1,
-        bypass_mv=True,
     )
     if sessions:
         session = sessions[0]
