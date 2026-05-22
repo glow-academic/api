@@ -17,9 +17,13 @@ class CreateToolSetupResponse(BaseModel):
     run_id: UUID
     call_id: UUID | None
     call_upload_id: UUID | None = None  # Receipt file UUID (filename for the .json)
-    message_id: UUID
-    text_id: UUID
-    text_upload_junction_id: UUID
-    call_upload_junction_id: UUID | None
-    message_text_upload_junction_id: UUID
-    message_call_upload_junction_id: UUID | None
+    # Populated by the async audit-persistence task (v1.0.46+); the
+    # synchronous response no longer waits for these. Optional + None
+    # default so callers that don't consume them (audit.py only reads
+    # ``result``, ``error``, ``call_id``, ``call_upload_id``) pass through.
+    message_id: UUID | None = None
+    text_id: UUID | None = None
+    text_upload_junction_id: UUID | None = None
+    call_upload_junction_id: UUID | None = None
+    message_text_upload_junction_id: UUID | None = None
+    message_call_upload_junction_id: UUID | None = None

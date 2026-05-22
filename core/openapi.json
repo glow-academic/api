@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.45"
+    "version": "1.0.49"
   },
   "paths": {
     "/persona/title": {
@@ -26425,6 +26425,37 @@
             ],
             "title": "Infinite Mode",
             "description": "Filter by infinite mode status"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject a staged archive"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the archive dormant (active=False); accept activates the whole set",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged archive, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -26455,6 +26486,19 @@
             ],
             "title": "Profile Ids To Invalidate",
             "description": "Profile IDs whose caches need invalidation"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged archive."
           }
         },
         "type": "object",
@@ -26739,20 +26783,56 @@
       "AttemptCompleteRequest": {
         "properties": {
           "attempt_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Attempt Id"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id",
+            "description": "Attempt to complete (omit on the ack call)"
           },
           "message": {
             "type": "string",
             "title": "Message",
             "default": ""
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject a staged completion"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the completion dormant (active=False) \u2014 agent proposes; accept activates it. Composes into a dormant benchmark scenario.",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged completion, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
-        "required": [
-          "attempt_id"
-        ],
         "title": "AttemptCompleteRequest"
       },
       "AttemptCompleteResponse": {
@@ -26768,6 +26848,19 @@
           "attempt_id": {
             "type": "string",
             "title": "Attempt Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged completion."
           }
         },
         "type": "object",
@@ -27259,6 +27352,37 @@
             "type": "boolean",
             "title": "Infinite Mode",
             "default": false
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject a staged attempt"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the attempt dormant (persona+attempt+junction active=False) \u2014 agent proposes; accept activates. The sim-env 'dormant attempt' primitive.",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged attempt, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -27287,6 +27411,19 @@
               }
             ],
             "title": "Department Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged attempt."
           }
         },
         "type": "object",
@@ -27302,6 +27439,37 @@
             "type": "string",
             "format": "uuid",
             "title": "Group Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, set to the server-minted soft key to perform/reject a staged stop"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the stop (record the intent without cancelling) \u2014 for composing a stop into a dormant benchmark scenario; accept performs it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True performs the staged stop, False discards. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -27315,6 +27483,19 @@
           "success": {
             "type": "boolean",
             "title": "Success"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to perform/reject the staged stop."
           }
         },
         "type": "object",
