@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_content.types import (
     CreateAttemptContentResponse,
 )
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_attempt_content(
@@ -24,12 +25,12 @@ async def create_attempt_content(
     created_at: datetime | None = None,
 ) -> CreateAttemptContentResponse:
     """Create an attempt_content entry."""
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO attempt_content_entry
             (id, message_id, session_id, content, persona_id, active, mcp, generated, created_at)
         VALUES (COALESCE($7, uuidv7()), $1, $2, $3, $4, $5, $6, true, COALESCE($8, NOW()))
-        RETURNING id
+        RETURNING id, created_at
         """,
         message_id,
         session_id,
@@ -40,5 +41,35 @@ async def create_attempt_content(
         id,
         created_at,
     )
+    if row is None:
+        raise ValueError("Failed to create attempt_content entry")
+    entry_id = row["id"]
+    actual_created_at = row["created_at"]
+
+    # Pattern A only: ``idx`` is computed via row_number() OVER PARTITION BY
+    # message_id in the MV — not knowable race-free at insert time. The
+    # GetAttemptContentResponse declares ``idx: int`` (not Optional), so we
+    # can't surface a cache row to readers without widening that type. We
+    # still write the row so future child-invalidate flows can target it.
+    # Use a placeholder idx in the cached payload; readers that opt-in via
+    # Pattern B/C must filter this row out. FLAG: widen ``idx`` to
+    # ``int | None`` (with default) to enable Pattern B/C.
+    fresh_row = {
+        "content_id": str(entry_id),
+        "message_id": str(message_id),
+        "content": content,
+        "persona_entry_id": str(persona_id),
+        "idx": -1,  # placeholder; MV-derived
+        "created_at": actual_created_at.isoformat() if actual_created_at else None,
+        "id": str(entry_id),
+    }
+    if actual_created_at is not None:
+        await write_back_row(
+            redis,
+            "attempt_content",
+            entry_id,
+            fresh_row,
+            score_ms=int(actual_created_at.timestamp() * 1000),
+        )
 
     return CreateAttemptContentResponse(id=entry_id)

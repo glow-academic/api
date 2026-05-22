@@ -21,10 +21,10 @@ class GetAudioResponse(BaseModel):
 
 class SearchAudioResponse(BaseModel):
     audio_id: UUID
-    upload_id: UUID
-    file_path: str
-    mime_type: str
-    size: int
+    upload_id: UUID | None = None
+    file_path: str | None = None
+    mime_type: str | None = None
+    size: int | None = None
     length_seconds: int
-    voice_id: UUID | None
+    voice_id: UUID | None = None
     created_at: datetime

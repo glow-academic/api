@@ -43,8 +43,11 @@ async def create_upload(
     upload_id = row["id"]
     actual_created_at = row["created_at"]
 
+    # Cache-row-superset: GET shape uses "id"; SEARCH shape uses "upload_id".
+    # Both keys point to the same UUID so a single row serves both paths.
     fresh_row = {
         "id": str(upload_id),
+        "upload_id": str(upload_id),
         "session_id": str(session_id),
         "file_path": file_path,
         "mime_type": mime_type,

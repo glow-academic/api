@@ -51,14 +51,23 @@ async def create_video(
             mcp,
         )
 
+    # Cache-row-superset: GET (entry columns) + SEARCH (videos_mv = videos_entry
+    # JOIN videos_resource) shape fields. Upload-denorm fields are None until
+    # the corresponding video_uploads row links in.
     fresh_row = {
         "id": str(video_id),
+        "video_id": str(video_id),
         "session_id": str(session_id),
         "length_seconds": length_seconds,
         "active": not soft,
         "mcp": mcp,
         "generated": True,
         "created_at": actual_created_at.isoformat(),
+        "videos_id": str(videos_id) if videos_id else None,
+        "upload_id": None,
+        "file_path": None,
+        "mime_type": None,
+        "size": None,
     }
     await write_back_row(
         redis,

@@ -48,13 +48,21 @@ async def create_text(
             text_id,
         )
 
+    # Cache-row-superset: GET (entry columns) + SEARCH (texts_mv = texts_entry
+    # JOIN texts_resource) shape fields. Upload-denorm fields are None until
+    # the corresponding text_uploads row links in.
     fresh_row = {
         "id": str(text_id),
+        "text_id": str(text_id),
         "session_id": str(session_id),
         "active": not soft,
         "mcp": mcp,
         "generated": True,
         "created_at": actual_created_at.isoformat(),
+        "texts_id": str(texts_id) if texts_id else None,
+        "upload_id": None,
+        "file_path": None,
+        "mime_type": None,
     }
     await write_back_row(
         redis,

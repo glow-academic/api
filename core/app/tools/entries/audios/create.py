@@ -55,14 +55,24 @@ async def create_audio(
             mcp,
         )
 
+    # Cache-row-superset: includes BOTH GET-shape (entry columns) and
+    # SEARCH-shape (audios_mv = audios_entry JOIN audios_resource) fields.
+    # Upload-denormalized fields (upload_id/file_path/mime_type/size) and
+    # voice_id are None until the corresponding audio_uploads row links in.
     fresh_row = {
         "id": str(audio_id),
+        "audio_id": str(audio_id),
         "session_id": str(session_id),
         "length_seconds": length_seconds,
         "active": not soft,
         "mcp": mcp,
         "generated": True,
         "created_at": actual_created_at.isoformat(),
+        "upload_id": None,
+        "file_path": None,
+        "mime_type": None,
+        "size": None,
+        "voice_id": None,
     }
     await write_back_row(
         redis,

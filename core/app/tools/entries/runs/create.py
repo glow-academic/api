@@ -56,12 +56,30 @@ async def create_run(
             created_at,
         )
 
+    # Cache-row superset: contains BOTH GET-shape fields (id, session_id,
+    # group_id, mcp, generated) AND SEARCH-shape fields (run_id,
+    # run_created_at, profiles_id, token counts, model/provider ids,
+    # pricing). Aggregates default empty/zero — junction writes that
+    # produce token usage / pricing / additional agents must invalidate
+    # this row so the next read falls through to the MV.
     fresh_row = {
+        # GET shape
         "id": str(run_id),
         "session_id": str(session_id),
         "group_id": str(group_id),
         "mcp": mcp,
         "generated": True,
+        # SEARCH shape additions (RunViewItem fields)
+        "run_id": str(run_id),
+        "run_created_at": actual_created_at.isoformat(),
+        "profiles_id": None,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_input_tokens": 0,
+        "agent_ids": [str(a) for a in (agent_ids or [])] or None,
+        "model_ids": None,
+        "provider_ids": None,
+        "pricing": [],
     }
     await write_back_row(
         redis,

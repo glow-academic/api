@@ -48,13 +48,22 @@ async def create_file(
             mcp,
         )
 
+    # Cache-row-superset: covers BOTH GET (entry columns) and SEARCH
+    # (files_mv = files_entry JOIN files_resource) shapes. Upload-denorm
+    # fields are None until the corresponding file_uploads row links in.
     fresh_row = {
         "id": str(file_id),
+        "file_id": str(file_id),
         "session_id": str(session_id),
         "active": not soft,
         "mcp": mcp,
         "generated": True,
         "created_at": actual_created_at.isoformat(),
+        "files_id": str(files_id) if files_id else None,
+        "upload_id": None,
+        "file_path": None,
+        "mime_type": None,
+        "size": None,
     }
     await write_back_row(
         redis,

@@ -48,13 +48,23 @@ async def create_image(
             mcp,
         )
 
+    # Cache-row-superset: GET (entry columns) + SEARCH (images_mv = images_entry
+    # JOIN images_resource) shape fields. Upload-denorm + quality_id are None
+    # until corresponding image_uploads / quality link rows write in.
     fresh_row = {
         "id": str(image_id),
+        "image_id": str(image_id),
         "session_id": str(session_id),
         "active": not soft,
         "mcp": mcp,
         "generated": True,
         "created_at": actual_created_at.isoformat(),
+        "images_id": str(images_id) if images_id else None,
+        "upload_id": None,
+        "file_path": None,
+        "mime_type": None,
+        "size": None,
+        "quality_id": None,
     }
     await write_back_row(
         redis,
