@@ -144,7 +144,7 @@ python_classes = "Test*"
 python_functions = "test_*"
 # Be explicit about asyncio mode for pytest-asyncio >= 0.24
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "session"
+asyncio_default_fixture_loop_scope = "function"
 cache_dir = "core/.pytest_cache"
 addopts = [
     "--strict-markers",

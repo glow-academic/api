@@ -141,7 +141,7 @@ def _concat_schema(schema_dir: Path) -> str:
 # --- CORE TEST FIXTURES ---
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", loop_scope="session", autouse=True)
 async def initialize_test_db() -> AsyncGenerator[None, None]:
     """Spin up disposable Postgres via init_db_pool and tear it down.
 
