@@ -132,70 +132,19 @@ async def create_tool_call(
         rid = raw_result["id"]
         result_id = rid if isinstance(rid, UUID) else UUID(str(rid))
 
-    # 2b. Render instruction template (Layer 3) if available
-    rendered_output: str | None = None
-    if instruction_template:
-        with timed("template_render"):
-            try:
-                from jinja2 import Environment, Undefined
-                env = Environment(undefined=Undefined, autoescape=False)
-                tmpl = env.from_string(instruction_template)
-                # Wrap in {success, results} structure that templates expect.
-                result_dict = (
-                    json.loads(output_raw) if isinstance(output_raw, str)
-                    else output_raw
-                )
-                template_ctx = {
-                    "success": True,
-                    "results": [{"result": result_dict}],
-                }
-                rendered = tmpl.render(**template_ctx).strip()
-                if rendered:
-                    rendered_output = rendered
-            except Exception:
-                pass  # Fall back to raw output
-
-    # 3. Build text + receipt payloads (CPU-only, no IO yet).
+    # 2b. text_upload_id minted on critical path (used as cache row id).
+    # Template render + text_content + call_payload build all moved into
+    # the async persistence task — saves 9-32ms p50 of jinja work off the
+    # response. The synchronous response only carries ``raw_result``;
+    # rendered output is solely audit-trail content (receipt + .txt).
     text_upload_id = uuid4()
-    if rendered_output:
-        args_lines = []
-        for k, v in arguments.items():
-            if v is not None:
-                args_lines.append(f"  {k}: {v}")
-        args_section = "\n".join(args_lines) if args_lines else "  (none)"
-        text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
-    else:
-        text_content = output_raw
+    call_upload_id: UUID | None = call_id if tool_id is not None else None
 
-    call_upload_id: UUID | None = None
-    call_payload: dict | None = None
-    if tool_id is not None:
-        call_upload_id = call_id
-        if rendered_output:
-            output_for_json = rendered_output
-        else:
-            output_for_json = (
-                json.loads(output_raw) if isinstance(output_raw, str)
-                else output_raw
-            )
-        raw_output_dict = (
-            json.loads(output_raw) if isinstance(output_raw, str)
-            else output_raw
-        )
-        call_payload = build_call_payload(
-            call_id=call_upload_id,
-            tool_id=tool_id,
-            arguments=arguments,
-            output=output_for_json,
-            raw_output=raw_output_dict,
-        )
-
-    # 4. Fire-and-forget the audit persistence chain (file IO + 5 INSERTs).
-    # Saves ~30ms p50 on the response critical path. The caller — and the
-    # response object — does not need msg_id / text_id / junction_ids; the
-    # only fields audit.py reads are ``result``, ``error``, ``call_id``,
-    # ``call_upload_id``. Background failures log via async_tasks helper,
-    # never propagate. See ``async_tasks.py`` for the strong-ref pattern.
+    # 3. Fire-and-forget the audit persistence chain (file IO + render + 5 INSERTs).
+    # Saves ~30ms (DB writes) + ~9-32ms (jinja) on the response critical path.
+    # The response object does not need msg_id / text_id / junction_ids;
+    # audit.py only reads ``result``, ``error``, ``call_id``, ``call_upload_id``.
+    # Background failures log via async_tasks helper, never propagate.
     from app.utils.async_tasks import schedule_background
 
     schedule_background(
@@ -208,9 +157,10 @@ async def create_tool_call(
             call_id=call_id,
             tool_id=tool_id,
             upload_folder=upload_folder,
-            text_content=text_content,
+            output_raw=output_raw,
+            instruction_template=instruction_template,
+            arguments=arguments,
             text_upload_id=text_upload_id,
-            call_payload=call_payload,
             call_upload_id=call_upload_id,
         ),
         label=f"audit_persist:tool={tool_id}",
@@ -247,22 +197,74 @@ async def _persist_audit_writes(
     call_id: UUID | None,
     tool_id: UUID | None,
     upload_folder: Path,
-    text_content: str,
+    output_raw: str,
+    instruction_template: str | None,
+    arguments: dict[str, Any],
     text_upload_id: UUID,
-    call_payload: dict | None,
     call_upload_id: UUID | None,
 ) -> None:
-    """Background-task body: persist all audit metadata (file IO + INSERTs).
+    """Background-task body: render template + persist audit metadata.
 
     Acquires its own pool conn — the caller's conn has been released by
     the time we run. Every call site is a single ``schedule_background``
     invocation; if anything here raises, the task helper logs and moves on.
+
+    Template render lives here (not on the response critical path) — its
+    output only feeds the .txt + .json receipt artifacts, which are
+    themselves persisted by this background task.
     """
     from app.infra.globals import get_pool, get_redis_client
     pool = get_pool()
     redis = get_redis_client()
 
-    # File IO (sync, ~1ms total — too small to async-thread)
+    # Render instruction template (was blocking before v1.0.50).
+    rendered_output: str | None = None
+    if instruction_template:
+        try:
+            from jinja2 import Environment, Undefined
+            env = Environment(undefined=Undefined, autoescape=False)
+            tmpl = env.from_string(instruction_template)
+            result_dict = (
+                json.loads(output_raw) if isinstance(output_raw, str)
+                else output_raw
+            )
+            template_ctx = {"success": True, "results": [{"result": result_dict}]}
+            rendered = tmpl.render(**template_ctx).strip()
+            if rendered:
+                rendered_output = rendered
+        except Exception:
+            pass  # Fall back to raw output
+
+    # Build text + receipt payloads (CPU-only).
+    if rendered_output:
+        args_lines = [f"  {k}: {v}" for k, v in arguments.items() if v is not None]
+        args_section = "\n".join(args_lines) if args_lines else "  (none)"
+        text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
+    else:
+        text_content = output_raw
+
+    call_payload: dict | None = None
+    if tool_id is not None and call_upload_id is not None:
+        if rendered_output:
+            output_for_json = rendered_output
+        else:
+            output_for_json = (
+                json.loads(output_raw) if isinstance(output_raw, str)
+                else output_raw
+            )
+        raw_output_dict = (
+            json.loads(output_raw) if isinstance(output_raw, str)
+            else output_raw
+        )
+        call_payload = build_call_payload(
+            call_id=call_upload_id,
+            tool_id=tool_id,
+            arguments=arguments,
+            output=output_for_json,
+            raw_output=raw_output_dict,
+        )
+
+    # File IO (sync Python disk write, ~1ms total — too small to threadpool)
     text_rel_path = save_text_upload(text_content, text_upload_id, upload_folder)
     text_size = (upload_folder / text_rel_path).stat().st_size
 
