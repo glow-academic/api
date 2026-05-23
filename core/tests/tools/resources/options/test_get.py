@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.options.create import create_option
 from app.tools.resources.options.get import get_options
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_option(conn, redis_client):

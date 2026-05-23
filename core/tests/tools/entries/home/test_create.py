@@ -7,7 +7,7 @@ from app.tools.entries.home.get import get_homes
 from app.tools.entries.home.refresh import refresh_home
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _home(conn, redis_client, profile_id, bundle):
@@ -25,8 +25,8 @@ async def _home(conn, redis_client, profile_id, bundle):
     )
 
 
-async def test_returns_id(conn, profile_id, simulation_bundle):
-    result = await _home(conn, profile_id, simulation_bundle)
+async def test_returns_id(conn, redis_client, profile_id, simulation_bundle):
+    result = await _home(conn, redis_client, profile_id, simulation_bundle)
 
     assert result.id is not None
 

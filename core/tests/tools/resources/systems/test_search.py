@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.systems.create import create_system
 from app.tools.resources.systems.search import search_systems
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_system(conn, redis_client):

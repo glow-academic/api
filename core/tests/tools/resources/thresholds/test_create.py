@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.thresholds.create import create_threshold
 from app.tools.resources.thresholds.get import get_thresholds
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_threshold(conn, redis_client):

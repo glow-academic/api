@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.personas.create import create_persona
 from app.tools.resources.personas.get import get_personas
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_persona(conn, redis_client):

@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.auths.create import create_auth
 from app.tools.resources.auths.search import search_auths
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_auth(conn, redis_client):

@@ -9,7 +9,7 @@ from app.tools.resources.files.create import (
 )
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

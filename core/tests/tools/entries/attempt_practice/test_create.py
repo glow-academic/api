@@ -11,7 +11,7 @@ from app.tools.entries.practice.create import create_practice
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_practice(conn, redis_client, profile_id, bundle, **overrides):
@@ -22,7 +22,7 @@ async def _attempt_practice(conn, redis_client, profile_id, bundle, **overrides)
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
         practice=True,
@@ -46,7 +46,7 @@ async def _attempt_practice(conn, redis_client, profile_id, bundle, **overrides)
     return result, attempt, practice
 
 
-async def test_returns_ids(conn, profile_id, simulation_bundle):
+async def test_returns_ids(conn, redis_client, profile_id, simulation_bundle):
     result, attempt, practice = await _attempt_practice(
         conn, profile_id, simulation_bundle
     )
@@ -55,8 +55,8 @@ async def test_returns_ids(conn, profile_id, simulation_bundle):
     assert result.practice_id == practice.id
 
 
-async def test_row_exists(conn, profile_id, simulation_bundle):
-    result, _, _ = await _attempt_practice(conn, profile_id, simulation_bundle)
+async def test_row_exists(conn, redis_client, profile_id, simulation_bundle):
+    result, _, _ = await _attempt_practice(conn, redis_client, profile_id, simulation_bundle)
 
     row = await conn.fetchrow(
         "SELECT attempt_id, practice_id FROM attempt_practice_entry WHERE attempt_id = $1",
@@ -66,7 +66,7 @@ async def test_row_exists(conn, profile_id, simulation_bundle):
     assert row["practice_id"] == result.practice_id
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
     result, _, _ = await _attempt_practice(
         conn, profile_id, simulation_bundle, mcp=True
     )

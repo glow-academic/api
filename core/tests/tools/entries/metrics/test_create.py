@@ -7,15 +7,15 @@ import pytest
 from app.tools.entries.metrics.create import create_metrics_entry_internal
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):
     return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_create_returns_id(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_create_returns_id(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
 
     entry_id = await conn.fetchval(
         "INSERT INTO metrics_entry (ts, requests_total, errors_total, avg_latency_ms, cpu_percent, memory_bytes, session_id) VALUES (NOW(), $1, $2, $3, $4, $5, $6) RETURNING id",
@@ -30,8 +30,8 @@ async def test_create_returns_id(conn, profile_id):
     assert entry_id is not None
 
 
-async def test_roundtrip_via_db(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_roundtrip_via_db(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
 
     entry_id = await conn.fetchval(
         "INSERT INTO metrics_entry (ts, requests_total, errors_total, avg_latency_ms, cpu_percent, memory_bytes, session_id) VALUES (NOW(), $1, $2, $3, $4, $5, $6) RETURNING id",

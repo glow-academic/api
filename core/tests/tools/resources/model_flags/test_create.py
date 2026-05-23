@@ -7,12 +7,12 @@ from app.tools.resources.model_flags.create import create_model_flag
 from app.tools.resources.model_flags.get import get_model_flags
 from app.tools.resources.models.create import create_model
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_model_flag(conn, redis_client):
     model = await create_model(conn, "test-model", redis=redis_client)
-    flag = await create_flag(conn, "test-flag", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag", "desc", redis=redis_client)
     result = await create_model_flag(conn, model.id, flag.id, redis_client)
 
     assert result.model_id == model.id
@@ -23,7 +23,7 @@ async def test_creates_new_model_flag(conn, redis_client):
 
 async def test_visible_via_get(conn, redis_client):
     model = await create_model(conn, "test-model-visible", redis=redis_client)
-    flag = await create_flag(conn, "test-flag-visible", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-visible", "desc", redis=redis_client)
     result = await create_model_flag(conn, model.id, flag.id, redis_client)
 
     items = await get_model_flags(conn, [result.id], redis_client, bypass_cache=True)
@@ -36,7 +36,7 @@ async def test_visible_via_get(conn, redis_client):
 
 async def test_creates_second_row(conn, redis_client):
     model = await create_model(conn, "test-model-second", redis=redis_client)
-    flag = await create_flag(conn, "test-flag-second", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-second", "desc", redis=redis_client)
     first = await create_model_flag(conn, model.id, flag.id, redis_client)
     second = await create_model_flag(conn, model.id, flag.id, redis_client)
 
@@ -45,7 +45,7 @@ async def test_creates_second_row(conn, redis_client):
 
 async def test_sets_mcp_flag(conn, redis_client):
     model = await create_model(conn, "test-model-mcp", redis=redis_client)
-    flag = await create_flag(conn, "test-flag-mcp", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-mcp", "desc", redis=redis_client)
     result = await create_model_flag(conn, model.id, flag.id, redis_client, mcp=True)
 
     assert result.mcp is True

@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.resources.scenario_flags.docs import get_scenario_flags_docs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

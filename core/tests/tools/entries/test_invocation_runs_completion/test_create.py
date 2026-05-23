@@ -13,7 +13,7 @@ from app.tools.entries.test.create import create_test
 from app.tools.entries.test_invocation.create import create_test_invocation
 from app.tools.entries.test_invocation_runs.create import create_test_invocation_runs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup_entry(conn, redis_client, profile_id):

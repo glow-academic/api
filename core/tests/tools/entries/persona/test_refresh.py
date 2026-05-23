@@ -8,7 +8,7 @@ from app.tools.resources.personas.create import (
 from app.tools.entries.persona.get import get_persona_entries_internal
 from app.tools.entries.persona.refresh import refresh_persona_internal
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 
@@ -23,7 +23,7 @@ async def test_new_persona_appears_after_refresh(conn, redis_client):
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_persona_internal(conn)
-    items = await get_persona_entries_internal(conn, redis_client, ids=[lookup_id])
+    items = await get_persona_entries_internal(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -33,7 +33,7 @@ async def test_new_persona_is_not_visible_before_refresh(conn, redis_client):
     created = _created(await create_persona(conn, redis_client))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_persona_entries_internal(conn, redis_client, ids=[lookup_id])
+    items = await get_persona_entries_internal(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

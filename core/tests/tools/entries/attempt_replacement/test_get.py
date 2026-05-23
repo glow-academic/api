@@ -28,7 +28,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_replacement.refresh import refresh_attempt_replacement
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_replacement(conn, redis_client, profile_id, **overrides):
@@ -38,7 +38,7 @@ async def _attempt_replacement(conn, redis_client, profile_id, **overrides):
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
-        conn, redis_client, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id
+        conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
     call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
@@ -90,19 +90,19 @@ async def test_gets_created_attempt_replacement(conn, redis_client, profile_id):
     _created(await _attempt_replacement(conn, redis_client, profile_id))
     await refresh_attempt_replacement(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_attempt_replacements(conn, redis_client, ids=[lookup_id])
+    items = await get_attempt_replacements(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
-    items = await get_attempt_replacements(conn, redis_client, ids=[nonexistent_id()])
+    items = await get_attempt_replacements(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
 async def test_returns_empty_for_empty_ids(conn, redis_client):
-    items = await get_attempt_replacements(conn, redis_client, ids=[])
+    items = await get_attempt_replacements(conn, ids=[], redis=redis_client)
 
     assert items == []

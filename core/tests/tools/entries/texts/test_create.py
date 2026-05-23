@@ -6,7 +6,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.texts.create import create_text
 from app.tools.entries.texts.get import get_text
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

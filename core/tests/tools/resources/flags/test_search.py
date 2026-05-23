@@ -6,11 +6,11 @@ from tests.helpers import unique_tag
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.flags.search import search_flags
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_flag(conn, redis_client):
-    await create_flag(conn, "search-test-alpha", "desc", "home", redis_client)
+    await create_flag(conn, "search-test-alpha", "desc", redis=redis_client)
 
     items = await search_flags(conn, redis_client, search="search-test-alpha")
 
@@ -19,7 +19,7 @@ async def test_finds_created_flag(conn, redis_client):
 
 
 async def test_search_is_case_insensitive(conn, redis_client):
-    await create_flag(conn, "CaseTest-Search-Flag", "desc", "home", redis_client)
+    await create_flag(conn, "CaseTest-Search-Flag", "desc", redis=redis_client)
 
     items = await search_flags(conn, redis_client, search="casetest-search-flag")
 
@@ -37,7 +37,7 @@ async def test_returns_empty_for_no_match(conn, redis_client):
 async def test_respects_limit(conn, redis_client):
     for i in range(5):
         await create_flag(
-            conn, f"limit-test-flag-{unique_tag()}", "desc", "home", redis_client
+            conn, f"limit-test-flag-{unique_tag()}", "desc", redis=redis_client
         )
 
     items = await search_flags(
@@ -50,7 +50,7 @@ async def test_respects_limit(conn, redis_client):
 async def test_respects_offset(conn, redis_client):
     for i in range(3):
         await create_flag(
-            conn, f"offset-test-flag-{unique_tag()}", "desc", "home", redis_client
+            conn, f"offset-test-flag-{unique_tag()}", "desc", redis=redis_client
         )
 
     all_items = await search_flags(
@@ -65,11 +65,11 @@ async def test_respects_offset(conn, redis_client):
 
 async def test_excludes_ids(conn, redis_client):
     a = await create_flag(
-        conn, f"exclude-a-flag-{unique_tag()}", "desc", "home", redis_client
-    )
+            conn, f"exclude-a-flag-{unique_tag()}", "desc", redis=redis_client
+        )
     b = await create_flag(
-        conn, f"exclude-b-flag-{unique_tag()}", "desc", "home", redis_client
-    )
+            conn, f"exclude-b-flag-{unique_tag()}", "desc", redis=redis_client
+        )
 
     items = await search_flags(
         conn,
@@ -91,8 +91,8 @@ async def test_returns_empty_for_zero_limit(conn, redis_client):
 
 async def test_cache_hit(conn, redis_client):
     await create_flag(
-        conn, f"cache-hit-flag-{unique_tag()}", "desc", "home", redis_client
-    )
+            conn, f"cache-hit-flag-{unique_tag()}", "desc", redis=redis_client
+        )
 
     items1 = await search_flags(conn, redis_client, search="cache-hit-flag-")
     items2 = await search_flags(conn, redis_client, search="cache-hit-flag-")
@@ -102,7 +102,7 @@ async def test_cache_hit(conn, redis_client):
 
 
 async def test_bypass_cache(conn, redis_client):
-    await create_flag(conn, f"bypass-flag-{unique_tag()}", "desc", "home", redis_client)
+    await create_flag(conn, f"bypass-flag-{unique_tag()}", "desc", redis=redis_client)
 
     items = await search_flags(
         conn, redis_client, search="bypass-flag-", bypass_cache=True

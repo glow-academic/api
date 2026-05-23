@@ -7,7 +7,7 @@ from app.tools.entries.model_drafts.create import create_model_draft
 from app.tools.entries.model_drafts.refresh import refresh_model_drafts
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

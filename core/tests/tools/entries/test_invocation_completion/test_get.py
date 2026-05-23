@@ -20,7 +20,7 @@ from app.tools.entries.test_invocation_completion.get import get_test_invocation
 from app.tools.entries.test_invocation_completion.refresh import refresh_test_invocation_completion
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation_completion(conn, redis_client, profile_id, **overrides):
@@ -52,19 +52,19 @@ async def test_gets_created_test_invocation_completion(conn, redis_client, profi
     _created(await _test_invocation_completion(conn, redis_client, profile_id))
     await refresh_test_invocation_completion(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_test_invocation_completions(conn, redis_client, ids=[lookup_id])
+    items = await get_test_invocation_completions(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
-    items = await get_test_invocation_completions(conn, redis_client, ids=[nonexistent_id()])
+    items = await get_test_invocation_completions(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
 async def test_returns_empty_for_empty_ids(conn, redis_client):
-    items = await get_test_invocation_completions(conn, redis_client, ids=[])
+    items = await get_test_invocation_completions(conn, ids=[], redis=redis_client)
 
     assert items == []

@@ -9,7 +9,7 @@ from app.tools.entries.chat.get import get_chat_entries_internal, get_chats
 from app.tools.entries.chat.refresh import refresh_chat
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _chat(conn, redis_client, profile_id, bundle):
@@ -21,8 +21,8 @@ async def _chat(conn, redis_client, profile_id, bundle):
     )
 
 
-async def test_returns_id(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_returns_id(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
 
     assert result.id is not None
 
@@ -63,8 +63,8 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle
     assert row["mcp"] is True
 
 
-async def test_internal_get_returns_created_chat(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_internal_get_returns_created_chat(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
     await refresh_chat(conn)
 
     items = await get_chat_entries_internal(conn, [result.id], bypass_cache=True)

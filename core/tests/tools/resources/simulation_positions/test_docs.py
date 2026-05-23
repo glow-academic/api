@@ -6,7 +6,7 @@ from app.tools.resources.simulation_positions.docs import (
     get_simulation_positions_docs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

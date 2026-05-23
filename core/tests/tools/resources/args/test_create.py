@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.args.create import create_arg
 from app.tools.resources.args.get import get_args
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_arg(conn, redis_client):

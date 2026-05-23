@@ -16,7 +16,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_chat(conn, redis_client, profile_id, **overrides):
@@ -28,7 +28,7 @@ async def _attempt_chat(conn, redis_client, profile_id, **overrides):
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -47,8 +47,8 @@ async def _attempt_chat(conn, redis_client, profile_id, **overrides):
     return result, attempt
 
 
-async def test_returns_id(conn, profile_id):
-    result, _ = await _attempt_chat(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result, _ = await _attempt_chat(conn, redis_client, profile_id)
 
     assert result.id is not None
 
@@ -72,7 +72,7 @@ async def test_connections_populated(conn, redis_client, profile_id):
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -97,8 +97,8 @@ async def test_connections_populated(conn, redis_client, profile_id):
     assert row["audio_enabled"] is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result, _ = await _attempt_chat(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result, _ = await _attempt_chat(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_chat_entry WHERE id = $1",

@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.scenarios.create import create_scenario
 from app.tools.resources.scenarios.get import get_scenarios
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_scenario(conn, redis_client):

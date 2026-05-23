@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.modalities.create import create_modality
 from app.tools.resources.modalities.get import get_modalities
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_modality(conn, redis_client):

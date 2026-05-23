@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.protocols.create import create_protocol
 from app.tools.resources.protocols.get import get_protocols
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_protocol(conn, redis_client):

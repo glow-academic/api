@@ -13,7 +13,7 @@ from app.tools.entries.texts.get import get_text
 from app.tools.entries.uploads.get import get_upload
 from app.tools.resources.agents.create import create_agent
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _run_deps(conn, redis_client, profile_id):

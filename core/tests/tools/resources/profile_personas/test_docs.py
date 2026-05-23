@@ -6,7 +6,7 @@ from app.tools.resources.profile_personas.docs import (
     get_profile_personas_docs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

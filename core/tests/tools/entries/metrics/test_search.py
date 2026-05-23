@@ -6,7 +6,7 @@ from app.tools.entries.metrics.refresh import refresh_metrics_internal
 from app.tools.entries.metrics.search import search_metrics
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _insert_metric(conn, session_id):

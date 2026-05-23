@@ -6,7 +6,7 @@ from app.tools.resources.scenario_rubrics.docs import (
     get_scenario_rubrics_docs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

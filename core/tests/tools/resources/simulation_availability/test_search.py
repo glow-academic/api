@@ -12,7 +12,7 @@ from app.tools.resources.simulation_availability.search import (
 )
 from app.tools.resources.simulations.create import create_simulation
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_simulation_availability(conn, redis_client):

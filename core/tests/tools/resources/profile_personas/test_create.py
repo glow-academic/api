@@ -7,7 +7,7 @@ from app.tools.resources.profile_personas.create import create_profile_persona
 from app.tools.resources.profile_personas.get import get_profile_personas
 from app.tools.resources.profiles.create import create_profile
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_profile_persona(conn, redis_client):

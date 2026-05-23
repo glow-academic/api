@@ -26,7 +26,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_highlight.refresh import refresh_attempt_highlight
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_highlight(conn, redis_client, profile_id, **overrides):
@@ -36,7 +36,7 @@ async def _attempt_highlight(conn, redis_client, profile_id, **overrides):
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
-        conn, redis_client, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id
+        conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
     call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
@@ -84,7 +84,7 @@ async def test_new_attempt_highlight_appears_after_refresh(conn, redis_client, p
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_attempt_highlight(conn)
-    items = await get_attempt_highlights(conn, redis_client, ids=[lookup_id])
+    items = await get_attempt_highlights(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -94,7 +94,7 @@ async def test_new_attempt_highlight_is_not_visible_before_refresh(conn, redis_c
     _created(await _attempt_highlight(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_attempt_highlights(conn, redis_client, ids=[lookup_id])
+    items = await get_attempt_highlights(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

@@ -9,7 +9,7 @@ from app.tools.resources.videos.create import (
     create_video as create_video_resource,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):
@@ -54,7 +54,7 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id):
     assert video.mcp is True
 
 
-async def test_links_videos_resource(conn, profile_id, redis_client):
+async def test_links_videos_resource(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
     resource = await create_video_resource(
         conn, name="test", description="test", redis=redis_client

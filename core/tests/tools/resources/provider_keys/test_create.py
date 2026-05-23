@@ -7,7 +7,7 @@ from app.tools.resources.provider_keys.create import create_provider_key
 from app.tools.resources.provider_keys.get import get_provider_keys
 from app.tools.resources.providers.create import create_provider
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_provider_key(conn, redis_client):

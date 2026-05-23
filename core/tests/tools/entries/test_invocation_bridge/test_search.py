@@ -17,7 +17,7 @@ from app.tools.entries.test_invocation_bridge.search import search_test_invocati
 from tests.helpers import nonexistent_id, unique_tag
 from app.tools.entries.test_invocation_bridge.refresh import refresh_test_invocation_bridge
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation_bridge(conn, redis_client, profile_id, **overrides):
@@ -54,7 +54,7 @@ async def test_finds_created_test_invocation_bridge(conn, redis_client, profile_
     _created(await _test_invocation_bridge(conn, redis_client, profile_id))
     await refresh_test_invocation_bridge(conn)
     lookup_id = getattr(created, 'test_invocation_id', None) or getattr(created, 'id', None) or getattr(created, 'test_invocation', None)
-    fetched = await get_test_invocation_bridge(conn, redis_client, test_invocation_ids=[lookup_id])
+    fetched = await get_test_invocation_bridge(conn, test_invocation_ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'test_invocation_id', None)
     items = await search_test_invocation_bridge(conn, redis_client, test_invocation_ids=[filter_value], limit_count=20, offset_count=0)
@@ -75,7 +75,7 @@ async def test_respects_limit(conn, redis_client, profile_id):
     _created(await _test_invocation_bridge(conn, redis_client, profile_id))
     await refresh_test_invocation_bridge(conn)
     lookup_id = getattr(created, 'test_invocation_id', None) or getattr(created, 'id', None) or getattr(created, 'test_invocation', None)
-    fetched = await get_test_invocation_bridge(conn, redis_client, test_invocation_ids=[lookup_id])
+    fetched = await get_test_invocation_bridge(conn, test_invocation_ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'test_invocation_id', None)
     items = await search_test_invocation_bridge(conn, redis_client, test_invocation_ids=[filter_value], limit_count=1, offset_count=0)

@@ -12,7 +12,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup_entry(conn, redis_client, profile_id):
@@ -21,7 +21,7 @@ async def _setup_entry(conn, redis_client, profile_id):
     run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
-    seed = await create_attempt(conn, redis_client, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id)
+    seed = await create_attempt(conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id)
     return session, call, seed
 
 
@@ -43,7 +43,7 @@ async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
 
 async def test_refresh_exposes_created_row(conn, redis_client, profile_id):
     session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, call_id=call.id, mcp=True)
+    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id, mcp=True)
     await refresh_attempt_completion(conn)
 
     row = await conn.fetchrow(f"SELECT id, mcp FROM {MV_NAME} WHERE id = $1", result.id)

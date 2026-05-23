@@ -21,7 +21,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_conversations.get import get_attempt_conversations
 from app.tools.entries.attempt_conversations.refresh import refresh_attempt_conversations
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_conversations(conn, redis_client, profile_id, **overrides):
@@ -32,7 +32,7 @@ async def _attempt_conversations(conn, redis_client, profile_id, **overrides):
     persona = await create_persona(conn, redis_client)
     await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -58,7 +58,7 @@ async def test_new_attempt_conversations_appears_after_refresh(conn, redis_clien
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_attempt_conversations(conn)
-    items = await get_attempt_conversations(conn, redis_client, ids=[lookup_id])
+    items = await get_attempt_conversations(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -68,7 +68,7 @@ async def test_new_attempt_conversations_is_not_visible_before_refresh(conn, red
     created = _created(await _attempt_conversations(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_attempt_conversations(conn, redis_client, ids=[lookup_id])
+    items = await get_attempt_conversations(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

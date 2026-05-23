@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.objectives.create import create_objective
 from app.tools.resources.objectives.search import search_objectives
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_objective(conn, redis_client):

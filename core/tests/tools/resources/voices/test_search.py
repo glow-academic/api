@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.voices.create import create_voice
 from app.tools.resources.voices.search import search_voices
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_voice(conn, redis_client):

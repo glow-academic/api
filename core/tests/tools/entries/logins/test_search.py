@@ -10,7 +10,7 @@ from app.tools.entries.logins.refresh import refresh_logins
 from app.tools.entries.logins.search import search_logins
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

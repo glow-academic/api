@@ -9,7 +9,7 @@ from app.tools.resources.files.create import (
     create_file as create_file_resource,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):
@@ -44,7 +44,7 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id):
     assert file.mcp is True
 
 
-async def test_links_files_resource(conn, profile_id, redis_client):
+async def test_links_files_resource(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
     resource = await create_file_resource(conn, redis=redis_client)
     result = await create_file(conn, redis_client, session_id=session.id, files_id=resource.id)

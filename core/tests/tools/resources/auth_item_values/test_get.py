@@ -11,7 +11,7 @@ from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_auth_item_value(conn, redis_client):

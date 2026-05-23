@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.objectives.create import create_objective
 from app.tools.resources.objectives.get import get_objectives
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_objective(conn, redis_client):

@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.endpoints.create import create_endpoint
 from app.tools.resources.endpoints.get import get_endpoints
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_endpoint(conn, redis_client):

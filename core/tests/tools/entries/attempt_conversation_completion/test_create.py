@@ -23,7 +23,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_conversation_completion(conn, redis_client, profile_id, **overrides):
@@ -34,7 +34,7 @@ async def _attempt_conversation_completion(conn, redis_client, profile_id, **ove
     persona = await create_persona(conn, redis_client)
     await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -57,8 +57,8 @@ async def _attempt_conversation_completion(conn, redis_client, profile_id, **ove
     return await create_attempt_conversation_completion(conn, redis_client, **defaults)
 
 
-async def test_returns_id(conn, profile_id):
-    result = await _attempt_conversation_completion(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result = await _attempt_conversation_completion(conn, redis_client, profile_id)
 
     assert result.id is not None
 
@@ -72,8 +72,8 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
     assert len(items) == 1
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result = await _attempt_conversation_completion(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result = await _attempt_conversation_completion(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_conversation_completion_entry WHERE id = $1",

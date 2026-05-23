@@ -11,7 +11,7 @@ from app.tools.resources.conditional_parameters.search import (
 )
 from app.tools.resources.parameters.create import create_parameter
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _make(conn, redis_client, name: str = ""):

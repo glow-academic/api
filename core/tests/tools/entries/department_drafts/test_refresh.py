@@ -9,7 +9,7 @@ from app.tools.entries.department_drafts.refresh import (
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

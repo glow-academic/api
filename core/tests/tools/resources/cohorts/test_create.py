@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.cohorts.create import create_cohort
 from app.tools.resources.cohorts.get import get_cohorts
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_cohort(conn, redis_client):

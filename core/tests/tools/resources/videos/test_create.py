@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.videos.create import create_video
 from app.tools.resources.videos.get import get_videos
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_video(conn, redis_client):

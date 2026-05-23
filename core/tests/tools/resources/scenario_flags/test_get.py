@@ -8,12 +8,12 @@ from app.tools.resources.scenario_flags.create import create_scenario_flag
 from app.tools.resources.scenario_flags.get import get_scenario_flags
 from app.tools.resources.scenarios.create import create_scenario
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_scenario_flag(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag", "desc", redis=redis_client)
     item = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
     items = await get_scenario_flags(conn, [item.id], redis_client)
@@ -39,7 +39,7 @@ async def test_returns_empty_for_empty_ids(conn, redis_client):
 
 async def test_cache_hit_skips_db(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag-cache", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-cache", "desc", redis=redis_client)
     item = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
     # First call populates cache
@@ -54,7 +54,7 @@ async def test_cache_hit_skips_db(conn, redis_client):
 
 async def test_bypass_cache_skips_read_and_write(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag-bypass", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-bypass", "desc", redis=redis_client)
     item = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
     items = await get_scenario_flags(conn, [item.id], redis_client, bypass_cache=True)

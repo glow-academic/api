@@ -9,7 +9,7 @@ from app.tools.entries.messages.search import search_messages
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

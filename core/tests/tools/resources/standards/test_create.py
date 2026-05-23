@@ -6,7 +6,7 @@ from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
 from app.tools.resources.standards.get import get_standards
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_standard(conn, redis_client):

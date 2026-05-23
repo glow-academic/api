@@ -7,7 +7,7 @@ from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
 from app.tools.resources.standards.search import search_standards
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _make_group(conn, redis_client, suffix=""):

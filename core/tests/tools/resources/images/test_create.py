@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.images.create import create_image
 from app.tools.resources.images.get import get_images
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_image(conn, redis_client):

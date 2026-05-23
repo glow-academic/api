@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.points.create import create_point
 from app.tools.resources.points.get import get_points
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_point(conn, redis_client):

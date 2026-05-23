@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.file_uploads.docs import get_file_uploads_docs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

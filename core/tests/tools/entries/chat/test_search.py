@@ -10,7 +10,7 @@ from app.tools.entries.chat.get import get_chats
 from app.tools.entries.chat.search import search_chat_entries_internal
 from tests.helpers import nonexistent_id, unique_tag
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _chat(conn, redis_client, profile_id, bundle):
@@ -30,7 +30,7 @@ async def test_finds_created_chat(conn, redis_client, profile_id):
     _created(await _chat(conn, redis_client, profile_id))
     await refresh_chat(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    fetched = await get_chats(conn, redis_client, ids=[lookup_id])
+    fetched = await get_chats(conn, ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'parent_id', None)
     items = await search_chat_entries_internal(conn, redis_client, parent_ids=[filter_value], limit_count=20, offset_count=0)
@@ -51,7 +51,7 @@ async def test_respects_limit(conn, redis_client, profile_id):
     _created(await _chat(conn, redis_client, profile_id))
     await refresh_chat(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    fetched = await get_chats(conn, redis_client, ids=[lookup_id])
+    fetched = await get_chats(conn, ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'parent_id', None)
     items = await search_chat_entries_internal(conn, redis_client, parent_ids=[filter_value], limit_count=1, offset_count=0)

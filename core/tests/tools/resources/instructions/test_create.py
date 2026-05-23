@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.instructions.get import get_instructions
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_instruction(conn, redis_client):

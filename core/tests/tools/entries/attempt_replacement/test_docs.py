@@ -6,7 +6,7 @@ from app.tools.entries.attempt_replacement.docs import (
     get_attempt_replacement_docs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

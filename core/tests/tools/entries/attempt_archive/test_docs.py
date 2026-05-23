@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.attempt_archive.docs import get_attempt_archive_docs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

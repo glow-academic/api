@@ -12,7 +12,7 @@ from app.tools.resources.files.create import (
     create_file as create_file_resource,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, profile_id, redis_client):
@@ -32,16 +32,16 @@ async def _setup(conn, profile_id, redis_client):
     return file, resource.id
 
 
-async def test_returns_all_without_filter(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, bypass_mv=True)
 
     assert len(items) >= 1
 
 
-async def test_filters_by_files_ids(conn, profile_id, redis_client):
-    _, files_id = await _setup(conn, profile_id, redis_client)
+async def test_filters_by_files_ids(conn, redis_client, profile_id):
+    _, files_id = await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, files_ids=[files_id], bypass_mv=True)
 
@@ -49,8 +49,8 @@ async def test_filters_by_files_ids(conn, profile_id, redis_client):
     assert all(item.files_id == files_id for item in items)
 
 
-async def test_filters_by_mime_type(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_filters_by_mime_type(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, mime_type="application/pdf", bypass_mv=True)
 
@@ -58,24 +58,24 @@ async def test_filters_by_mime_type(conn, profile_id, redis_client):
     assert all(item.mime_type == "application/pdf" for item in items)
 
 
-async def test_filters_by_nonexistent_files_ids(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_filters_by_nonexistent_files_ids(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, files_ids=[nonexistent_id()], bypass_mv=True)
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, limit=1, bypass_mv=True)
 
     assert len(items) <= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id, redis_client):
-    file, files_id = await _setup(conn, profile_id, redis_client)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    file, files_id = await _setup(conn, redis_client, profile_id)
 
     items = await search_files(conn, redis_client, files_ids=[files_id], bypass_mv=True)
 

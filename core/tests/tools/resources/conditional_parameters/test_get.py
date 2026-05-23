@@ -8,7 +8,7 @@ from app.tools.resources.conditional_parameters.get import (
 )
 from app.tools.resources.parameters.create import create_parameter
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_conditional_parameter(conn, redis_client):

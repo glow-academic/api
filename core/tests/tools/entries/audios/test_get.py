@@ -6,7 +6,7 @@ from app.tools.entries.audios.get import get_audio
 from app.tools.entries.sessions.create import create_session
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):
