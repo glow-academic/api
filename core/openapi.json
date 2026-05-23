@@ -3,7 +3,7 @@
   "info": {
     "title": "GLOW API",
     "description": "Auto-generated OpenAPI schema from FastAPI API",
-    "version": "1.0.49"
+    "version": "1.0.50"
   },
   "paths": {
     "/persona/title": {
@@ -26521,6 +26521,37 @@
             "title": "Archived",
             "description": "Whether to archive or unarchive",
             "default": true
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject a staged archive"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the archive dormant (active=False); accept activates the whole set",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged archive, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -26537,6 +26568,19 @@
             "title": "Updated Count",
             "description": "Number of tests updated",
             "default": 0
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged archive."
           }
         },
         "type": "object",
@@ -51011,6 +51055,37 @@
             ],
             "title": "Mode",
             "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export; on the ack, the server-minted soft key to activate/reject a staged export"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (file chain active=False) \u2014 agent proposes; accept activates. Sim-env 'dormant export' primitive.",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -51034,6 +51109,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged export."
           }
         },
         "type": "object",
@@ -52555,6 +52643,37 @@
             ],
             "title": "Mode",
             "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export; on the ack, the server-minted soft key to activate/reject a staged export"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (file chain active=False) \u2014 agent proposes; accept activates. Sim-env 'dormant export' primitive.",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -52581,6 +52700,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged export."
           }
         },
         "type": "object",
@@ -52650,6 +52782,37 @@
             ],
             "title": "Mode",
             "description": "Optional sub-mode within a view. Currently recognized: view=reports \u2192 mode='brightspace' (gradebook CSV only); view=home \u2192 mode='certificate' (PDF cert only) or 'attempts' (CSV only). Default (None) returns the full per-view bundle."
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior export; on the ack, the server-minted soft key to activate/reject a staged export"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the export dormant (file chain active=False) \u2014 agent proposes; accept activates. Sim-env 'dormant export' primitive.",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged export, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -52673,6 +52836,19 @@
             "type": "integer",
             "title": "Row Count",
             "description": "Number of data rows in the export"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged export."
           }
         },
         "type": "object",

@@ -42,6 +42,9 @@ class TestStartPayload(BaseModel):
 
     eval_id: UUID = Field(..., description="UUID of the eval to test")
     infinite_mode: bool = Field(False, description="Whether to run in infinite mode")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject the staged test")
+    soft: bool = Field(False, description="Stage the test dormant (test+benchmark_test active=False); accept activates it")
+    accept: bool | None = Field(None, description="Ack: True activates the staged test, False rejects. Only meaningful with idempotency_key")
 
 
 class TestNextPayload(BaseModel):
@@ -93,6 +96,9 @@ class TestCompletePayload(BaseModel):
     """
 
     test_id: UUID = Field(..., description="UUID of the test")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject the staged completion")
+    soft: bool = Field(False, description="Stage the completion dormant (all completion rows active=False); accept activates the whole set")
+    accept: bool | None = Field(None, description="Ack: True activates the staged completion, False rejects. Only meaningful with idempotency_key")
 
 
 # Legacy aliases — kept so any lingering imports still resolve. Drop once all
@@ -105,6 +111,9 @@ class TestStopPayload(BaseModel):
     """Client-to-server: stop current test execution."""
 
     invocation_id: UUID = Field(..., description="UUID of the test invocation to stop")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to emit/discard the staged stop")
+    soft: bool = Field(False, description="Stage the stop (record intent without emitting); accept emits it")
+    accept: bool | None = Field(None, description="Ack: True emits the staged stop, False discards. Only meaningful with idempotency_key")
 
 
 class TestJoinedEvent(BaseModel):

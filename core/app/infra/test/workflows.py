@@ -494,6 +494,11 @@ async def test_start_impl(
     eval_id_raw = data.get("eval_id") or data.get("benchmark_id")
     eval_id = uuid.UUID(str(eval_id_raw)) if eval_id_raw else None
     infinite_mode = data.get("infinite_mode", False)
+    # Soft/accept staging: create the test + junction dormant and stash a
+    # pending soft_call keyed by the wrapper call_id (threaded in via data).
+    soft = bool(data.get("soft", False))
+    call_id_raw = data.get("call_id")
+    soft_call_id = uuid.UUID(str(call_id_raw)) if call_id_raw else None
     profiles_id_str = data.get("profiles_id")
     if not profiles_id_str:
         logger.error("profiles_id missing from test_start payload")
@@ -553,6 +558,7 @@ async def test_start_impl(
                 profiles_id=profiles_id,
                 infinite_mode=infinite_mode,
                 is_dynamic=is_dynamic,
+                soft=soft,
             )
             test_id = result.id
 
@@ -562,6 +568,7 @@ async def test_start_impl(
                     benchmark_id=benchmark_id,
                     test_id=test_id,
                     session_id=session_id,
+                    soft=soft,
                 )
 
             # No pre-seeding of test_invocation_entry rows. Mirrors
@@ -582,16 +589,19 @@ async def test_start_impl(
                         f"Failed to store generation_test_link for test {test_id}"
                     )
 
-        await refresh_test_impl(
-            pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["test_mv"],
-        )
-        await refresh_invocation_impl(
-            pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["test_invocation_mv"],
-        )
-        if redis:
-            await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
+        # Dormant (soft) rows won't surface in the MVs — defer refresh +
+        # invalidation to the ack (accept) so a staged test costs nothing.
+        if not soft:
+            await refresh_test_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["test_mv"],
+            )
+            await refresh_invocation_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["test_invocation_mv"],
+            )
+            if redis:
+                await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 
         # Client-orchestrated: mirrors attempt_start_impl, which returns
         # {attempt_id, chat_id} where chat_id is the FIRST chat_entry
@@ -612,6 +622,21 @@ async def test_start_impl(
                 )
                 if templates:
                     first_invocation_id = str(templates[0].id)
+
+        # Soft: stash the staged test as a pending soft_call (keyed by the
+        # server call_id) so the ack can activate test_entry + the junction.
+        if soft and soft_call_id is not None:
+            from app.tools.entries.soft_calls.create import create_soft_call
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn, redis, call_id=soft_call_id, artifact="test",
+                    operation="start", artifact_id=test_id, status="pending",
+                    patch={
+                        "test_id": str(test_id),
+                        "invocation_id": first_invocation_id,
+                        "benchmark_id": str(benchmark_id) if benchmark_id else None,
+                    },
+                )
 
         data["_result"] = {
             "test_id": str(test_id),

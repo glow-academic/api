@@ -83,6 +83,11 @@ class ExportSystemApiRequest(BaseModel):
                     "Default (None) returns the full per-view bundle.",
     )
 
+    # Canonical idempotency + soft/accept (file-modality staging)
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export; on the ack, the server-minted soft key to activate/reject a staged export")
+    soft: bool = Field(False, description="Stage the export dormant (file chain active=False) — agent proposes; accept activates. Sim-env 'dormant export' primitive.")
+    accept: bool | None = Field(None, description="Ack: True activates the staged export, False rejects. Only meaningful with idempotency_key")
+
 
 class ExportSystemApiResponse(BaseModel):
     """Response model for system export — canonical file modality."""
@@ -90,3 +95,4 @@ class ExportSystemApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export bytes")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged export.")

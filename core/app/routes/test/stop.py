@@ -15,6 +15,7 @@ class StopTestApiResponse(BaseModel):
     invocation_id: str
     success: bool
     message: str | None = None
+    idempotency_key: str | None = None
 
 
 @router.post("/stop", response_model=StopTestApiResponse)

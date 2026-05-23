@@ -660,6 +660,15 @@ tools = [
         instruction_id=_iid("System File Download"),
     ),
     dict(
+        id=sid("tool/system/export"),
+        resource_id=sid("tool-resource/system/export"),
+        name="System Export",
+        description="Export operation for System",
+        permission_ids=[sid("permission/system/export")],
+        args_outputs=["artifact_system", "operation_export"],
+        instruction_id=_iid("System Export"),
+    ),
+    dict(
         id=sid("tool/system/image_download"),
         resource_id=sid("tool-resource/system/image_download"),
         name="System Image Download",

@@ -62,9 +62,12 @@ async def attempt_start_impl(
     from app.tools.resources.profile_personas.search import search_profile_personas
     from app.tools.resources.simulations.get import get_simulations
 
+    is_ack = accept is not None and idempotency_key is not None
     is_practice = request.practice_id is not None
     parent_id = request.practice_id or request.home_id
-    if not parent_id:
+    if not parent_id and not is_ack:
+        # The ack call carries no home_id/practice_id — it only promotes/rejects a
+        # staged attempt (handled by the short-circuit after the profile check).
         raise HTTPException(status_code=400, detail="Either home_id or practice_id is required.")
 
     # ── Step 1: Profile context + permissions ────────────────────────────────

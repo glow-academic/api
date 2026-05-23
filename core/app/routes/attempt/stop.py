@@ -12,6 +12,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.stop import (
     AttemptStopRequest,
     AttemptStopResponse,
@@ -36,6 +37,16 @@ async def attempt_stop(
     pool = get_pool()
     redis = get_redis_client()
 
+    # Resolve the time-windowed AUDIT group for the wrapper. NOTE: request.group_id
+    # is the chat group being cancelled (passed to the impl), not an audit
+    # groups_entry row — using it as the wrapper group_id FK-fails create_run.
+    audit_group_id = None
+    if session_id:
+        group_result = await group_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
+        )
+        audit_group_id = group_result.group_id
+
     is_ack = request.accept is not None and request.idempotency_key is not None
 
     # ``call_id`` is threaded in by the audit wrapper (signature opt-in) — the
@@ -58,7 +69,7 @@ async def attempt_stop(
         artifact="attempt",
         profile_id=profile_id,
         session_id=session_id,
-        group_id=request.group_id,
+        group_id=audit_group_id,
         operation="stop",
         # On ack, carry only `accept` so the gate's _is_bare_ack skips it.
         arguments={"accept": request.accept} if is_ack else request.model_dump(mode="json"),

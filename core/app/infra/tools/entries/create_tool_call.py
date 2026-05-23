@@ -119,12 +119,7 @@ async def create_tool_call(
             },
         }
 
-    if isinstance(raw_result, str):
-        output_raw = raw_result
-    else:
-        output_raw = json.dumps(raw_result, default=str)
-
-    # Extract canonical ID from the tool function result
+    # Extract canonical ID from the tool function result (cheap attr access).
     result_id: UUID | None = None
     if hasattr(raw_result, "id"):
         result_id = raw_result.id
@@ -132,17 +127,18 @@ async def create_tool_call(
         rid = raw_result["id"]
         result_id = rid if isinstance(rid, UUID) else UUID(str(rid))
 
-    # 2b. text_upload_id minted on critical path (used as cache row id).
-    # Template render + text_content + call_payload build all moved into
-    # the async persistence task — saves 9-32ms p50 of jinja work off the
-    # response. The synchronous response only carries ``raw_result``;
-    # rendered output is solely audit-trail content (receipt + .txt).
+    # text_upload_id minted on critical path (used as cache row id).
     text_upload_id = uuid4()
     call_upload_id: UUID | None = call_id if tool_id is not None else None
 
-    # 3. Fire-and-forget the audit persistence chain (file IO + render + 5 INSERTs).
-    # Saves ~30ms (DB writes) + ~9-32ms (jinja) on the response critical path.
-    # The response object does not need msg_id / text_id / junction_ids;
+    # Fire-and-forget the audit persistence chain (json.dumps + jinja
+    # render + file IO + 5 INSERTs). Cumulative savings on the response
+    # critical path:
+    #   • json.dumps(raw_result) ~5-25ms (varies with response size)
+    #   • template_render ~9-32ms (jinja env.from_string + render)
+    #   • text_save + receipt_save ~1ms
+    #   • upload_inserts + msg_insert + junction_inserts ~30ms
+    # The response object doesn't need msg_id / text_id / junction_ids;
     # audit.py only reads ``result``, ``error``, ``call_id``, ``call_upload_id``.
     # Background failures log via async_tasks helper, never propagate.
     from app.utils.async_tasks import schedule_background
@@ -157,7 +153,7 @@ async def create_tool_call(
             call_id=call_id,
             tool_id=tool_id,
             upload_folder=upload_folder,
-            output_raw=output_raw,
+            raw_result=raw_result,
             instruction_template=instruction_template,
             arguments=arguments,
             text_upload_id=text_upload_id,
@@ -197,25 +193,40 @@ async def _persist_audit_writes(
     call_id: UUID | None,
     tool_id: UUID | None,
     upload_folder: Path,
-    output_raw: str,
+    raw_result: Any,
     instruction_template: str | None,
     arguments: dict[str, Any],
     text_upload_id: UUID,
     call_upload_id: UUID | None,
 ) -> None:
-    """Background-task body: render template + persist audit metadata.
+    """Background-task body: serialize + render + persist audit metadata.
 
     Acquires its own pool conn — the caller's conn has been released by
     the time we run. Every call site is a single ``schedule_background``
     invocation; if anything here raises, the task helper logs and moves on.
 
-    Template render lives here (not on the response critical path) — its
-    output only feeds the .txt + .json receipt artifacts, which are
-    themselves persisted by this background task.
+    Everything in here is OFF the response critical path:
+      • ``json.dumps(raw_result)`` — output_raw serialization (was 5-25ms blocking)
+      • ``jinja`` render of instruction_template (was 9-32ms blocking)
+      • ``save_text_upload`` + ``save_call_upload`` — disk IO
+      • 5 INSERTs: text upload, call upload, msg, call_upload junction,
+        message_upload junction
     """
     from app.infra.globals import get_pool, get_redis_client
     pool = get_pool()
     redis = get_redis_client()
+
+    # Serialize the raw_result for audit artifacts (was blocking before
+    # v1.0.51). The response object carries ``raw_result`` directly;
+    # ``output_raw`` is only the .txt/.json receipt payload.
+    if isinstance(raw_result, str):
+        output_raw = raw_result
+        raw_result_dict: Any = raw_result
+    else:
+        output_raw = json.dumps(raw_result, default=str)
+        raw_result_dict = (
+            json.loads(output_raw) if isinstance(output_raw, str) else output_raw
+        )
 
     # Render instruction template (was blocking before v1.0.50).
     rendered_output: str | None = None
@@ -224,11 +235,7 @@ async def _persist_audit_writes(
             from jinja2 import Environment, Undefined
             env = Environment(undefined=Undefined, autoescape=False)
             tmpl = env.from_string(instruction_template)
-            result_dict = (
-                json.loads(output_raw) if isinstance(output_raw, str)
-                else output_raw
-            )
-            template_ctx = {"success": True, "results": [{"result": result_dict}]}
+            template_ctx = {"success": True, "results": [{"result": raw_result_dict}]}
             rendered = tmpl.render(**template_ctx).strip()
             if rendered:
                 rendered_output = rendered
@@ -245,23 +252,13 @@ async def _persist_audit_writes(
 
     call_payload: dict | None = None
     if tool_id is not None and call_upload_id is not None:
-        if rendered_output:
-            output_for_json = rendered_output
-        else:
-            output_for_json = (
-                json.loads(output_raw) if isinstance(output_raw, str)
-                else output_raw
-            )
-        raw_output_dict = (
-            json.loads(output_raw) if isinstance(output_raw, str)
-            else output_raw
-        )
+        output_for_json = rendered_output if rendered_output else raw_result_dict
         call_payload = build_call_payload(
             call_id=call_upload_id,
             tool_id=tool_id,
             arguments=arguments,
             output=output_for_json,
-            raw_output=raw_output_dict,
+            raw_output=raw_result_dict,
         )
 
     # File IO (sync Python disk write, ~1ms total — too small to threadpool)

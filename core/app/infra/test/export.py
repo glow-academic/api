@@ -26,7 +26,12 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.exports.file_modality import extension_from_mime, wrap_bytes_as_file
+from app.infra.exports.file_modality import (
+    accept_staged_export,
+    extension_from_mime,
+    stage_export_soft_call,
+    wrap_bytes_as_file,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.test.search import search_tests
@@ -108,10 +113,25 @@ async def export_test_impl(
     invocation_id: UUID | None = None,
     draft_id: UUID | None = None,
     mode: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportTestApiResponse``."""
     from app.infra.test.types import ExportTestApiResponse
+
+    # ── Short-circuit: ack — activate/reject a staged export ─────────────
+    if accept is not None and idempotency_key is not None:
+        file_id, file_name, row_count = await accept_staged_export(
+            pool, redis, artifact="test",
+            idempotency_key=idempotency_key, accept=accept,
+        )
+        return ExportTestApiResponse(
+            file_id=file_id, file_name=file_name, row_count=row_count,
+            idempotency_key=idempotency_key,
+        )
 
     if view == "single":
         if test_id is None:
@@ -122,7 +142,7 @@ async def export_test_impl(
         bytes_, row_count = await _export_single_test_bytes(
             pool, redis, profile_id=profile_id, test_id=test_id,
         )
-        file_id, file_name = await wrap_bytes_as_file(
+        wrapped = await wrap_bytes_as_file(
             pool,
             redis,
             content=bytes_,
@@ -130,9 +150,16 @@ async def export_test_impl(
             mime_type="application/zip",
             extension="zip",
             session_id=session_id,
+            soft=soft,
         )
+        if soft and call_id is not None:
+            await stage_export_soft_call(
+                pool, redis, artifact="test", call_id=call_id,
+                wrapped=wrapped, row_count=row_count,
+            )
         return ExportTestApiResponse(
-            file_id=file_id, file_name=file_name, row_count=row_count,
+            file_id=wrapped.file_id, file_name=wrapped.file_name,
+            row_count=row_count, idempotency_key=call_id,
         )
 
     if view == "benchmark":
@@ -167,6 +194,7 @@ async def export_test_impl(
 
     return await _wrap_envelope(
         pool, redis, envelope, view_prefix=f"test_{view}_export", session_id=session_id,
+        soft=soft, call_id=call_id,
     )
 
 
@@ -182,6 +210,8 @@ async def _wrap_envelope(
     *,
     view_prefix: str,
     session_id: UUID | None,
+    soft: bool = False,
+    call_id: UUID | None = None,
 ):
     """Decode per-view base64 envelope + run canonical file-modality chain."""
     from app.infra.test.types import ExportTestApiResponse
@@ -191,7 +221,7 @@ async def _wrap_envelope(
     mime_type = getattr(envelope, "mime_type", "application/zip") or "application/zip"
     row_count = int(getattr(envelope, "row_count", 0) or 0)
 
-    file_id, file_name = await wrap_bytes_as_file(
+    wrapped = await wrap_bytes_as_file(
         pool,
         redis,
         content=bytes_,
@@ -199,9 +229,16 @@ async def _wrap_envelope(
         mime_type=mime_type,
         extension=extension_from_mime(mime_type),
         session_id=session_id,
+        soft=soft,
     )
+    if soft and call_id is not None:
+        await stage_export_soft_call(
+            pool, redis, artifact="test", call_id=call_id,
+            wrapped=wrapped, row_count=row_count,
+        )
     return ExportTestApiResponse(
-        file_id=file_id, file_name=file_name, row_count=row_count,
+        file_id=wrapped.file_id, file_name=wrapped.file_name,
+        row_count=row_count, idempotency_key=call_id,
     )
 
 
