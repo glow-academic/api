@@ -25,7 +25,7 @@ def _make_agent(**overrides):
 
 async def test_get_system_prompt_appends_debug_suffix(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = _make_agent()
     prompt = agent.get_system_prompt()
@@ -35,7 +35,7 @@ async def test_get_system_prompt_appends_debug_suffix(monkeypatch):
 
 async def test_model_name_standard_provider(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = _make_agent(provider="openai", model_name="gpt-4o", base_url=None)
     assert agent.model == "gpt-4o"
@@ -45,7 +45,7 @@ async def test_model_name_standard_provider(monkeypatch):
 
 async def test_model_name_custom_provider(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = _make_agent(
         provider="custom", model_name="llama-3", base_url="http://localhost:8080"
@@ -57,7 +57,7 @@ async def test_model_name_custom_provider(monkeypatch):
 
 async def test_get_model_config_returns_expected_keys(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = _make_agent(temperature=0.9)
     config = agent.get_model_config()
@@ -69,7 +69,7 @@ async def test_get_model_config_returns_expected_keys(monkeypatch):
 
 async def test_get_tool_functions_maps_by_name(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
 
     def my_tool():
@@ -84,7 +84,7 @@ async def test_get_tool_functions_maps_by_name(monkeypatch):
 async def test_decrypt_api_key_called_during_init(monkeypatch):
     called_with = []
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key",
+        "app.infra.agents.generic_agent.decrypt_api_key",
         lambda k: (called_with.append(k), f"decrypted-{k}")[1],
     )
     agent = _make_agent(api_key="encrypted-key")
@@ -94,7 +94,7 @@ async def test_decrypt_api_key_called_during_init(monkeypatch):
 
 async def test_custom_model_detected_by_base_url(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = _make_agent(provider="openai", base_url="http://custom-endpoint.com")
     assert agent.custom_model is True

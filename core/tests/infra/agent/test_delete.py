@@ -13,7 +13,7 @@ async def test_delete_raises_401_for_unknown_profile(monkeypatch):
     monkeypatch.setattr("app.infra.agent.delete.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await delete_agent_impl(None, None, profile_id=uuid4(), agent_ids=[uuid4()])
+        await delete_agent_impl(None, None, profile_id=uuid4(), ids=[uuid4()])
     assert exc_info.value.status_code == 401
 
 
@@ -23,7 +23,7 @@ async def test_delete_detail_mentions_sign_in(monkeypatch):
     monkeypatch.setattr("app.infra.agent.delete.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await delete_agent_impl(None, None, profile_id=uuid4(), agent_ids=[uuid4()])
+        await delete_agent_impl(None, None, profile_id=uuid4(), ids=[uuid4()])
     assert "sign in" in exc_info.value.detail.lower()
 
 

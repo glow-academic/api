@@ -23,7 +23,7 @@ def _make_context(**overrides):
 
 async def test_build_voice_agent_returns_agent_and_instructions(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent, instructions = build_voice_agent(
         context=_make_context(),
@@ -37,7 +37,7 @@ async def test_build_voice_agent_returns_agent_and_instructions(monkeypatch):
 
 async def test_voice_agent_instructions_contain_persona_names(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     personas = {"Alice": "Friendly nurse.", "Bob": "Grumpy patient."}
     _, instructions = build_voice_agent(
@@ -54,7 +54,7 @@ async def test_voice_agent_instructions_contain_persona_names(monkeypatch):
 
 async def test_voice_agent_instructions_include_tool_usage(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     _, instructions = build_voice_agent(
         context=_make_context(),
@@ -68,7 +68,7 @@ async def test_voice_agent_instructions_include_tool_usage(monkeypatch):
 
 async def test_voice_agent_disables_parallel_tool_calls(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent, _ = build_voice_agent(
         context=_make_context(),
@@ -81,7 +81,7 @@ async def test_voice_agent_disables_parallel_tool_calls(monkeypatch):
 
 async def test_voice_agent_name_is_voice_agent(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent, _ = build_voice_agent(
         context=_make_context(),
