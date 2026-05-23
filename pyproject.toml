@@ -137,14 +137,18 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+minversion = "7.0"
 testpaths = ["core/tests"]
 python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
 # Be explicit about asyncio mode for pytest-asyncio >= 0.24
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "session"
 cache_dir = "core/.pytest_cache"
 addopts = [
     "--strict-markers",
+    "--strict-config",
     "--tb=short",
     "-v",
 ]
@@ -153,6 +157,11 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
+    "asyncio: async tests (alias kept for back-compat; prefer pytest-asyncio's auto-discovery)",
+]
+norecursedirs = [
+    ".git", ".tox", ".venv", "dist", "build", "*.egg",
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
 ]
 
 [tool.coverage.run]
@@ -169,4 +178,6 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "@(abc\\.)?abstractmethod",
 ]
-html_dir = "core/htmlcov"
+
+[tool.coverage.html]
+directory = "core/htmlcov"
