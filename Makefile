@@ -1,4 +1,4 @@
-.PHONY: help setup install clean format lint typecheck run test test-cov cleanup generate-tests stop restore-db connect-db migrate openapi-gen configure seed-gen migrate-docker
+.PHONY: help setup install clean format lint typecheck run test test-cov cleanup stop restore-db connect-db migrate openapi-gen configure seed-gen migrate-docker
 
 # Default Python interpreter
 PYTHON := python3.11
@@ -88,13 +88,6 @@ typecheck: check-venv
 	@echo "Type checking..."
 	@$(VENV_PYTHON) -m mypy core/app core/utils
 	@echo "✅ Type checking complete"
-
-
-# Generate pytest tests for routes and services
-generate-tests: check-venv
-	@echo "Generating pytest tests..."
-	@$(VENV_PYTHON) core/scripts/generate_pytest_tests.py
-	@echo "✅ Tests generated"
 
 
 # Run all tests
