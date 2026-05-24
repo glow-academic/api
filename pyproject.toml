@@ -51,6 +51,7 @@ dependencies = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.3.0",
     "httpx>=0.24.0",
     "testcontainers[postgresql]==4.0.0",
     "sqlalchemy>=2.0.0",  # Required by testcontainers for container readiness checks
@@ -151,6 +152,14 @@ addopts = [
     "--strict-config",
     "--tb=short",
     "-v",
+    # Per-test wall-clock guard. Prevents `make test-cov` (and any single
+    # test) from hanging indefinitely on a deadlocked fixture or stuck
+    # asyncpg operation. 300s is generous — most tests are sub-second; the
+    # slowest integration test should still finish in <60s. The actual
+    # `make test-cov` hang during the test-harness audit motivated this.
+    "--timeout=300",
+    # Use thread-based timeout so a stuck async fixture can be interrupted.
+    "--timeout-method=thread",
 ]
 markers = [
     "fast: marks tests as fast (deselect with '-m \"not fast\"')",
