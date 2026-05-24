@@ -8,7 +8,7 @@ from app.infra.parameter.context import resolve_parameter_context
 from app.tools.artifacts.parameter.create import create_parameter
 from app.tools.artifacts.parameter.update import update_parameter
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

@@ -27,7 +27,7 @@ from app.infra.agent.permissions import (
     has_access,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 # Permission tuples for agent operations
 _AGENT_UPDATE = [("agent", "update")]

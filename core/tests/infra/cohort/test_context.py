@@ -8,7 +8,7 @@ from app.infra.cohort.context import resolve_cohort_context
 from app.tools.artifacts.cohort.create import create_cohort
 from app.tools.artifacts.cohort.update import update_cohort
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

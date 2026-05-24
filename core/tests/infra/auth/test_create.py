@@ -7,7 +7,7 @@ import pytest
 
 from app.infra.auth.create import create_auth_impl
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @dataclass

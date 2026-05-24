@@ -8,7 +8,7 @@ from app.infra.eval.context import resolve_eval_context
 from app.tools.artifacts.eval.create import create_eval
 from app.tools.artifacts.eval.update import update_eval
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

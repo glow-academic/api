@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from app.infra.auth.delete import delete_auth_impl
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @dataclass

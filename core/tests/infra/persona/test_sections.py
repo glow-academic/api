@@ -7,7 +7,7 @@ import pytest
 
 from app.infra.persona.sections import build_persona_get_result
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 _DEPT_ID = uuid4()
 _GROUP_ID = uuid4()

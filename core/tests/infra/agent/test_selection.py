@@ -14,7 +14,7 @@ from app.infra.agent.selection import (
 )
 from app.infra.api_types import CandidateAgent
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 def _make_candidate(

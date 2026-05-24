@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from app.infra.auth.drafts import list_auth_drafts_impl
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @dataclass
