@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.health.refresh import refresh_health_internal
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 class _Conn:

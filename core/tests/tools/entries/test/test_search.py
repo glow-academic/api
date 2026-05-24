@@ -11,7 +11,7 @@ from app.tools.entries.test.create import create_test
 from app.tools.entries.test.refresh import refresh_test
 from app.tools.entries.test.search import search_tests
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

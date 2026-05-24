@@ -6,7 +6,7 @@ from app.tools.resources.agents.create import create_agent
 from app.tools.resources.systems.create import create_system
 from app.tools.resources.systems.get import get_systems
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_system(conn, redis_client):

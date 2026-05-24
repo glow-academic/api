@@ -12,7 +12,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup_entry(conn, redis_client, profile_id):

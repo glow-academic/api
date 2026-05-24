@@ -10,7 +10,7 @@ from app.infra.agent.permissions_context import (
     resolve_agent_permissions_context,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

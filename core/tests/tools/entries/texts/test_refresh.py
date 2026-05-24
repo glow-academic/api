@@ -7,7 +7,7 @@ from app.tools.entries.texts.get import get_text
 from app.tools.entries.texts.refresh import refresh_texts_internal
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _session(conn, redis_client, profile_id):

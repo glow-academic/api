@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.uploads.refresh import refresh_uploads_internal
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 class _Conn:

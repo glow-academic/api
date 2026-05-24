@@ -12,7 +12,7 @@ from app.tools.entries.test_archive.create import create_test_archive
 from app.tools.entries.test_archive.refresh import refresh_test_archive
 from app.tools.entries.test_archive.search import search_test_archives
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

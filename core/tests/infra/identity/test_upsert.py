@@ -69,7 +69,7 @@ def _flag_resource(
     return SimpleNamespace(id=id or uuid4(), name=name)
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestResolveProfileUpsert:
     async def test_creates_new_profile(self) -> None:
         pool = FakePool()

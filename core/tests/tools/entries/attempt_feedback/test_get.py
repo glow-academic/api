@@ -18,7 +18,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_feedback.refresh import refresh_attempt_feedback
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt_feedback(conn, redis_client, profile_id, **overrides):

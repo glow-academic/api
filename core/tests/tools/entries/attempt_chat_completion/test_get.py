@@ -22,7 +22,7 @@ from app.tools.entries.attempt_chat_completion.get import get_attempt_chat_compl
 from app.tools.entries.attempt_chat_completion.refresh import refresh_attempt_chat_completion
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt_chat_completion(conn, redis_client, profile_id, **overrides):

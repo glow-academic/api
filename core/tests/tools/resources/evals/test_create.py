@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.evals.create import create_eval
 from app.tools.resources.evals.get import get_evals
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_eval(conn, redis_client):

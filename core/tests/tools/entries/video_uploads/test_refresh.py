@@ -8,7 +8,7 @@ from app.tools.entries.video_uploads.create import create_video_upload
 from app.tools.entries.video_uploads.refresh import refresh_video_uploads
 from app.tools.entries.videos.create import create_video
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

@@ -9,7 +9,7 @@ from app.tools.entries.home_chat.get import get_home_chats
 from app.tools.entries.home_chat.refresh import refresh_home_chat
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _home_chat(conn, redis_client, profile_id, bundle):

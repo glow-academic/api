@@ -17,7 +17,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_analysis.refresh import refresh_attempt_analysis
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt_analysis(conn, redis_client, profile_id, **overrides):

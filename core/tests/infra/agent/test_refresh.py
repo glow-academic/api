@@ -7,7 +7,7 @@ import pytest
 
 from app.infra.agent.refresh import refresh_agent_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

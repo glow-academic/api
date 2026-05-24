@@ -8,7 +8,7 @@ from app.tools.resources.reasoning_levels.search import (
     search_reasoning_levels,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_reasoning_level(conn, redis_client):

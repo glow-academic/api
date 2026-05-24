@@ -9,7 +9,7 @@ from app.tools.resources.auths.create import create_auth
 from app.tools.resources.items.create import create_item
 from app.tools.resources.keys.create import create_key
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_auth_item_key(conn, redis_client):

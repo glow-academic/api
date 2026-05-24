@@ -9,7 +9,7 @@ from app.tools.entries.persona.get import get_persona_entries_internal
 from tests.helpers import nonexistent_id
 from app.tools.entries.persona.refresh import refresh_persona_internal
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 

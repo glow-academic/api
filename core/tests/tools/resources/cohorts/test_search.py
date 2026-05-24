@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.cohorts.create import create_cohort
 from app.tools.resources.cohorts.search import search_cohorts
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_cohort(conn, redis_client):

@@ -6,7 +6,7 @@ from app.tools.entries.upload_completion.docs import (
     get_upload_completion_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

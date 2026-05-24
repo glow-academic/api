@@ -9,7 +9,7 @@ from app.tools.entries.audios.create import create_audio
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.uploads.create import create_upload
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _deps(conn, redis_client, profile_id):

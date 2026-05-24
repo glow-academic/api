@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.videos.create import create_video
 from app.tools.resources.videos.search import search_videos
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_video(conn, redis_client):

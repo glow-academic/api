@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.voices.create import create_voice
 from app.tools.resources.voices.get import get_voices
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_voice(conn, redis_client):

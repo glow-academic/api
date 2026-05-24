@@ -24,7 +24,7 @@ from app.infra.auth.permissions import (
     has_access,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 # Permission tuples for auth operations
 _AUTH_UPDATE = [("auth", "update")]

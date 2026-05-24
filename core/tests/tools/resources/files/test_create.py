@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.files.create import create_file
 from app.tools.resources.files.get import get_files
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_file(conn, redis_client):

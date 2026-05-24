@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.request_limits.create import create_request_limit
 from app.tools.resources.request_limits.get import get_request_limits
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_request_limit(conn, redis_client):

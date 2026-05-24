@@ -13,7 +13,7 @@ from app.tools.entries.practice.create import create_practice
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt(conn, redis_client, profile_id, **overrides):

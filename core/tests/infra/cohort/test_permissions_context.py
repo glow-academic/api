@@ -9,7 +9,7 @@ from app.infra.cohort.permissions_context import (
     resolve_cohort_permissions_context,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 class TestPermissionsContextNotFound:

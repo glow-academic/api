@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.personas.create import create_persona
 from app.tools.resources.personas.get import get_personas
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_persona(conn, redis_client):

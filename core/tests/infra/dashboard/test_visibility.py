@@ -11,7 +11,7 @@ from app.infra.dashboard.visibility import (
 from app.infra.profile_identity_context import ProfileIdentityContext
 from tests.helpers import unique_tag
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_visible_profile_ids_include_lower_privilege_same_department(

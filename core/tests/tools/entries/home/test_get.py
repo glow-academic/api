@@ -7,7 +7,7 @@ from app.tools.entries.home.refresh import refresh_home
 from app.tools.entries.sessions.create import create_session
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _home(conn, redis_client, profile_id, bundle):

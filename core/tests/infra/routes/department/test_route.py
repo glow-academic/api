@@ -58,7 +58,7 @@ async def department_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestDepartmentRoute:
     async def test_create_department_route_uses_real_http_stack(
         self,

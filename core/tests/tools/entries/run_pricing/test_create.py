@@ -10,7 +10,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.resources.pricing.create import create_pricing
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _run(conn, redis_client, profile_id):

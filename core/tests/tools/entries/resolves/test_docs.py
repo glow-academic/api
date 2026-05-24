@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.resolves.docs import get_resolves_docs
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs(conn):

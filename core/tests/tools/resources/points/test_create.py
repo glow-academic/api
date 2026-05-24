@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.points.create import create_point
 from app.tools.resources.points.get import get_points
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_point(conn, redis_client):

@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.qualities.create import create_quality
 from app.tools.resources.qualities.search import search_qualities
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_quality(conn, redis_client):

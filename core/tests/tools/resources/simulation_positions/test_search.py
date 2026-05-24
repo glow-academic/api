@@ -10,7 +10,7 @@ from app.tools.resources.simulation_positions.search import (
 )
 from app.tools.resources.simulations.create import create_simulation
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_simulation_position(conn, redis_client):

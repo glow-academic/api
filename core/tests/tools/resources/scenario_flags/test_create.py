@@ -7,7 +7,7 @@ from app.tools.resources.scenario_flags.create import create_scenario_flag
 from app.tools.resources.scenario_flags.get import get_scenario_flags
 from app.tools.resources.scenarios.create import create_scenario
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_scenario_flag(conn, redis_client):

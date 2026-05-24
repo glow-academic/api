@@ -7,7 +7,7 @@ import pytest
 
 from app.infra.provider.refresh import refresh_provider_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

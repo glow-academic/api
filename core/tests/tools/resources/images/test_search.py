@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.images.create import create_image
 from app.tools.resources.images.search import search_images
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_image(conn, redis_client):

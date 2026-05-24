@@ -6,7 +6,7 @@ from app.tools.entries.audios.get import get_audio
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.audios.refresh import refresh_audios_internal
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _session(conn, redis_client, profile_id):

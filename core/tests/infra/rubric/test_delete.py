@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 import pytest
 from fastapi import HTTPException
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 async def test_delete_raises_401_when_no_profile(monkeypatch):
     import app.infra.rubric.delete as m

@@ -20,7 +20,7 @@ from app.tools.entries.test_invocation_completion.get import get_test_invocation
 from app.tools.entries.test_invocation_completion.refresh import refresh_test_invocation_completion
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_invocation_completion(conn, redis_client, profile_id, **overrides):

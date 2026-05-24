@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.messages.refresh import refresh_messages_internal
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 class _Conn:

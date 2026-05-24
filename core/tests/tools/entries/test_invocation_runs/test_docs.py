@@ -6,7 +6,7 @@ from app.tools.entries.test_invocation_runs.docs import (
     get_test_invocation_runs_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

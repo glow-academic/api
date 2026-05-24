@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.points.create import create_point
 from app.tools.resources.points.search import search_points
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_point(conn, redis_client):

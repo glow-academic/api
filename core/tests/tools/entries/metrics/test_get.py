@@ -9,7 +9,7 @@ from app.tools.entries.metrics.get import get_metrics
 from app.tools.entries.metrics.refresh import refresh_metrics_internal
 from app.tools.entries.metrics.search import search_metrics
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_metric_hour(conn, redis_client):

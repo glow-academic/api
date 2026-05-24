@@ -26,7 +26,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.attempt_highlight.refresh import refresh_attempt_highlight
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt_highlight(conn, redis_client, profile_id, **overrides):

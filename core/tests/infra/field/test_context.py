@@ -8,7 +8,7 @@ from app.infra.field.context import resolve_field_context
 from app.tools.artifacts.field.create import create_field
 from app.tools.artifacts.field.update import update_field
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

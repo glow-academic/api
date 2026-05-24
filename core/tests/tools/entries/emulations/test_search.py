@@ -11,7 +11,7 @@ from app.tools.entries.emulations.search import search_emulations
 from app.tools.entries.grants.create import create_grant
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _session(conn, redis_client, profile_id):

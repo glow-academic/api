@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.search import search_descriptions
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_description(conn, redis_client):

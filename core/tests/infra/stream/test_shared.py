@@ -11,7 +11,7 @@ from fastapi import HTTPException
 
 from app.infra.stream.shared import resolve_subscription
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

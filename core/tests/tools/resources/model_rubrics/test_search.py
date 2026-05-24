@@ -8,7 +8,7 @@ from app.tools.resources.model_rubrics.search import search_model_rubrics
 from app.tools.resources.models.create import create_model
 from app.tools.resources.rubrics.create import create_rubric
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _create_model_rubric_with_deps(conn, redis_client):

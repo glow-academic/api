@@ -10,7 +10,7 @@ from app.tools.entries.chat.get import get_chats
 from app.tools.entries.chat.search import search_chat_entries_internal
 from tests.helpers import nonexistent_id, unique_tag
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _chat(conn, redis_client, profile_id, bundle):

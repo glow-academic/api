@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.models.create import create_model
 from app.tools.resources.models.get import get_models
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_model(conn, redis_client):

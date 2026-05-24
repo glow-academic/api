@@ -101,7 +101,7 @@ class TestMergeJunctionIds:
         assert result.example_ids == []
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestResolvePersonaContext:
     async def test_create_mode_no_artifact_returns_empty_selected_resources(
         self, pool, redis_client

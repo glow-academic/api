@@ -9,7 +9,7 @@ from app.tools.resources.scenario_positions.create import (
 from app.tools.resources.scenario_positions.get import get_scenario_positions
 from app.tools.resources.scenarios.create import create_scenario
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_scenario_position(conn, redis_client):

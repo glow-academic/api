@@ -1,7 +1,7 @@
 """Tests for tool permissions — compute_can_edit, compute_disabled_reason."""
 import pytest
 from app.infra.tool.permissions import compute_can_edit, compute_disabled_reason
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _TOOL_UPDATE = [("tool", "update")]
 _NO_PERMS = []

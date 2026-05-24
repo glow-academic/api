@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.colors.create import create_color
 from app.tools.resources.colors.get import get_colors
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_color(conn, redis_client):

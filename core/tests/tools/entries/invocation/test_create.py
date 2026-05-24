@@ -5,7 +5,7 @@ import pytest
 from app.tools.entries.benchmark.create import create_benchmark
 from app.tools.entries.invocation.create import create_invocation
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _invocation(conn, redis_client, **overrides):

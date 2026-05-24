@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.slugs.create import create_slug
 from app.tools.resources.slugs.get import get_slugs
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_slug(conn, redis_client):

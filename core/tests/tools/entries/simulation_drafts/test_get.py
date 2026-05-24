@@ -9,7 +9,7 @@ from app.tools.entries.simulation_drafts.create import (
 from app.tools.entries.simulation_drafts.get import get_simulation_drafts
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

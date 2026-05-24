@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.items.create import create_item
 from app.tools.resources.items.get import get_items
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_item(conn, redis_client):

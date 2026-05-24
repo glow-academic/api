@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.emails.search import search_emails
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_email(conn, redis_client):

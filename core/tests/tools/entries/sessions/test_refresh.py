@@ -6,7 +6,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.sessions.get import get_sessions
 from app.tools.entries.sessions.refresh import refresh_sessions
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_new_session_appears_after_refresh(conn, redis_client, profile_id):

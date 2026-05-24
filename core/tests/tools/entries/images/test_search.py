@@ -12,7 +12,7 @@ from app.tools.resources.images.create import (
     create_image as create_image_resource,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, profile_id, redis_client):

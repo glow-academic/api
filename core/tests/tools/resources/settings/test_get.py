@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.settings.create import create_setting
 from app.tools.resources.settings.get import get_settings
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_setting(conn, redis_client):

@@ -14,7 +14,7 @@ from app.tools.entries.test_invocation_bridge.create import (
     create_test_invocation_bridge,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_invocation_bridge(conn, redis_client, profile_id, **overrides):

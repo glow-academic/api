@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from app.infra.persona.search import search_persona_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _PROFILE_ID = uuid4()
 

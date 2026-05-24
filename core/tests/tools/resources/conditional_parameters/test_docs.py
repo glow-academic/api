@@ -6,7 +6,7 @@ from app.tools.resources.conditional_parameters.docs import (
     get_conditional_parameters_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):
