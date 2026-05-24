@@ -71,7 +71,7 @@ async def auth_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestAuthRoute:
     async def test_create_auth_route_uses_real_http_stack(
         self,
@@ -118,7 +118,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
 
@@ -149,7 +149,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
 
@@ -182,7 +182,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
         updated = await _create_auth_route_resources(pool, redis_client)
@@ -219,7 +219,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
 
@@ -243,7 +243,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
 
@@ -360,7 +360,7 @@ class TestAuthRoute:
         created = await self._create_auth_via_route(
             pool,
             redis_client,
-            redis_client, auth_route_client,
+            auth_route_client,
             auth_route_actor,
         )
 

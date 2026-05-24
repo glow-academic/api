@@ -67,7 +67,7 @@ async def profile_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestProfileRoute:
     async def test_create_profile_route_uses_real_http_stack(
         self,
@@ -112,7 +112,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
 
@@ -140,7 +140,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
 
@@ -174,7 +174,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
         updated = await _create_profile_route_resources(pool, redis_client)
@@ -209,7 +209,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
 
@@ -233,7 +233,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
 
@@ -346,7 +346,7 @@ class TestProfileRoute:
         created = await self._create_profile_via_route(
             pool,
             redis_client,
-            redis_client, profile_route_client,
+            profile_route_client,
             profile_route_actor,
         )
 

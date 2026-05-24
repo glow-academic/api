@@ -23,7 +23,7 @@ async def test_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestTestWorkflowRoutes:
     async def test_get_test_route_returns_test_bundle(
         self,

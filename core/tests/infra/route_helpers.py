@@ -36,6 +36,7 @@ async def create_admin_route_actor(
 ) -> RouteActor:
     """Create a route actor with a requested role, session, and group."""
     from app.tools.artifacts.profile.update import update_profile
+    from app.tools.resources.permissions.create import create_permission
     from app.tools.resources.roles.create import create_role
 
     graph = await setting_graph_factory(
@@ -43,11 +44,32 @@ async def create_admin_route_actor(
     )
 
     async with pool.acquire() as conn:
+        permission_ids = []
+        for artifact in tool_artifacts or ["persona", "scenario"]:
+            for operation in (
+                "create",
+                "read",
+                "search",
+                "update",
+                "delete",
+                "duplicate",
+                "draft",
+            ):
+                permission = await create_permission(
+                    conn,
+                    artifact,
+                    operation,
+                    redis_client,
+                )
+                permission_ids.append(permission.id)
+
         admin_role = await create_role(
             conn,
             redis_client,
             name=f"{role_name_prefix} {unique_tag()}",
             description=f"{group_name} {role} role",
+            level=0 if role == "superadmin" else 1,
+            permission_ids=permission_ids,
         )
         await update_profile(
             conn,

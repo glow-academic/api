@@ -70,7 +70,7 @@ async def scenario_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestScenarioRoute:
     async def test_create_scenario_route_uses_real_http_stack(
         self,
@@ -117,7 +117,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -155,7 +155,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -203,7 +203,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -231,7 +231,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
         updated = await _create_scenario_route_resources(pool, redis_client)
@@ -285,7 +285,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -311,7 +311,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -353,7 +353,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
         draft_name = f"Draft Scenario {unique_tag()}"
@@ -389,6 +389,7 @@ class TestScenarioRoute:
     async def test_scenario_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         scenario_route_client,
         scenario_route_actor,
     ):
@@ -398,7 +399,12 @@ class TestScenarioRoute:
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=scenario_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=scenario_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_scenario_draft(
                 conn,
                 group_id=group.id,
@@ -429,7 +435,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 
@@ -458,7 +464,7 @@ class TestScenarioRoute:
         created = await self._create_scenario_via_route(
             pool,
             redis_client,
-            redis_client, scenario_route_client,
+            scenario_route_client,
             scenario_route_actor,
         )
 

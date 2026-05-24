@@ -113,7 +113,7 @@ async def pricing_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestPricingRoute:
     async def test_get_pricing_route_returns_aggregated_runs(
         self,

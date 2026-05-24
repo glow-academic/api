@@ -82,7 +82,7 @@ async def _create_session_route_graph(pool, actor):
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestSessionRoute:
     async def test_get_session_route_returns_session_bundle(
         self,

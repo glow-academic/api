@@ -51,7 +51,7 @@ async def _create_benchmark_route_data(pool, redis_client, actor):
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestBenchmarkRoute:
     async def test_get_benchmark_route_returns_evals_and_departments(
         self,

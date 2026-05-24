@@ -197,7 +197,7 @@ async def _create_attempt_start_home(pool, redis_client, actor) -> dict[str, str
     return {"home_id": str(home.id), "chat_id": str(chat.id)}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestAttemptRoute:
     async def test_start_attempt_route_creates_attempt_via_real_stack(
         self,

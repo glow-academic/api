@@ -46,7 +46,7 @@ async def _create_field_route_resources(pool, redis_client) -> FieldRouteResourc
         )
         conditional_parameter_res = await create_conditional_parameter(
             conn,
-            parameter_res.id,
+            parameter_res.parameter_id,
             redis_client,
         )
 
@@ -72,7 +72,7 @@ async def field_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestFieldRoute:
     async def test_create_field_route_uses_real_http_stack(
         self,
@@ -119,7 +119,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
 
@@ -150,7 +150,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
 
@@ -183,7 +183,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
         updated = await _create_field_route_resources(pool, redis_client)
@@ -220,7 +220,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
 
@@ -244,7 +244,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
 
@@ -356,7 +356,7 @@ class TestFieldRoute:
         created = await self._create_field_via_route(
             pool,
             redis_client,
-            redis_client, field_route_client,
+            field_route_client,
             field_route_actor,
         )
 

@@ -53,7 +53,7 @@ async def rubric_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestRubricRoute:
     async def test_create_rubric_route_uses_real_http_stack(
         self,
@@ -97,7 +97,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
 
@@ -128,7 +128,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
 
@@ -161,7 +161,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
         updated = await _create_rubric_route_resources(pool, redis_client)
@@ -195,7 +195,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
 
@@ -219,7 +219,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
 
@@ -330,7 +330,7 @@ class TestRubricRoute:
         created = await self._create_rubric_via_route(
             pool,
             redis_client,
-            redis_client, rubric_route_client,
+            rubric_route_client,
             rubric_route_actor,
         )
 
