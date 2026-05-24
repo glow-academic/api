@@ -164,3 +164,14 @@ Items in this file are in the (b) category. Item 1 is unambiguously a bug (the c
    and scenario draft-list coverage. Suggested direction: either restore the
    setup API alias or migrate tests to the new draft primitive contract after
    confirming the intended ownership model.
+
+---
+## Phase 1.5
+
+1. `core/tests/infra/stream/test_registry.py::test_domain_events_do_not_collide_with_lifecycle_events`
+   asserts that public domain event names must be distinct from lifecycle event
+   names. Production currently registers `system.group_generate.started` and
+   `system.group_generate.completed` as both domain events and generated
+   lifecycle events. Suggested direction: rename the domain events or disable
+   default lifecycle generation for that operation so clients do not receive
+   ambiguous event types.

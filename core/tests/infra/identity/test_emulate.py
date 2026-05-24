@@ -10,7 +10,7 @@ from app.tools.entries.grants.search import search_grants
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.sessions.refresh import refresh_sessions
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 class TestResolveEmulation:

@@ -24,7 +24,7 @@ from app.tools.resources.agents.create import create_agent
 from app.tools.resources.models.create import create_model
 from app.tools.resources.pricing.create import create_pricing
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _seed_pricing_graph(conn, redis_client, profile_resource_id):

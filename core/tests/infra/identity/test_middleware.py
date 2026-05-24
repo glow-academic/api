@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.infra.identity.middleware import require_auth
 from app.infra.identity.resolve_identity import Identity
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 def _make_request():

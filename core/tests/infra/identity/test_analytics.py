@@ -25,7 +25,7 @@ from app.tools.resources.cohorts.create import create_cohort
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.profiles.create import create_profile
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _profile_session_run_call(conn, redis_client):
