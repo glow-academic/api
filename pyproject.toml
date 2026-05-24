@@ -174,7 +174,13 @@ norecursedirs = [
 ]
 
 [tool.coverage.run]
-source = ["core/app", "core/utils"]
+# Import-path sources, not directory paths. `conftest.py` puts `core/` on
+# sys.path so tests import as `from app...` — not `from core.app...`.
+# Using "core/app" as a source made coverage silently collect zero data
+# ("Module core/app... was never imported"). The right configuration is
+# the actual package names. Discovered while attempting the first real
+# `make test-cov` after the loop-scope unblocker landed.
+source_pkgs = ["app", "utils"]
 omit = [
     "*/tests/*",
     "*/migrations/*",
