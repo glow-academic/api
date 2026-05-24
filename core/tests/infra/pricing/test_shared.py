@@ -2,7 +2,7 @@
 import pytest
 from decimal import Decimal
 from app.infra.pricing.shared import PricingInfo
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 async def test_pricing_info_creation():
     p = PricingInfo(price=Decimal("0.50"), unit_value=1000)

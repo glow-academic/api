@@ -17,7 +17,7 @@ from app.infra.identity.keycloak_resolvers import (
     resolve_departments_for_sync,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @dataclass

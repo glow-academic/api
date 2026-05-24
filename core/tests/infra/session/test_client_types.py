@@ -1,6 +1,6 @@
 """Tests for session client_types."""
 import pytest
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 async def test_session_types_module_exists():
     import app.infra.session.types as m

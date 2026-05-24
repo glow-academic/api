@@ -7,7 +7,7 @@ import pytest
 from app.infra.identity.email import ProfileByEmailResult, resolve_profile_by_email
 from app.tools.resources.emails.create import create_email
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 class TestResolveProfileByEmail:

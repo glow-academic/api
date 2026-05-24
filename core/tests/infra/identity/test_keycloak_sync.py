@@ -222,7 +222,7 @@ class FakeKCAdmin:
         self.added_client_mappers.append((client_id, payload))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_wait_for_keycloak_connects(monkeypatch):
     kc_admin = FakeKCAdmin()
 
@@ -240,7 +240,7 @@ async def test_wait_for_keycloak_connects(monkeypatch):
     assert result is kc_admin
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_wait_for_keycloak_returns_none_when_package_missing(monkeypatch):
     monkeypatch.delitem(sys.modules, "keycloak", raising=False)
     original_import = __import__
@@ -260,7 +260,7 @@ async def test_wait_for_keycloak_returns_none_when_package_missing(monkeypatch):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_department_client_updates_existing_client():
     admin = FakeKCAdmin()
     admin.clients = [{"clientId": "glow-client-dept-1", "id": "client-uuid"}]
@@ -275,7 +275,7 @@ async def test_ensure_department_client_updates_existing_client():
     assert admin.updated_clients[0][0] == "client-uuid"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_department_client_creates_new_client():
     admin = FakeKCAdmin()
     config = make_config()
@@ -289,7 +289,7 @@ async def test_ensure_department_client_creates_new_client():
     assert admin.updated_clients[-1][1] == {"secret": "secret"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_glow_client_in_master_realm_creates_client():
     admin = FakeKCAdmin()
     config = make_config()
@@ -300,7 +300,7 @@ async def test_ensure_glow_client_in_master_realm_creates_client():
     assert admin.updated_clients[-1][1] == {"secret": "secret"}
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_mcp_client_scope_creates_scope_mapper_and_assignments(
     monkeypatch,
 ):
@@ -316,7 +316,7 @@ async def test_ensure_mcp_client_scope_creates_scope_mapper_and_assignments(
     assert admin.added_client_default_scope_ids == [("client-1", "scope-id", {})]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_mcp_token_lifespan_updates_master_realm(monkeypatch):
     admin = FakeKCAdmin()
     config = make_config(mcp_token_lifespan=7200)
@@ -327,7 +327,7 @@ async def test_ensure_mcp_token_lifespan_updates_master_realm(monkeypatch):
     assert ("master", {"accessTokenLifespan": 7200}) in admin.updated_realms
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_client_registration_policies_removes_blocking_components():
     admin = FakeKCAdmin()
     admin.components = [
@@ -350,7 +350,7 @@ async def test_ensure_client_registration_policies_removes_blocking_components()
     assert admin.deleted_components == ["trusted-1", "consent-1"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_dynamic_clients_no_consent_updates_matching_clients(monkeypatch):
     admin = FakeKCAdmin()
     admin.clients = [
@@ -383,7 +383,7 @@ async def test_ensure_dynamic_clients_no_consent_updates_matching_clients(monkey
     assert "managed-id" not in updated_ids
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_default_scopes_no_consent_updates_scope_attributes():
     admin = FakeKCAdmin()
     admin.client_scopes = [
@@ -422,7 +422,7 @@ def test_get_idp_urls_cover_local_and_docker_variants():
     assert keycloak_sync.get_idp_base_url() == keycloak_sync.get_idp_public_url()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sync_default_idp_for_profile_creates_profile_specific_idp():
     admin = FakeKCAdmin()
     config = make_config(auth_client_secret="broker-secret", app_prefix="auth")
@@ -463,7 +463,7 @@ def test_ensure_emulation_first_login_flow_copies_and_reconfigures_review_steps(
     assert ("emulation-first-login", "Create User If Unique", "REQUIRED") in updated
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sync_emulation_default_idp_creates_idp_and_claim_mappers():
     admin = FakeKCAdmin()
     admin.auth_flows = [{"alias": "emulation-first-login"}]
@@ -483,7 +483,7 @@ async def test_sync_emulation_default_idp_creates_idp_and_claim_mappers():
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_ensure_emulation_client_mappers_creates_missing_mappers():
     admin = FakeKCAdmin()
     admin.clients = [{"clientId": "glow-client", "id": "client-1"}]
@@ -499,7 +499,7 @@ async def test_ensure_emulation_client_mappers_creates_missing_mappers():
     ]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sync_identity_provider_for_realm_level_builds_saml_payload(monkeypatch):
     admin = FakeKCAdmin()
     conn = FakeConn()
@@ -533,7 +533,7 @@ async def test_sync_identity_provider_for_realm_level_builds_saml_payload(monkey
     assert payload["config"]["signingCertificate"] == "cert"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sync_identity_provider_for_org_uses_auth_scoped_alias(monkeypatch):
     admin = FakeKCAdmin()
     conn = FakeConn()
@@ -564,7 +564,7 @@ async def test_sync_identity_provider_for_org_uses_auth_scoped_alias(monkeypatch
     assert payload["config"]["useJwksUrl"] == "true"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sync_keycloak_runs_full_orchestration(monkeypatch):
     admin = FakeKCAdmin()
     config = make_config(auth_url="http://kc/auth")
@@ -604,7 +604,7 @@ async def test_sync_keycloak_runs_full_orchestration(monkeypatch):
     assert "theme" in calls
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_perform_keycloak_sync_handles_missing_pool_and_failure(monkeypatch):
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     monkeypatch.setattr(keycloak_sync, "get_pool", lambda: None)

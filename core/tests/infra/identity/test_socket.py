@@ -16,7 +16,7 @@ from app.infra.identity.socket import (
     store_socket_identity,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 def _make_identity(**overrides):

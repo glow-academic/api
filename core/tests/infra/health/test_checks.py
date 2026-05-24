@@ -45,7 +45,7 @@ def _reset_collector_state():
     collector._redis_client = None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_record_request_and_error_use_memory_fallback():
     await collector.record_request(12.5)
     await collector.record_request(7.5)
@@ -62,7 +62,7 @@ async def test_record_request_and_error_use_memory_fallback():
     }
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_initialize_metrics_and_record_request_use_redis_backend():
     redis = _FakeRedis()
 
@@ -79,7 +79,7 @@ async def test_initialize_metrics_and_record_request_use_redis_backend():
     assert metrics["avg_latency_ms"] == 15.0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_log_metrics_snapshot_writes_aggregated_snapshot(monkeypatch):
     redis = _FakeRedis()
     await collector.initialize_metrics(object(), redis)
@@ -118,7 +118,7 @@ async def test_log_metrics_snapshot_writes_aggregated_snapshot(monkeypatch):
     assert captured["kwargs"]["memory_bytes"] == 123456
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_log_health_checks_writes_service_results(monkeypatch):
     await collector.initialize_metrics(object(), None)
 

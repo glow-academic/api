@@ -17,7 +17,7 @@ from app.infra.identity.state import (
     verify_state_token,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_sign_and_verify_roundtrip():
