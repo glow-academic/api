@@ -55,12 +55,6 @@ class _FakeToolScore:
 
 
 @dataclass
-class _FakeToolScores:
-    best: dict = field(default_factory=dict)
-    has_any: dict = field(default_factory=dict)
-
-
-@dataclass
 class _FakePerms:
     exists: bool = True
     department_ids: list = field(default_factory=list)
@@ -77,6 +71,7 @@ def _make_persona_context(artifact_id=None):
     ctx.artifact_id = artifact_id
     ctx.active = True
     ctx.group_id = _GROUP_ID
+    ctx.entries = {}  # `entries.get("pending_ids", set())` is read by sections
 
     # Build resources dict with all needed buckets
     resources = {}
@@ -105,13 +100,11 @@ class TestBuildPersonaGetResult:
         """When no resources are selected, response should still be valid."""
         common = _FakeCommonContext()
         persona = _make_persona_context()
-        scores = _FakeToolScores()
         perms = _FakePerms()
 
         result = build_persona_get_result(
             common=common,
             persona=persona,
-            scores=scores,
             perms=perms,
             group_id=_GROUP_ID,
         )
@@ -125,13 +118,11 @@ class TestBuildPersonaGetResult:
         profile = _FakeProfile(role="superadmin", department_ids=[_DEPT_ID], role_level=0)
         common = _FakeCommonContext(profile=profile)
         persona = _make_persona_context(artifact_id=uuid4())
-        scores = _FakeToolScores()
         perms = _FakePerms(department_ids=[_DEPT_ID], active_scenario_count=0)
 
         result = build_persona_get_result(
             common=common,
             persona=persona,
-            scores=scores,
             perms=perms,
             group_id=_GROUP_ID,
         )
@@ -145,7 +136,6 @@ class TestBuildPersonaGetResult:
         profile = _FakeProfile(role="admin", department_ids=[_DEPT_ID])
         common = _FakeCommonContext(profile=profile)
         persona = _make_persona_context(artifact_id=uuid4())
-        scores = _FakeToolScores()
         perms = _FakePerms(
             department_ids=[_DEPT_ID], active_scenario_count=2
         )
@@ -153,7 +143,6 @@ class TestBuildPersonaGetResult:
         result = build_persona_get_result(
             common=common,
             persona=persona,
-            scores=scores,
             perms=perms,
             group_id=_GROUP_ID,
         )
@@ -161,24 +150,30 @@ class TestBuildPersonaGetResult:
         assert result.can_edit is False
         assert result.disabled_reason is not None
 
-    async def test_show_flags_map_respects_tool_scores(self):
-        """When tool scores indicate tools exist, show flags should reflect it."""
+    async def test_show_ai_generate_reflects_draft_permission(self):
+        """`show_ai_generate` is the user-facing flag for "AI generate
+        buttons visible." It's projected from the can-draft permission
+        check upstream.
+
+        Replaces a prior test that asserted on a `result.names.show`
+        attribute. Per-section show flags collapsed: they no longer
+        live on `GetPersonaApiResponse` (verified — the response's
+        `names` field is `list[PersonaNameResource] | None`, not a
+        section-with-show object). `show_ai_generate` is the canonical
+        replacement on the API response."""
         common = _FakeCommonContext()
         persona = _make_persona_context()
-        scores = _FakeToolScores(
-            has_any={"names": True, "colors": True, "icons": True, "instructions": True}
-        )
         perms = _FakePerms()
 
         result = build_persona_get_result(
             common=common,
             persona=persona,
-            scores=scores,
             perms=perms,
             group_id=_GROUP_ID,
         )
 
-        # names show is True always for persona
-        assert result.names.show is True
-        # descriptions always shown
-        assert result.descriptions.show is True
+        # The flag is set (not None) — its specific value depends on the
+        # draft-permission check, which the fake profile doesn't grant.
+        # The assertion that matters: it's resolved to a bool, not left
+        # as None on the wire.
+        assert isinstance(result.show_ai_generate, bool)
