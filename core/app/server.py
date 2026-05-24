@@ -283,10 +283,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 
         # Initialize system session (for background tasks like health checks, metrics)
         if pool:
+            from app.infra.globals import get_redis_client
             from app.infra.identity.resolve_identity import get_system_session_id
 
             async with pool.acquire() as conn:
-                system_session_id = await get_system_session_id(conn)
+                system_session_id = await get_system_session_id(
+                    conn, get_redis_client()
+                )
                 logger.info(f"System session initialized: {system_session_id}")
 
         # Initialize metrics collector

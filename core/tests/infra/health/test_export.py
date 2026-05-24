@@ -112,11 +112,12 @@ class TestRefreshHealthClient:
 
 
 class TestWriteMetricsSnapshot:
-    async def test_writes_metrics_entry(self, pool):
+    async def test_writes_metrics_entry(self, pool, redis_client):
         ts = datetime(2031, 6, 1, 12, 0, tzinfo=UTC)
 
         result = await write_metrics_snapshot(
             pool,
+            redis_client,
             ts=ts,
             requests_total=200,
             errors_total=5,
@@ -129,7 +130,7 @@ class TestWriteMetricsSnapshot:
 
 
 class TestWriteHealthChecks:
-    async def test_writes_health_entries(self, pool):
+    async def test_writes_health_entries(self, pool, redis_client):
         from types import SimpleNamespace
 
         ts = datetime(2031, 6, 1, 12, 0, tzinfo=UTC)
@@ -138,7 +139,7 @@ class TestWriteHealthChecks:
             "database": SimpleNamespace(ok=False, latency_ms=100.0, error="timeout"),
         }
 
-        await write_health_checks(pool, ts=ts, checks=checks)
+        await write_health_checks(pool, redis_client, ts=ts, checks=checks)
 
         async with pool.acquire() as conn:
             rows = await conn.fetch(

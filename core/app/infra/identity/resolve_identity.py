@@ -23,6 +23,7 @@ from uuid import UUID
 import asyncpg
 import requests
 from jose import jwt
+from redis.asyncio import Redis
 
 from app.infra.identity.keycloak_sync import get_idp_public_url
 from app.utils.logging.db_logger import get_logger
@@ -749,11 +750,19 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
 # ---------------------------------------------------------------------------
 
 
-async def get_system_session_id(conn: asyncpg.Connection) -> UUID:
+async def get_system_session_id(
+    conn: asyncpg.Connection,
+    redis: Redis,
+) -> UUID:
     """Get or create a system session for background tasks.
 
     This session is not tied to a user profile. It's used by the metrics
     collector, health check logger, and other server-internal processes.
+
+    ``redis`` must be passed by the caller. We do NOT reach into the
+    app-global ``get_redis_client()`` here — that couples this helper to
+    the FastAPI lifespan and makes it untestable outside the running
+    server. Callers in the lifespan context can pass ``get_redis_client()``.
     """
     global _system_session_id
 
@@ -767,10 +776,9 @@ async def get_system_session_id(conn: asyncpg.Connection) -> UUID:
             return _system_session_id
 
     # Create a system session (no profile link needed).
-    from app.infra.globals import get_redis_client
     from app.tools.entries.sessions.create import create_session
 
-    session_id = (await create_session(conn, get_redis_client())).id
+    session_id = (await create_session(conn, redis)).id
 
     _system_session_id = session_id
     logger.info(f"Created system session: {session_id}")

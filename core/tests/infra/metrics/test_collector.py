@@ -151,8 +151,9 @@ async def test_log_metrics_snapshot_writes_aggregated_data(monkeypatch):
 
     captured = {}
 
-    async def _write_metrics_snapshot(pool, **kwargs):
+    async def _write_metrics_snapshot(pool, redis, **kwargs):
         captured["pool"] = pool
+        captured["redis"] = redis
         captured["kwargs"] = kwargs
 
     monkeypatch.setattr(
@@ -181,7 +182,7 @@ async def test_log_health_checks_skips_when_no_pool():
 
 async def test_log_health_checks_delegates_to_writers(monkeypatch):
     """log_health_checks calls run_service_checks and write_health_checks."""
-    await collector.initialize_metrics(object(), None)
+    await collector.initialize_metrics(object(), _FakeRedis())
 
     checks = [{"service": "redis", "ok": True}]
     captured = {}
@@ -189,8 +190,9 @@ async def test_log_health_checks_delegates_to_writers(monkeypatch):
     async def _run_service_checks():
         return checks
 
-    async def _write_health_checks(pool, **kwargs):
+    async def _write_health_checks(pool, redis, **kwargs):
         captured["pool"] = pool
+        captured["redis"] = redis
         captured["kwargs"] = kwargs
 
     monkeypatch.setattr(collector.time, "time", lambda: 180.0)
