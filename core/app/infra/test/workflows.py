@@ -46,7 +46,6 @@ async def test_progress_impl(
     emit: EmitFn,
 ) -> None:
     """Translate test_progress_update to test_grade_start."""
-    redis = get_redis_client()
     from app.infra.websocket.test_types import TestProgressData
 
     invocation_id = data.get("invocation_id") or data.get("chat_id")
@@ -81,7 +80,6 @@ async def test_run_done_impl(
     emit: EmitFn,
 ) -> None:
     """Translate test_run_done to test_run_complete."""
-    redis = get_redis_client()
     from app.infra.websocket.test_types import TestRunCompleteData
 
     invocation_id = data.get("invocation_id") or data.get("chat_id")
