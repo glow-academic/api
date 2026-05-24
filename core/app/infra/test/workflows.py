@@ -13,6 +13,33 @@ from app.infra.websocket.socket_event import EmitFn, client_event, internal_even
 from app.infra.server_timing import timed
 
 
+def _find_next_run_id(runs: list[Any], prev_run_id: str | None) -> str | None:
+    """Return the next run's id after the one matching ``prev_run_id``.
+
+    Used by ``test_group_impl`` to advance through a sorted list of runs in a
+    test group. ``runs`` is whatever ``search_runs(...)`` returns — duck-typed
+    on a ``.run_id`` attribute. ``prev_run_id`` is the previously-completed
+    run's id (or ``None`` if we haven't started yet).
+
+    Returns ``None`` when:
+      - the list is empty,
+      - ``prev_run_id`` doesn't match any run in the list,
+      - or the matched run is the last one.
+
+    When ``prev_run_id`` is ``None``, returns the first run's id.
+    """
+    if not runs:
+        return None
+    if prev_run_id is None:
+        return runs[0].run_id
+    for idx, run in enumerate(runs):
+        if run.run_id == prev_run_id:
+            if idx + 1 < len(runs):
+                return runs[idx + 1].run_id
+            return None
+    return None
+
+
 async def test_progress_impl(
     data: dict[str, Any],
     *,
