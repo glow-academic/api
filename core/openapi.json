@@ -117902,6 +117902,17 @@
               }
             ],
             "title": "Benchmark Id"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -117951,6 +117962,17 @@
               }
             ],
             "title": "Message"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -117998,6 +118020,18 @@
             "type": "integer",
             "title": "Completed Count",
             "default": 0
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -118013,6 +118047,37 @@
             "format": "uuid",
             "title": "Test Id",
             "description": "UUID of the test"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject the staged completion"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the completion dormant (all completion rows active=False); accept activates the whole set",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged completion, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -118891,6 +118956,37 @@
             "title": "Infinite Mode",
             "description": "Whether to run in infinite mode",
             "default": false
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to activate/reject the staged test"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the test dormant (test+benchmark_test active=False); accept activates it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True activates the staged test, False rejects. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
@@ -118937,6 +119033,37 @@
             "format": "uuid",
             "title": "Invocation Id",
             "description": "UUID of the test invocation to stop"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key",
+            "description": "Idempotency key \u2014 replays the prior call; on the ack, the server-minted soft key to emit/discard the staged stop"
+          },
+          "soft": {
+            "type": "boolean",
+            "title": "Soft",
+            "description": "Stage the stop (record intent without emitting); accept emits it",
+            "default": false
+          },
+          "accept": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accept",
+            "description": "Ack: True emits the staged stop, False discards. Only meaningful with idempotency_key"
           }
         },
         "type": "object",
