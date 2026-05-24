@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.args.create import create_arg
 from app.tools.resources.args.get import get_args
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_arg(conn, redis_client):

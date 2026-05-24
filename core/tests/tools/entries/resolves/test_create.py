@@ -11,7 +11,7 @@ from app.tools.entries.resolves.refresh import refresh_resolves
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _call(conn, redis_client, profile_id):

@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.texts.create import create_text
 from app.tools.resources.texts.get import get_texts
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_text(conn, redis_client):

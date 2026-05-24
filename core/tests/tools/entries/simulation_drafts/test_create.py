@@ -9,7 +9,7 @@ from app.tools.entries.simulation_drafts.create import (
 )
 from app.tools.entries.simulation_drafts.get import get_simulation_drafts
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

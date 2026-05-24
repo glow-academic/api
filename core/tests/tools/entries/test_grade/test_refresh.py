@@ -12,7 +12,7 @@ from app.tools.entries.test_grade.refresh import refresh_test_grade
 from app.tools.entries.test_invocation.create import create_test_invocation
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_grade(conn, redis_client, profile_id, **overrides):
@@ -47,7 +47,7 @@ async def test_new_test_grade_appears_after_refresh(conn, redis_client, profile_
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_test_grade(conn)
-    items = await get_test_grades(conn, redis_client, ids=[lookup_id])
+    items = await get_test_grades(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -57,7 +57,7 @@ async def test_new_test_grade_is_not_visible_before_refresh(conn, redis_client, 
     _created(await _test_grade(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_test_grades(conn, redis_client, ids=[lookup_id])
+    items = await get_test_grades(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

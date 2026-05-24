@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.resources.profiles.docs import get_profiles_docs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

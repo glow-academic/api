@@ -6,7 +6,7 @@ from app.tools.entries.personas.create import create_personas
 from app.tools.entries.personas.get import get_personas
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

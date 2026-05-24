@@ -14,7 +14,7 @@ from app.tools.entries.test_invocation.refresh import (
 from app.tools.entries.test_invocation.refresh import refresh_test_invocation
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation(conn, redis_client, profile_id, **overrides):
@@ -42,19 +42,19 @@ async def test_gets_created_test_invocation(conn, redis_client, profile_id):
     _created(await _test_invocation(conn, redis_client, profile_id))
     await refresh_test_invocation(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_test_invocations(conn, redis_client, ids=[lookup_id])
+    items = await get_test_invocations(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
-    items = await get_test_invocations(conn, redis_client, ids=[nonexistent_id()])
+    items = await get_test_invocations(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
 async def test_returns_empty_for_empty_ids(conn, redis_client):
-    items = await get_test_invocations(conn, redis_client, ids=[])
+    items = await get_test_invocations(conn, ids=[], redis=redis_client)
 
     assert items == []

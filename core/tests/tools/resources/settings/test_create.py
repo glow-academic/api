@@ -7,7 +7,7 @@ from app.tools.resources.settings.create import create_setting
 from app.tools.resources.settings.get import get_settings
 from app.tools.resources.systems.create import create_system
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_setting(conn, redis_client):

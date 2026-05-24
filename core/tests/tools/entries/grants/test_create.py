@@ -5,7 +5,7 @@ import pytest
 from app.tools.entries.grants.create import create_grant
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

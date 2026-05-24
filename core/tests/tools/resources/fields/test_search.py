@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.fields.create import create_field
 from app.tools.resources.fields.search import search_fields
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_field(conn, redis_client):

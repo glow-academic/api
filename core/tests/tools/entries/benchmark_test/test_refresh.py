@@ -12,7 +12,7 @@ from app.tools.entries.sessions.create import create_session
 from app.tools.entries.test.create import create_test
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _benchmark_test(conn, redis_client, profile_id, **overrides):
@@ -41,7 +41,7 @@ async def test_new_benchmark_test_appears_after_refresh(conn, redis_client, prof
     lookup_id = getattr(created, 'benchmark_id', None) or getattr(created, 'id', None) or getattr(created, 'benchmark', None)
 
     await refresh_benchmark_test(conn)
-    items = await get_benchmark_tests(conn, redis_client, benchmark_ids=[lookup_id])
+    items = await get_benchmark_tests(conn, benchmark_ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -51,7 +51,7 @@ async def test_new_benchmark_test_is_not_visible_before_refresh(conn, redis_clie
     _created(await _benchmark_test(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'benchmark_id', None) or getattr(created, 'id', None) or getattr(created, 'benchmark', None)
 
-    items = await get_benchmark_tests(conn, redis_client, benchmark_ids=[lookup_id])
+    items = await get_benchmark_tests(conn, benchmark_ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

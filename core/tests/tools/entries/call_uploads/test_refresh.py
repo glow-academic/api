@@ -10,7 +10,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.uploads.create import create_upload
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

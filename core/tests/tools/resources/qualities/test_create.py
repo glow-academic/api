@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.qualities.create import create_quality
 from app.tools.resources.qualities.get import get_qualities
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_quality(conn, redis_client):

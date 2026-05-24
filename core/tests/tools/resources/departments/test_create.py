@@ -6,7 +6,7 @@ from app.tools.resources.departments.create import create_department
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.settings.create import create_setting
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_department(conn, redis_client):

@@ -7,7 +7,7 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.problem_statements.get import get_problem_statements
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_problem_statement(conn, redis_client):

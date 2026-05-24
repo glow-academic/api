@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.items.create import create_item
 from app.tools.resources.items.get import get_items
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_item(conn, redis_client):

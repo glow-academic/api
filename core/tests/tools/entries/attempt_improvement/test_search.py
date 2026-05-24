@@ -27,7 +27,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):
@@ -37,7 +37,7 @@ async def _setup(conn, redis_client, profile_id):
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
-        conn, redis_client, call_id=call.id, user_persona_id=persona.id, profiles_id=profile_id
+        conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
     call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)

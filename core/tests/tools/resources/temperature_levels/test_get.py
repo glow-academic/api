@@ -8,7 +8,7 @@ from app.tools.resources.temperature_levels.create import (
 )
 from app.tools.resources.temperature_levels.get import get_temperature_levels
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_gets_created_temperature_level(conn, redis_client):

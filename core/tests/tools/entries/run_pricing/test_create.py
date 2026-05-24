@@ -10,7 +10,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.resources.pricing.create import create_pricing
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _run(conn, redis_client, profile_id):
@@ -24,8 +24,8 @@ async def _pricing_type(conn):
     return await conn.fetchval("SELECT unnest(enum_range(NULL::pricing_type)) LIMIT 1")
 
 
-async def test_create_returns_id(conn, profile_id):
-    session, run = await _run(conn, profile_id)
+async def test_create_returns_id(conn, redis_client, profile_id):
+    session, run = await _run(conn, redis_client, profile_id)
     pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
@@ -39,8 +39,8 @@ async def test_create_returns_id(conn, profile_id):
     assert entry_id is not None
 
 
-async def test_roundtrip_via_db(conn, profile_id):
-    session, run = await _run(conn, profile_id)
+async def test_roundtrip_via_db(conn, redis_client, profile_id):
+    session, run = await _run(conn, redis_client, profile_id)
     pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
@@ -63,7 +63,7 @@ async def test_roundtrip_via_db(conn, profile_id):
     assert row["mcp"] is False
 
 
-async def test_helper_links_pricing_resource(conn, profile_id, redis_client):
+async def test_helper_links_pricing_resource(conn, redis_client, profile_id):
     session, run = await _run(conn, redis_client, profile_id)
     pricing = await create_pricing(
         conn,

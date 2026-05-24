@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.modalities.create import create_modality
 from app.tools.resources.modalities.search import search_modalities
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_modality(conn, redis_client):

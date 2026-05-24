@@ -11,10 +11,10 @@ from app.tools.entries.runs.search import search_runs
 from app.tools.entries.sessions.create import create_session
 from app.tools.resources.pricing.create import create_pricing
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
-async def test_search_includes_pricing_counts(conn, profile_id, redis_client):
+async def test_search_includes_pricing_counts(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
     group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, redis_client, session_id=session.id, group_id=group.id)

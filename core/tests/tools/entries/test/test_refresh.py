@@ -10,7 +10,7 @@ from app.tools.entries.test.get import get_tests
 from app.tools.entries.test.refresh import refresh_test
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test(conn, redis_client, profile_id, **overrides):
@@ -36,7 +36,7 @@ async def test_new_test_appears_after_refresh(conn, redis_client, profile_id):
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_test(conn)
-    items = await get_tests(conn, redis_client, ids=[lookup_id])
+    items = await get_tests(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -46,7 +46,7 @@ async def test_new_test_is_not_visible_before_refresh(conn, redis_client, profil
     _created(await _test(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_tests(conn, redis_client, ids=[lookup_id])
+    items = await get_tests(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

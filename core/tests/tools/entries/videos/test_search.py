@@ -12,7 +12,7 @@ from app.tools.resources.videos.create import (
     create_video as create_video_resource,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, profile_id, redis_client):
@@ -36,8 +36,8 @@ async def _setup(conn, profile_id, redis_client):
     return video, resource.id
 
 
-async def test_finds_created_entry(conn, profile_id, redis_client):
-    video, videos_id = await _setup(conn, profile_id, redis_client)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    video, videos_id = await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY videos_mv")
 
     items = await search_videos(conn, redis_client, videos_ids=[videos_id])
@@ -46,8 +46,8 @@ async def test_finds_created_entry(conn, profile_id, redis_client):
     assert video.id in ids
 
 
-async def test_filters_by_videos_ids(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_filters_by_videos_ids(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY videos_mv")
 
     items = await search_videos(conn, redis_client, videos_ids=[nonexistent_id()])
@@ -55,8 +55,8 @@ async def test_filters_by_videos_ids(conn, profile_id, redis_client):
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id, redis_client):
-    video, videos_id = await _setup(conn, profile_id, redis_client)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    video, videos_id = await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY videos_mv")
 
     items = await search_videos(conn, redis_client, videos_ids=[videos_id], limit=1)
@@ -64,8 +64,8 @@ async def test_pagination_limit(conn, profile_id, redis_client):
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id, redis_client):
-    await _setup(conn, profile_id, redis_client)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY videos_mv")
 
     items = await search_videos(conn, redis_client)
@@ -73,8 +73,8 @@ async def test_returns_all_without_filter(conn, profile_id, redis_client):
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id, redis_client):
-    video, videos_id = await _setup(conn, profile_id, redis_client)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    video, videos_id = await _setup(conn, redis_client, profile_id)
 
     items = await search_videos(conn, redis_client, videos_ids=[videos_id], bypass_mv=True)
 

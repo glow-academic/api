@@ -9,7 +9,7 @@ from app.tools.entries.upload_completion.create import (
 from app.tools.entries.upload_completion.get import get_upload_completion
 from app.tools.entries.uploads.create import create_upload
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _upload(conn, redis_client, profile_id):

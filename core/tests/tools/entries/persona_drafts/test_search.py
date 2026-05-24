@@ -7,7 +7,7 @@ from app.tools.entries.persona_drafts.create import create_persona_draft
 from app.tools.entries.persona_drafts.search import search_persona_drafts
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

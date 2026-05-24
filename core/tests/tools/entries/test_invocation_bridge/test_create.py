@@ -14,7 +14,7 @@ from app.tools.entries.test_invocation_bridge.create import (
     create_test_invocation_bridge,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation_bridge(conn, redis_client, profile_id, **overrides):
@@ -43,7 +43,7 @@ async def _test_invocation_bridge(conn, redis_client, profile_id, **overrides):
     return result, test_invocation, invocation
 
 
-async def test_returns_ids(conn, profile_id):
+async def test_returns_ids(conn, redis_client, profile_id):
     result, test_invocation, invocation = await _test_invocation_bridge(
         conn, profile_id
     )
@@ -52,8 +52,8 @@ async def test_returns_ids(conn, profile_id):
     assert result.invocation_id == invocation.id
 
 
-async def test_row_exists(conn, profile_id):
-    result, _, _ = await _test_invocation_bridge(conn, profile_id)
+async def test_row_exists(conn, redis_client, profile_id):
+    result, _, _ = await _test_invocation_bridge(conn, redis_client, profile_id)
 
     row = await conn.fetchrow(
         "SELECT test_invocation_id, invocation_id FROM test_invocation_bridge_entry WHERE test_invocation_id = $1 AND invocation_id = $2",
@@ -63,8 +63,8 @@ async def test_row_exists(conn, profile_id):
     assert row is not None
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result, _, _ = await _test_invocation_bridge(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result, _, _ = await _test_invocation_bridge(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM test_invocation_bridge_entry WHERE test_invocation_id = $1",

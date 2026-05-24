@@ -11,7 +11,7 @@ from app.tools.entries.simulation_drafts.search import (
     search_simulation_drafts,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):

@@ -20,7 +20,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):
@@ -31,7 +31,7 @@ async def _setup(conn, redis_client, profile_id):
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -52,12 +52,12 @@ async def test_appears_after_refresh(conn, redis_client, profile_id):
     result = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_chat_bridge(conn)
 
-    items = await get_attempt_chat_bridge(conn, redis_client, attempt_ids=[result.attempt_id])
+    items = await get_attempt_chat_bridge(conn, attempt_ids=[result.attempt_id], redis=redis_client)
     assert len(items) >= 1
 
 
 async def test_not_visible_before_refresh(conn, redis_client, profile_id):
     result = await _setup(conn, redis_client, profile_id)
 
-    items = await get_attempt_chat_bridge(conn, redis_client, attempt_ids=[result.attempt_id])
+    items = await get_attempt_chat_bridge(conn, attempt_ids=[result.attempt_id], redis=redis_client)
     assert len(items) == 0

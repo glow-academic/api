@@ -10,7 +10,7 @@ from app.tools.resources.scenario_rubrics.search import (
 )
 from app.tools.resources.scenarios.create import create_scenario
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _create_scenario_rubric_with_deps(conn, redis_client):

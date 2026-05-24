@@ -17,7 +17,7 @@ from app.tools.entries.health.create import create_health
 from app.tools.entries.metrics.create import create_metrics_entry_internal
 from app.tools.entries.metrics.refresh import refresh_metrics_internal
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _seed_health_metrics(conn, redis_client) -> None:

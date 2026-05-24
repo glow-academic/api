@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.roles.create import create_role
 from app.tools.resources.roles.get import get_roles
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_role(conn, redis_client):

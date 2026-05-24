@@ -9,7 +9,7 @@ from app.tools.resources.permissions.create import create_permission
 from app.tools.resources.tools.create import create_tool
 from app.tools.resources.tools.get import get_tools
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_tool(conn, redis_client):

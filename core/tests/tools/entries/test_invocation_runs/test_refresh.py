@@ -19,7 +19,7 @@ from app.tools.entries.test_invocation_runs.refresh import (
 from app.tools.entries.test_invocation_runs.get import get_test_invocation_runs
 from app.tools.entries.test_invocation_runs.refresh import refresh_test_invocation_runs
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation_runs(conn, redis_client, profile_id, **overrides):
@@ -45,7 +45,7 @@ async def test_new_test_invocation_runs_appears_after_refresh(conn, redis_client
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_test_invocation_runs(conn)
-    items = await get_test_invocation_runs(conn, redis_client, ids=[lookup_id])
+    items = await get_test_invocation_runs(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -55,7 +55,7 @@ async def test_new_test_invocation_runs_is_not_visible_before_refresh(conn, redi
     created = _created(await _test_invocation_runs(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_test_invocation_runs(conn, redis_client, ids=[lookup_id])
+    items = await get_test_invocation_runs(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

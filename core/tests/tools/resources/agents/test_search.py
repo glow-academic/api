@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.agents.create import create_agent
 from app.tools.resources.agents.search import search_agents
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_agent(conn, redis_client):

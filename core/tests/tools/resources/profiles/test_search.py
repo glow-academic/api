@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.profiles.create import create_profile
 from app.tools.resources.profiles.search import search_profiles
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_profile(conn, redis_client):

@@ -9,7 +9,7 @@ from app.tools.resources.files.create import (
 )
 from app.tools.entries.files.refresh import refresh_files_internal
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

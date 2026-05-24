@@ -10,7 +10,7 @@ from app.tools.resources.profile_personas.search import (
 )
 from app.tools.resources.profiles.create import create_profile
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _create_profile_persona_with_deps(conn, redis_client):

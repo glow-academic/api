@@ -9,7 +9,7 @@ from app.tools.entries.tokens.create import create_token
 from app.tools.entries.tokens.get import get_tokens
 from app.tools.entries.tokens.refresh import refresh_tokens
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _run(conn, redis_client, profile_id):

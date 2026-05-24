@@ -6,7 +6,7 @@ from app.tools.entries.benchmark.create import create_benchmark
 from app.tools.entries.benchmark.get import get_benchmarks
 from app.tools.entries.benchmark.refresh import refresh_benchmark
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _benchmark(conn, redis_client, profile_id, department_id, **overrides):
@@ -18,8 +18,8 @@ async def _benchmark(conn, redis_client, profile_id, department_id, **overrides)
     return await create_benchmark(conn, redis_client, **defaults)
 
 
-async def test_returns_id(conn, profile_id, department_id):
-    result = await _benchmark(conn, profile_id, department_id)
+async def test_returns_id(conn, redis_client, profile_id, department_id):
+    result = await _benchmark(conn, redis_client, profile_id, department_id)
 
     assert result.id is not None
 
@@ -36,8 +36,8 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, dep
     assert items[0].department_ids == [department_id]
 
 
-async def test_passes_mcp_flag(conn, profile_id, department_id):
-    result = await _benchmark(conn, profile_id, department_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id, department_id):
+    result = await _benchmark(conn, redis_client, profile_id, department_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM benchmark_entry WHERE id = $1",

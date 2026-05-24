@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.prompts.get import get_prompts
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_prompt(conn, redis_client):

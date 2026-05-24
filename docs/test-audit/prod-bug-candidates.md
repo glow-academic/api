@@ -2,9 +2,15 @@
 
 Findings where a failing test pointed to a real defect in production code (not test rot). File a real bug ticket / fix; do not "fix" by deleting the test.
 
+(Note: PR #3 and PR #4 both add to this file. If PR #3 merges first, PR #4's
+content needs to be appended to this; the conflict is mechanical and the
+sections are independent.)
+
 ---
 
-## 1. `_find_next_run_id` — called but not defined
+## Phase 1.1 — items 1-3
+
+### 1. `_find_next_run_id` — called but not defined
 
 **File:** `core/app/infra/test/workflows.py`
 **Line:** 276
@@ -21,13 +27,11 @@ $ git grep "def _find_next_run_id\|def find_next_run_id" core/app/
 (no matches)
 ```
 
-**Test impact:** The `TestFindNextRunId` class in `core/tests/infra/test_attempt_events.py` was catching this. (Note: that file was ultimately deleted in test-audit Batch 0 due to multiple missing prod symbols — see items 2 and 3.) When the prod bug is fixed, restore those tests from `git show 5fba90f8c7~1:core/tests/infra/test_attempt_events.py` (the pre-Batch-0 state).
+**Test impact:** The `TestFindNextRunId` class in `core/tests/infra/test_attempt_events.py` was catching this. (That file was ultimately deleted in test-audit Batch 0 due to multiple missing prod symbols — see items 2 and 3.) When the prod bug is fixed, restore those tests from `git show 5fba90f8c7~1:core/tests/infra/test_attempt_events.py` (the pre-Batch-0 state).
 
 **Suggested fix:** Either implement `_find_next_run_id(runs, prev_run_id)` (probably: walk `runs` to find the entry whose `prev_run_id` matches and return the next one), OR if this code path is dead, remove the call and the surrounding block.
 
----
-
-## 2. `test_proceed_impl` — imported but not defined
+### 2. `test_proceed_impl` — imported but not defined
 
 **Imported in (at minimum):** `core/tests/infra/test_attempt_events.py` (pre-Batch-0)
 
@@ -54,9 +58,7 @@ def build_messages_from_conversation(...)
 
 **Action needed:** Confirm whether `test.proceed` is still a supported event. If yes, implement the handler. If no, this is just test rot and the test file deletion is fine.
 
----
-
-## 3. `test_run_impl` — imported but not defined
+### 3. `test_run_impl` — imported but not defined
 
 **Same situation as #2.** Imported in pre-Batch-0 `test_attempt_events.py`, not present in `core/app/infra/test/workflows.py`.
 
@@ -64,8 +66,60 @@ def build_messages_from_conversation(...)
 
 ---
 
+## Phase 1.2 — items 4-9
+
+### 4. Postgres enum `pricing_type` does not exist
+
+**Test:** `core/tests/tools/resources/pricing/test_create.py::test_creates_new_pricing`
+
+- Asserts: pricing resources can be inserted and read through the tools resource layer.
+- Prod returns: `asyncpg.exceptions.UndefinedObjectError: type "pricing_type" does not exist`.
+- Why this could be real: the test exercises the current DB-backed create path; a missing Postgres enum/type points to schema drift, not a test expectation mismatch.
+
+### 5. `attempt_mutes_mv` materialized view does not exist
+
+**Test:** `core/tests/tools/entries/attempt_mutes/test_get.py::test_gets_created_attempt_mutes`
+
+- Asserts: attempt mute entries are visible through the materialized-view-backed get path after refresh.
+- Prod returns: `asyncpg.exceptions.UndefinedTableError: relation "attempt_mutes_mv" does not exist`.
+- Why this could be real: the production getter/refresh path expects an MV that the cloned test schema does not provide.
+
+### 6. `chat_mv` cannot REFRESH CONCURRENTLY — missing unique index
+
+**Test:** `core/tests/tools/entries/chat/test_refresh.py::test_refresh_is_idempotent`
+
+- Asserts: chat MV refresh can run concurrently/idempotently.
+- Prod returns: `cannot refresh materialized view "public.chat_mv" concurrently` with a hint to add a unique index.
+- Why this could be real: the refresh implementation uses concurrent refresh semantics, but the MV schema appears to lack the required unique index.
+
+### 7. `m.updated_at` column missing in model_flags search query
+
+**Test:** `core/tests/tools/resources/model_flags/test_search.py::test_finds_created_model_flag`
+
+- Asserts: model flag search can load rows through the model flags resource search path.
+- Prod returns: `asyncpg.exceptions.UndefinedColumnError: column m.updated_at does not exist`.
+- Why this could be real: the query references a column absent from the schema; changing the test would hide a broken SQL contract.
+
+### 8. Health refresh tool path reaches into app-global Redis
+
+**Test:** `core/tests/tools/entries/health/test_refresh.py::TestRefreshHealthClient::test_refreshes_views_and_invalidates_tags`
+
+- Asserts: health refresh invalidates cache tags using the test Redis fixture path.
+- Prod returns: `RuntimeError: Redis client not initialized -- get_redis_client() called before lifespan startup or after shutdown`.
+- Why this could be real: the tool path appears coupled to app lifespan globals instead of accepting the existing test Redis boundary.
+
+### 9. Metrics export has the same Redis-global coupling as item 8
+
+**Test:** `core/tests/tools/entries/metrics/test_refresh.py::TestExportHealthClient::test_exports_health_and_metrics_zip`
+
+- Asserts: metrics/health export can run against the test-backed app dependencies.
+- Prod returns: `RuntimeError: Redis client not initialized -- get_redis_client() called before lifespan startup or after shutdown`.
+- Why this could be real: the failing path bypasses the fixture-provided Redis client and reaches an uninitialized global client.
+
+---
+
 ## Notes on the test-audit context
 
-These bugs were surfaced during the test-harness audit (PR #1, PR #2, and the Phase 1.1 restore PR). The audit pattern was: when a test fails because it imports a symbol from prod code that no longer exists, classify the failure as either (a) stale test (delete it) or (b) prod bug candidate (file it here, don't delete the test).
+These bugs were surfaced during the test-harness audit (PRs #1-#4). The audit pattern was: when a test fails because it imports a symbol from prod code that no longer exists OR asserts behavior X but prod returns X', classify the failure as either (a) stale test (delete it) or (b) prod bug candidate (file it here, don't delete the test).
 
-Items 1-3 are in the (b) category — they point at functions production code expected to exist (item 1 is unambiguously a bug because the call site is live). Items 2 and 3 may turn out to be (a) once you confirm whether `test.proceed` and `test.run` events are still in the supported event surface.
+Items in this file are in the (b) category. Item 1 is unambiguously a bug (the call site is live, the function isn't defined). Items 2-3 may be (a) if `test.proceed` and `test.run` events are no longer supported. Items 4-7 are schema/migration gaps. Items 8-9 are lifespan-coupling bugs (production code reaches into globals instead of accepting injected dependencies, making tests harder to isolate).

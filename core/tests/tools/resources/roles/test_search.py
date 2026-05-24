@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.roles.create import create_role
 from app.tools.resources.roles.search import search_roles
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_role(conn, redis_client):

@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.values.create import create_value
 from app.tools.resources.values.get import get_values
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_value(conn, redis_client):

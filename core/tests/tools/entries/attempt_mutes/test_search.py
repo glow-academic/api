@@ -22,7 +22,7 @@ from app.tools.entries.attempt_mutes.search import search_attempt_mutes_entries_
 from tests.helpers import nonexistent_id
 from app.tools.entries.attempt_mutes.refresh import refresh_attempt_mutes
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_mutes(conn, redis_client, profile_id, **overrides):
@@ -34,7 +34,7 @@ async def _attempt_mutes(conn, redis_client, profile_id, **overrides):
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -69,7 +69,7 @@ async def test_finds_created_attempt_mutes(conn, redis_client, profile_id):
     created = _created(await _attempt_mutes(conn, redis_client, profile_id))
     await refresh_attempt_mutes(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    fetched = await get_attempt_mutes(conn, redis_client, ids=[lookup_id])
+    fetched = await get_attempt_mutes(conn, ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'conversation_id', None)
     items = await search_attempt_mutes_entries_internal(conn, redis_client, conversation_ids=[filter_value], limit_count=20, offset_count=0)
@@ -90,7 +90,7 @@ async def test_respects_limit(conn, redis_client, profile_id):
     created = _created(await _attempt_mutes(conn, redis_client, profile_id))
     await refresh_attempt_mutes(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    fetched = await get_attempt_mutes(conn, redis_client, ids=[lookup_id])
+    fetched = await get_attempt_mutes(conn, ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'conversation_id', None)
     items = await search_attempt_mutes_entries_internal(conn, redis_client, conversation_ids=[filter_value], limit_count=1, offset_count=0)

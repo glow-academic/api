@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.parameters.create import create_parameter
 from app.tools.resources.parameters.search import search_parameters
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_parameter(conn, redis_client):

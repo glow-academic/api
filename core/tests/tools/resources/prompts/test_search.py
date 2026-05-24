@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.prompts.search import search_prompts
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_prompt(conn, redis_client):

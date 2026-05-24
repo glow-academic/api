@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.args.create import create_arg
 from app.tools.resources.args.search import search_args
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_arg(conn, redis_client):

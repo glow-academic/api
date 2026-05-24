@@ -20,7 +20,7 @@ from app.tools.entries.test_invocation_bridge.refresh import (
     refresh_test_invocation_bridge,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _setup(conn, redis_client, profile_id):
@@ -52,8 +52,8 @@ async def test_appears_after_refresh(conn, redis_client, profile_id):
     await refresh_test_invocation_bridge(conn)
 
     items = await get_test_invocation_bridge(
-        conn, redis_client, test_invocation_ids=[result.test_invocation_id]
-    )
+        conn, test_invocation_ids=[result.test_invocation_id]
+    , redis=redis_client)
     assert len(items) >= 1
 
 
@@ -61,6 +61,6 @@ async def test_not_visible_before_refresh(conn, redis_client, profile_id):
     result = await _setup(conn, redis_client, profile_id)
 
     items = await get_test_invocation_bridge(
-        conn, redis_client, test_invocation_ids=[result.test_invocation_id]
-    )
+        conn, test_invocation_ids=[result.test_invocation_id]
+    , redis=redis_client)
     assert len(items) == 0

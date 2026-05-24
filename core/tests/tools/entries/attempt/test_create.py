@@ -13,7 +13,7 @@ from app.tools.entries.practice.create import create_practice
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt(conn, redis_client, profile_id, **overrides):
@@ -23,7 +23,7 @@ async def _attempt(conn, redis_client, profile_id, **overrides):
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
     defaults = dict(
-        call_id=call.id,
+        session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -32,8 +32,8 @@ async def _attempt(conn, redis_client, profile_id, **overrides):
     return session, result
 
 
-async def test_returns_id(conn, profile_id, simulation_bundle):
-    _, result = await _attempt(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _attempt(conn, redis_client, profile_id)
 
     assert result.id is not None
 
@@ -78,8 +78,8 @@ async def test_num_chats_and_practice(conn, redis_client, profile_id, simulation
     assert items[0].practice is True
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
-    _, result = await _attempt(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _attempt(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_entry WHERE id = $1",

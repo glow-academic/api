@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.departments.search import search_departments
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_department(conn, redis_client):

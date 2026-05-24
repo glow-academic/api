@@ -9,7 +9,7 @@ from app.tools.entries.home_chat.refresh import refresh_home_chat
 from app.tools.entries.sessions.create import create_session
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _home_chat(conn, redis_client, profile_id, bundle):
@@ -44,7 +44,7 @@ async def test_new_home_chat_appears_after_refresh(conn, redis_client, profile_i
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_home_chat(conn)
-    items = await get_home_chats(conn, redis_client, ids=[lookup_id])
+    items = await get_home_chats(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
@@ -54,7 +54,7 @@ async def test_new_home_chat_is_not_visible_before_refresh(conn, redis_client, p
     _created(await _home_chat(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_home_chats(conn, redis_client, ids=[lookup_id])
+    items = await get_home_chats(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

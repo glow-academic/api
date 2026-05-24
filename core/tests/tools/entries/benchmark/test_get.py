@@ -6,7 +6,7 @@ from app.tools.entries.benchmark.get import get_benchmarks
 from app.tools.entries.benchmark.refresh import refresh_benchmark
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _benchmark(conn, redis_client, profile_id, department_id, **overrides):
@@ -26,19 +26,19 @@ async def test_gets_created_benchmark(conn, redis_client, profile_id, department
     _created(await _benchmark(conn, redis_client, profile_id, department_id))
     await refresh_benchmark(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_benchmarks(conn, redis_client, ids=[lookup_id])
+    items = await get_benchmarks(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
-    items = await get_benchmarks(conn, redis_client, ids=[nonexistent_id()])
+    items = await get_benchmarks(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
 async def test_returns_empty_for_empty_ids(conn, redis_client):
-    items = await get_benchmarks(conn, redis_client, ids=[])
+    items = await get_benchmarks(conn, ids=[], redis=redis_client)
 
     assert items == []

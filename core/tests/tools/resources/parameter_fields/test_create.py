@@ -6,7 +6,7 @@ from app.tools.resources.fields.create import create_field
 from app.tools.resources.parameter_fields.create import create_parameter_field
 from app.tools.resources.parameter_fields.get import get_parameter_fields
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_parameter_field(conn, redis_client):

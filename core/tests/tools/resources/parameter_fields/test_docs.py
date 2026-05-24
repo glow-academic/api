@@ -6,7 +6,7 @@ from app.tools.resources.parameter_fields.docs import (
     get_parameter_fields_docs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_returns_docs_response(conn):

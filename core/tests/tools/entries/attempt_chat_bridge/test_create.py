@@ -14,7 +14,7 @@ from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _attempt_chat_bridge(conn, redis_client, profile_id, **overrides):
@@ -25,7 +25,7 @@ async def _attempt_chat_bridge(conn, redis_client, profile_id, **overrides):
     persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        redis_client, call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
@@ -44,15 +44,15 @@ async def _attempt_chat_bridge(conn, redis_client, profile_id, **overrides):
     return result, attempt, attempt_chat
 
 
-async def test_returns_ids(conn, profile_id):
-    result, attempt, attempt_chat = await _attempt_chat_bridge(conn, profile_id)
+async def test_returns_ids(conn, redis_client, profile_id):
+    result, attempt, attempt_chat = await _attempt_chat_bridge(conn, redis_client, profile_id)
 
     assert result.attempt_id == attempt.id
     assert result.attempt_chat_id == attempt_chat.id
 
 
-async def test_row_exists(conn, profile_id):
-    result, _, _ = await _attempt_chat_bridge(conn, profile_id)
+async def test_row_exists(conn, redis_client, profile_id):
+    result, _, _ = await _attempt_chat_bridge(conn, redis_client, profile_id)
 
     row = await conn.fetchrow(
         "SELECT attempt_id, attempt_chat_id FROM attempt_chat_bridge_entry WHERE attempt_id = $1 AND attempt_chat_id = $2",
@@ -62,8 +62,8 @@ async def test_row_exists(conn, profile_id):
     assert row is not None
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result, _, _ = await _attempt_chat_bridge(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result, _, _ = await _attempt_chat_bridge(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_chat_bridge_entry WHERE attempt_id = $1",

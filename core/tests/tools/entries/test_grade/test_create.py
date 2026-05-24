@@ -12,7 +12,7 @@ from app.tools.entries.test_grade.get import get_test_grades
 from app.tools.entries.test_grade.refresh import refresh_test_grade
 from app.tools.entries.test_invocation.create import create_test_invocation
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_grade(conn, redis_client, profile_id, **overrides):
@@ -38,8 +38,8 @@ async def _test_grade(conn, redis_client, profile_id, **overrides):
     return result
 
 
-async def test_returns_id(conn, profile_id):
-    result = await _test_grade(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result = await _test_grade(conn, redis_client, profile_id)
 
     assert result.id is not None
 
@@ -54,8 +54,8 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
     assert items[0].id == result.id
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result = await _test_grade(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result = await _test_grade(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM test_grade_entry WHERE id = $1", result.id

@@ -8,7 +8,7 @@ from app.tools.entries.groups.get import get_groups
 from app.tools.entries.groups.refresh import refresh_groups
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _session(conn, redis_client, profile_id):

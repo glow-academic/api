@@ -18,7 +18,7 @@ from app.tools.entries.test_invocation_runs.refresh import (
     refresh_test_invocation_runs,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _test_invocation_runs(conn, redis_client, profile_id, **overrides):
@@ -35,8 +35,8 @@ async def _test_invocation_runs(conn, redis_client, profile_id, **overrides):
     return await create_test_invocation_runs(conn, redis_client, **defaults)
 
 
-async def test_returns_id(conn, profile_id):
-    result = await _test_invocation_runs(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result = await _test_invocation_runs(conn, redis_client, profile_id)
 
     assert result.id is not None
 
@@ -49,8 +49,8 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
     assert len(items) == 1
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result = await _test_invocation_runs(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result = await _test_invocation_runs(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM test_invocation_runs_entry WHERE id = $1",

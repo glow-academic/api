@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.icons.create import create_icon
 from app.tools.resources.icons.get import get_icons
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_icon(conn, redis_client):

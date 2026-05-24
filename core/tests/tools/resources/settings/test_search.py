@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.settings.create import create_setting
 from app.tools.resources.settings.search import search_settings
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_finds_created_setting(conn, redis_client):

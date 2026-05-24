@@ -12,7 +12,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.test.create import create_test
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def _benchmark_test(conn, redis_client, profile_id, **overrides):
@@ -32,15 +32,15 @@ async def _benchmark_test(conn, redis_client, profile_id, **overrides):
     return result, benchmark, test
 
 
-async def test_returns_ids(conn, profile_id):
-    result, benchmark, test = await _benchmark_test(conn, profile_id)
+async def test_returns_ids(conn, redis_client, profile_id):
+    result, benchmark, test = await _benchmark_test(conn, redis_client, profile_id)
 
     assert result.benchmark_id == benchmark.id
     assert result.test_id == test.id
 
 
-async def test_row_exists(conn, profile_id):
-    result, _, _ = await _benchmark_test(conn, profile_id)
+async def test_row_exists(conn, redis_client, profile_id):
+    result, _, _ = await _benchmark_test(conn, redis_client, profile_id)
 
     row = await conn.fetchrow(
         "SELECT benchmark_id, test_id FROM benchmark_test_entry WHERE benchmark_id = $1",
@@ -58,8 +58,8 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
     assert len(items) == 1
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result, _, _ = await _benchmark_test(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result, _, _ = await _benchmark_test(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM benchmark_test_entry WHERE benchmark_id = $1",

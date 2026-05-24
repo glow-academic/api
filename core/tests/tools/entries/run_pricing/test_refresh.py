@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.run_pricing.refresh import refresh_run_pricing_internal
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 class _Conn:

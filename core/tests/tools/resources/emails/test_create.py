@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.emails.create import create_email
 from app.tools.resources.emails.get import get_emails
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_creates_new_email(conn, redis_client):
