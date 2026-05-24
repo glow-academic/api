@@ -6,7 +6,7 @@ from app.tools.resources.model_positions.create import create_model_position
 from app.tools.resources.model_positions.search import search_model_positions
 from app.tools.resources.models.create import create_model
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_model_position(conn, redis_client):

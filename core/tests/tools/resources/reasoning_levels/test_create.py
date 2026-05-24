@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.reasoning_levels.create import create_reasoning_level
 from app.tools.resources.reasoning_levels.get import get_reasoning_levels
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_reasoning_level(conn, redis_client):

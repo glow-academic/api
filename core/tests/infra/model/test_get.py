@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from app.infra.model.get import get_model_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _PROFILE_ID = uuid4()
 

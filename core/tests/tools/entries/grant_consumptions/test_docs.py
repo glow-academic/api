@@ -6,7 +6,7 @@ from app.tools.entries.grant_consumptions.docs import (
     get_grant_consumptions_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs(conn):

@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.icons.create import create_icon
 from app.tools.resources.icons.search import search_icons
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_icon(conn, redis_client):

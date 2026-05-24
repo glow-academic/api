@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.evals.create import create_eval
 from app.tools.resources.evals.search import search_evals
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_eval(conn, redis_client):

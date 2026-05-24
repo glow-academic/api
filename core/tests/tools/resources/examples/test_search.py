@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.examples.create import create_example
 from app.tools.resources.examples.search import search_examples
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_example(conn, redis_client):

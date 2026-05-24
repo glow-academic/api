@@ -19,7 +19,7 @@ async def dashboard_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestDashboardRoute:
     async def test_get_dashboard_route_returns_bundle(
         self,

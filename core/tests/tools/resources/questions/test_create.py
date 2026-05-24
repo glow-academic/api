@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.questions.get import get_questions
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_question(conn, redis_client):

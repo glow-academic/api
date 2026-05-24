@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.pricing.create import create_pricing
 from app.tools.resources.pricing.get import get_pricing
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_pricing(conn, redis_client):

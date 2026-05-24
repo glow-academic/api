@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.protocols.create import create_protocol
 from app.tools.resources.protocols.get import get_protocols
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_protocol(conn, redis_client):

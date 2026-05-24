@@ -14,7 +14,7 @@ from app.tools.entries.grant_consumptions.search import (
 from app.tools.entries.grants.create import create_grant
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _grant(conn, redis_client, profile_id):

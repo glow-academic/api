@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from app.infra.provider.create import create_provider_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_create_raises_401_for_unknown_profile(monkeypatch):

@@ -1,7 +1,7 @@
 """Tests for rubric permissions — compute_can_edit."""
 import pytest
 from app.infra.rubric.permissions import compute_can_edit, compute_disabled_reason
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _RUBRIC_UPDATE = [("rubric", "update")]
 _NO_PERMS = []

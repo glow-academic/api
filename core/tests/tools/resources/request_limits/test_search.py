@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.request_limits.create import create_request_limit
 from app.tools.resources.request_limits.search import search_request_limits
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_request_limit(conn, redis_client):

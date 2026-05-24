@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_name(conn, redis_client):

@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.resources.thresholds.docs import get_thresholds_docs
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

@@ -16,7 +16,7 @@ from app.tools.entries.test_invocation_bridge.get import get_test_invocation_bri
 from app.tools.entries.test_invocation_bridge.refresh import refresh_test_invocation_bridge
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_invocation_bridge(conn, redis_client, profile_id, **overrides):

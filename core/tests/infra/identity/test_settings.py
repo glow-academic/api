@@ -14,7 +14,7 @@ from app.infra.identity.settings import (
     resolve_thresholds,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

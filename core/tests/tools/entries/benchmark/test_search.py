@@ -6,7 +6,7 @@ from app.tools.entries.benchmark.create import create_benchmark
 from app.tools.entries.benchmark.refresh import refresh_benchmark
 from app.tools.entries.benchmark.search import search_benchmarks
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client):

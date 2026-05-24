@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.parameters.create import create_parameter
 from app.tools.resources.parameters.get import get_parameters
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_parameter(conn, redis_client):

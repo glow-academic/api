@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 from app.infra.session.refresh import refresh_session_impl
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 async def test_refresh_returns_success(monkeypatch):
     pool, redis = AsyncMock(), AsyncMock()

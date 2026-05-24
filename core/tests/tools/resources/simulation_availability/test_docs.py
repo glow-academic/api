@@ -6,7 +6,7 @@ from app.tools.resources.simulation_availability.docs import (
     get_simulation_availability_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

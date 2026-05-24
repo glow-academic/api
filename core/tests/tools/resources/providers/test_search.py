@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.providers.create import create_provider
 from app.tools.resources.providers.search import search_providers
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_provider(conn, redis_client):

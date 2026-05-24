@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.texts.create import create_text
 from app.tools.resources.texts.get import get_texts
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_text(conn, redis_client):

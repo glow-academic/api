@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.simulations.create import create_simulation
 from app.tools.resources.simulations.search import search_simulations
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_simulation(conn, redis_client):

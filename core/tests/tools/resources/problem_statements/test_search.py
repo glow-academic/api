@@ -10,7 +10,7 @@ from app.tools.resources.problem_statements.search import (
     search_problem_statements,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_problem_statement(conn, redis_client):

@@ -11,7 +11,7 @@ from app.tools.entries.test_archive.create import create_test_archive
 from app.tools.entries.test_archive.get import get_test_archives
 from app.tools.entries.test_archive.refresh import refresh_test_archive
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_archive(conn, redis_client, profile_id, **overrides):

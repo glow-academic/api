@@ -105,7 +105,7 @@ async def group_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestGroupRoute:
     async def test_get_group_route_returns_group_detail(
         self,

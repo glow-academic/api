@@ -10,7 +10,7 @@ from app.tools.resources.scenario_time_limits.search import (
 )
 from app.tools.resources.scenarios.create import create_scenario
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_scenario_time_limit(conn, redis_client):

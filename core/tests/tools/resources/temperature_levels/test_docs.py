@@ -6,7 +6,7 @@ from app.tools.resources.temperature_levels.docs import (
     get_temperature_levels_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

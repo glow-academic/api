@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.fields.create import create_field
 from app.tools.resources.fields.get import get_fields
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_field(conn, redis_client):

@@ -28,7 +28,7 @@ from app.infra.document.permissions import (
     has_access,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _DEPT = uuid4()
 _OTHER = uuid4()

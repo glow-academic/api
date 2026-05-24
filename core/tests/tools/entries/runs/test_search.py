@@ -11,7 +11,7 @@ from app.tools.entries.runs.search import search_runs
 from app.tools.entries.sessions.create import create_session
 from app.tools.resources.pricing.create import create_pricing
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_search_includes_pricing_counts(conn, redis_client, profile_id):

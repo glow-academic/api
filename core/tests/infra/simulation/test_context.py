@@ -8,7 +8,7 @@ from app.infra.simulation.context import resolve_simulation_context
 from app.tools.artifacts.simulation.create import create_simulation
 from app.tools.artifacts.simulation.update import update_simulation
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

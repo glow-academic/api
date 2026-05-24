@@ -10,7 +10,7 @@ from app.tools.resources.videos.create import (
 from app.tools.entries.videos.refresh import refresh_videos_internal
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _session(conn, redis_client, profile_id):

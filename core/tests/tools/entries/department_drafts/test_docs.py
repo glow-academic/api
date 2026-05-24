@@ -6,7 +6,7 @@ from app.tools.entries.department_drafts.docs import (
     get_department_drafts_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

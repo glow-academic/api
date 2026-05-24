@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.endpoints.create import create_endpoint
 from app.tools.resources.endpoints.get import get_endpoints
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_endpoint(conn, redis_client):

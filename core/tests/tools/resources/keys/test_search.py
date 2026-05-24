@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.keys.create import create_key
 from app.tools.resources.keys.search import search_keys
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_key(conn, redis_client):

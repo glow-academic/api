@@ -9,7 +9,7 @@ from app.tools.entries.practice_chat.get import get_practice_chats
 from app.tools.entries.practice_chat.refresh import refresh_practice_chat
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _practice_chat(conn, redis_client, profile_id, bundle):

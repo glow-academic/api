@@ -22,7 +22,7 @@ from app.tools.entries.attempt_mutes.search import search_attempt_mutes_entries_
 from tests.helpers import nonexistent_id
 from app.tools.entries.attempt_mutes.refresh import refresh_attempt_mutes
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _attempt_mutes(conn, redis_client, profile_id, **overrides):

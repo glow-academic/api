@@ -7,7 +7,7 @@ from app.tools.resources.personas.create import (
     create_persona as create_persona_resource,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_id(conn, redis_client):

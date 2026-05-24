@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.flags.get import get_flags
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_flag(conn, redis_client):

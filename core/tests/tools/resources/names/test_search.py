@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_name(conn, redis_client):

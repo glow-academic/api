@@ -19,7 +19,7 @@ from app.tools.resources.profiles.create import create_profile
 from app.tools.resources.roles.create import create_role
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

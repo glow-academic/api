@@ -21,7 +21,7 @@ from app.tools.entries.test_invocation_runs.search import search_test_invocation
 from tests.helpers import nonexistent_id
 from app.tools.entries.test_invocation_runs.refresh import refresh_test_invocation_runs
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_invocation_runs(conn, redis_client, profile_id, **overrides):

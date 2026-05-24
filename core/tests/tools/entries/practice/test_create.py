@@ -7,7 +7,7 @@ from app.tools.entries.practice.get import get_practices
 from app.tools.entries.practice.refresh import refresh_practice
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _practice(conn, redis_client, profile_id, bundle):

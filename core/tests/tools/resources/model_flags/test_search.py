@@ -8,7 +8,7 @@ from app.tools.resources.model_flags.create import create_model_flag
 from app.tools.resources.model_flags.search import search_model_flags
 from app.tools.resources.models.create import create_model
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _create_model_flag_with_deps(conn, redis_client, flag_name: str):

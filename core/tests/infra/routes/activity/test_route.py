@@ -21,7 +21,7 @@ async def activity_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestActivityRoute:
     async def test_get_activity_route_returns_summary(
         self,

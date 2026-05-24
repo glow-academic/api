@@ -54,7 +54,7 @@ def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(monkeypa
     assert access_claims["actor_profile_id"] == id_claims["actor_profile_id"]
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_resolve_authorization_uses_profile_identity_context_for_email(monkeypatch):
     from app.infra.identity import default_idp
 
@@ -92,7 +92,7 @@ async def test_resolve_authorization_uses_profile_identity_context_for_email(mon
     assert redirect.startswith("http://localhost/callback?code=")
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_resolve_authorization_falls_back_to_first_linked_email(monkeypatch):
     from app.infra.identity import default_idp
 

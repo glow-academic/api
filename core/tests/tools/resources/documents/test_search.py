@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.documents.create import create_document
 from app.tools.resources.documents.search import search_documents
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_document(conn, redis_client):

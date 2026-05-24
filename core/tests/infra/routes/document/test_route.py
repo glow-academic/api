@@ -64,7 +64,7 @@ async def document_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestDocumentRoute:
     async def test_create_document_route_uses_real_http_stack(
         self,

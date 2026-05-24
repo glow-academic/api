@@ -7,7 +7,7 @@ import pytest
 
 from app.infra.auth.search import search_auth_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 @dataclass

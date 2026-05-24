@@ -10,7 +10,7 @@ from app.tools.entries.test.create import create_test
 from app.tools.entries.test.get import get_tests
 from app.tools.entries.test.refresh import refresh_test
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test(conn, redis_client, profile_id, **overrides):

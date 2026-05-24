@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.profiles.create import create_profile
 from app.tools.resources.profiles.get import get_profiles
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_profile(conn, redis_client):

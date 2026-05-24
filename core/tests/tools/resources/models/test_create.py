@@ -6,7 +6,7 @@ from app.tools.resources.models.create import create_model
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.create import create_provider
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_model(conn, redis_client):

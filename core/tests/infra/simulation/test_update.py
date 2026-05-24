@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from app.infra.simulation.update import update_simulation_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_update_raises_401_for_unknown_profile(monkeypatch):

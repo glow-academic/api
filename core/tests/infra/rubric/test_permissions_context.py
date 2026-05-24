@@ -2,7 +2,7 @@
 from unittest.mock import AsyncMock
 from uuid import uuid4
 import pytest
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 async def test_permissions_context_module_exists():
     import app.infra.rubric.permissions_context as m

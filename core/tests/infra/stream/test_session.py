@@ -17,7 +17,7 @@ from app.infra.stream.session import (
     leave_entity,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 def _make_mock_redis():

@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.personas.create import create_persona
 from app.tools.resources.personas.search import search_personas
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_persona(conn, redis_client):

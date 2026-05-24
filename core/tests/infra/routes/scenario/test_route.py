@@ -70,7 +70,7 @@ async def scenario_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestScenarioRoute:
     async def test_create_scenario_route_uses_real_http_stack(
         self,

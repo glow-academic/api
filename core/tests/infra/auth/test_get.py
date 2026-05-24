@@ -6,7 +6,7 @@ import pytest
 
 from app.infra.auth.get import derive_flag_key_and_label, get_auth_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_get_raises_401_for_unknown_profile(monkeypatch):

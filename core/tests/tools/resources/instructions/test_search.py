@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.instructions.search import search_instructions
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_instruction(conn, redis_client):

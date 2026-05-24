@@ -7,7 +7,7 @@ from app.tools.entries.scenario_drafts.create import create_scenario_draft
 from app.tools.entries.scenario_drafts.refresh import refresh_scenario_drafts
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

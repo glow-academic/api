@@ -7,7 +7,7 @@ from app.tools.entries.setting_drafts.create import create_setting_draft
 from app.tools.entries.setting_drafts.get import get_setting_drafts
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

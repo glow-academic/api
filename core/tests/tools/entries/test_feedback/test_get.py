@@ -13,7 +13,7 @@ from app.tools.entries.test_grade.create import create_test_grade
 from app.tools.entries.test_invocation.create import create_test_invocation
 from tests.helpers import nonexistent_id
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _test_feedback(conn, redis_client, profile_id, **overrides):

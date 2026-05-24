@@ -9,7 +9,7 @@ from app.infra.eval.permissions_context import (
     resolve_eval_permissions_context,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 class TestPermissionsContextNotFound:

@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.roles.create import create_role
 from app.tools.resources.roles.get import get_roles
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_role(conn, redis_client):

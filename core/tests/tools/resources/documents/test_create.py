@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.documents.create import create_document
 from app.tools.resources.documents.get import get_documents
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_document(conn, redis_client):

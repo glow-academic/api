@@ -13,7 +13,7 @@ from app.tools.entries.test_grade.refresh import refresh_test_grade
 from app.tools.entries.test_grade.search import search_test_grades
 from app.tools.entries.test_invocation.create import create_test_invocation
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

@@ -7,7 +7,7 @@ from app.tools.entries.home.refresh import refresh_home
 from app.tools.entries.home.search import search_homes
 from app.tools.entries.sessions.create import create_session
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id, bundle):

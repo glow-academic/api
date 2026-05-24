@@ -5,7 +5,7 @@ import pytest
 from app.tools.resources.keys.create import create_key
 from app.tools.resources.keys.get import get_keys
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_key(conn, redis_client):

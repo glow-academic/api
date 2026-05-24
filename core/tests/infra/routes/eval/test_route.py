@@ -52,7 +52,7 @@ async def eval_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestEvalRoute:
     async def test_create_eval_route_uses_real_http_stack(
         self,

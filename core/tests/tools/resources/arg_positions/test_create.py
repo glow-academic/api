@@ -6,7 +6,7 @@ from app.tools.resources.arg_positions.create import create_arg_position
 from app.tools.resources.arg_positions.get import get_arg_positions
 from app.tools.resources.args.create import create_arg
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_arg_position(conn, redis_client):

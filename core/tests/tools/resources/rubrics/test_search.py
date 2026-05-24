@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.rubrics.create import create_rubric
 from app.tools.resources.rubrics.search import search_rubrics
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_rubric(conn, redis_client):

@@ -24,7 +24,7 @@ def test_oauth_401_points_clients_to_mcp_resource_metadata():
     assert 'scope="mcp-resource"' in header
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_mcp_oauth_middleware_handles_metadata_and_auth_paths(monkeypatch):
     app = FastAPI()
     app.add_middleware(oauth.McpOAuthMiddleware)
@@ -54,7 +54,7 @@ async def test_mcp_oauth_middleware_handles_metadata_and_auth_paths(monkeypatch)
         assert disabled.status_code == 503
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_mcp_oauth_middleware_rewrites_sse_and_messages_paths(monkeypatch):
     app = FastAPI()
     app.add_middleware(oauth.McpOAuthMiddleware)
@@ -83,7 +83,7 @@ async def test_mcp_oauth_middleware_rewrites_sse_and_messages_paths(monkeypatch)
     assert messages.json()["path"] == "/mcp"
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_mcp_oauth_middleware_returns_401_on_invalid_token(monkeypatch):
     app = FastAPI()
     app.add_middleware(oauth.McpOAuthMiddleware)
@@ -107,7 +107,7 @@ async def test_mcp_oauth_middleware_returns_401_on_invalid_token(monkeypatch):
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 async def test_mcp_oauth_middleware_attaches_profile_context(monkeypatch):
     app = FastAPI()
     app.add_middleware(oauth.McpOAuthMiddleware)

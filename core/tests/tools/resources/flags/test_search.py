@@ -6,7 +6,7 @@ from tests.helpers import unique_tag
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.flags.search import search_flags
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_finds_created_flag(conn, redis_client):

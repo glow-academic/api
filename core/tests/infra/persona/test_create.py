@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.infra.persona.create import create_persona_impl
 from app.infra.persona.types import CreatePersonaApiRequest
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _PROFILE_ID = uuid4()
 

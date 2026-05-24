@@ -8,7 +8,7 @@ from app.infra.scenario.context import resolve_scenario_context
 from app.tools.artifacts.scenario.create import create_scenario
 from app.tools.artifacts.scenario.update import update_scenario
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

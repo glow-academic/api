@@ -68,7 +68,7 @@ class FakePool:
         return _AcquireContext(self.conn)
 
 
-@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.asyncio
 class TestResolveDecrypt:
     async def test_returns_decrypt_result(self) -> None:
         profile_id = uuid4()

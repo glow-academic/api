@@ -20,7 +20,7 @@ from app.tools.entries.test_invocation_bridge.refresh import (
     refresh_test_invocation_bridge,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _setup(conn, redis_client, profile_id):

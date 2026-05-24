@@ -14,7 +14,7 @@ from app.infra.model.permissions import (
 )
 from app.infra.model.permissions import compute_can_create
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 _DEPT = uuid4()
 _OTHER = uuid4()

@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.auths.create import create_auth
 from app.tools.resources.auths.get import get_auths
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_auth(conn, redis_client):

@@ -6,7 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.resources.simulations.create import create_simulation
 from app.tools.resources.simulations.get import get_simulations
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_gets_created_simulation(conn, redis_client):

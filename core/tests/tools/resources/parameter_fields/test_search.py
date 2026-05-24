@@ -10,7 +10,7 @@ from app.tools.resources.parameter_fields.search import (
 )
 from app.tools.resources.parameters.create import create_parameter
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def _create_parameter_field_with_deps(conn, redis_client):

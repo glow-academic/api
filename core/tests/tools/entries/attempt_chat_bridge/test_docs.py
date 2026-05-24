@@ -6,7 +6,7 @@ from app.tools.entries.attempt_chat_bridge.docs import (
     get_attempt_chat_bridge_docs,
 )
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

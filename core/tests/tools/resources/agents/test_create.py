@@ -11,7 +11,7 @@ from app.tools.resources.prompts.create import create_prompt
 from app.tools.resources.rubrics.create import create_rubric
 from app.tools.resources.tools.create import create_tool
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_creates_new_agent(conn, redis_client):

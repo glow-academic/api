@@ -4,7 +4,7 @@ import pytest
 
 from app.tools.entries.attempt_chat.docs import get_attempt_chat_docs
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_returns_docs_response(conn):

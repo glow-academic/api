@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from app.infra.auth.draft import patch_auth_draft_impl
 
-pytestmark = pytest.mark.asyncio(loop_scope="session")
+pytestmark = pytest.mark.asyncio
 
 
 async def test_draft_raises_401_for_unknown_profile(monkeypatch):
