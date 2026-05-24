@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 import pytest
 from fastapi import HTTPException
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 async def test_export_raises_401_when_no_profile(monkeypatch):
     import app.infra.tool.export as mod

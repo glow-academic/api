@@ -8,7 +8,7 @@ from app.infra.agent.context import resolve_agent_context
 from app.tools.artifacts.agent.create import create_agent
 from app.tools.artifacts.agent.update import update_agent
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

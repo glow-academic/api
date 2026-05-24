@@ -8,7 +8,7 @@ from app.infra.department.context import resolve_department_context
 from app.tools.artifacts.department.create import create_department
 from app.tools.artifacts.department.update import update_department
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):

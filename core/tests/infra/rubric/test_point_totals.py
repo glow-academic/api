@@ -8,7 +8,7 @@ from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
 from tests.helpers import unique_tag
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_rubric_max_points_use_standard_groups_not_levels(pool, redis_client):

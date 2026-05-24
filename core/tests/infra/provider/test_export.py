@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from app.infra.provider.export import export_provider_impl
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 @dataclass

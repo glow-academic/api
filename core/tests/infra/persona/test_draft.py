@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.infra.persona.draft import patch_persona_draft_impl
 from app.infra.persona.types import PatchPersonaDraftApiRequest
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 _PROFILE_ID = uuid4()
 

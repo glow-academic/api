@@ -26,7 +26,7 @@ from app.infra.simulation.permissions import (
     has_access,
 )
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 # Role levels: superadmin=0, admin=1, member=3
 # Permission tuples use ("simulation", "<operation>")

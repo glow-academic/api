@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from app.infra.auth.duplicate import duplicate_auth_impl
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_duplicate_raises_401_for_unknown_profile(monkeypatch):

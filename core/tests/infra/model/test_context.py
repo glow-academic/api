@@ -8,7 +8,7 @@ from app.infra.model.context import resolve_model_context
 from app.tools.artifacts.model.create import create_model
 from app.tools.artifacts.model.update import update_model
 
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 
 async def test_inactive_artifact_returns_inactive_context(pool, redis_client):
