@@ -18,7 +18,7 @@ async def leaderboard_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestLeaderboardRoute:
     async def test_get_leaderboard_route_returns_sections(
         self,

@@ -64,7 +64,7 @@ async def document_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestDocumentRoute:
     async def test_create_document_route_uses_real_http_stack(
         self,
@@ -110,7 +110,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
 
@@ -146,7 +146,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
 
@@ -181,7 +181,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
         updated = await _create_document_route_resources(pool, redis_client)
@@ -228,7 +228,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
 
@@ -253,7 +253,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
 
@@ -363,7 +363,7 @@ class TestDocumentRoute:
         created = await self._create_document_via_route(
             pool,
             redis_client,
-            redis_client, document_route_client,
+            document_route_client,
             document_route_actor,
         )
 

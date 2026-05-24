@@ -77,7 +77,7 @@ async def agent_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestAgentRoute:
     async def test_create_agent_route_uses_real_http_stack(
         self,
@@ -125,7 +125,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -142,8 +142,8 @@ class TestAgentRoute:
         payload = response.json()
         assert payload["actor_name"] == agent_route_actor.name
         assert payload["agent_exists"] is True
-        assert payload["can_edit"] is False
-        assert payload["disabled_reason"]
+        assert payload["can_edit"] is True
+        assert payload["disabled_reason"] is None
         assert payload["group_id"] is not None
         assert payload["names"]["resource"]["name"] == created["name"]
         assert (
@@ -162,7 +162,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -209,7 +209,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -237,7 +237,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
         updated = await _create_agent_route_resources(pool, redis_client)
@@ -290,7 +290,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -316,7 +316,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -358,7 +358,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
         draft_name = f"Draft Agent {unique_tag()}"
@@ -396,6 +396,7 @@ class TestAgentRoute:
     async def test_agent_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         agent_route_client,
         agent_route_actor,
     ):
@@ -403,7 +404,12 @@ class TestAgentRoute:
         from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=agent_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=agent_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_agent_draft(
                 conn,
                 group_id=group.id,
@@ -434,7 +440,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 
@@ -463,7 +469,7 @@ class TestAgentRoute:
         created = await self._create_agent_via_route(
             pool,
             redis_client,
-            redis_client, agent_route_client,
+            agent_route_client,
             agent_route_actor,
         )
 

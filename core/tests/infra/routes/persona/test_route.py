@@ -98,7 +98,7 @@ async def persona_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestPersonaRoute:
     async def test_create_persona_route_uses_real_http_stack(
         self,
@@ -147,7 +147,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -191,7 +191,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -239,7 +239,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -267,7 +267,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
         updated = await _create_persona_route_resources(pool, redis_client)
@@ -325,7 +325,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -351,7 +351,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -393,7 +393,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
         draft_name = f"Draft Persona {unique_tag()}"
@@ -429,6 +429,7 @@ class TestPersonaRoute:
     async def test_persona_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         persona_route_client,
         persona_route_actor,
     ):
@@ -438,7 +439,12 @@ class TestPersonaRoute:
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=persona_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=persona_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_persona_draft(
                 conn,
                 group_id=group.id,
@@ -469,7 +475,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 
@@ -498,7 +504,7 @@ class TestPersonaRoute:
         created = await self._create_persona_via_route(
             pool,
             redis_client,
-            redis_client, persona_route_client,
+            persona_route_client,
             persona_route_actor,
         )
 

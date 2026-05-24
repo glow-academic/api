@@ -63,7 +63,7 @@ async def cohort_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestCohortRoute:
     async def test_create_cohort_route_uses_real_http_stack(
         self,
@@ -111,7 +111,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -151,7 +151,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -197,7 +197,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -225,7 +225,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
         updated = await _create_cohort_route_resources(pool, redis_client)
@@ -279,7 +279,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -305,7 +305,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -347,7 +347,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
         draft_name = f"Draft Cohort {unique_tag()}"
@@ -385,6 +385,7 @@ class TestCohortRoute:
     async def test_cohort_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         cohort_route_client,
         cohort_route_actor,
     ):
@@ -392,7 +393,12 @@ class TestCohortRoute:
         from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=cohort_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=cohort_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_cohort_draft(
                 conn,
                 group_id=group.id,
@@ -423,7 +429,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 
@@ -452,7 +458,7 @@ class TestCohortRoute:
         created = await self._create_cohort_via_route(
             pool,
             redis_client,
-            redis_client, cohort_route_client,
+            cohort_route_client,
             cohort_route_actor,
         )
 

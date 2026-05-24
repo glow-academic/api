@@ -123,3 +123,44 @@ def build_messages_from_conversation(...)
 These bugs were surfaced during the test-harness audit (PRs #1-#4). The audit pattern was: when a test fails because it imports a symbol from prod code that no longer exists OR asserts behavior X but prod returns X', classify the failure as either (a) stale test (delete it) or (b) prod bug candidate (file it here, don't delete the test).
 
 Items in this file are in the (b) category. Item 1 is unambiguously a bug (the call site is live, the function isn't defined). Items 2-3 may be (a) if `test.proceed` and `test.run` events are no longer supported. Items 4-7 are schema/migration gaps. Items 8-9 are lifespan-coupling bugs (production code reaches into globals instead of accepting injected dependencies, making tests harder to isolate).
+
+---
+## Phase 1.3
+
+1. Route test clients still reference route modules that no longer exist.
+   Affected route buckets include activity, attempt workflow, benchmark,
+   dashboard, group, health, leaderboard, pricing, profile context/emulation,
+   reports, session, and test workflow. The tests assert mounted HTTP route
+   stacks, while production currently exposes several of these as single-module
+   routers or renamed workflow endpoints. Suggested direction: decide whether
+   the public route contract should preserve the older endpoints or migrate the
+   route tests to the current route package layout with explicit compatibility
+   coverage.
+
+2. Generic artifact update endpoints reject route-test payloads that use
+   `<artifact>_id`; production validators now require `id` inside each update
+   item. Affected tests include update-route coverage for agent, auth, cohort,
+   department, document, eval, field, model, parameter, provider, rubric,
+   scenario, setting, simulation, and tool. Suggested direction: confirm the
+   public API field name and either accept the documented legacy id alias or
+   update route contract docs/tests together.
+
+3. Generic artifact draft endpoints return `405 Method Not Allowed` for several
+   route tests that expect draft creation through `/<artifact>/draft`. Affected
+   buckets include auth, department, document, eval, field, model, parameter,
+   provider, rubric, scenario, setting, simulation, and tool. Suggested
+   direction: confirm whether draft routes are still public POST endpoints and
+   restore router wiring or retire the route contract explicitly.
+
+4. Generic artifact docs/export/refresh routes disagree with route-test
+   contracts. Remaining failures include `404 Not Found`, missing request body
+   validation errors, and response-key mismatches such as missing `content`,
+   `mime_type`, or expected refresh view lists. Suggested direction: audit the
+   generated route helper contract for these shared endpoints before changing
+   individual assertions.
+
+5. Draft entry primitives no longer accept the `group_id` keyword used by route
+   tests for owned-draft setup. Affected tests include agent, cohort, persona,
+   and scenario draft-list coverage. Suggested direction: either restore the
+   setup API alias or migrate tests to the new draft primitive contract after
+   confirming the intended ownership model.

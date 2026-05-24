@@ -19,7 +19,7 @@ async def reports_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestReportsRoute:
     async def test_search_reports_route_returns_sections(
         self,

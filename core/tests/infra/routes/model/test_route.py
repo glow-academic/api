@@ -51,7 +51,7 @@ async def model_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestModelRoute:
     async def test_create_model_route_uses_real_http_stack(
         self,
@@ -95,7 +95,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
 
@@ -127,7 +127,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
 
@@ -160,7 +160,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
         updated = await _create_model_route_resources(pool, redis_client)
@@ -194,7 +194,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
 
@@ -218,7 +218,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
 
@@ -321,7 +321,7 @@ class TestModelRoute:
         created = await self._create_model_via_route(
             pool,
             redis_client,
-            redis_client, model_route_client,
+            model_route_client,
             model_route_actor,
         )
 

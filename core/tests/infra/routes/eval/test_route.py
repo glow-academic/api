@@ -52,7 +52,7 @@ async def eval_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 class TestEvalRoute:
     async def test_create_eval_route_uses_real_http_stack(
         self,
@@ -96,7 +96,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
 
@@ -127,7 +127,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
 
@@ -160,7 +160,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
         updated = await _create_eval_route_resources(pool, redis_client)
@@ -194,7 +194,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
 
@@ -218,7 +218,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
 
@@ -329,7 +329,7 @@ class TestEvalRoute:
         created = await self._create_eval_via_route(
             pool,
             redis_client,
-            redis_client, eval_route_client,
+            eval_route_client,
             eval_route_actor,
         )
 
