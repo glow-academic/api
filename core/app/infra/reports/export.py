@@ -230,7 +230,7 @@ async def export_reports_impl(
     # -- Step 2: Search all test invocations (full dump) --
     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
-            conn, limit=100000, offset=0
+            conn, redis, limit=100000, offset=0
         )
 
     if not invocations:
@@ -282,13 +282,13 @@ async def export_reports_impl(
     async def _fetch_groups() -> tuple[list, int]:
         async with pool.acquire() as conn:
             return await search_test_invocation_traces(
-                conn, test_invocation_ids=invocation_ids, limit=100000, offset=0
+                conn, redis, test_invocation_ids=invocation_ids, limit=100000, offset=0
             )
 
     async def _fetch_runs() -> tuple[list, int]:
         async with pool.acquire() as conn:
             return await search_test_invocation_runs(
-                conn, test_invocation_ids=invocation_ids, limit=100000, offset=0
+                conn, redis, test_invocation_ids=invocation_ids, limit=100000, offset=0
             )
 
     group_result, run_result = await asyncio.gather(

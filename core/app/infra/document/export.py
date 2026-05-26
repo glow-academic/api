@@ -21,6 +21,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.document.get import get_documents
 from app.tools.artifacts.document.search import search_documents
 from app.tools.resources.departments.get import get_departments
@@ -63,7 +64,8 @@ async def export_document_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -73,16 +75,17 @@ async def export_document_impl(
 
     # ── Step 2: Search all documents (full dump) ────────────────────────
 
-    if document_id:
-        document_ids = [document_id]
-    else:
-        async with pool.acquire() as conn:
-            document_ids, _total_count = await search_documents(
-                conn,
-                active_only=False,
-                limit_count=100000,
-                offset_count=0,
-            )
+    with timed("query"):
+        if document_id:
+            document_ids = [document_id]
+        else:
+            async with pool.acquire() as conn:
+                document_ids, _total_count = await search_documents(
+                    conn,
+                    active_only=False,
+                    limit_count=100000,
+                    offset_count=0,
+                )
 
         if not document_ids:
             return ExportDocumentApiResponse(
@@ -94,10 +97,11 @@ async def export_document_impl(
 
     # ── Step 3: Get document artifacts with all junction IDs ────────────
 
-    artifacts = await get_documents(
-        pool,
-        document_ids,
-        names=True,
+    with timed("get_artifacts"):
+        artifacts = await get_documents(
+            pool,
+            document_ids,
+            names=True,
         descriptions=True,
         departments=True,
         flags=True,
@@ -137,17 +141,18 @@ async def export_document_impl(
             return []
         return await get_parameter_fields(pool, all_parameter_field_ids, redis)
 
-    (
-        names_data,
-        descriptions_data,
-        departments_data,
-        parameter_fields_data,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_descriptions(),
-        _fetch_departments(),
-        _fetch_parameter_fields(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            departments_data,
+            parameter_fields_data,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_descriptions(),
+            _fetch_departments(),
+            _fetch_parameter_fields(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n.name for n in names_data}

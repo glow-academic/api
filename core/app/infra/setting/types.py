@@ -520,6 +520,7 @@ class CreateSettingApiRequest(BaseModel):
 
     settings: list[CreateSettingItem] = Field(..., description="List of settings to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -632,6 +633,7 @@ class UpdateSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -666,6 +668,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Legacy draft UUID alias")
     idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject acknowledgement")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept or reject pending draft state when used with idempotency_key")
 
     name: str | None = Field(None, description="Name value to resolve or create")
@@ -769,6 +772,7 @@ class GetSettingDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetSettingDraftsApiResponse(BaseModel):
@@ -873,6 +877,7 @@ class DeleteSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -899,6 +904,7 @@ class DuplicateSettingApiRequest(BaseModel):
 
     setting_id: UUID = Field(..., description="UUID of the setting to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -926,6 +932,9 @@ class ExportSettingApiRequest(BaseModel):
     """Request model for setting export."""
 
     setting_id: UUID | None = Field(None, description="UUID of the setting to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
+    soft: bool = Field(False, description="Stage the export dormant (active=False); ack with accept activates it")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key")
 
 
 class ExportSettingApiResponse(BaseModel):
@@ -934,6 +943,7 @@ class ExportSettingApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadSettingApiRequest(BaseModel):
@@ -963,6 +973,7 @@ class DecryptSettingKeyApiRequest(BaseModel):
 
     setting_id: UUID = Field(..., description="UUID of the parent setting")
     key_id: UUID = Field(..., description="UUID of the key to decrypt")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class DecryptSettingKeyApiResponse(BaseModel):
@@ -984,6 +995,7 @@ class GenerationsSettingApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsSettingListItem(BaseModel):

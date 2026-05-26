@@ -15,6 +15,7 @@ from database.seeds.logins import (
     AUTH_LOGIN_IDS,
     build_profile_logins,
 )
+from database.seeds.setups.fresh.colors import ALL_COLOR_IDS
 from database.seeds.setups.fresh.profiles import FRESH_SUPERADMIN_RESOURCE
 from database.seeds.systems import (
     ACTIVITY_SYSTEM,
@@ -108,6 +109,7 @@ settings = [
         provider_key_ids=PROVIDER_KEY_IDS or None,
         system_ids=ALL_SYSTEMS,
         threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        color_ids=ALL_COLOR_IDS,
         logins_ids=FRESH_LOGINS_IDS or None,
     ),
 ]

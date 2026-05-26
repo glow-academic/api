@@ -19,6 +19,7 @@ from app.infra.department.types import (
     DeleteDepartmentResult,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.department.delete import delete_departments
 from app.tools.artifacts.department.get import get_departments
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -62,7 +63,7 @@ async def delete_department_impl(
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "delete":
             raise HTTPException(
                 status_code=404,
@@ -82,6 +83,7 @@ async def delete_department_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="delete",
@@ -147,12 +149,13 @@ async def delete_department_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -167,7 +170,8 @@ async def delete_department_impl(
     skipped_results: list[DeleteDepartmentResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, department_id in enumerate(ids):
             ctx = await resolve_department_permissions_context(conn, department_id)
 
@@ -214,7 +218,8 @@ async def delete_department_impl(
     # ── Step 4: Fetch names for result messages ───────────────────────
 
     name_map: dict[UUID, str] = {}
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+     async with pool.acquire() as conn:
         artifacts = await get_departments(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
@@ -226,7 +231,8 @@ async def delete_department_impl(
 
     # ── Step 5: Single transaction — bulk delete ──────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_departments(conn, ids, soft=soft)
 
@@ -234,6 +240,7 @@ async def delete_department_impl(
                 for did in result.deleted_ids:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="delete",
@@ -244,14 +251,15 @@ async def delete_department_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_department_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_department_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     if not soft:
         try:

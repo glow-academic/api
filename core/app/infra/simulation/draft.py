@@ -21,6 +21,7 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.simulation.permissions import compute_can_draft
 from app.infra.simulation.refresh import refresh_simulation_impl
+from app.infra.server_timing import timed
 from app.infra.simulation.types import (
     DraftScenarioFlagDenormValue,
     PatchSimulationDraftApiRequest,
@@ -58,6 +59,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_simulation_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -67,6 +69,7 @@ async def _maybe_auto_accept_simulation_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -78,7 +81,7 @@ async def _maybe_auto_accept_simulation_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_simulation_drafts(conn, [draft_id], active=None)
+        drafts = await get_simulation_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -100,7 +103,7 @@ async def _maybe_auto_accept_simulation_draft(
         async with conn.transaction():
             await create_simulation_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -117,6 +120,7 @@ async def _maybe_auto_accept_simulation_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -353,12 +357,13 @@ async def patch_simulation_draft_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -368,19 +373,20 @@ async def patch_simulation_draft_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit simulation drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit simulation drafts.",
+            )
 
     # ── Short-circuit: ack path ───────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -390,13 +396,13 @@ async def patch_simulation_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_simulation_drafts(conn, [target_id], active=None)
+                drafts = await get_simulation_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_simulation_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -414,7 +420,7 @@ async def patch_simulation_draft_impl(
                     else:
                         await create_simulation_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -423,6 +429,7 @@ async def patch_simulation_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -487,7 +494,8 @@ async def patch_simulation_draft_impl(
 
     # ── Step 3: Value resolution (creatable only) ──────────────────────
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -496,11 +504,12 @@ async def patch_simulation_draft_impl(
 
     # ── Step 4: Create draft entry (append-only snapshot) ──────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_simulation_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
                 name=request.name or "",
@@ -522,6 +531,7 @@ async def patch_simulation_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -534,7 +544,7 @@ async def patch_simulation_draft_impl(
 
     if not soft:
         await _maybe_auto_accept_simulation_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],
@@ -542,16 +552,17 @@ async def patch_simulation_draft_impl(
 
     # ── Step 5: Canonical refresh ──────────────────────────────────────
 
-    await refresh_simulation_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["simulation_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["simulation_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     # ── Step 6: Build form state (server is source of truth) ──────────
 

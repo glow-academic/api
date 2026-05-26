@@ -19,6 +19,7 @@ from app.infra.department.types import (
     UpdateDepartmentApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.department.get import (
     get_departments as get_department_artifacts,
 )
@@ -69,7 +70,7 @@ async def update_department_impl(
     # ── ACK short-circuit ──────────────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -85,6 +86,7 @@ async def update_department_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
@@ -161,12 +163,13 @@ async def update_department_impl(
 
     items = request.departments
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -180,7 +183,8 @@ async def update_department_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_department_permissions_context(conn, item.id)
             if not perms.exists:
@@ -223,7 +227,8 @@ async def update_department_impl(
     has_errors = False
     error_results: list[DepartmentResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_department_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -247,7 +252,8 @@ async def update_department_impl(
     results: list[DepartmentResultItem] = []
     saved_department_ids: list[UUID] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         async with pool.acquire() as conn:
             existing = await get_department_artifacts(
                 conn,
@@ -293,6 +299,7 @@ async def update_department_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -319,14 +326,15 @@ async def update_department_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_department_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].department_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_department_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].department_id if results else None),
+            )
 
         for department_id in saved_department_ids:
             try:

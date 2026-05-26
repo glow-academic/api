@@ -1,21 +1,26 @@
 """Invocation SEARCH — declarative filters on base table + connections."""
 
 from datetime import datetime
+from datetime import datetime as _dt
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.invocation.types import GetInvocationResponse
+from app.utils.cache.hedged_row import hedged_search
 
 
 async def search_invocations(
     conn: asyncpg.Connection,
+    redis: Redis,
     benchmark_ids: list[UUID] | None = None,
     session_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     limit: int = 20,
     offset: int = 0,
+    bypass_cache: bool = False,
 ) -> list[GetInvocationResponse]:
     """Search invocations with declarative filters and connection data."""
     rows = await conn.fetch(
@@ -66,35 +71,70 @@ async def search_invocations(
         session_ids,
         date_from,
         date_to,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
     )
 
-    return [
-        GetInvocationResponse(
-            id=r["id"],
-            benchmark_id=r["benchmark_id"],
-            session_id=r["session_id"],
-            use_custom=r["use_custom"],
-            position=r["position"],
-            created_at=r["created_at"],
-            active=r["active"],
-            generated=r["generated"],
-            mcp=r["mcp"],
-            department_ids=r["department_ids"],
-            description_ids=r["description_ids"],
-            flag_ids=r["flag_ids"],
-            key_ids=r["key_ids"],
-            modality_ids=r["modality_ids"],
-            model_flag_ids=r["model_flag_ids"],
-            model_position_ids=r["model_position_ids"],
-            model_rubric_ids=r["model_rubric_ids"],
-            model_ids=r["model_ids"],
-            name_ids=r["name_ids"],
-            quality_ids=r["quality_ids"],
-            reasoning_level_ids=r["reasoning_level_ids"],
-            temperature_level_ids=r["temperature_level_ids"],
-            voice_ids=r["voice_ids"],
-        )
+    mv_dicts = [
+        {
+            "id": str(r["id"]),
+            "benchmark_id": str(r["benchmark_id"]) if r["benchmark_id"] else None,
+            "session_id": str(r["session_id"]) if r["session_id"] else None,
+            "use_custom": r["use_custom"],
+            "position": r["position"],
+            "created_at": r["created_at"],
+            "active": r["active"],
+            "generated": r["generated"],
+            "mcp": r["mcp"],
+            "department_ids": [str(x) for x in (r["department_ids"] or [])],
+            "description_ids": [str(x) for x in (r["description_ids"] or [])],
+            "flag_ids": [str(x) for x in (r["flag_ids"] or [])],
+            "key_ids": [str(x) for x in (r["key_ids"] or [])],
+            "modality_ids": [str(x) for x in (r["modality_ids"] or [])],
+            "model_flag_ids": [str(x) for x in (r["model_flag_ids"] or [])],
+            "model_position_ids": [str(x) for x in (r["model_position_ids"] or [])],
+            "model_rubric_ids": [str(x) for x in (r["model_rubric_ids"] or [])],
+            "model_ids": [str(x) for x in (r["model_ids"] or [])],
+            "name_ids": [str(x) for x in (r["name_ids"] or [])],
+            "quality_ids": [str(x) for x in (r["quality_ids"] or [])],
+            "reasoning_level_ids": [str(x) for x in (r["reasoning_level_ids"] or [])],
+            "temperature_level_ids": [str(x) for x in (r["temperature_level_ids"] or [])],
+            "voice_ids": [str(x) for x in (r["voice_ids"] or [])],
+        }
         for r in rows
     ]
+
+    benchmark_ids_str = {str(b) for b in benchmark_ids} if benchmark_ids else None
+    session_ids_str = {str(s) for s in session_ids} if session_ids else None
+
+    def _parse_ts(ts: object) -> datetime | None:
+        if isinstance(ts, str):
+            return _dt.fromisoformat(ts)
+        if isinstance(ts, datetime):
+            return ts
+        return None
+
+    def matches(row: dict) -> bool:
+        if not row.get("active", True):
+            return False
+        if benchmark_ids_str is not None and str(row.get("benchmark_id")) not in benchmark_ids_str:
+            return False
+        if session_ids_str is not None and str(row.get("session_id")) not in session_ids_str:
+            return False
+        ts = _parse_ts(row.get("created_at"))
+        if date_from is not None and (ts is None or ts < date_from):
+            return False
+        if date_to is not None and (ts is None or ts > date_to):
+            return False
+        return True
+
+    merged = await hedged_search(
+        redis,
+        "invocation",
+        mv_rows=mv_dicts,
+        matches_filter=matches,
+        limit=limit,
+        offset=offset,
+        bypass_cache=bypass_cache,
+    )
+    return [GetInvocationResponse.model_validate(r) for r in merged]

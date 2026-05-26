@@ -42,6 +42,7 @@ class DashboardRequest(BaseModel):
     parameter_search: str | None = Field(None, description="Search string for parameters")
     scenario_ids: list[UUID] | None = Field(None, description="Scenario IDs for section picker")
     scenario_search: str | None = Field(None, description="Search string for scenarios")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
     # History fields removed — fetch attempt history via /attempt/dashboard/search.
     # Keeping the inline history block in /get caused dual computation and cache

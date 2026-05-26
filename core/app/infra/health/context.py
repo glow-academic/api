@@ -42,7 +42,7 @@ async def resolve_health_context(
         async with pool.acquire() as c:
             return await search_health(
                 c,
-                service=service,
+                redis, service=service,
                 date_from=date_from,
                 date_to=date_to,
                 limit=page_limit,
@@ -53,7 +53,7 @@ async def resolve_health_context(
         async with pool.acquire() as c:
             return await search_metrics(
                 c,
-                date_from=date_from,
+                redis, date_from=date_from,
                 date_to=date_to,
                 limit=page_limit,
                 offset=page_offset,

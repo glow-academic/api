@@ -3,19 +3,23 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.texts.types import SearchTextResponse
+from app.utils.cache.hedged_row import hedged_search
 
 MV_NAME = "texts_mv"
 
 
 async def search_texts(
     conn: asyncpg.Connection,
+    redis: Redis,
     text_ids: list[UUID] | None = None,
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
+    bypass_cache: bool = False,
 ) -> list[SearchTextResponse]:
     """Search texts from texts_mv with declarative filters."""
     source = await resolve_mv_source(conn, MV_NAME, bypass_mv)
@@ -29,8 +33,37 @@ async def search_texts(
         LIMIT $2 OFFSET $3
         """,
         text_ids,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
     )
 
-    return [SearchTextResponse(**dict(r)) for r in rows]
+    mv_dicts = [
+        {
+            "texts_id": str(r["texts_id"]) if r["texts_id"] else None,
+            "text_id": str(r["text_id"]),
+            "upload_id": str(r["upload_id"]) if r["upload_id"] else None,
+            "file_path": r["file_path"],
+            "mime_type": r["mime_type"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+    text_ids_str = {str(x) for x in text_ids} if text_ids else None
+
+    def matches(row: dict) -> bool:
+        if text_ids_str is not None and str(row.get("text_id")) not in text_ids_str:
+            return False
+        return True
+
+    merged = await hedged_search(
+        redis,
+        "texts",
+        mv_rows=mv_dicts,
+        matches_filter=matches,
+        limit=limit,
+        offset=offset,
+        id_key="text_id",
+        bypass_cache=bypass_cache,
+    )
+    return [SearchTextResponse.model_validate(r) for r in merged]

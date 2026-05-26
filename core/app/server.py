@@ -283,10 +283,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 
         # Initialize system session (for background tasks like health checks, metrics)
         if pool:
+            from app.infra.globals import get_redis_client
             from app.infra.identity.resolve_identity import get_system_session_id
 
             async with pool.acquire() as conn:
-                system_session_id = await get_system_session_id(conn)
+                system_session_id = await get_system_session_id(
+                    conn, get_redis_client()
+                )
                 logger.info(f"System session initialized: {system_session_id}")
 
         # Initialize metrics collector
@@ -307,6 +310,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
                 logger.warning(f"Keycloak sync failed: {result.message}")
         except Exception as e:
             logger.warning(f"Keycloak sync error (non-blocking): {e}")
+
+        # JWKS prewarm — populate the 60s in-process JWKS cache during
+        # startup so the first authenticated request doesn't pay the ~140ms
+        # network fetch to Keycloak. Non-blocking: if Keycloak isn't ready
+        # the first request will fall through to the lazy fetch (existing
+        # behavior). Best-effort cache priming, not a correctness gate.
+        try:
+            from app.infra.identity.resolve_identity import _get_jwks
+
+            keys = _get_jwks()
+            logger.info(f"JWKS prewarm: cached {len(keys)} key(s)")
+        except Exception as e:
+            logger.warning(f"JWKS prewarm failed (non-blocking, lazy fetch will retry): {e}")
 
         # MV refresh scheduler — debounces REFRESH MATERIALIZED VIEW calls
         # across the whole instance + replicas. Caller path enqueues O(1)
@@ -493,7 +509,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
 # ---------------------------------------------------------------------------
 from app.version import __version__ as _app_version  # noqa: E402
 
-fastapi_app = FastAPI(title="GLOW API", version=_app_version, lifespan=lifespan, redirect_slashes=False)
+from fastapi.responses import ORJSONResponse  # noqa: E402
+
+fastapi_app = FastAPI(
+    title="GLOW API",
+    version=_app_version,
+    lifespan=lifespan,
+    redirect_slashes=False,
+    # orjson is 2-5× faster than the stdlib json module FastAPI uses by
+    # default. Hot endpoints serializing 40KB+ Pydantic responses see a
+    # measurable shave (~5-10ms warm) per request.
+    default_response_class=ORJSONResponse,
+)
 
 fastapi_app.add_middleware(
     CORSMiddleware,
@@ -618,6 +645,12 @@ fastapi_app.add_middleware(DBLoggingMiddleware)
 from app.infra.mcp.oauth import McpOAuthMiddleware  # noqa: E402
 
 fastapi_app.add_middleware(McpOAuthMiddleware)
+
+# Server-Timing: per-request phase timing exposed via W3C Server-Timing
+# response header. Code paths register phases via app.infra.server_timing.timed().
+from app.infra.server_timing import ServerTimingMiddleware  # noqa: E402
+
+fastapi_app.add_middleware(ServerTimingMiddleware)
 
 # ---------------------------------------------------------------------------
 # Routes

@@ -21,6 +21,7 @@ from app.infra.websocket.generation_types import (
     ProducedMedia,
 )
 from app.infra.websocket.socket_event import EmitFn
+from app.infra.server_timing import timed
 
 
 def _produced_media_from(modality: str, result: Any) -> ProducedMedia | None:
@@ -183,16 +184,17 @@ async def execute_media_dispatch(
     }
 
     try:
-        media_result = await adapter.generate(
-            modality=modality,
-            prompt=prompt,
-            model=llm_config.get("model"),
-            api_key=llm_config.get("api_key") or "",
-            base_url=llm_config.get("base_url"),
-            quality=llm_config.get("quality"),
-            extra_body=extra_body or None,
-            context=context,
-        )
+        with timed("model_call"):
+            media_result = await adapter.generate(
+                modality=modality,
+                prompt=prompt,
+                model=llm_config.get("model"),
+                api_key=llm_config.get("api_key") or "",
+                base_url=llm_config.get("base_url"),
+                quality=llm_config.get("quality"),
+                extra_body=extra_body or None,
+                context=context,
+            )
     except Exception as exc:
         await emit_modality_event(
             emit,

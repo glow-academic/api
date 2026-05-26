@@ -182,16 +182,9 @@ async def search_documents(
             ids=parameter_field_ids,
         )
 
-    if parameter_ids:
-        idx = add_junction_filter(
-            conditions,
-            params,
-            idx,
-            junction_table="document_parameters_junction",
-            owner_col=OWNER_COL,
-            resource_col="parameters_id",
-            ids=parameter_ids,
-        )
+    # Removed: parameter_ids filter via document_parameters_junction —
+    # schema renamed `parameters` to `parameter_fields`; the junction
+    # was dropped. parameter_field_ids above covers the same surface.
 
     if text_ids:
         idx = add_junction_filter(

@@ -12,8 +12,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_feedback.create import create_attempt_feedback
-from app.tools.entries.attempt_feedback.refresh import refresh_attempt_feedback
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.standards.get import get_standards
 
@@ -54,7 +55,8 @@ async def chat_feedback_attempt_impl(
         )
 
     # Resolve score from standard, total from standard group
-    standards = await get_standards(pool, [standard_id], redis)
+    with timed("get_standard"):
+        standards = await get_standards(pool, [standard_id], redis)
     if not standards:
         raise ValueError(f"Standard {standard_id} not found")
     standard = standards[0]
@@ -66,18 +68,22 @@ async def chat_feedback_attempt_impl(
         if sgs:
             total = sgs[0].points or score
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         result = await create_attempt_feedback(
             conn,
-            grade_id=grade_id,
+            redis, grade_id=grade_id,
             session_id=session_id,
             total=total,
             feedback=feedback or "No feedback provided",
             standard_ids=[standard_id],
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_feedback(conn)
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_feedback_mv"],
+        )
 
     return {
         "feedback_id": str(result.id),

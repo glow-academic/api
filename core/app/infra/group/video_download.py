@@ -22,6 +22,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.group.media_types import VideoDownloadGroupApiResult
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.videos.search import search_videos
 
 
@@ -42,9 +43,10 @@ async def video_download_group_impl(
       4. Verify file exists on disk
     """
     # -- Step 1: Profile context ------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -67,10 +69,11 @@ async def video_download_group_impl(
     # accepts both filter slots; try the entry path first, fall back
     # to the resource path. Mirrors how the FE bubble doesn't know
     # which id-flavor the upstream surfaced it as.
-    async with pool.acquire() as conn:
-        results = await search_videos(conn, video_ids=[video_id], limit=1)
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
+        results = await search_videos(conn, redis, video_ids=[video_id], limit=1)
         if not results:
-            results = await search_videos(conn, videos_ids=[video_id], limit=1)
+            results = await search_videos(conn, redis, videos_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

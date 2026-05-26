@@ -19,6 +19,7 @@ from app.infra.websocket.generation_types import GenerateErrorApiRequest
 from app.infra.websocket.session_store import get_session_by_group_id
 from app.infra.websocket.socket_event import EmitFn, internal_event
 from app.infra.websocket.tool_call_utils import build_tool_output_schemas
+from app.infra.server_timing import timed
 
 
 async def execute_audio_dispatch(
@@ -146,15 +147,16 @@ async def execute_audio_dispatch(
     session_instructions = "\n\n".join(instructions_parts) or None
 
     try:
-        await adapter.initialize_session(
-            session=session,
-            api_key=api_key,
-            base_url=llm_config.get("base_url"),
-            model=llm_config.get("model"),
-            voice=voice,
-            instructions=session_instructions,
-            tools=list(dispatch.tools or []),
-        )
+        with timed("model_call"):
+            await adapter.initialize_session(
+                session=session,
+                api_key=api_key,
+                base_url=llm_config.get("base_url"),
+                model=llm_config.get("model"),
+                voice=voice,
+                instructions=session_instructions,
+                tools=list(dispatch.tools or []),
+            )
     except Exception as exc:
         remove_session(group_id)
         await emit_modality_event(
@@ -178,7 +180,8 @@ async def execute_audio_dispatch(
     # the workflow is readable top-to-bottom at the emit site.
     session = get_session_by_group_id(group_id)
     chat_id = session.chat_id if session else group_id
-    await emit(
+    with timed("response_emit"):
+     await emit(
         [
             internal_event(
                 "attempt.generate.audio.session_start",

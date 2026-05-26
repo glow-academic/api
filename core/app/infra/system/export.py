@@ -19,7 +19,12 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.exports.file_modality import extension_from_mime, wrap_bytes_as_file
+from app.infra.exports.file_modality import (
+    accept_staged_export,
+    extension_from_mime,
+    stage_export_soft_call,
+    wrap_bytes_as_file,
+)
 
 
 async def export_system_impl(
@@ -32,10 +37,25 @@ async def export_system_impl(
     target_session_id: UUID | None = None,
     group_id: UUID | None = None,
     mode: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportSystemApiResponse``."""
     from app.infra.system.types import ExportSystemApiResponse
+
+    # ── Short-circuit: ack — activate/reject a staged export ─────────────
+    if accept is not None and idempotency_key is not None:
+        file_id, file_name, row_count = await accept_staged_export(
+            pool, redis, artifact="system",
+            idempotency_key=idempotency_key, accept=accept,
+        )
+        return ExportSystemApiResponse(
+            file_id=file_id, file_name=file_name, row_count=row_count,
+            idempotency_key=idempotency_key,
+        )
 
     if view == "activity":
         from app.infra.activity.export import export_activity_impl
@@ -76,7 +96,7 @@ async def export_system_impl(
     mime_type = getattr(envelope, "mime_type", "application/zip") or "application/zip"
     row_count = int(getattr(envelope, "row_count", 0) or 0)
 
-    file_id, file_name = await wrap_bytes_as_file(
+    wrapped = await wrap_bytes_as_file(
         pool,
         redis,
         content=bytes_,
@@ -84,7 +104,14 @@ async def export_system_impl(
         mime_type=mime_type,
         extension=extension_from_mime(mime_type),
         session_id=session_id,
+        soft=soft,
     )
+    if soft and call_id is not None:
+        await stage_export_soft_call(
+            pool, redis, artifact="system", call_id=call_id,
+            wrapped=wrapped, row_count=row_count,
+        )
     return ExportSystemApiResponse(
-        file_id=file_id, file_name=file_name, row_count=row_count,
+        file_id=wrapped.file_id, file_name=wrapped.file_name,
+        row_count=row_count, idempotency_key=call_id,
     )

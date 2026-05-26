@@ -51,6 +51,7 @@ dependencies = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.3.0",
     "httpx>=0.24.0",
     "testcontainers[postgresql]==4.0.0",
     "sqlalchemy>=2.0.0",  # Required by testcontainers for container readiness checks
@@ -137,26 +138,49 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+minversion = "7.0"
 testpaths = ["core/tests"]
 python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
 # Be explicit about asyncio mode for pytest-asyncio >= 0.24
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "session"
+asyncio_default_fixture_loop_scope = "function"
 cache_dir = "core/.pytest_cache"
 addopts = [
     "--strict-markers",
+    "--strict-config",
     "--tb=short",
     "-v",
+    # Per-test wall-clock guard. Prevents `make test-cov` (and any single
+    # test) from hanging indefinitely on a deadlocked fixture or stuck
+    # asyncpg operation. 300s is generous — most tests are sub-second; the
+    # slowest integration test should still finish in <60s. The actual
+    # `make test-cov` hang during the test-harness audit motivated this.
+    "--timeout=300",
+    # Use thread-based timeout so a stuck async fixture can be interrupted.
+    "--timeout-method=thread",
 ]
 markers = [
     "fast: marks tests as fast (deselect with '-m \"not fast\"')",
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
+    "asyncio: async tests (alias kept for back-compat; prefer pytest-asyncio's auto-discovery)",
+]
+norecursedirs = [
+    ".git", ".tox", ".venv", "dist", "build", "*.egg",
+    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
 ]
 
 [tool.coverage.run]
-source = ["core/app", "core/utils"]
+# Import-path sources, not directory paths. `conftest.py` puts `core/` on
+# sys.path so tests import as `from app...` — not `from core.app...`.
+# Using "core/app" as a source made coverage silently collect zero data
+# ("Module core/app... was never imported"). The right configuration is
+# the actual package names. Discovered while attempting the first real
+# `make test-cov` after the loop-scope unblocker landed.
+source_pkgs = ["app", "utils"]
 omit = [
     "*/tests/*",
     "*/migrations/*",
@@ -169,4 +193,6 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "@(abc\\.)?abstractmethod",
 ]
-html_dir = "core/htmlcov"
+
+[tool.coverage.html]
+directory = "core/htmlcov"

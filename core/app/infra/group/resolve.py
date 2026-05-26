@@ -37,6 +37,7 @@ from app.infra.generation.chat_history import (
 from app.infra.group.refresh import refresh_group_impl
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.calls.search import search_calls
 from app.tools.entries.soft_calls.search import search_soft_calls
 from app.tools.entries.group_names.create import create_group_name
@@ -244,6 +245,7 @@ async def resolve_group_impl(
     snapshot_key: UUID | None = None,
     include_history: bool = True,
     include_resources: bool = False,
+    id_only: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GroupResolveResponse:
@@ -266,10 +268,19 @@ async def resolve_group_impl(
         group_id = request.group_id
         snapshot_key = snapshot_key or request.snapshot_key
 
+    # `id_only` callers (audit-link resolve from read endpoints — /drafts,
+    # /get, /search) need only the resolved group_id. Force the other
+    # opt-ins off so the function short-circuits before the title fetch
+    # and history load.
+    if id_only:
+        include_history = False
+        include_resources = False
+
     # ── Profile context ───────────────────────────────────────────────
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -290,7 +301,7 @@ async def resolve_group_impl(
         async with pool.acquire() as conn:
             result = await create_group(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 artifact_type=artifact_type,
                 id=group_id,
                 soft=False,
@@ -333,7 +344,7 @@ async def resolve_group_impl(
                 async with pool.acquire() as conn:
                     result = await create_group(
                         conn,
-                        session_id=session_id,
+                        redis, session_id=session_id,
                         artifact_type=artifact_type,
                         id=candidate,
                         soft=False,
@@ -353,7 +364,7 @@ async def resolve_group_impl(
                     async with pool.acquire() as conn:
                         result = await create_group(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             artifact_type=artifact_type,
                             id=candidate,
                             soft=False,
@@ -377,7 +388,7 @@ async def resolve_group_impl(
         async with pool.acquire() as conn:
             await create_group_name(
                 conn,
-                group_id=resolved_group_id,
+                redis, group_id=resolved_group_id,
                 name="New Chat",
                 session_id=session_id,
             )
@@ -390,17 +401,19 @@ async def resolve_group_impl(
     runs_data: list[GroupRun] | None = None
     run_items_raw: list[Any] = []
     if include_history and not created_new:
-        runs_data, run_items_raw = await _load_history(
-            pool, redis, resolved_group_id, bypass_cache=bypass_cache,
-        )
+        with timed("hydrate"):
+            runs_data, run_items_raw = await _load_history(
+                pool, redis, resolved_group_id, bypass_cache=bypass_cache,
+            )
 
     # ── Resolve current title from groups_mv ─────────────────────────
     # When the group already existed, surface its latest title so the
     # SSR-rendered display name reflects the latest rename without a
-    # separate round-trip.
-    if name is None:
+    # separate round-trip. `id_only` callers don't need the title and
+    # skip this fetch (saves ~5 ms warm, ~30 ms cold per call).
+    if name is None and not id_only:
         async with pool.acquire() as conn:
-            existing = await get_groups(conn, ids=[resolved_group_id])
+            existing = await get_groups(conn, [resolved_group_id], redis)
         if existing:
             name = existing[0].name
 
@@ -419,6 +432,7 @@ async def resolve_group_impl(
     total_message_count: int | None = None
     group_exists: bool | None = None
     if include_resources:
+     with timed("build"):
         all_model_ids: set[UUID] = set()
         all_agent_ids: set[UUID] = set()
         all_profile_ids: set[UUID] = set()
@@ -491,7 +505,7 @@ async def _load_history(
     """
     async with pool.acquire() as conn:
         run_items, _ = await search_runs(
-            conn, group_ids=[group_id], sort_order="asc", limit=10000,
+            conn, redis, group_ids=[group_id], sort_order="asc", limit=10000,
         )
     if not run_items:
         return [], []
@@ -499,9 +513,9 @@ async def _load_history(
     run_ids = [r.run_id for r in run_items]
     async with pool.acquire() as conn:
         msg_items, _ = await search_messages(
-            conn, run_ids=run_ids, sort_order="asc", limit=100000,
+            conn, redis, run_ids=run_ids, sort_order="asc", limit=100000,
         )
-        call_items = await search_calls(conn, run_ids=run_ids, limit=100000)
+        call_items = await search_calls(conn, redis, run_ids=run_ids, limit=100000)
 
     # Batch-resolve tool resources via the canonical black box. Calls
     # with no registered tool get ``tool=None`` and the client renders
@@ -521,7 +535,7 @@ async def _load_history(
     async with pool.acquire() as conn:
         ledger_entries = (
             await search_soft_calls(
-                conn, call_ids=call_ids_for_ledger,
+                conn, redis, call_ids=call_ids_for_ledger,
                 limit=len(call_ids_for_ledger) or 1,
             )
             if call_ids_for_ledger else []

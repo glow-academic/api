@@ -31,6 +31,7 @@ async def parameter_refresh(
     if session_id:
         group_result = await group_parameter_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
@@ -55,6 +56,7 @@ async def parameter_refresh(
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=request.idempotency_key,  # idempotency replay gate
     )
 
     response.headers["X-Invalidate-Tags"] = ",".join(result.invalidated_tags)

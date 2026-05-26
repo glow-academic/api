@@ -3,14 +3,19 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.cohort_drafts.types import GetCohortDraftResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_cohort_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetCohortDraftResponse]:
     """Get cohort_drafts entries by IDs with connection data.
 
@@ -18,6 +23,21 @@ async def get_cohort_drafts(
     """
     if not ids:
         return []
+
+    cached_results: dict[str, GetCohortDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for rid in ids:
+            cached = await read_back_row(redis, "cohort_drafts", rid)
+            if cached is not None and (active is None or cached.get("active") == active):
+                cached_results[str(rid)] = GetCohortDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(rid)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(rid)] for rid in ids if str(rid) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -59,12 +79,13 @@ async def get_cohort_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
         active,
     )
 
-    return [
-        GetCohortDraftResponse(
+    mv_results: dict[str, GetCohortDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetCohortDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -91,5 +112,12 @@ async def get_cohort_drafts(
             pending_simulation_position_ids=r["pending_simulation_position_ids"],
             pending_simulation_ids=r["pending_simulation_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetCohortDraftResponse] = []
+    for rid in ids:
+        key = str(rid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

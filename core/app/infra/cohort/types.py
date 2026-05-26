@@ -30,6 +30,7 @@ class GetCohortDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetCohortDraftsApiResponse(BaseModel):
@@ -482,7 +483,8 @@ class CreateCohortApiRequest(BaseModel):
 
     cohorts: list[CreateCohortItem] = Field(..., description="List of cohorts to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateCohortApiResponse(BaseModel):
@@ -574,7 +576,8 @@ class UpdateCohortApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateCohortApiResponse(BaseModel):
@@ -632,7 +635,8 @@ class DeleteCohortApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteCohortResult(BaseModel):
@@ -660,7 +664,8 @@ class DuplicateCohortApiRequest(BaseModel):
 
     cohort_id: UUID = Field(..., description="Cohort UUID to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateCohortApiResponse(BaseModel):
@@ -750,7 +755,8 @@ class PatchCohortDraftApiRequest(ScopedItem):
     profile_personas: list[DraftProfilePersonaValue] | None = Field(None, description="Profile persona values to create")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending where supported by the tool layer")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
-    accept: bool = Field(True, description="Accept or reject dormant draft state")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept or reject dormant draft state")
 
 
 class DraftFormState(BaseModel):
@@ -814,6 +820,7 @@ class ExportCohortApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadCohortApiRequest(BaseModel):
@@ -874,6 +881,7 @@ class GenerationsCohortApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsCohortListItem(BaseModel):
@@ -904,7 +912,7 @@ class ProblemCohortApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemCohortApiResponse(BaseModel):

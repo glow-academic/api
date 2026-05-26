@@ -3,14 +3,17 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_improvement.types import (
     CreateAttemptImprovementResponse,
 )
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_attempt_improvement(
     conn: asyncpg.Connection,
+    redis: Redis,
     grade_id: UUID,
     message_id: UUID,
     session_id: UUID,
@@ -21,11 +24,11 @@ async def create_attempt_improvement(
     soft: bool = False,
 ) -> CreateAttemptImprovementResponse:
     """Create an attempt_improvement entry."""
-    entry_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO attempt_improvement_entry (id, grade_id, message_id, session_id, name, description, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
-        RETURNING id
+        RETURNING id, created_at
         """,
         grade_id,
         message_id,
@@ -36,4 +39,22 @@ async def create_attempt_improvement(
         mcp,
         id,
     )
+    entry_id = row["id"]
+    created_at = row["created_at"]
+
+    fresh_row = {
+        "improvement_id": str(entry_id),
+        "message_id": str(message_id),
+        "name": name,
+        "description": description,
+        "created_at": created_at.isoformat(),
+    }
+    await write_back_row(
+        redis,
+        "attempt_improvement",
+        entry_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
+
     return CreateAttemptImprovementResponse(id=entry_id)

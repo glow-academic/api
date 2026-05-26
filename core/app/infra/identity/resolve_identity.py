@@ -23,6 +23,7 @@ from uuid import UUID
 import asyncpg
 import requests
 from jose import jwt
+from redis.asyncio import Redis
 
 from app.infra.identity.keycloak_sync import get_idp_public_url
 from app.utils.logging.db_logger import get_logger
@@ -247,14 +248,19 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     Raises:
         ValueError: If token is invalid or profile cannot be resolved
     """
-    claims = verify_jwt(token)
+    from app.infra.server_timing import timed
+
+    with timed("jwt_verify"):
+        claims = verify_jwt(token)
 
     # Resolve profile_id
-    profile_id = await _resolve_profile_id(claims, pool)
+    with timed("profile_lookup"):
+        profile_id = await _resolve_profile_id(claims, pool)
 
     # Auto-create guest profile if email exists but no profile found
     if profile_id is None:
-        profile_id = await _auto_create_guest_profile(claims, pool)
+        with timed("guest_create"):
+            profile_id = await _auto_create_guest_profile(claims, pool)
 
     if profile_id is None:
         raise ValueError(
@@ -265,7 +271,8 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     actor_profile_id: UUID | None = None
     is_emulation = False
     emulation_depth = 0
-    chain = await resolve_emulation_chain(pool, profile_id)
+    with timed("emulation"):
+        chain = await resolve_emulation_chain(pool, profile_id)
     if chain:
         actor_profile_id = profile_id
         profile_id = chain[-1].target_profile_id
@@ -273,8 +280,9 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
         emulation_depth = len(chain)
 
     # Get or create session for the effective profile
-    async with pool.acquire() as conn:
-        session_id = await get_or_create_session(conn, profile_id)
+    with timed("session"):
+        async with pool.acquire() as conn:
+            session_id = await get_or_create_session(conn, profile_id)
 
     return Identity(
         profile_id=profile_id,
@@ -494,7 +502,7 @@ async def _find_active_grant_target(
 
     async with pool.acquire() as conn:
         grants = await search_grants(
-            conn,
+            conn, redis,
             profiles_ids=[context.profiles_id],
             active=True,
             limit=10,
@@ -511,13 +519,13 @@ async def _find_active_grant_target(
 
         async with pool.acquire() as conn:
             consumptions = await search_grant_consumptions(
-                conn, grant_ids=[grant.id], limit=1
+                conn, redis, grant_ids=[grant.id], limit=1
             )
         if consumptions:
             continue
 
         async with pool.acquire() as conn:
-            emulations = await search_emulations(conn, grant_ids=[grant.id], limit=1)
+            emulations = await search_emulations(conn, redis, grant_ids=[grant.id], limit=1)
         if not emulations or not emulations[0].profile_id:
             continue
 
@@ -538,6 +546,31 @@ async def _find_active_grant_target(
     return None
 
 
+_EMULATION_CACHE_KEY = "auth:emulation:{profile_id}"
+_EMULATION_CACHE_TTL = 60  # seconds; explicit invalidation on write sites
+
+
+def _emulation_cache_key(profile_id: UUID) -> str:
+    return _EMULATION_CACHE_KEY.format(profile_id=profile_id)
+
+
+async def invalidate_emulation_cache(profile_id: UUID) -> None:
+    """Bust the cached emulation chain for ``profile_id``.
+
+    Call from any write site that changes a profile's outgoing grants
+    (grant create, emulation activate, unemulation). Best-effort: errors
+    are swallowed since the TTL is the safety net.
+    """
+    from app.infra.globals import get_redis_client
+    redis = get_redis_client()
+    if redis is None:
+        return
+    try:
+        await redis.delete(_emulation_cache_key(profile_id))
+    except Exception:
+        pass
+
+
 async def resolve_emulation_chain(
     pool: asyncpg.Pool, profile_id: UUID
 ) -> list[EmulationChainLink]:
@@ -548,7 +581,39 @@ async def resolve_emulation_chain(
 
     Returns the full chain as a list of EmulationChainLink.
     Empty list means no active emulation.
+
+    Cached in Redis for ``_EMULATION_CACHE_TTL`` seconds; 99% of users
+    have an empty chain so the cache hit is the dominant path. Write
+    sites must call ``invalidate_emulation_cache`` for snappy UX —
+    the TTL is the safety net.
     """
+    import json
+    from app.infra.globals import get_redis_client
+
+    redis = get_redis_client()
+    cache_key = _emulation_cache_key(profile_id)
+    cached_raw: Any = None
+    if redis is not None:
+        try:
+            cached_raw = await redis.get(cache_key)
+        except Exception:
+            cached_raw = None
+    if cached_raw is not None:
+        if isinstance(cached_raw, bytes):
+            cached_raw = cached_raw.decode()
+        try:
+            data = json.loads(cached_raw)
+            return [
+                EmulationChainLink(
+                    grant_id=UUID(link["grant_id"]),
+                    target_profile_id=UUID(link["target_profile_id"]),
+                )
+                for link in data
+            ]
+        except Exception:
+            # Bad cache entry — fall through to DB and overwrite below.
+            pass
+
     chain: list[EmulationChainLink] = []
     current = profile_id
     visited: set[UUID] = set()
@@ -572,6 +637,20 @@ async def resolve_emulation_chain(
                 + " → ".join(str(link.target_profile_id) for link in chain)
                 + f" (depth {len(chain)})"
             )
+
+        # Cache the result (empty chain too — the common case).
+        if redis is not None:
+            try:
+                payload = json.dumps([
+                    {
+                        "grant_id": str(link.grant_id),
+                        "target_profile_id": str(link.target_profile_id),
+                    }
+                    for link in chain
+                ])
+                await redis.setex(cache_key, _EMULATION_CACHE_TTL, payload)
+            except Exception:
+                pass
 
         return chain
     except Exception as e:
@@ -605,6 +684,9 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
     """
     from app.tools.artifacts.profile.get import get_profiles
 
+    from app.infra.globals import get_redis_client
+    redis = get_redis_client()
+
     # Resolve profile_artifact.id → profiles_resource.id
     profiles = await get_profiles(conn, [profile_id], profiles=True)
     if not profiles or not profiles[0].profile_ids:
@@ -618,17 +700,15 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
     from app.tools.entries.sessions.create import create_session
     from app.tools.entries.sessions.search import search_sessions
 
-    # All three searches run with ``bypass_mv=True`` because this
-    # resolver is on the hot auth path and needs read-after-write
-    # consistency: a fresh ``create_session`` must be visible to the
-    # very next request (which would otherwise mint a duplicate
-    # before the MV's 30s refresh tick).
+    # search_sessions has a hedged-read cache (v1.0.31): fresh writes are
+    # served from the per-id cache within its 1h window; older sessions
+    # come from the MV. logouts/activity below still pass bypass_mv=True
+    # because they don't have cache coverage yet.
     sessions = await search_sessions(
-        conn,
+        conn, redis,
         profile_ids=[profiles_resource_id],
         active=True,
         limit=1,
-        bypass_mv=True,
     )
     if sessions:
         session = sessions[0]
@@ -637,7 +717,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
         # always mint a new session after any logout, regardless of
         # timing.
         logouts = await search_logouts(
-            conn,
+            conn, redis,
             session_ids=[session.id],
             limit=1,
             bypass_mv=True,
@@ -648,10 +728,9 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
             # first activity ping hasn't landed yet (or got
             # throttled by the 60s SETNX in middleware).
             recent = await search_activity(
-                conn,
+                conn, redis,
                 session_ids=[session.id],
                 limit=1,
-                bypass_mv=True,
             )
             last_seen = recent[0].created_at if recent else session.created_at
             cutoff = datetime.now(timezone.utc) - timedelta(
@@ -662,7 +741,7 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
 
     # Mint a new session — either no prior, the latest was logged
     # out, or it idled past the threshold.
-    result = await create_session(conn, profile_id=profiles_resource_id)
+    result = await create_session(conn, redis, profile_id=profiles_resource_id)
     return result.id
 
 
@@ -671,11 +750,19 @@ async def get_or_create_session(conn: asyncpg.Connection, profile_id: UUID) -> U
 # ---------------------------------------------------------------------------
 
 
-async def get_system_session_id(conn: asyncpg.Connection) -> UUID:
+async def get_system_session_id(
+    conn: asyncpg.Connection,
+    redis: Redis,
+) -> UUID:
     """Get or create a system session for background tasks.
 
     This session is not tied to a user profile. It's used by the metrics
     collector, health check logger, and other server-internal processes.
+
+    ``redis`` must be passed by the caller. We do NOT reach into the
+    app-global ``get_redis_client()`` here — that couples this helper to
+    the FastAPI lifespan and makes it untestable outside the running
+    server. Callers in the lifespan context can pass ``get_redis_client()``.
     """
     global _system_session_id
 
@@ -691,7 +778,7 @@ async def get_system_session_id(conn: asyncpg.Connection) -> UUID:
     # Create a system session (no profile link needed).
     from app.tools.entries.sessions.create import create_session
 
-    session_id = (await create_session(conn)).id
+    session_id = (await create_session(conn, redis)).id
 
     _system_session_id = session_id
     logger.info(f"Created system session: {session_id}")

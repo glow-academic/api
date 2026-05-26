@@ -6,7 +6,8 @@ collapsed into this one; view intent is now expressed entirely through filter
 parameters (``practice``, ``target_profile_id``, ``profile_ids``, etc.).
 
 Response is ``HistoryResponse`` with full display aggregates (score%, persona,
-time, etc.) shaped for all consumers.
+time, etc.) shaped for all consumers. Routed through the audit wrapper so
+``snapshot_key`` replays a consistent view across related reads.
 """
 
 from __future__ import annotations
@@ -17,8 +18,10 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import HistoryResponse
+from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.search import search_attempt_impl
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -63,6 +66,7 @@ class SearchAttemptApiRequest(BaseModel):
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
     page: int = Field(0, description="Page number")
     page_size: int = Field(20, description="Items per page")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=HistoryResponse)
@@ -81,6 +85,7 @@ async def search_attempt(
             status_code=401,
             detail="Profile ID is required. Please sign in again.",
         )
+    session_id = getattr(http_request.state, "session_id", None)
 
     cache_key_val = cache_key(
         http_request.url.path,
@@ -90,53 +95,76 @@ async def search_attempt(
         },
     )
 
-    if not bypass_cache:
-        cached = await get_cached(cache_key_val, redis=get_redis_client())
-        if cached:
-            response.headers["X-Cache-Tags"] = ",".join(tags)
-            response.headers["X-Cache-Hit"] = "1"
-            return HistoryResponse.model_validate(cached["data"])
-
     try:
         pool = get_pool()
         redis = get_redis_client()
 
-        api_response = await search_attempt_impl(
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
+            )
+            group_id = group_result.group_id
+
+        async def _runner() -> HistoryResponse:
+            if not bypass_cache:
+                cached = await get_cached(cache_key_val, redis=redis)
+                if cached:
+                    response.headers["X-Cache-Hit"] = "1"
+                    return HistoryResponse.model_validate(cached["data"])
+
+            api_response = await search_attempt_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                target_profile_id=request.target_profile_id,
+                profile_ids=request.profile_ids,
+                cohort_ids=request.cohort_ids,
+                department_ids=request.department_ids,
+                role_ids=request.role_ids,
+                simulation_ids=request.simulation_ids,
+                scenario_ids=request.scenario_ids,
+                practice=request.practice,
+                infinite_mode=request.infinite_mode,
+                show_archived=request.show_archived,
+                start_date=request.start_date,
+                end_date=request.end_date,
+                simulation_search=request.simulation_search,
+                scenario_search=request.scenario_search,
+                profile_search=request.profile_search,
+                sort_by=request.sort_by,
+                sort_order=request.sort_order,
+                page=request.page,
+                page_size=request.page_size,
+                bypass_cache=bypass_cache,
+            )
+            await set_cached(
+                cache_key_val,
+                {"data": api_response.model_dump(mode="json")},
+                ttl=300,
+                tags=tags,
+                redis=redis,
+            )
+            response.headers.setdefault("X-Cache-Hit", "0")
+            return api_response
+
+        result = await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="attempt",
             profile_id=profile_id,
-            target_profile_id=request.target_profile_id,
-            profile_ids=request.profile_ids,
-            cohort_ids=request.cohort_ids,
-            department_ids=request.department_ids,
-            role_ids=request.role_ids,
-            simulation_ids=request.simulation_ids,
-            scenario_ids=request.scenario_ids,
-            practice=request.practice,
-            infinite_mode=request.infinite_mode,
-            show_archived=request.show_archived,
-            start_date=request.start_date,
-            end_date=request.end_date,
-            simulation_search=request.simulation_search,
-            scenario_search=request.scenario_search,
-            profile_search=request.profile_search,
-            sort_by=request.sort_by,
-            sort_order=request.sort_order,
-            page=request.page,
-            page_size=request.page_size,
+            session_id=session_id,
+            group_id=group_id,
+            operation="search",
+            arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
-        )
-
-        await set_cached(
-            cache_key_val,
-            {"data": api_response.model_dump(mode="json")},
-            ttl=300,
-            tags=tags,
-            redis=redis,
+            response_model=HistoryResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = ",".join(tags)
-        response.headers["X-Cache-Hit"] = "0"
-        return api_response
+        return result
 
     except HTTPException:
         raise

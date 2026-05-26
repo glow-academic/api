@@ -172,6 +172,7 @@ class GetParameterDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetParameterDraftsApiResponse(BaseModel):
@@ -280,6 +281,7 @@ class CreateParameterApiRequest(BaseModel):
 
     parameters: list[CreateParameterItem] = Field(..., description="List of parameters to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -372,6 +374,7 @@ class UpdateParameterApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -429,6 +432,7 @@ class PatchParameterDraftApiRequest(ScopedItem):
     parameter_fields: list[str] | None = Field(None, description="Parameter field names to resolve")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep pending where supported")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept or reject dormant state")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -510,6 +514,7 @@ class DeleteParameterApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
@@ -538,6 +543,7 @@ class DeleteParameterApiResponse(BaseModel):
 class DuplicateParameterApiRequest(BaseModel):
     parameter_id: UUID = Field(..., description="Parameter identifier to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -564,6 +570,9 @@ class ExportParameterApiRequest(BaseModel):
     """Request model for parameter export."""
 
     parameter_id: UUID | None = Field(None, description="Parameter identifier to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
+    soft: bool = Field(False, description="Stage the export dormant (active=False); ack with accept activates it")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key")
 
 
 class ExportParameterApiResponse(BaseModel):
@@ -572,6 +581,7 @@ class ExportParameterApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadParameterApiRequest(BaseModel):
@@ -606,6 +616,7 @@ class GenerationsParameterApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsParameterListItem(BaseModel):

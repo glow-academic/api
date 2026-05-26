@@ -42,7 +42,7 @@ async def expire_stale_attempts(
     async with pool.acquire() as conn:
         attempts, _ = await search_attempts(
             conn,
-            is_completed=False,
+            redis, is_completed=False,
             is_archived=False,
             limit=1000,
         )
@@ -52,7 +52,7 @@ async def expire_stale_attempts(
         async with pool.acquire() as conn:
             chats, _ = await search_attempt_chats(
                 conn,
-                attempt_ids=[attempt.attempt_id],
+                redis, attempt_ids=[attempt.attempt_id],
                 limit=100,
             )
 

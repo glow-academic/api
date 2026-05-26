@@ -15,6 +15,7 @@ from app.infra.model.types import (
     ListModelApiModel,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.model.create import (
     create_model as create_model_artifact,
 )
@@ -42,30 +43,32 @@ async def duplicate_model_impl(
 ) -> DuplicateModelApiResponse:
     """Duplicate a model artifact."""
     model_id = id  # alias: tools send 'id', internal code uses 'model_id'
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_duplicate(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this model.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this model.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "duplicate":
             raise HTTPException(
                 status_code=404,
@@ -81,6 +84,7 @@ async def duplicate_model_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="duplicate",
@@ -103,7 +107,8 @@ async def duplicate_model_impl(
             idempotency_key=idempotency_key,
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         originals = await get_models(
             conn,
             [model_id],
@@ -152,7 +157,8 @@ async def duplicate_model_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_model_artifact(
                 conn,
@@ -177,6 +183,7 @@ async def duplicate_model_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -188,23 +195,25 @@ async def duplicate_model_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_model_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_model_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # Hydrate full row content for the client. See
     # ``hydrate_model_list_rows``. Soft-pending duplicates skip
     # hydration: the dormant copy isn't fully active yet.
     models: list[ListModelApiModel] | None = None
     if not soft:
-        from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
-        models = await hydrate_model_list_rows(
-            pool, redis, profile_id=profile_id, model_ids=[result.id],
-        )
+        with timed("hydrate"):
+            from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
+            models = await hydrate_model_list_rows(
+                pool, redis, profile_id=profile_id, model_ids=[result.id],
+            )
 
     return DuplicateModelApiResponse(
         success=True,

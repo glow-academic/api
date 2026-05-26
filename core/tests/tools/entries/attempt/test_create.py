@@ -16,45 +16,45 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     defaults = dict(
-        call_id=call.id,
+        session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
     defaults.update(overrides)
-    result = await create_attempt(conn, **defaults)
+    result = await create_attempt(conn, redis_client, **defaults)
     return session, result
 
 
-async def test_returns_id(conn, profile_id, simulation_bundle):
-    _, result = await _attempt(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _attempt(conn, redis_client, profile_id)
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id, simulation_bundle):
-    _, result = await _attempt(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _attempt(conn, redis_client, profile_id)
     await refresh_attempt(conn)
 
-    items = await get_attempts(conn, [result.id])
+    items = await get_attempts(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].attempt_id == result.id
 
 
-async def test_num_chats_and_practice(conn, profile_id, simulation_bundle):
+async def test_num_chats_and_practice(conn, redis_client, profile_id, simulation_bundle):
     """practice in MV is derived from attempt_practice_entry existence."""
     bundle = simulation_bundle
-    session, result = await _attempt(conn, profile_id, num_chats=3, practice=True)
+    session, result = await _attempt(conn, redis_client, profile_id, num_chats=3, practice=True)
     practice = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -65,21 +65,21 @@ async def test_num_chats_and_practice(conn, profile_id, simulation_bundle):
     )
     await create_attempt_practice(
         conn,
-        attempt_id=result.id,
+        redis_client, attempt_id=result.id,
         practice_id=practice.id,
         session_id=session.id,
     )
     await refresh_attempt(conn)
 
-    items = await get_attempts(conn, [result.id])
+    items = await get_attempts(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].num_chats == 3
     assert items[0].practice is True
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
-    _, result = await _attempt(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _attempt(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_entry WHERE id = $1",

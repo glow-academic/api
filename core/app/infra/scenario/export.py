@@ -21,6 +21,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.scenario.search import search_scenarios
 from app.tools.resources.departments.get import get_departments
@@ -79,7 +80,8 @@ async def export_scenario_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -89,7 +91,8 @@ async def export_scenario_impl(
 
     # -- Step 2: Search all scenarios (full dump) --
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         if scenario_id:
             scenario_ids = [scenario_id]
         else:
@@ -219,7 +222,8 @@ async def export_scenario_impl(
             return []
         return await get_videos(pool, all_video_ids, redis)
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         departments_data,
@@ -232,7 +236,7 @@ async def export_scenario_impl(
         problem_statements_data,
         questions_data,
         videos_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_names(),
         _get_descriptions(),
         _get_departments(),
@@ -278,11 +282,12 @@ async def export_scenario_impl(
 
     # -- Step 5: Generate CSV + upload --
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("render"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+     for a in artifacts:
         # Single-select: first resource value
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (

@@ -28,8 +28,14 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
-from app.infra.exports.file_modality import wrap_bytes_as_file
+from app.infra.exports.file_modality import (
+    accept_staged_export,
+    extension_from_mime,
+    stage_export_soft_call,
+    wrap_bytes_as_file,
+)
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
 from app.tools.entries.attempt_message.search import search_attempt_messages
@@ -93,6 +99,10 @@ async def export_attempt_impl(
     attempt_id: UUID | None = None,
     record_id: UUID | None = None,
     mode: str | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
     **_kwargs,
 ):
     """Dispatch on ``view`` and return canonical ``ExportAttemptApiResponse``.
@@ -109,6 +119,17 @@ async def export_attempt_impl(
     """
     from app.infra.attempt.types import ExportAttemptApiResponse
 
+    # ── Short-circuit: ack — activate/reject a staged export ─────────────
+    if accept is not None and idempotency_key is not None:
+        file_id, file_name, row_count = await accept_staged_export(
+            pool, redis, artifact="attempt",
+            idempotency_key=idempotency_key, accept=accept,
+        )
+        return ExportAttemptApiResponse(
+            file_id=file_id, file_name=file_name, row_count=row_count,
+            idempotency_key=idempotency_key,
+        )
+
     # ── Single-attempt view ──────────────────────────────────────────────
     if view == "single":
         if attempt_id is None:
@@ -116,10 +137,12 @@ async def export_attempt_impl(
                 status_code=400,
                 detail="attempt_id is required for view='single'.",
             )
-        bytes_, row_count = await _export_single_attempt_bytes(
-            pool, redis, profile_id=profile_id, attempt_id=attempt_id,
-        )
-        file_id, file_name = await wrap_bytes_as_file(
+        with timed("single_attempt_build"):
+            bytes_, row_count = await _export_single_attempt_bytes(
+                pool, redis, profile_id=profile_id, attempt_id=attempt_id,
+            )
+        with timed("wrap_as_file"):
+         wrapped = await wrap_bytes_as_file(
             pool,
             redis,
             content=bytes_,
@@ -127,9 +150,16 @@ async def export_attempt_impl(
             mime_type="application/zip",
             extension="zip",
             session_id=session_id,
+            soft=soft,
         )
+        if soft and call_id is not None:
+            await stage_export_soft_call(
+                pool, redis, artifact="attempt", call_id=call_id,
+                wrapped=wrapped, row_count=row_count,
+            )
         return ExportAttemptApiResponse(
-            file_id=file_id, file_name=file_name, row_count=row_count,
+            file_id=wrapped.file_id, file_name=wrapped.file_name,
+            row_count=row_count, idempotency_key=call_id,
         )
 
     # ── Analytics views (delegate to per-view impl, decode base64) ────────
@@ -163,6 +193,7 @@ async def export_attempt_impl(
 
     return await _wrap_envelope(
         pool, redis, envelope, view_prefix=f"attempt_{view}_export", session_id=session_id,
+        soft=soft, call_id=call_id,
     )
 
 
@@ -178,6 +209,8 @@ async def _wrap_envelope(
     *,
     view_prefix: str,
     session_id: UUID | None,
+    soft: bool = False,
+    call_id: UUID | None = None,
 ):
     """Decode per-view base64 envelope + run canonical file-modality chain."""
     from app.infra.attempt.types import ExportAttemptApiResponse
@@ -193,9 +226,7 @@ async def _wrap_envelope(
     mime_type = getattr(envelope, "mime_type", "application/zip") or "application/zip"
     row_count = int(getattr(envelope, "row_count", 0) or 0)
 
-    from app.infra.exports.file_modality import extension_from_mime
-
-    file_id, file_name = await wrap_bytes_as_file(
+    wrapped = await wrap_bytes_as_file(
         pool,
         redis,
         content=bytes_,
@@ -203,9 +234,16 @@ async def _wrap_envelope(
         mime_type=mime_type,
         extension=extension_from_mime(mime_type),
         session_id=session_id,
+        soft=soft,
     )
+    if soft and call_id is not None:
+        await stage_export_soft_call(
+            pool, redis, artifact="attempt", call_id=call_id,
+            wrapped=wrapped, row_count=row_count,
+        )
     return ExportAttemptApiResponse(
-        file_id=file_id, file_name=file_name, row_count=row_count,
+        file_id=wrapped.file_id, file_name=wrapped.file_name,
+        row_count=row_count, idempotency_key=call_id,
     )
 
 
@@ -218,7 +256,8 @@ async def _export_single_attempt_bytes(
 ) -> tuple[bytes, int]:
     """Build the single-attempt ZIP (attempts.csv + chats.csv + messages.csv) and return (bytes, row_count)."""
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -228,29 +267,30 @@ async def _export_single_attempt_bytes(
     async def _fetch_attempts() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempts(
-                c, attempt_ids=[attempt_id], limit=1
+                c, redis, attempt_ids=[attempt_id], limit=1
             )
             return items
 
     async def _fetch_chats() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_chats(
-                c, attempt_ids=[attempt_id], limit=100000
+                c, redis, attempt_ids=[attempt_id], limit=100000
             )
             return items
 
     async def _fetch_messages() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_messages(
-                c, attempt_ids=[attempt_id], limit=100000
+                c, redis, attempt_ids=[attempt_id], limit=100000
             )
             return items
 
-    attempts, chats, messages = await asyncio.gather(
-        _fetch_attempts(),
-        _fetch_chats(),
-        _fetch_messages(),
-    )
+    with timed("fetch_gather"):
+        attempts, chats, messages = await asyncio.gather(
+            _fetch_attempts(),
+            _fetch_chats(),
+            _fetch_messages(),
+        )
 
     if not attempts:
         # Empty ZIP, zero rows — still passes through the file-modality chain.

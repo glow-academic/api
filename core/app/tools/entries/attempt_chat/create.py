@@ -4,12 +4,15 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_chat.types import CreateAttemptChatResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_attempt_chat(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     chat_id: UUID,
     id: UUID | None = None,
@@ -56,7 +59,7 @@ async def create_attempt_chat(
     created_at: datetime | None = None,
 ) -> CreateAttemptChatResponse:
     """Create an attempt_chat entry with optional connection tables."""
-    attempt_chat_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO attempt_chat_entry (
             id, session_id, chat_id, title, "position", time_limit,
@@ -78,7 +81,7 @@ async def create_attempt_chat(
             $22, $23,
             $24, $25, $26, true, COALESCE($28, NOW())
         )
-        RETURNING id
+        RETURNING id, created_at
         """,
         session_id,
         chat_id,
@@ -110,8 +113,11 @@ async def create_attempt_chat(
         created_at,
     )
 
-    if attempt_chat_id is None:
+    if row is None:
         raise ValueError("Failed to create attempt_chat entry")
+
+    attempt_chat_id = row["id"]
+    actual_created_at = row["created_at"]
 
     # Connection tables (all optional)
     _connections: list[tuple[str, str, list[UUID] | None]] = [
@@ -155,5 +161,80 @@ async def create_attempt_chat(
                 attempt_chat_id,
                 resource_id,
             )
+
+    # Write-back cache row matching get/search MV shape. The MV is keyed by
+    # ``chat_id`` (the chat_entry id this attempt_chat points at), so the
+    # cache slot is keyed by chat_id too. Heavy MV-derived fields (attempt_id,
+    # profile_id, grade_*, resource arrays from chat_mv joins) aren't known at
+    # create-time; default to None/[]. The MV row will hydrate them once the
+    # next concurrent refresh picks up the insert. Personas come from connection
+    # rows that we just wrote; surface those into persona_ids so the cache row
+    # is at least directionally useful for filters.
+    fresh_row = {
+        "chat_id": str(chat_id),
+        "attempt_id": None,
+        "chat_entry_id": str(chat_id),
+        "group_id": None,
+        "profile_id": None,
+        "role_id": None,
+        "cohort_id": None,
+        "department_id": None,
+        "simulation_id": None,
+        "scenario_id": None,
+        "persona_ids": [str(p) for p in (personas_ids or [])] or None,
+        "assistant_persona_ids": [str(p) for p in (assistant_persona_ids or [])] or None,
+        "rubric_id": None,
+        "grade_score": None,
+        "grade_total_points": None,
+        "grade_pass_points": None,
+        "grade_passed": None,
+        "grade_time_taken": None,
+        "completed": None,
+        "attempt_number": None,
+        "chat_created_at": actual_created_at.isoformat() if actual_created_at else None,
+        "attempt_date": None,
+        "attempt_type": None,
+        "is_archived": None,
+        "infinite_mode": None,
+        "document_ids": [str(d) for d in (documents_ids or [])] or None,
+        "copy_paste_allowed": copy_paste_allowed,
+        "text_enabled": text_enabled,
+        "audio_enabled": audio_enabled,
+        "hints_enabled": hints_enabled,
+        "show_images": show_images,
+        "show_objectives": show_objectives,
+        "show_problem_statement": show_problem_statement,
+        "analyses_enabled": analyses_enabled,
+        "strengths_enabled": strengths_enabled,
+        "improvements_enabled": improvements_enabled,
+        "problem_statement_enabled": problem_statement_enabled,
+        "objectives_enabled": objectives_enabled,
+        "video_enabled": video_enabled,
+        "images_enabled": images_enabled,
+        "questions_enabled": questions_enabled,
+        "time_limit_seconds": time_limit,
+        "negative": negative_time,
+        "problem_statement_id": (
+            str(problem_statements_ids[0]) if problem_statements_ids else None
+        ),
+        "objective_ids": [str(o) for o in (objectives_ids or [])] or None,
+        "question_ids": [str(q) for q in (questions_ids or [])] or None,
+        "option_ids": [str(o) for o in (options_ids or [])] or None,
+        "image_ids": [str(i) for i in (images_ids or [])] or None,
+        "video_ids": [str(v) for v in (videos_ids or [])] or None,
+        "standard_group_ids": [str(s) for s in (standard_groups_ids or [])] or None,
+        "standard_ids": [str(s) for s in (standards_ids or [])] or None,
+        # Synthetic alias so hedged_search id_key can dedupe by chat_id.
+        "id": str(chat_id),
+        "created_at": actual_created_at.isoformat() if actual_created_at else None,
+    }
+    if actual_created_at is not None:
+        await write_back_row(
+            redis,
+            "attempt_chat",
+            chat_id,
+            fresh_row,
+            score_ms=int(actual_created_at.timestamp() * 1000),
+        )
 
     return CreateAttemptChatResponse(id=attempt_chat_id)

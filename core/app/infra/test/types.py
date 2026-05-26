@@ -71,6 +71,7 @@ class GetTestArtifactRequest(BaseModel):
         default_factory=list,
         description="Run IDs currently selected in the picker; messages preloaded for preview",
     )
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class TestRunItem(BaseModel):
@@ -410,12 +411,16 @@ class ArchiveTestsRequest(BaseModel):
 
     test_ids: list[UUID] = Field(min_length=1, description="UUIDs of tests to archive/unarchive")
     archived: bool = Field(True, description="Whether to archive or unarchive")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject a staged archive")
+    soft: bool = Field(False, description="Stage the archive dormant (active=False); accept activates the whole set")
+    accept: bool | None = Field(None, description="Ack: True activates the staged archive, False rejects. Only meaningful with idempotency_key")
 
 
 class ArchiveTestsResponse(BaseModel):
     """Response for archiving/unarchiving benchmark tests."""
 
     updated_count: int = Field(0, description="Number of tests updated")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged archive.")
 
 
 # =============================================================================
@@ -478,6 +483,11 @@ class ExportTestApiRequest(BaseModel):
                     "Default (None) returns the full per-view bundle.",
     )
 
+    # Canonical idempotency + soft/accept (file-modality staging)
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export; on the ack, the server-minted soft key to activate/reject a staged export")
+    soft: bool = Field(False, description="Stage the export dormant (file chain active=False) — agent proposes; accept activates. Sim-env 'dormant export' primitive.")
+    accept: bool | None = Field(None, description="Ack: True activates the staged export, False rejects. Only meaningful with idempotency_key")
+
 
 class ExportTestApiResponse(BaseModel):
     """Response model for test export — canonical file modality."""
@@ -485,6 +495,7 @@ class ExportTestApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export bytes")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to activate/reject the staged export.")
 
 
 # =============================================================================
@@ -500,6 +511,7 @@ class GenerationsTestApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsTestListItem(BaseModel):
@@ -529,6 +541,7 @@ class ProblemTestApiRequest(BaseModel):
 
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 class ProblemTestApiResponse(BaseModel):

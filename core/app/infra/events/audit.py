@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
@@ -27,10 +29,12 @@ def _mint_call_id() -> UUID:
     return uuid.uuid7() if hasattr(uuid, "uuid7") else uuid.uuid4()
 
 import asyncpg
+from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.common_context import resolve_common_context
 from app.infra.globals import UPLOAD_FOLDER, get_internal_sio
+from app.tools.entries.calls.search import search_calls
 from app.tools.entries.groups.create import create_group
 from app.tools.resources.tools.get import get_tools
 
@@ -46,6 +50,49 @@ logger = get_logger(__name__)
 T = TypeVar("T")
 
 internal_sio = get_internal_sio()
+
+# Idempotency replay gate. The lock only guards the window where N concurrent
+# first-runs of the same operation_key race before any receipt exists; once a
+# receipt is written the (fresh, bypass_mv) lookup short-circuits first, so the
+# lock is never consulted on later retries. TTL should comfortably exceed the
+# longest expected execution (incl. AI generations).
+_IDEM_LOCK_TTL_SECONDS = 300
+_IDEM_LOCK_PREFIX = "idem:op:"
+
+
+def _fingerprint_arguments(arguments: dict[str, Any]) -> str:
+    """Stable hash of an operation's arguments — backs same-key/different-body
+    detection so a reused ``operation_key`` carrying a different payload is
+    rejected (409) rather than silently replaying the first response."""
+    canonical = json.dumps(arguments or {}, sort_keys=True, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+_ACK_CONTROL_KEYS = frozenset({
+    "idempotency_key", "operation_key", "accept", "soft", "sid", "session_id", "profile_id",
+})
+
+
+def _is_bare_ack(arguments: dict[str, Any]) -> bool:
+    """True when this is a soft/accept *ack* call, not a fresh operation.
+
+    An ack explicitly sets ``accept`` (True/False) and carries no substantive
+    payload — it only promotes/rejects a dormant entry the soft-call ledger
+    already tracks, intentionally reusing the key with a different body. The
+    replay gate skips these (the ledger owns their idempotency).
+
+    Crucially this must NOT skip a normal request that merely *defaults*
+    ``accept`` — e.g. ``generate``'s ``accept=True`` — because those carry real
+    payload. So we require ``accept`` set AND no non-None field outside the
+    control set; a generate request always has live content (instructions etc.).
+    """
+    if arguments.get("accept") is None:
+        return False
+    payload = {
+        k: v for k, v in arguments.items()
+        if v is not None and k not in _ACK_CONTROL_KEYS
+    }
+    return not payload
 
 
 def resolve_artifact_operation_tool(
@@ -134,11 +181,13 @@ async def run_artifact_operation_with_audit(
     # ``resolve_artifact_operation_tool`` (which is agent-scoped via
     # tool_graph and stays around for generation-side callers that
     # need that view).
+    from app.infra.server_timing import timed
     from app.infra.tools.resolve_for_operation import resolve_tool_for_operation
-    async with pool.acquire() as _conn:
-        resolved_op_tool = await resolve_tool_for_operation(
-            _conn, redis, artifact=artifact, operation=operation,
-        )
+    with timed("tool_resolve"):
+        async with pool.acquire() as _conn:
+            resolved_op_tool = await resolve_tool_for_operation(
+                _conn, redis, artifact=artifact, operation=operation,
+            )
     tool_id = resolved_op_tool.tool_id if resolved_op_tool else None
     resolved_template = (
         resolved_op_tool.instruction_template if resolved_op_tool else None
@@ -153,6 +202,77 @@ async def run_artifact_operation_with_audit(
     effective_group_id = group_id
     effective_profiles_id = common.profile.profiles_id
     effective_upload_folder = upload_folder or UPLOAD_FOLDER
+
+    # ── Idempotency replay gate (opt-in; inert unless ``operation_key`` set) ──
+    # ``operation_key`` IS the client's idempotency key — one key. Routes thread
+    # ``request.idempotency_key`` straight through as ``operation_key`` (the
+    # codebase already merges them: ``operation_key or idempotency_key``). Runs
+    # before any side effect (group mint, ``.started`` emit, execution).
+    #   • A prior completed call with this key → replay its persisted receipt.
+    #   • Otherwise take a short-lived lock so only one concurrent first-run runs.
+    # The soft/accept ack phase (a *bare* ack — ``accept`` set + no payload) is
+    # SKIPPED: it deliberately reuses the key with a different body, and the
+    # soft-call ledger already makes that phase idempotent; the gate only guards
+    # the first (propose) call. A normal request that merely defaults ``accept``
+    # (e.g. ``generate``'s ``accept=True``) is NOT a bare ack — see ``_is_bare_ack``.
+    # FAIL-OPEN: any unexpected error logs and falls through to normal execution
+    # — the gate must never break a request that would otherwise succeed. A 409
+    # is intentional (reused key with a different body, or in-flight duplicate)
+    # and is re-raised.
+    if operation_key is not None and not bypass_cache and not _is_bare_ack(arguments):
+        try:
+            with timed("idempotency"):
+                async with pool.acquire() as _idem_conn:
+                    # search_calls now has a hedged-read cache (v1.0.31 +
+                    # v1.0.30 helpers): the cache catches recently-written
+                    # calls within its 1h window, and the MV covers older
+                    # ones. bypass_mv removed — the cache layer makes it
+                    # unnecessary.
+                    _prior = await search_calls(
+                        _idem_conn,
+                        redis,
+                        operation_keys=[operation_key],
+                        limit=1,
+                    )
+            _prior = [c for c in _prior if c.file_path]
+            if _prior:
+                _receipt_path = effective_upload_folder / _prior[0].file_path
+                _receipt = json.loads(_receipt_path.read_text(encoding="utf-8"))
+                if _fingerprint_arguments(_receipt.get("arguments")) != \
+                        _fingerprint_arguments(arguments):
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Idempotency key reused with a different request payload.",
+                    )
+                _cached = _receipt.get("raw_output")
+                # Never replay a cached server error — let the retry truly retry.
+                _is_error = isinstance(_cached, dict) and _cached.get("success") is False
+                if _cached is not None and not _is_error:
+                    logger.info(
+                        "IDEM_REPLAY %s.%s operation_key=%s call_id=%s",
+                        artifact, operation, operation_key, _prior[0].id,
+                    )
+                    if response_model is not None:
+                        return response_model.model_validate(_cached)
+                    return _cached  # type: ignore[return-value]
+            else:
+                # No completed receipt yet → serialize concurrent first-runs.
+                _got_lock = await redis.set(
+                    f"{_IDEM_LOCK_PREFIX}{operation_key}", "1",
+                    nx=True, ex=_IDEM_LOCK_TTL_SECONDS,
+                )
+                if not _got_lock:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="An operation with this idempotency key is already in progress.",
+                    )
+        except HTTPException:
+            raise
+        except Exception:
+            logger.warning(
+                "IDEM_GATE_SKIP %s.%s operation_key=%s — gate error, falling through",
+                artifact, operation, operation_key, exc_info=True,
+            )
 
     # Opt-in mint: routes for create-the-group operations (e.g. /X/group)
     # set ``mint_group_id_if_missing=True`` so the framework assigns an id
@@ -210,7 +330,7 @@ async def run_artifact_operation_with_audit(
         async with pool.acquire() as conn:
             await create_group(
                 conn,
-                session_id=effective_session_id,
+                redis, session_id=effective_session_id,
                 artifact_type=artifact,
                 id=effective_group_id,
             )
@@ -264,19 +384,20 @@ async def run_artifact_operation_with_audit(
     # were silently emitting only ``.completed`` and the client could
     # never render their started bubble.
     if not suppress_started:
-        await internal_sio.emit(f"{event_prefix}.started", {
-            "sid": sid,
-            "rooms": effective_rooms,
-            "role": role,
-            **arguments,
-            # Framework-owned identity trails the spread so request bodies
-            # that happen to carry ``call_id``/``group_id`` keys (download
-            # routes, etc.) don't overwrite the audit's own ids.
-            "call_id": str(emit_call_id),
-            "group_id": str(effective_group_id) if effective_group_id else None,
-            "operation_key": str(operation_key) if operation_key else None,
-            "tool": tool_payload,
-        })
+        with timed("started_emit"):
+            await internal_sio.emit(f"{event_prefix}.started", {
+                "sid": sid,
+                "rooms": effective_rooms,
+                "role": role,
+                **arguments,
+                # Framework-owned identity trails the spread so request bodies
+                # that happen to carry ``call_id``/``group_id`` keys (download
+                # routes, etc.) don't overwrite the audit's own ids.
+                "call_id": str(emit_call_id),
+                "group_id": str(effective_group_id) if effective_group_id else None,
+                "operation_key": str(operation_key) if operation_key else None,
+                "tool": tool_payload,
+            })
 
     # --- Execute ---
     call_upload_id: UUID | None = None
@@ -291,12 +412,14 @@ async def run_artifact_operation_with_audit(
     _runner_accepts_group_id = "group_id" in _runner_params
 
     async def _invoke_runner(call_id: UUID | None = None) -> Any:
+        from app.infra.server_timing import timed
         kwargs: dict[str, Any] = {}
         if _runner_accepts_call_id:
             kwargs["call_id"] = call_id
         if _runner_accepts_group_id:
             kwargs["group_id"] = effective_group_id
-        return await runner(**kwargs)
+        with timed("runner"):
+            return await runner(**kwargs)
 
     if can_audit:
         async def _tool_fn(
@@ -315,32 +438,44 @@ async def run_artifact_operation_with_audit(
         async def _on_call_created(_cid: UUID | None) -> None:
             return
 
-        async with pool.acquire() as conn:
-            audit_result = await create_tool_call(
-                conn,
-                group_id=effective_group_id,  # type: ignore[arg-type]
-                session_id=effective_session_id,  # type: ignore[arg-type]
-                profile_id=effective_profiles_id,  # type: ignore[arg-type]
-                upload_folder=effective_upload_folder,
-                tool_fn=_tool_fn,
-                arguments=arguments,
-                tool_id=tool_id,
-                run_id=run_id,
-                operation_key=operation_key,
-                role=role,
-                mcp=mcp,
-                instruction_template=instruction_template,
-                raise_on_error=False,
-                on_call_created=_on_call_created,
-                pre_minted_call_id=emit_call_id,
-                started_at=started_at,
-            )
+        with timed("audit_write"):
+            with timed("audit_pool_acquire"):
+                _aw_cm = pool.acquire()
+                conn = await _aw_cm.__aenter__()
+            try:
+                audit_result = await create_tool_call(
+                    conn,
+                    redis,
+                    group_id=effective_group_id,  # type: ignore[arg-type]
+                    session_id=effective_session_id,  # type: ignore[arg-type]
+                    profile_id=effective_profiles_id,  # type: ignore[arg-type]
+                    upload_folder=effective_upload_folder,
+                    tool_fn=_tool_fn,
+                    arguments=arguments,
+                    tool_id=tool_id,
+                    run_id=run_id,
+                    operation_key=operation_key,
+                    role=role,
+                    mcp=mcp,
+                    instruction_template=instruction_template,
+                    raise_on_error=False,
+                    on_call_created=_on_call_created,
+                    pre_minted_call_id=emit_call_id,
+                    started_at=started_at,
+                )
+            finally:
+                await _aw_cm.__aexit__(None, None, None)
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
 
-        # Check if the runner failed (captured by create_tool_call)
+        # Check if the runner failed (captured by create_tool_call). Re-raise the
+        # ORIGINAL exception type (HTTPException, CsvParseError, …) so routes' typed
+        # handlers and 4xx status codes survive the audit wrapper; fall back to a
+        # generic Exception only if the original wasn't captured.
         if isinstance(result_data, dict) and result_data.get("success") is False:
-            tool_error = Exception(result_data.get("message", "Unknown error"))
+            tool_error = audit_result.error or Exception(
+                result_data.get("message", "Unknown error")
+            )
     else:
         try:
             result_data = await _invoke_runner()
@@ -423,9 +558,10 @@ async def run_artifact_operation_with_audit(
     ledger_artifact: str | None = None
     ledger_artifact_id: str | None = None
     try:
-        from app.tools.entries.soft_calls.get import get_soft_call
-        async with pool.acquire() as ledger_conn:
-            entry = await get_soft_call(ledger_conn, emit_call_id, artifact=artifact)
+        with timed("ledger"):
+            from app.tools.entries.soft_calls.get import get_soft_call
+            async with pool.acquire() as ledger_conn:
+                entry = await get_soft_call(ledger_conn, emit_call_id, redis, artifact=artifact)
         if entry is not None:
             ledger_status = entry.status
             ledger_operation = entry.operation
@@ -442,23 +578,46 @@ async def run_artifact_operation_with_audit(
     # accidentally clobber the audit's own row id. Uses ``emit_call_id``
     # (always set), not ``call_upload_id`` (None in the non-audit branch),
     # so the wire-level identity is consistent regardless of audit branch.
-    await internal_sio.emit(f"{event_prefix}.completed", {
-        "sid": sid,
-        "rooms": effective_rooms,
-        "role": role,
-        **output,
-        "call_id": str(emit_call_id),
-        "group_id": str(effective_group_id) if effective_group_id else None,
-        "operation_key": str(operation_key) if operation_key else None,
-        "tool": tool_payload,
-        "ledger_status": ledger_status,
-        "ledger_operation": ledger_operation,
-        "ledger_artifact": ledger_artifact,
-        "ledger_artifact_id": ledger_artifact_id,
-    })
+    with timed("completed_emit"):
+        await internal_sio.emit(f"{event_prefix}.completed", {
+            "sid": sid,
+            "rooms": effective_rooms,
+            "role": role,
+            **output,
+            "call_id": str(emit_call_id),
+            "group_id": str(effective_group_id) if effective_group_id else None,
+            "operation_key": str(operation_key) if operation_key else None,
+            "tool": tool_payload,
+            "ledger_status": ledger_status,
+            "ledger_operation": ledger_operation,
+            "ledger_artifact": ledger_artifact,
+            "ledger_artifact_id": ledger_artifact_id,
+        })
+
+    # Final receipt update — merge full per-phase timings + completed_at
+    # into the .json receipt for forensic post-mortem by call_id.
+    # Best-effort: file I/O errors don't block the response. Two-phase
+    # write pattern: the initial receipt (in create_tool_call) captures
+    # arguments + result; this final pass captures the full request
+    # timing once the audit lifecycle has completed. If a crash happens
+    # between the two phases, the absence of `timings_ms` in the file
+    # signals "audit lifecycle didn't finish for this call_id".
+    if call_upload_id is not None:
+        try:
+            from app.infra.server_timing import get_timings
+            receipt_path = effective_upload_folder / "call" / f"{call_upload_id}.json"
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            receipt["timings_ms"] = get_timings()
+            receipt["completed_at"] = datetime.now(timezone.utc).isoformat()
+            receipt_path.write_text(
+                json.dumps(receipt, indent=2, default=str), encoding="utf-8",
+            )
+        except Exception as e:
+            logger.debug(f"Best-effort receipt timing update failed: {e}")
 
     if response_model is not None:
-        return response_model.model_validate(result_data)
+        with timed("serialize"):
+            return response_model.model_validate(result_data)
     return result_data
 
 

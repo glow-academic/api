@@ -14,14 +14,14 @@ from app.tools.entries.uploads.create import create_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _deps(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    message = await create_message(conn, run_id=run.id, role="assistant")
+async def _deps(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    message = await create_message(conn, redis_client, run_id=run.id, role="assistant")
     upload = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/attachment.pdf",
         mime_type="application/pdf",
         size=2048,
@@ -29,57 +29,57 @@ async def _deps(conn, profile_id):
     return session, message, upload
 
 
-async def test_search_finds_created(conn, profile_id):
-    session, message, upload = await _deps(conn, profile_id)
+async def test_search_finds_created(conn, redis_client, profile_id):
+    session, message, upload = await _deps(conn, redis_client, profile_id)
     await create_message_upload(
-        conn, message_id=message.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, message_id=message.id, upload_id=upload.id, session_id=session.id
     )
 
-    results = await search_message_uploads(conn, message_ids=[message.id])
+    results = await search_message_uploads(conn, redis_client, message_ids=[message.id])
 
     assert len(results) == 1
     assert results[0].message_id == message.id
     assert results[0].upload_id == upload.id
 
 
-async def test_search_filters_by_message_id(conn, profile_id):
-    session, message, upload = await _deps(conn, profile_id)
+async def test_search_filters_by_message_id(conn, redis_client, profile_id):
+    session, message, upload = await _deps(conn, redis_client, profile_id)
     await create_message_upload(
-        conn, message_id=message.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, message_id=message.id, upload_id=upload.id, session_id=session.id
     )
 
-    results = await search_message_uploads(conn, message_ids=[nonexistent_id()])
+    results = await search_message_uploads(conn, redis_client, message_ids=[nonexistent_id()])
 
     assert len(results) == 0
 
 
-async def test_search_filters_by_upload_id(conn, profile_id):
-    session, message, upload = await _deps(conn, profile_id)
+async def test_search_filters_by_upload_id(conn, redis_client, profile_id):
+    session, message, upload = await _deps(conn, redis_client, profile_id)
     await create_message_upload(
-        conn, message_id=message.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, message_id=message.id, upload_id=upload.id, session_id=session.id
     )
 
-    results = await search_message_uploads(conn, upload_ids=[nonexistent_id()])
+    results = await search_message_uploads(conn, redis_client, upload_ids=[nonexistent_id()])
 
     assert len(results) == 0
 
 
-async def test_search_pagination(conn, profile_id):
-    session, message, upload1 = await _deps(conn, profile_id)
+async def test_search_pagination(conn, redis_client, profile_id):
+    session, message, upload1 = await _deps(conn, redis_client, profile_id)
     upload2 = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/attachment2.pdf",
         mime_type="application/pdf",
         size=2048,
     )
     await create_message_upload(
-        conn, message_id=message.id, upload_id=upload1.id, session_id=session.id
+        conn, redis_client, message_id=message.id, upload_id=upload1.id, session_id=session.id
     )
     await create_message_upload(
-        conn, message_id=message.id, upload_id=upload2.id, session_id=session.id
+        conn, redis_client, message_id=message.id, upload_id=upload2.id, session_id=session.id
     )
 
-    results = await search_message_uploads(conn, message_ids=[message.id], limit=1)
+    results = await search_message_uploads(conn, redis_client, message_ids=[message.id], limit=1)
 
     assert len(results) == 1

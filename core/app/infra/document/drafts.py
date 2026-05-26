@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.document.types import GetDocumentDraftsApiResponse
 from app.tools.entries.document_drafts.search import search_document_drafts
 
@@ -42,19 +43,21 @@ async def list_document_drafts_impl(
     **_kwargs,
 ) -> GetDocumentDraftsApiResponse:
     """List/search document drafts owned by the current profile."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         drafts = await search_document_drafts(
             conn,
-            profile_ids=[profile.profiles_id],
+            redis, profile_ids=[profile.profiles_id],
             session_ids=[session_id] if session_id else None,
             name=search,
             date_from=date_from,

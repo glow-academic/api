@@ -231,6 +231,19 @@ async def resolve_profile_identity_context(
         if primary_dept and primary_dept.setting_ids:
             settings_id = primary_dept.setting_ids[0]
 
+    # Fallback: profile has no primary department (fresh deploys / guests /
+    # never-assigned profiles) — resolve the platform-default setting (one
+    # whose ``department_ids`` is empty). Mirrors the realm-level fallback
+    # used by ``keycloak_resolvers.resolve_auths_for_realm``. Without this,
+    # ``settings_id`` would stay ``None`` and theme resolution would return
+    # nothing, silently rendering shadcn defaults instead of the seeded
+    # LearnLoop palette.
+    if settings_id is None:
+        from app.infra.identity.settings import (
+            resolve_platform_default_settings_resource_id,
+        )
+        settings_id = await resolve_platform_default_settings_resource_id(pool)
+
     # Primary email: find the one with is_primary=True on the resource
     primary_email: str | None = None
     for email in emails_res:

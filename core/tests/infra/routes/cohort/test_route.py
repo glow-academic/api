@@ -385,6 +385,7 @@ class TestCohortRoute:
     async def test_cohort_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         cohort_route_client,
         cohort_route_actor,
     ):
@@ -392,7 +393,12 @@ class TestCohortRoute:
         from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=cohort_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=cohort_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_cohort_draft(
                 conn,
                 group_id=group.id,

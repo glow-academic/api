@@ -4,6 +4,7 @@ import json
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.utils.cache.cache_key import cache_key
@@ -14,6 +15,7 @@ from app.utils.cache.set_cached import set_cached
 async def get_run_pricing_entries_internal(
     pool_or_conn: asyncpg.Pool | asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     bypass_cache: bool = False,
 ) -> list[dict]:
     """Internal function to fetch run_pricing entries by IDs.

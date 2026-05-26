@@ -51,6 +51,7 @@ async def generate_field(
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -82,6 +83,7 @@ async def generate_field(
             response_model=ArtifactGenerateResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
     except HTTPException:
         raise

@@ -27,6 +27,7 @@ from app.infra.field.types import (
     UpdateFieldApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.field.update import (
     _UNSET,
 )
@@ -145,12 +146,13 @@ async def update_field_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -165,7 +167,8 @@ async def update_field_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_field_permissions_context(conn, item.id)
             if not perms.exists:
@@ -204,37 +207,40 @@ async def update_field_impl(
     # ── ACK short-circuit ──────────────────────────────────────────────
 
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "update":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending field update for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await update_field_artifact(conn, target_id, soft=False)
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "update":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending field update for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="update",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await update_field_artifact(conn, target_id, soft=False)
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_field_impl(
+                pool, redis,
+                profile_id=profile_id, session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_field_impl(
-            pool, redis,
-            profile_id=profile_id, session_id=session_id,
-            operation_key=idempotency_key,
-        )
 
         return UpdateFieldApiResponse(
             results=[
@@ -260,7 +266,8 @@ async def update_field_impl(
     has_errors = False
     error_results: list[FieldResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_field_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -282,7 +289,8 @@ async def update_field_impl(
 
     results: list[FieldResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         fields_resource_id = None
         if not soft:
             fields_resource_id = await create_denormalized_snapshot(
@@ -315,6 +323,7 @@ async def update_field_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -334,14 +343,15 @@ async def update_field_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_field_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].field_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_field_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].field_id if results else None),
+            )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_message_tree.types import (
     CreateAttemptMessageTreeResponse,
@@ -11,6 +12,7 @@ from app.tools.entries.attempt_message_tree.types import (
 
 async def create_attempt_message_tree(
     conn: asyncpg.Connection,
+    redis: Redis,
     parent_id: UUID,
     child_id: UUID,
     session_id: UUID,

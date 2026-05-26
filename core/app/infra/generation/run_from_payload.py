@@ -28,6 +28,7 @@ from app.infra.websocket.generation_types import (
 )
 from app.infra.websocket.prepare_pipeline import resolve_primary_artifact_type
 from app.infra.websocket.socket_event import EmitFn, internal_event
+from app.infra.server_timing import timed
 from app.registry.generate import REGISTRY
 from app.utils.logging.db_logger import get_logger
 
@@ -112,17 +113,18 @@ async def run_generation_from_payload(
         return
 
     try:
-        prepared = await prepare_generation(
-            pool,
-            redis,
-            profile_id=profile_id,
-            profiles_id=profiles_id,
-            session_id=session_id,
-            group_id=group_id,
-            artifact_type=artifact_type,
-            artifact_config=artifact_config,
-            payload=payload,
-        )
+        with timed("prepare"):
+            prepared = await prepare_generation(
+                pool,
+                redis,
+                profile_id=profile_id,
+                profiles_id=profiles_id,
+                session_id=session_id,
+                group_id=group_id,
+                artifact_type=artifact_type,
+                artifact_config=artifact_config,
+                payload=payload,
+            )
     except Exception as e:
         await _emit_error(
             emit,
@@ -171,9 +173,10 @@ async def run_generation_from_payload(
             )
 
     try:
-        await execute_generation(
-            pool, redis, prepared=prepared, sid=sid, tool_soft=not payload.dangerous,
-        )
+        with timed("model_call"):
+            await execute_generation(
+                pool, redis, prepared=prepared, sid=sid, tool_soft=not payload.dangerous,
+            )
     except Exception as e:
         await _emit_error(
             emit,

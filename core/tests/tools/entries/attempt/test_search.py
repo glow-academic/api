@@ -15,34 +15,34 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    await create_group(conn, session_id=session.id, artifact_type="persona")
-    persona = await create_persona(conn)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
     return attempt
 
 
-async def test_finds_created_entry(conn, profile_id):
-    attempt = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    attempt = await _setup(conn, redis_client, profile_id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn)
+    items, _total_count = await search_attempts(conn, redis_client)
 
     ids = [item.attempt_id for item in items]
     assert attempt.id in ids
 
 
-async def test_filters_by_profile_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_profile_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn, profile_ids=[nonexistent_id()])
+    items, _total_count = await search_attempts(conn, redis_client, profile_ids=[nonexistent_id()])
 
     assert items == []
 
@@ -50,10 +50,10 @@ async def test_filters_by_profile_id(conn, profile_id):
 async def test_filters_by_role_id(conn, redis_client):
     role = await create_role(conn, redis_client, name=f"attempt-role-{nonexistent_id()}")
     profile = await create_profile(conn, redis_client, role_id=role.id)
-    attempt = await _setup(conn, profile.id)
+    attempt = await _setup(conn, redis_client, profile.id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn, role_ids=[role.id])
+    items, _total_count = await search_attempts(conn, redis_client, role_ids=[role.id])
 
     ids = [item.attempt_id for item in items]
     assert attempt.id in ids
@@ -62,36 +62,36 @@ async def test_filters_by_role_id(conn, redis_client):
 async def test_filters_by_missing_role_id(conn, redis_client):
     role = await create_role(conn, redis_client, name=f"attempt-role-{nonexistent_id()}")
     profile = await create_profile(conn, redis_client, role_id=role.id)
-    await _setup(conn, profile.id)
+    await _setup(conn, redis_client, profile.id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn, role_ids=[nonexistent_id()])
+    items, _total_count = await search_attempts(conn, redis_client, role_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn, limit=1)
+    items, _total_count = await search_attempts(conn, redis_client, limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt(conn)
 
-    items, _total_count = await search_attempts(conn)
+    items, _total_count = await search_attempts(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    attempt = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    attempt = await _setup(conn, redis_client, profile_id)
 
-    items, _total_count = await search_attempts(conn, bypass_mv=True)
+    items, _total_count = await search_attempts(conn, redis_client, bypass_mv=True)
 
     ids = [item.attempt_id for item in items]
     assert attempt.id in ids

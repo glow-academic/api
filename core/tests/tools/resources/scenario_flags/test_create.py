@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_creates_new_scenario_flag(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag", "desc", redis=redis_client)
     result = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
     assert result.scenario_id == scenario.id
@@ -23,7 +23,7 @@ async def test_creates_new_scenario_flag(conn, redis_client):
 
 async def test_visible_via_get(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag-visible", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-visible", "desc", redis=redis_client)
     result = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
     items = await get_scenario_flags(conn, [result.id], redis_client, bypass_cache=True)
@@ -36,7 +36,7 @@ async def test_visible_via_get(conn, redis_client):
 
 async def test_creates_second_row(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag-second", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-second", "desc", redis=redis_client)
     first = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
     second = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
 
@@ -45,7 +45,7 @@ async def test_creates_second_row(conn, redis_client):
 
 async def test_sets_mcp_flag(conn, redis_client):
     scenario = await create_scenario(conn, redis_client)
-    flag = await create_flag(conn, "test-flag-mcp", "desc", "icon", redis_client)
+    flag = await create_flag(conn, "test-flag-mcp", "desc", redis=redis_client)
     result = await create_scenario_flag(
         conn, scenario.id, flag.id, redis_client, mcp=True
     )

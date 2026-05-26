@@ -51,6 +51,7 @@ async def problem_parameter(
         group_id = None
         group_result = await group_parameter_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
@@ -78,6 +79,7 @@ async def problem_parameter(
             response_model=ProblemParameterApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

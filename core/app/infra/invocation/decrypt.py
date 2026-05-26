@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 
 from app.infra.identity.decrypt import resolve_decrypt
 from app.infra.invocation.types import DecryptInvocationKeyApiResponse
+from app.infra.server_timing import timed
 from app.tools.entries.invocation.get import get_invocations
 
 
@@ -33,8 +34,9 @@ async def decrypt_invocation_impl(
       3. Return typed response
     """
     # ── Step 1: Validate key belongs to invocation ────────────────────
-    async with pool.acquire() as conn:
-        invocations = await get_invocations(conn, [invocation_id])
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
+        invocations = await get_invocations(conn, [invocation_id], redis)
 
     if not invocations:
         raise HTTPException(status_code=404, detail="Invocation not found")
@@ -47,13 +49,14 @@ async def decrypt_invocation_impl(
         )
 
     # ── Step 2: Decrypt ───────────────────────────────────────────────
-    result = await resolve_decrypt(
-        pool,
-        redis,
-        profile_id=profile_id,
-        key_id=key_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("build"):
+        result = await resolve_decrypt(
+            pool,
+            redis,
+            profile_id=profile_id,
+            key_id=key_id,
+            bypass_cache=bypass_cache,
+        )
 
     return DecryptInvocationKeyApiResponse(
         key=result.key,

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.rubric.permissions_context import (
     create_denormalized_snapshot,
     resolve_rubric_permissions_context,
@@ -71,7 +72,7 @@ async def update_rubric_impl(
     # active (existing semantics), we just refresh caches.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -91,6 +92,7 @@ async def update_rubric_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
@@ -174,12 +176,13 @@ async def update_rubric_impl(
 
     items = request.rubrics
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -193,7 +196,8 @@ async def update_rubric_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_rubric_permissions_context(conn, item.id)
             if not perms.exists:
@@ -236,7 +240,8 @@ async def update_rubric_impl(
     has_errors = False
     error_results: list[RubricResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_rubric_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -282,7 +287,8 @@ async def update_rubric_impl(
                 out[rtype] = bool(rval)
         return out
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         pass_value, total_value = await resolve_rubric_point_totals(
             pool,
             redis,
@@ -328,6 +334,7 @@ async def update_rubric_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -351,27 +358,29 @@ async def update_rubric_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_rubric_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].rubric_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_rubric_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].rubric_id if results else None),
+            )
 
     # Hydrate the updated rows so the client's ghost rail can refresh
     # the changed cards without a ``router.refresh()``. Skipped on soft
     # writes (the change isn't promoted until ack-accept).
     hydrated_rows = None
     if not soft:
-        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+        with timed("hydrate"):
+            from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
 
-        updated_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
-        if updated_ids:
-            hydrated_rows = await hydrate_rubric_list_rows(
-                pool, redis, profile_id=profile_id, rubric_ids=updated_ids,
-            )
+            updated_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
+            if updated_ids:
+                hydrated_rows = await hydrate_rubric_list_rows(
+                    pool, redis, profile_id=profile_id, rubric_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

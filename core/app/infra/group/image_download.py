@@ -22,6 +22,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.group.media_types import ImageDownloadGroupApiResult
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.images.search import search_images
 
 
@@ -42,9 +43,10 @@ async def image_download_group_impl(
       4. Verify file exists on disk
     """
     # -- Step 1: Profile context ------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -65,10 +67,11 @@ async def image_download_group_impl(
     # ``images_resource.id`` (what ``MediaResult.images_id`` and the
     # scenario picker surface). ``search_images`` accepts both filter
     # slots; try the entry path first, fall back to the resource path.
-    async with pool.acquire() as conn:
-        results = await search_images(conn, image_ids=[image_id], limit=1)
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
+        results = await search_images(conn, redis, image_ids=[image_id], limit=1)
         if not results:
-            results = await search_images(conn, images_ids=[image_id], limit=1)
+            results = await search_images(conn, redis, images_ids=[image_id], limit=1)
 
     if not results:
         raise HTTPException(

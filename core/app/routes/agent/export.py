@@ -1,13 +1,17 @@
 """Agent export endpoint — composable infra architecture."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Request
 
 from app.infra.agent.export import export_agent_impl
+from app.infra.agent.group import group_agent_impl
 from app.infra.agent.types import (
     ExportAgentApiRequest,
     ExportAgentApiResponse,
 )
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 
 router = APIRouter()
 
@@ -23,10 +27,45 @@ async def export_agents(
     pool = get_pool()
     redis = get_redis_client()
 
-    return await export_agent_impl(
+    # Resolve time-windowed group for audit linking
+    group_id = None
+    if session_id:
+        group_result = await group_agent_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
+        )
+        group_id = group_result.group_id
+
+    is_ack = body.accept is not None and body.idempotency_key is not None
+
+    # ``call_id`` is threaded in by the audit wrapper (signature opt-in) — the
+    # server-minted calls_entry id the soft ledger keys on.
+    async def _runner(call_id: UUID | None = None) -> ExportAgentApiResponse:
+        return await export_agent_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            agent_id=body.agent_id,
+            soft=body.soft,
+            accept=body.accept,
+            idempotency_key=body.idempotency_key,
+            call_id=call_id,
+        )
+
+    return await run_artifact_operation_with_audit(
         pool,
         redis,
+        artifact="agent",
         profile_id=profile_id,
         session_id=session_id,
-        agent_id=body.agent_id,
+        group_id=group_id,
+        operation="export",
+        # On ack, carry only `accept` so the gate's _is_bare_ack skips it
+        # (don't replay the propose receipt).
+        arguments={"accept": body.accept} if is_ack else body.model_dump(mode="json"),
+        response_model=ExportAgentApiResponse,
+        runner=_runner,
+        upload_folder=get_upload_folder(),
+        operation_key=body.idempotency_key,  # idempotency replay gate
     )

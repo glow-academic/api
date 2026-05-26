@@ -6,6 +6,7 @@ Thin route handler. Core logic lives in app.infra.persona.call_download.
 from __future__ import annotations
 
 import urllib.parse
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import FileResponse
@@ -47,10 +48,11 @@ async def download_call(
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
-        async def _runner() -> CallDownloadPersonaApiResult:
+        async def _runner(group_id: UUID | None = None) -> CallDownloadPersonaApiResult:
             return await call_download_persona_impl(
                 pool,
                 redis,

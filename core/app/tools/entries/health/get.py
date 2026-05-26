@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.health.types import GetHealthResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "health_mv"
 async def get_health(
     conn: asyncpg.Connection,
     ids: list[datetime],
-) -> list[GetHealthResponse]:
+    redis: Redis) -> list[GetHealthResponse]:
     """Get health entries by date_hour IDs from health_mv."""
     if not ids:
         return []

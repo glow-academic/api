@@ -164,11 +164,17 @@ async def log_metrics_snapshot() -> None:
 
     ts = datetime.fromtimestamp(rounded_minute, tz=UTC)
 
-    # Write to database
+    # Write to database — use collector's own injected redis (set via
+    # initialize_metrics) rather than reaching for the app-global; the
+    # collector module is the lifespan boundary, deeper code should not be.
     from app.infra.metrics_snapshot import write_metrics_snapshot
+
+    if _redis_client is None:
+        return  # No redis available; collector isn't fully initialized.
 
     await write_metrics_snapshot(
         _db_pool,
+        _redis_client,
         ts=ts,
         requests_total=requests_total,
         errors_total=errors_total,
@@ -199,10 +205,15 @@ async def log_health_checks() -> None:
 
         ts = datetime.fromtimestamp(rounded_minute, tz=UTC)
 
-        # Write to database
+        # Write to database — use collector's injected redis.
         from app.infra.metrics_snapshot import write_health_checks
 
-        await write_health_checks(_db_pool, ts=ts, checks=checks)
+        if _redis_client is None:
+            return
+
+        await write_health_checks(
+            _db_pool, _redis_client, ts=ts, checks=checks
+        )
     except Exception as e:
         # Log error but don't break health endpoint
         from app.utils.logging.db_logger import get_logger

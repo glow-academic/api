@@ -10,11 +10,11 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _setup(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     result = await create_practice(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -26,38 +26,38 @@ async def _setup(conn, profile_id, bundle):
     return result
 
 
-async def test_finds_created_entry(conn, profile_id, simulation_bundle):
-    result = await _setup(conn, profile_id, simulation_bundle)
+async def test_finds_created_entry(conn, redis_client, profile_id, simulation_bundle):
+    result = await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice(conn)
 
-    items = await search_practices(conn)
+    items = await search_practices(conn, redis_client)
 
     ids = [item.id for item in items]
     assert result.id in ids
 
 
-async def test_pagination_limit(conn, profile_id, simulation_bundle):
-    await _setup(conn, profile_id, simulation_bundle)
+async def test_pagination_limit(conn, redis_client, profile_id, simulation_bundle):
+    await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice(conn)
 
-    items = await search_practices(conn, limit=1)
+    items = await search_practices(conn, redis_client, limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id, simulation_bundle):
-    await _setup(conn, profile_id, simulation_bundle)
+async def test_returns_all_without_filter(conn, redis_client, profile_id, simulation_bundle):
+    await _setup(conn, redis_client, profile_id, simulation_bundle)
     await refresh_practice(conn)
 
-    items = await search_practices(conn)
+    items = await search_practices(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id, simulation_bundle):
-    result = await _setup(conn, profile_id, simulation_bundle)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id, simulation_bundle):
+    result = await _setup(conn, redis_client, profile_id, simulation_bundle)
 
-    items = await search_practices(conn, bypass_mv=True)
+    items = await search_practices(conn, redis_client, bypass_mv=True)
 
     ids = [item.id for item in items]
     assert result.id in ids

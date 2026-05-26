@@ -4,12 +4,15 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.messages.types import CreateMessageResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_message(
     conn: asyncpg.Connection,
+    redis: Redis,
     run_id: UUID,
     role: str,
     id: UUID | None = None,
@@ -63,5 +66,40 @@ async def create_message(
                 row["id"],
                 agent_id,
             )
+
+    # Cache-row superset: contains BOTH GET-shape fields (id, run_id, role,
+    # created_at, active, mcp, generated, agent_ids) AND SEARCH-shape fields
+    # (message_id, message_created_at, text/audio/image/video/file/call_ids,
+    # reasoning). At create-time the upload-id arrays are empty; the junction
+    # writes (message_uploads/text_uploads/etc.) must invalidate this row so
+    # the next GET/search falls through to the MV.
+    fresh_row = {
+        # GET shape
+        "id": str(row["id"]),
+        "run_id": str(run_id),
+        "role": role,
+        "created_at": row["created_at"].isoformat(),
+        "active": not soft,
+        "mcp": mcp,
+        "generated": True,
+        "agent_ids": [str(a) for a in (agent_ids or [])],
+        # SEARCH shape additions
+        "message_id": str(row["id"]),
+        "message_created_at": row["created_at"].isoformat(),
+        "text_ids": [],
+        "audio_ids": [],
+        "image_ids": [],
+        "video_ids": [],
+        "file_ids": [],
+        "call_ids": [],
+        "reasoning": reasoning,
+    }
+    await write_back_row(
+        redis,
+        "messages",
+        row["id"],
+        fresh_row,
+        score_ms=int(row["created_at"].timestamp() * 1000),
+    )
 
     return CreateMessageResponse(id=row["id"], created_at=row["created_at"])

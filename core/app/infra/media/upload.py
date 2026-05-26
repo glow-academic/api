@@ -94,6 +94,7 @@ class MediaUploadResult(BaseModel):
     upload_id: UUID
     entry_id: UUID
     resource_id: UUID
+    junction_id: UUID
     file_path: str
     mime_type: str
     file_size: int
@@ -116,6 +117,7 @@ async def media_upload_impl(
     upload_id: UUID | None = None,
     filename: str = "",
     content_type: str = "",
+    soft: bool = False,
     length_seconds: int = 0,
     name: str = "",
     description: str = "",
@@ -185,14 +187,15 @@ async def media_upload_impl(
             mime_type = content_type or "application/octet-stream"
             upload_row = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=relative_path,
                 mime_type=mime_type,
                 size=file_size,
+                soft=soft,
             )
             upload_id = upload_row.id
         else:
-            existing = await get_upload(conn, upload_id)
+            existing = await get_upload(conn, upload_id, redis)
             if existing is None:
                 raise ValueError(f"Upload {upload_id} not found")
             relative_path = existing.file_path
@@ -205,18 +208,21 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_audio(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 audios_id=resource.id,
                 length_seconds=length_seconds,
+                soft=soft,
             )
-            await create_audio_upload(
+            junction = await create_audio_upload(
                 conn,
-                audio_id=entry.id,
+                redis, audio_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
         elif modality == "image":
             resource = await create_image_resource(
@@ -224,17 +230,20 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_image(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 images_id=resource.id,
+                soft=soft,
             )
-            await create_image_upload(
+            junction = await create_image_upload(
                 conn,
-                image_id=entry.id,
+                redis, image_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
         else:
             resource = await create_video_resource(
@@ -242,18 +251,21 @@ async def media_upload_impl(
                 name=resource_name,
                 description=resource_description,
                 redis=redis,
+                soft=soft,
             )
             entry = await create_video(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 videos_id=resource.id,
                 length_seconds=length_seconds,
+                soft=soft,
             )
-            await create_video_upload(
+            junction = await create_video_upload(
                 conn,
-                video_id=entry.id,
+                redis, video_id=entry.id,
                 upload_id=upload_id,
                 session_id=session_id,
+                soft=soft,
             )
 
         # Initialize before the conditional so the return-shape path
@@ -279,13 +291,14 @@ async def media_upload_impl(
             text_size = (UPLOAD_FOLDER / text_rel_path).stat().st_size
             text_upload = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=text_rel_path,
                 mime_type="text/plain",
                 size=text_size,
             )
             msg = await create_run_message(
                 conn,
+                redis,
                 run_id=run_id,
                 session_id=session_id,
                 role="assistant",
@@ -298,7 +311,7 @@ async def media_upload_impl(
             )
             await create_message_upload(
                 conn,
-                message_id=msg.message_id,
+                redis, message_id=msg.message_id,
                 upload_id=upload_id,
                 session_id=session_id,
             )
@@ -310,35 +323,26 @@ async def media_upload_impl(
         ["uploads", "entries", f"{modality}s", "resources"], redis=redis,
     )
 
-    # Synchronously refresh the modality MV before returning. The FE
-    # picks up the ``.complete`` SSE event the moment ``_save_media``
-    # returns and immediately fires ``/scenario/image_download`` (which
-    # reads from ``images_mv``). Without a blocking refresh here the
-    # scheduler's next tick (~1–2s) loses the race: the FE's first
-    # download hits a stale MV and 404s.
-    #
-    # ``REFRESH MATERIALIZED VIEW CONCURRENTLY`` is ~50–200ms for these
-    # MVs and is the established pattern (the per-modality
-    # ``refresh_*_internal`` primitives are the same ones the async
-    # scheduler invokes). For the run-attribution case, also refresh
-    # ``messages_mv`` so a subsequent ``/scenario/group`` refetch sees
-    # the new attachment on the assistant message.
+    # Enqueue async refresh of the modality MV via the per-MV worker
+    # (debounced, multi-replica-safe). The FE picks up the ``.complete``
+    # SSE event the moment ``_save_media`` returns and immediately fires
+    # ``/scenario/image_download`` (which reads from ``images_mv``).
+    # There is a brief window (until the next worker tick, ~1–2s) where
+    # the MV is stale; downstream readers that need read-after-write
+    # consistency should pass ``bypass_mv=True``. Tag invalidation above
+    # already busts L3 caches synchronously.
     try:
-        async with pool.acquire() as conn:
-            if modality == "image":
-                from app.tools.entries.images.refresh import refresh_images_internal
-                await refresh_images_internal(conn, redis)
-            elif modality == "video":
-                from app.tools.entries.videos.refresh import refresh_videos_internal
-                await refresh_videos_internal(conn, redis)
-            elif modality == "audio":
-                from app.tools.entries.audios.refresh import refresh_audios_internal
-                await refresh_audios_internal(conn, redis)
+        from app.utils.cache.mv_refresh_queue import enqueue_pending
+        if redis is not None:
+            modality_target = {
+                "image": "images_mv",
+                "video": "videos_mv",
+                "audio": "audios_mv",
+            }.get(modality)
+            if modality_target:
+                await enqueue_pending(redis, modality_target)
             if run_id is not None and attribute_to_run:
-                from app.tools.entries.messages.refresh import (
-                    refresh_messages_internal,
-                )
-                await refresh_messages_internal(conn, redis)
+                await enqueue_pending(redis, "messages_mv")
     except Exception:
         # Never break the upload chain on a refresh hiccup — the
         # underlying rows are committed, the FE may just see a brief
@@ -349,6 +353,7 @@ async def media_upload_impl(
         upload_id=upload_id,
         entry_id=entry.id,
         resource_id=resource.id,
+        junction_id=junction.id,
         file_path=relative_path,
         mime_type=mime_type,
         file_size=file_size,

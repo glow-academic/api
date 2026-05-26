@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.setting.permissions import compute_can_draft
+from app.infra.server_timing import timed
 from app.infra.setting.refresh import refresh_setting_impl
 from app.infra.setting.types import (
     DraftFormState,
@@ -52,6 +53,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_setting_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -61,6 +63,7 @@ async def _maybe_auto_accept_setting_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -72,7 +75,7 @@ async def _maybe_auto_accept_setting_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_setting_drafts(conn, [draft_id], active=None)
+        drafts = await get_setting_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -88,7 +91,7 @@ async def _maybe_auto_accept_setting_draft(
         getattr(draft, "pending_auth_item_key_ids", None),
         getattr(draft, "pending_item_ids", None),
         getattr(draft, "pending_threshold_ids", None),
-        getattr(draft, "pending_agent_ids", None),
+        getattr(draft, "pending_system_ids", None),
         getattr(draft, "pending_mcp_ids", None),
         getattr(draft, "pending_logins_ids", None),
     ]
@@ -99,10 +102,10 @@ async def _maybe_auto_accept_setting_draft(
         async with conn.transaction():
             await create_setting_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
-                agent_ids=draft.agent_ids,
+                system_ids=draft.system_ids,
                 auth_ids=draft.auth_ids,
                 auth_item_key_ids=draft.auth_item_key_ids,
                 color_ids=draft.color_ids,
@@ -120,6 +123,7 @@ async def _maybe_auto_accept_setting_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -560,30 +564,32 @@ async def patch_setting_draft_impl(
     if accept is None and request.idempotency_key is not None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit setting drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit setting drafts.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -593,16 +599,16 @@ async def patch_setting_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_setting_drafts(conn, [target_id], active=None)
+                drafts = await get_setting_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
                     async with conn.transaction():
                         await create_setting_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
-                            agent_ids=draft.agent_ids,
+                            system_ids=draft.system_ids,
                             auth_ids=draft.auth_ids,
                             auth_item_key_ids=draft.auth_item_key_ids,
                             color_ids=draft.color_ids,
@@ -622,6 +628,7 @@ async def patch_setting_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -646,7 +653,8 @@ async def patch_setting_draft_impl(
             form_state=DraftFormState(),
         )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
@@ -656,15 +664,16 @@ async def patch_setting_draft_impl(
     pending_ids = set(request.pending_ids or [])
     target_draft_id = resolved_draft_id or idempotency_key
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_setting_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=target_draft_id,
                 soft=soft,
                 name=request.name or "",
-                agent_ids=request.system_ids,
+                system_ids=request.system_ids,
                 auth_ids=request.auth_ids,
                 auth_item_key_ids=request.auth_item_key_ids,
                 color_ids=request.color_ids,
@@ -683,6 +692,7 @@ async def patch_setting_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -695,7 +705,7 @@ async def patch_setting_draft_impl(
 
     if not soft:
         await _maybe_auto_accept_setting_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],
@@ -766,11 +776,12 @@ async def patch_setting_draft_impl(
     )
 
     if not soft:
-        await refresh_setting_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-        )
+        with timed("refresh"):
+            await refresh_setting_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+            )
 
     return PatchSettingDraftApiResponse(
         success=True,

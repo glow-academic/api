@@ -21,6 +21,7 @@ from app.infra.model.types import (
     UpdateModelApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.model.update import _UNSET
 from app.tools.artifacts.model.update import (
     update_model as update_model_artifact,
@@ -67,39 +68,42 @@ async def update_model_impl(
     # ``idempotency_key``. The original impl ran perm checks first,
     # which broke under ack/all paths. Mirror persona/scenario shape.
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "update":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending model update for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await update_model_artifact(conn, target_id, soft=False)
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "update":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending model update for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="update",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await update_model_artifact(conn, target_id, soft=False)
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_model_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_model_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key,
-        )
         return UpdateModelApiResponse(
             results=[
                 ModelResultItem(
@@ -162,12 +166,13 @@ async def update_model_impl(
 
     items = request.models
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -181,7 +186,8 @@ async def update_model_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_model_permissions_context(conn, item.id)
             if not perms.exists:
@@ -225,7 +231,8 @@ async def update_model_impl(
     has_errors = False
     error_results: list[ModelResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_model_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -248,7 +255,8 @@ async def update_model_impl(
 
     results: list[ModelResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         models_resource_id = None
         if not soft:
             models_resource_id = await create_denormalized_snapshot(
@@ -293,6 +301,7 @@ async def update_model_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -316,14 +325,15 @@ async def update_model_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_model_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].model_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_model_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].model_id if results else None),
+            )
 
     # Hydrate full row content for the client. See
     # ``hydrate_model_list_rows``. Soft-pending updates skip hydration:
@@ -331,12 +341,13 @@ async def update_model_impl(
     # is deactivated until ack-accept promotes it).
     models: list[ListModelApiModel] | None = None
     if not soft:
-        from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
-        updated_ids = [r.model_id for r in results if r.success and r.model_id is not None]
-        if updated_ids:
-            models = await hydrate_model_list_rows(
-                pool, redis, profile_id=profile_id, model_ids=updated_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.model.hydrate_list_rows import hydrate_model_list_rows
+            updated_ids = [r.model_id for r in results if r.success and r.model_id is not None]
+            if updated_ids:
+                models = await hydrate_model_list_rows(
+                    pool, redis, profile_id=profile_id, model_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

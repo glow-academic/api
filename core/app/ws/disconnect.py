@@ -1,6 +1,6 @@
 """Input: disconnect — WebSocket disconnection with cleanup."""
 
-from app.infra.globals import sio
+from app.infra.globals import sio, get_redis_client
 from app.infra.identity.socket import remove_socket_identity
 from app.infra.websocket.decrement_guest_count import decrement_guest_count
 from app.infra.websocket.find_chats_by_socket import find_chats_by_socket
@@ -28,7 +28,7 @@ async def _mark_profile_inactive(profile_id: str, sid: str) -> None:
         pool = get_pool()
         async with pool.acquire() as conn:
             await create_activity(
-                conn,
+                conn, get_redis_client(),
                 session_id=uuid.UUID(session_id_str),
                 profile_id=uuid.UUID(profile_id),
             )

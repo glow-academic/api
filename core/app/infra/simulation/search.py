@@ -34,6 +34,7 @@ from app.infra.simulation.types import (
 )
 from app.tools.artifacts.simulation.get import get_simulations
 from app.tools.artifacts.simulation.search import search_simulations
+from app.infra.server_timing import timed
 from app.tools.resources.cohorts.search import (
     search_cohorts as search_cohorts_resource,
 )
@@ -178,7 +179,8 @@ async def _search_simulation_build(
     from fastapi import HTTPException
 
     # -- Step 1: Profile context --
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -198,7 +200,8 @@ async def _search_simulation_build(
     cohort_ids_filter = filter_cohort_ids
 
     # -- Step 3: Search simulations --
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         simulation_ids_result, total_count = await search_simulations(
             conn,
             search=search,
@@ -211,7 +214,7 @@ async def _search_simulation_build(
 
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="simulation", status="pending", limit=1000,
+            conn, redis, artifact="simulation", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -300,7 +303,8 @@ async def _search_simulation_build(
             return []
         return await get_flags(pool, list(all_flag_ids), redis)
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         scenarios_data,
         scenario_facet,
@@ -308,7 +312,7 @@ async def _search_simulation_build(
         department_facet,
         flag_facet,
         flag_rows_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_scenarios(),
         _fetch_scenario_facet(),
@@ -379,7 +383,8 @@ async def _search_simulation_build(
 
     # -- Step 6: Build simulation list with permissions --
     api_simulations: list[ListSimulationApiSimulation] = []
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         dept_ids_str = [str(d) for d in (a.department_ids or [])]
 

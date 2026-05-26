@@ -22,36 +22,36 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_content(conn, profile_id, **overrides):
+async def _attempt_content(conn, redis_client, profile_id, **overrides):
     """Create full chain: session -> ... -> attempt_chat -> attempt_message -> persona -> attempt_content."""
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    msg = await create_message(conn, run_id=run.id, role="user")
-    call3 = await create_call(conn, run_id=run.id, session_id=session.id)
+    msg = await create_message(conn, redis_client, run_id=run.id, role="user")
+    call3 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     await create_attempt_message(
-        conn, chat_id=attempt_chat.id, message_id=msg.id, call_id=call3.id
+        conn, redis_client, chat_id=attempt_chat.id, message_id=msg.id, call_id=call3.id
     )
-    content_persona = await create_persona(conn)
+    content_persona = await create_persona(conn, redis_client)
     defaults = dict(
         message_id=msg.id,
         call_id=call3.id,
@@ -59,7 +59,7 @@ async def _attempt_content(conn, profile_id, **overrides):
         persona_id=content_persona.id,
     )
     defaults.update(overrides)
-    result = await create_attempt_content(conn, **defaults)
+    result = await create_attempt_content(conn, redis_client, **defaults)
     return result
 
 
@@ -67,23 +67,23 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_gets_created_attempt_content(conn, profile_id):
-    _created(await _attempt_content(conn, profile_id))
+async def test_gets_created_attempt_content(conn, redis_client, profile_id):
+    _created(await _attempt_content(conn, redis_client, profile_id))
     await refresh_attempt_content(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_attempt_contents(conn, ids=[lookup_id])
+    items = await get_attempt_contents(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_returns_empty_for_missing_id(conn):
-    items = await get_attempt_contents(conn, ids=[nonexistent_id()])
+async def test_returns_empty_for_missing_id(conn, redis_client):
+    items = await get_attempt_contents(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
-async def test_returns_empty_for_empty_ids(conn):
-    items = await get_attempt_contents(conn, ids=[])
+async def test_returns_empty_for_empty_ids(conn, redis_client):
+    items = await get_attempt_contents(conn, ids=[], redis=redis_client)
 
     assert items == []

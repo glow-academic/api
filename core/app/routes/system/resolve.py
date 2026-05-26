@@ -42,6 +42,7 @@ async def resolve_problem(
         if session_id:
             group_result = await group_system_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -67,6 +68,7 @@ async def resolve_problem(
             response_model=ResolveProblemApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "problems,views,activity,summary"

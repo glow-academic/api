@@ -211,6 +211,7 @@ class GetPersonaDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetPersonaDraftsApiResponse(BaseModel):
@@ -535,8 +536,12 @@ class CreatePersonaApiRequest(BaseModel):
         None, description="List of persona items to create (required on first call)",
     )
 
-    # Ack
-    idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    # One client key, two consumers: the idempotency replay gate in
+    # ``run_artifact_operation_with_audit`` (first call → safe-retry replay; the
+    # route threads this through as ``operation_key``) AND the soft/accept ack
+    # flow (with ``accept`` set → promotes/rejects the dormant create).
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — safe-retry replay on the first call; ack of a dormant create when sent with accept")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the response echoes a server key to ack with ({idempotency_key, accept})")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -643,6 +648,7 @@ class UpdatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -707,6 +713,7 @@ class DeletePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant — propose; the ack ({idempotency_key, accept}) confirms/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
@@ -743,6 +750,7 @@ class DuplicatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -800,6 +808,7 @@ class PatchPersonaDraftApiRequest(ScopedItem):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
@@ -869,6 +878,9 @@ class ExportPersonaApiRequest(BaseModel):
 
     persona_id: UUID | None = Field(None, description="UUID of a specific persona to export (omit for bulk export)")
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
+    soft: bool = Field(False, description="Stage the export dormant (active=False); ack with accept activates it")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged export, False rejects. Only meaningful with idempotency_key")
 
     # Same filters as list endpoint
     search: str | None = Field(None, description="Filter personas by search text")
@@ -889,6 +901,7 @@ class ExportPersonaApiResponse(BaseModel):
     file_id: UUID = Field(..., description="UUID of the files_resource holding the export CSV")
     file_name: str = Field(..., description="Suggested download file name")
     row_count: int = Field(..., description="Number of data rows in the export")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with `accept` to promote/reject the staged export.")
 
 
 class FileDownloadPersonaApiRequest(BaseModel):

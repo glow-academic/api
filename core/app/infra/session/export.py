@@ -26,6 +26,7 @@ from redis.asyncio import Redis
 
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.groups.search import search_groups
 from app.tools.entries.runs.search import search_runs
 from app.tools.entries.sessions.get import get_sessions
@@ -78,7 +79,8 @@ async def export_session_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -88,8 +90,9 @@ async def export_session_impl(
 
     # -- Step 2: Get session metadata --
 
-    async with pool.acquire() as conn:
-        sessions = await get_sessions(conn, [target_session_id])
+    with timed("resolve_session"):
+      async with pool.acquire() as conn:
+        sessions = await get_sessions(conn, [target_session_id], redis)
 
     if not sessions:
         return ExportSessionApiResponse(
@@ -103,7 +106,7 @@ async def export_session_impl(
 
     async with pool.acquire() as conn:
         groups = await search_groups(
-            conn, session_ids=[target_session_id], limit=100000, offset=0
+            conn, redis, session_ids=[target_session_id], limit=100000, offset=0
         )
 
     # -- Step 4: Get runs for all groups --
@@ -112,7 +115,7 @@ async def export_session_impl(
     if all_group_ids:
         async with pool.acquire() as conn:
             runs = (
-                await search_runs(conn, group_ids=all_group_ids, limit=100000, offset=0)
+                await search_runs(conn, redis, group_ids=all_group_ids, limit=100000, offset=0)
             )[0]
     else:
         runs = []
@@ -153,20 +156,22 @@ async def export_session_impl(
             return []
         return await get_names(pool, all_name_ids, redis)
 
-    profiles_data, name_items = await asyncio.gather(
-        _fetch_profiles(),
-        _fetch_names(),
-    )
+    with timed("hydrate"):
+        profiles_data, name_items = await asyncio.gather(
+            _fetch_profiles(),
+            _fetch_names(),
+        )
 
     profile_map = {p.id: p.name or "" for p in profiles_data}
     name_map = {item.id: item.name for item in name_items if item.id and item.name}
 
     # -- Step 7: Generate ZIP (sessions.csv + groups.csv + runs.csv) + upload --
 
-    # Generate sessions CSV
-    sessions_output = io.StringIO()
-    sessions_writer = csv.writer(sessions_output)
-    sessions_writer.writerow(SESSION_CSV_COLUMNS)
+    with timed("build"):
+     # Generate sessions CSV
+     sessions_output = io.StringIO()
+     sessions_writer = csv.writer(sessions_output)
+     sessions_writer.writerow(SESSION_CSV_COLUMNS)
 
     for s in sessions:
         sessions_writer.writerow(

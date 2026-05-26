@@ -12,6 +12,7 @@ from app.infra.eval.permissions import compute_can_duplicate
 from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import DuplicateEvalApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.eval.create import create_eval as create_eval_artifact
 from app.tools.artifacts.eval.get import get_evals
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -38,30 +39,32 @@ async def duplicate_eval_impl(
 ) -> DuplicateEvalApiResponse:
     """Duplicate an eval artifact."""
     eval_id = id  # alias: tools send 'id', internal code uses 'eval_id'
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_duplicate(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this eval.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this eval.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "duplicate":
             raise HTTPException(
                 status_code=404,
@@ -77,6 +80,7 @@ async def duplicate_eval_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="duplicate",
@@ -99,7 +103,8 @@ async def duplicate_eval_impl(
             idempotency_key=idempotency_key,
         )
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         originals = await get_evals(
             conn,
             [eval_id],
@@ -144,7 +149,8 @@ async def duplicate_eval_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_eval_artifact(
                 conn,
@@ -165,6 +171,7 @@ async def duplicate_eval_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -176,24 +183,26 @@ async def duplicate_eval_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_eval_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_eval_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # ── Hydrate full row content for the client ───────────────────────
     # Single-element list — duplicate creates exactly one row, but the
     # wire shape stays a list for consistency with create/update.
     evals_payload = None
     if not soft:
-        from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
+        with timed("hydrate"):
+            from app.infra.eval.hydrate_list_rows import hydrate_eval_list_rows
 
-        evals_payload = await hydrate_eval_list_rows(
-            pool, redis, profile_id=profile_id, eval_ids=[result.id],
-        )
+            evals_payload = await hydrate_eval_list_rows(
+                pool, redis, profile_id=profile_id, eval_ids=[result.id],
+            )
 
     return DuplicateEvalApiResponse(
         success=True,

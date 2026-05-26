@@ -13,6 +13,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.identity.decrypt import resolve_decrypt
+from app.infra.server_timing import timed
 from app.infra.setting.types import DecryptSettingKeyApiResponse
 from app.tools.artifacts.setting.get import get_settings
 
@@ -34,13 +35,14 @@ async def decrypt_setting_impl(
       3. Return typed response
     """
     # ── Step 1: Validate key belongs to setting ───────────────────────
-    settings = await get_settings(
-        pool,
-        [setting_id],
-        provider_keys=True,
-        auth_item_keys=True,
-        active=None,
-    )
+    with timed("query"):
+        settings = await get_settings(
+            pool,
+            [setting_id],
+            provider_keys=True,
+            auth_item_keys=True,
+            active=None,
+        )
 
     if not settings:
         raise HTTPException(status_code=404, detail="Setting not found")
@@ -56,13 +58,14 @@ async def decrypt_setting_impl(
         )
 
     # ── Step 2: Decrypt ───────────────────────────────────────────────
-    result = await resolve_decrypt(
-        pool,
-        redis,
-        profile_id=profile_id,
-        key_id=key_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("decrypt"):
+        result = await resolve_decrypt(
+            pool,
+            redis,
+            profile_id=profile_id,
+            key_id=key_id,
+            bypass_cache=bypass_cache,
+        )
 
     return DecryptSettingKeyApiResponse(
         key=result.key,

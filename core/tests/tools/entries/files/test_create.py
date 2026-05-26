@@ -12,41 +12,41 @@ from app.tools.resources.files.create import (
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_creates_file_entry(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_file(conn, session_id=session.id)
+async def test_creates_file_entry(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_file(conn, redis_client, session_id=session.id)
 
     assert result.id is not None
 
 
-async def test_file_exists_in_table(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_file(conn, session_id=session.id)
+async def test_file_exists_in_table(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_file(conn, redis_client, session_id=session.id)
 
-    file = await get_file(conn, result.id)
+    file = await get_file(conn, result.id, redis_client)
 
     assert file is not None
     assert file.session_id == session.id
     assert file.active is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_file(conn, session_id=session.id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_file(conn, redis_client, session_id=session.id, mcp=True)
 
-    file = await get_file(conn, result.id)
+    file = await get_file(conn, result.id, redis_client)
 
     assert file is not None
     assert file.mcp is True
 
 
-async def test_links_files_resource(conn, profile_id, redis_client):
-    session = await _session(conn, profile_id)
+async def test_links_files_resource(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
     resource = await create_file_resource(conn, redis=redis_client)
-    result = await create_file(conn, session_id=session.id, files_id=resource.id)
+    result = await create_file(conn, redis_client, session_id=session.id, files_id=resource.id)
 
     assert result.id is not None

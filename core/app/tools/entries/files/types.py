@@ -20,9 +20,9 @@ class GetFileResponse(BaseModel):
 
 class SearchFileResponse(BaseModel):
     file_id: UUID
-    files_id: UUID
-    upload_id: UUID
-    file_path: str
-    mime_type: str
-    size: int
+    files_id: UUID | None = None
+    upload_id: UUID | None = None
+    file_path: str | None = None
+    mime_type: str | None = None
+    size: int | None = None
     created_at: datetime

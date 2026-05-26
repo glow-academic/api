@@ -32,6 +32,7 @@ from redis.asyncio import Redis
 
 from app.infra.group.refresh import refresh_group_impl
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.group_names.create import create_group_name
 
 
@@ -92,9 +93,10 @@ async def title_group_impl(
             detail="`group_id` and `title` are required.",
         )
 
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -109,7 +111,7 @@ async def title_group_impl(
         async with pool.acquire() as conn:
             name_result = await create_group_name(
                 conn,
-                group_id=group_id,
+                redis, group_id=group_id,
                 name=title,
                 session_id=session_id,
                 id=idempotency_key,
@@ -127,10 +129,11 @@ async def title_group_impl(
         )
 
     # ── Normal write path ────────────────────────────────────────────
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         name_result = await create_group_name(
             conn,
-            group_id=group_id,
+            redis, group_id=group_id,
             name=title,
             session_id=session_id,
             id=idempotency_key,
@@ -141,9 +144,10 @@ async def title_group_impl(
     # to ``group_names_mv`` (filters active=true), so refreshing wouldn't
     # change what the client sees. Saves an unnecessary cache invalidation.
     if not soft:
-        await refresh_group_impl(
-            pool, redis, profile_id=profile_id, session_id=session_id,
-        )
+        with timed("refresh"):
+            await refresh_group_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+            )
 
     return TitleGroupResponse(
         group_id=group_id,

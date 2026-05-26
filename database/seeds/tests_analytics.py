@@ -147,7 +147,7 @@ def _write_transcript_file(upload_id: UUID, role: str, body: str) -> Path:
 
 async def _seed_run_messages(
     conn: asyncpg.Connection,
-    *,
+    redis_client, *,
     run_id: UUID,
     session_id: UUID,
     slug: str,
@@ -174,26 +174,26 @@ async def _seed_run_messages(
         file_path = _write_transcript_file(upload_id, role, body)
         size = file_path.stat().st_size
 
-        await create_message(conn, run_id=run_id, role=role, id=msg_id)
+        await create_message(conn, redis_client, run_id=run_id, role=role, id=msg_id)
         await create_upload(
             conn,
-            session_id=session_id,
+            redis_client, session_id=session_id,
             file_path=str(file_path),
             mime_type="text/plain",
             size=size,
             id=upload_id,
         )
-        await create_text(conn, session_id=session_id, id=text_id)
+        await create_text(conn, redis_client, session_id=session_id, id=text_id)
         await create_text_upload(
             conn,
-            text_id=text_id,
+            redis_client, text_id=text_id,
             upload_id=upload_id,
             session_id=session_id,
             id=text_upload_id,
         )
         await create_text_completion(
             conn,
-            text_id=text_id,
+            redis_client, text_id=text_id,
             session_id=session_id,
             id=text_completion_id,
             stop=True,
@@ -201,7 +201,7 @@ async def _seed_run_messages(
         )
         await create_message_upload(
             conn,
-            message_id=msg_id,
+            redis_client, message_id=msg_id,
             upload_id=upload_id,
             session_id=session_id,
             id=message_upload_id,
@@ -210,7 +210,7 @@ async def _seed_run_messages(
 
 async def _seed_one_test(
     conn: asyncpg.Connection,
-    *,
+    redis_client, *,
     test_idx: int,
     benchmarks: list,
     invocations_by_benchmark: dict[UUID, list],
@@ -242,6 +242,7 @@ async def _seed_one_test(
     group_name_id = sid(f"{slug}/group-name")
     seeded_session = await ensure_activity_session(
         conn,
+        redis_client,
         slug=slug,
         profile_id=profile_id,
         label=f"Benchmark test seed #{test_idx + 1}",
@@ -253,11 +254,11 @@ async def _seed_one_test(
 
     # Group + name + parent run/call (test_entry FKs to calls_entry).
     await create_group(
-        conn, session_id=session_id, artifact_type="test", id=group_id
+        conn, redis_client, session_id=session_id, artifact_type="test", id=group_id
     )
     await create_group_name(
         conn,
-        group_id=group_id,
+        redis_client, group_id=group_id,
         name=f"Benchmark test seed #{test_idx + 1}",
         session_id=session_id,
         id=group_name_id,
@@ -265,17 +266,17 @@ async def _seed_one_test(
     )
     await create_run(
         conn,
-        group_id=group_id,
+        redis_client, group_id=group_id,
         session_id=session_id,
         id=test_run_id,
         agent_ids=[agent_ids[0]],
     )
     await create_call(
-        conn, run_id=test_run_id, session_id=session_id, id=test_call_id
+        conn, redis_client, run_id=test_run_id, session_id=session_id, id=test_call_id
     )
     await create_test(
         conn,
-        id=test_id,
+        redis_client, id=test_id,
         call_id=test_call_id,
         profiles_id=profile_id,
         name=f"Seed benchmark test #{test_idx + 1}",
@@ -284,7 +285,7 @@ async def _seed_one_test(
         is_dynamic=True,
     )
     await create_benchmark_test(
-        conn, benchmark_id=benchmark_id, test_id=test_id, session_id=session_id
+        conn, redis_client, benchmark_id=benchmark_id, test_id=test_id, session_id=session_id
     )
 
     for inv_idx, template_invocation in enumerate(template_invocations):
@@ -315,17 +316,17 @@ async def _seed_one_test(
 
         await create_run(
             conn,
-            group_id=group_id,
+            redis_client, group_id=group_id,
             session_id=session_id,
             id=ti_run_id,
             agent_ids=agent_ids_for_invocation,
         )
         await create_call(
-            conn, run_id=ti_run_id, session_id=session_id, id=ti_call_id
+            conn, redis_client, run_id=ti_run_id, session_id=session_id, id=ti_call_id
         )
         await create_test_invocation(
             conn,
-            id=ti_id,
+            redis_client, id=ti_id,
             test_id=test_id,
             call_id=ti_call_id,
             title=f"Invocation {(template_invocation.position or inv_idx) + 1}",
@@ -346,7 +347,7 @@ async def _seed_one_test(
         inp, out = _TOKEN_ENVELOPES[inv_idx % len(_TOKEN_ENVELOPES)]
         await create_token(
             conn,
-            run_id=ti_run_id,
+            redis_client, run_id=ti_run_id,
             session_id=session_id,
             id=sid(f"{inv_slug}/token"),
             input_tokens=inp,
@@ -355,7 +356,7 @@ async def _seed_one_test(
         if input_pricing_id is not None:
             await create_run_pricing_entry_internal(
                 conn,
-                session_id=session_id,
+                redis_client, session_id=session_id,
                 pricing_type="input",
                 run_id=ti_run_id,
                 pricing_id=input_pricing_id,
@@ -364,7 +365,7 @@ async def _seed_one_test(
         if output_pricing_id is not None:
             await create_run_pricing_entry_internal(
                 conn,
-                session_id=session_id,
+                redis_client, session_id=session_id,
                 pricing_type="output",
                 run_id=ti_run_id,
                 pricing_id=output_pricing_id,
@@ -372,12 +373,12 @@ async def _seed_one_test(
             )
 
         await _seed_run_messages(
-            conn, run_id=ti_run_id, session_id=session_id, slug=inv_slug
+            conn, redis_client, run_id=ti_run_id, session_id=session_id, slug=inv_slug
         )
 
         await create_test_invocation_traces(
             conn,
-            test_invocation_id=ti_id,
+            redis_client, test_invocation_id=ti_id,
             id=trace_id,
             run_id=ti_run_id,
             reasoning_level_ids=template_invocation.reasoning_level_ids or None,
@@ -390,7 +391,7 @@ async def _seed_one_test(
         )
         await create_test_invocation_runs(
             conn,
-            test_invocation_id=ti_id,
+            redis_client, test_invocation_id=ti_id,
             id=binding_id,
             run_id=ti_run_id,
             test_invocation_traces_id=trace_id,
@@ -399,11 +400,11 @@ async def _seed_one_test(
         if completed:
             for cid in (completion_call_id, grade_call_id):
                 await create_call(
-                    conn, run_id=ti_run_id, session_id=session_id, id=cid
+                    conn, redis_client, run_id=ti_run_id, session_id=session_id, id=cid
                 )
             await create_test_invocation_completion(
                 conn,
-                invocation_id=ti_id,
+                redis_client, invocation_id=ti_id,
                 call_id=completion_call_id,
                 id=completion_id,
                 stop=True,
@@ -420,7 +421,7 @@ async def _seed_one_test(
             ]
             await create_test_grade(
                 conn,
-                invocation_id=ti_id,
+                redis_client, invocation_id=ti_id,
                 call_id=grade_call_id,
                 time_taken=time_taken,
                 passed=score >= (getattr(rubric, "pass_points", None) or 0),
@@ -438,7 +439,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         # ── Discovery via canonical search black-boxes ─────────────
         # MVs are refreshed by the runner before this seed runs (see
         # runner.py "Phase 3 — Analytical seeds" block).
-        benchmarks = await search_benchmarks(conn, limit=12)
+        benchmarks = await search_benchmarks(conn, redis, limit=12)
         agents = await search_agents(conn, redis, limit_count=4, bypass_cache=True)
         profiles = await search_profiles(conn, redis, limit_count=1, bypass_cache=True)
         input_pricings = await search_pricing(
@@ -466,7 +467,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         invocations_by_benchmark: dict[UUID, list] = {}
         for b in benchmarks[:TESTS_PER_RUN]:
             inv_rows = await search_invocations(
-                conn, benchmark_ids=[b.benchmark_id], limit=INVOCATIONS_PER_TEST
+                conn, redis, benchmark_ids=[b.benchmark_id], limit=INVOCATIONS_PER_TEST
             )
             invocations_by_benchmark[b.benchmark_id] = inv_rows
 
@@ -508,7 +509,7 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
                 async with conn.transaction():
                     seeded = await _seed_one_test(
                         conn,
-                        test_idx=test_idx,
+                        redis, test_idx=test_idx,
                         benchmarks=benchmarks,
                         invocations_by_benchmark=invocations_by_benchmark,
                         agent_ids=agent_ids,

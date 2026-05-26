@@ -38,6 +38,7 @@ from app.infra.scenario.types import (
 )
 from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.scenario.search import search_scenarios
+from app.infra.server_timing import timed
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.departments.search import (
     search_departments,
@@ -245,7 +246,8 @@ async def _search_scenario_build(
     from fastapi import HTTPException
 
     # -- Step 1: Profile context --
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -261,7 +263,8 @@ async def _search_scenario_build(
     # simulation_ids -> scenarios_resource IDs via simulation's scenarios junction
     scenario_resource_ids: list[UUID] | None = None
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         if simulation_ids:
             # search_simulations_resource returns simulation resources with scenario_ids
             sims = await get_simulations_resource(conn, simulation_ids, redis)
@@ -290,7 +293,7 @@ async def _search_scenario_build(
         # -- Step 3a: Pending ledger entries (mirrors persona/search) --
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="scenario", status="pending", limit=1000,
+            conn, redis, artifact="scenario", status="pending", limit=1000,
         )
         pending_ledger_ids = [e.artifact_id for e in pending_entries]
         ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -407,7 +410,8 @@ async def _search_scenario_build(
                 conn, redis, search=flag_search, scenario=True, limit_count=100
             )
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         personas_data,
         departments_data,
@@ -418,7 +422,7 @@ async def _search_scenario_build(
         simulation_facet,
         department_facet,
         flag_facet,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_names(),
         _get_personas(),
         _get_departments(),
@@ -517,7 +521,8 @@ async def _search_scenario_build(
 
     # -- Step 6: Build scenario list with permissions --
     api_scenarios: list[ListScenarioApiScenario] = []
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         dept_ids_str = [str(d) for d in (a.department_ids or [])]
 

@@ -276,6 +276,7 @@ class GetScenarioApiRequest(BaseModel):
 
     id: UUID | None = Field(None, description="UUID of the scenario to retrieve")
     draft_id: UUID | None = Field(None, description="UUID of the draft")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
     # Per-section filters
     names: SectionFilter | None = None
     descriptions: SectionFilter | None = None
@@ -539,6 +540,7 @@ class CreateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -649,6 +651,7 @@ class UpdateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -683,6 +686,7 @@ class ExportScenarioApiRequest(BaseModel):
     persona_ids: list[str] | None = Field(None, description="Filter by persona UUIDs")
     simulation_ids: list[str] | None = Field(None, description="Filter by simulation UUIDs")
     filter_department_ids: list[str] | None = Field(None, description="Filter by department UUIDs")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
 
 class ExportScenarioApiResponse(BaseModel):
@@ -736,6 +740,7 @@ class DeleteScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
@@ -766,6 +771,7 @@ class DuplicateScenarioApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -915,6 +921,7 @@ class PatchScenarioDraftApiRequest(ScopedItem):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -968,6 +975,7 @@ class GetScenarioDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetScenarioDraftsApiResponse(BaseModel):
@@ -986,6 +994,7 @@ class ImageUploadScenarioApiResponse(BaseModel):
 
     image_id: UUID = Field(..., description="UUID of the created images_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key; echo with accept to promote/reject the staged upload.")
 
 
 class ImageDownloadScenarioApiRequest(BaseModel):
@@ -1017,6 +1026,7 @@ class VideoUploadScenarioApiResponse(BaseModel):
 
     video_id: UUID = Field(..., description="UUID of the created videos_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key; echo with accept to promote/reject the staged upload.")
 
 
 class VideoDownloadScenarioApiRequest(BaseModel):
@@ -1390,6 +1400,7 @@ class GenerationsScenarioApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsScenarioListItem(BaseModel):

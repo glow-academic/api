@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.health.types import CreateHealthResponse
 from app.tools.entries.sessions.create import create_session
@@ -11,6 +12,7 @@ from app.tools.entries.sessions.create import create_session
 
 async def create_health(
     conn: asyncpg.Connection,
+    redis: Redis,
     service: str,
     ok: bool,
     latency_ms: float,
@@ -25,7 +27,7 @@ async def create_health(
     if ts is None:
         ts = datetime.now(UTC)
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     health_id = await conn.fetchval(

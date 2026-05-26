@@ -5,8 +5,6 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.infra.agent.permissions import (
-    AGENT_BASIC_RESOURCES,
-    AGENT_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -58,7 +56,6 @@ from app.infra.agent.types import (
 )
 from app.infra.common_context import CommonContext
 from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 
 
@@ -75,7 +72,6 @@ def build_agent_get_result(
     *,
     common: CommonContext,
     agent_ctx: ArtifactContext,
-    scores: ArtifactToolScores,
     perms: AgentPermissionsContext | None,
     agent_id: UUID | None,
     group_id: UUID | None,
@@ -83,25 +79,26 @@ def build_agent_get_result(
     """Build the canonical agent response bundle from resolved contexts."""
     profile = common.profile
 
-    agent_ids: dict[str, UUID | None] = {
-        resource: (
-            scores.best[resource].agent_id if scores.best.get(resource) else None
-        )
-        for resource in AGENT_RESOURCES
-    }
+    # ``agent_ids`` decoration is dead weight — the client always shows
+    # the "AI generate" button regardless, and the actual agent dispatch
+    # happens server-side in ``prepare_generation``. Empty dict keeps the
+    # response shape stable for any FE still reading it.
+    agent_ids: dict[str, UUID | None] = {}
 
-    names_has_tools = scores.has_any.get("names", False)
-    descriptions_has_tools = scores.has_any.get("descriptions", False)
-    models_has_tools = scores.has_any.get("models", False)
-    prompts_has_tools = scores.has_any.get("prompts", False)
-    instructions_has_tools = scores.has_any.get("instructions", False)
-    departments_has_tools = scores.has_any.get("departments", False)
-    tools_has_tools = scores.has_any.get("tools", False)
-    temperature_levels_has_tools = scores.has_any.get("temperature_levels", False)
-    reasoning_levels_has_tools = scores.has_any.get("reasoning_levels", False)
-    voices_has_tools = scores.has_any.get("voices", False)
-    qualities_has_tools = scores.has_any.get("qualities", False)
-    rubrics_has_tools = scores.has_any.get("rubrics", False)
+    # Tool-graph scoring decoration is dead weight — pass ``True`` so
+    # every ``compute_show_*`` helper renders the section.
+    names_has_tools = True
+    descriptions_has_tools = True
+    models_has_tools = True
+    prompts_has_tools = True
+    instructions_has_tools = True
+    departments_has_tools = True
+    tools_has_tools = True
+    temperature_levels_has_tools = True
+    reasoning_levels_has_tools = True
+    voices_has_tools = True
+    qualities_has_tools = True
+    rubrics_has_tools = True
 
     missing_tools = get_missing_tools(
         names_has_tools=names_has_tools,
@@ -172,13 +169,11 @@ def build_agent_get_result(
         "qualities": compute_qualities_required(),
         "rubrics": compute_rubrics_required(),
     }
-    show_ai_generate_map = {
-        resource: agent_ids.get(resource) is not None for resource in AGENT_RESOURCES
-    }
-    basic_show_ai_generate = any(
-        show_ai_generate_map.get(resource, False) for resource in AGENT_BASIC_RESOURCES
-    )
-    general_show_ai_generate = any(show_ai_generate_map.values())
+    # Always-show semantics: dispatch happens server-side in
+    # ``prepare_generation``.
+    show_ai_generate_map: dict[str, bool] = {}
+    basic_show_ai_generate = True
+    general_show_ai_generate = True
 
     all_flags = sorted_dedupe_by_id(
         agent_ctx.resources["flags"].suggestions + agent_ctx.resources["flags"].selected

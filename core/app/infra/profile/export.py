@@ -21,6 +21,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.get import get_profiles
 from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.get import get_departments
@@ -62,7 +63,8 @@ async def export_profile_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -93,15 +95,16 @@ async def export_profile_impl(
 
     # ── Step 3: Get profile artifacts with all junction IDs ──────────
 
-    artifacts = await get_profiles(
-        pool,
-        profile_ids,
-        names=True,
-        departments=True,
-        flags=True,
-        emails=True,
-        roles=True,
-    )
+    with timed("hydrate"):
+        artifacts = await get_profiles(
+            pool,
+            profile_ids,
+            names=True,
+            departments=True,
+            flags=True,
+            emails=True,
+            roles=True,
+        )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 
@@ -152,36 +155,37 @@ async def export_profile_impl(
 
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("build"):
+      output = io.StringIO()
+      writer = csv.writer(output)
+      writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
-        # Single-select: first resource value
-        name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
+      for a in artifacts:
+          # Single-select: first resource value
+          name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
 
-        # Active flag
-        active = "Yes" if a.active else "No"
+          # Active flag
+          active = "Yes" if a.active else "No"
 
-        # Multi-select: pipe-delimited values
-        departments_str = PIPE.join(
-            department_map.get(did, "") for did in (a.department_ids or [])
-        )
-        emails_str = PIPE.join(email_map.get(eid, "") for eid in (a.email_ids or []))
+          # Multi-select: pipe-delimited values
+          departments_str = PIPE.join(
+              department_map.get(did, "") for did in (a.department_ids or [])
+          )
+          emails_str = PIPE.join(email_map.get(eid, "") for eid in (a.email_ids or []))
 
-        # Multi-select: roles
-        roles_str = PIPE.join(role_map.get(rid, "") for rid in (a.role_ids or []))
+          # Multi-select: roles
+          roles_str = PIPE.join(role_map.get(rid, "") for rid in (a.role_ids or []))
 
-        writer.writerow(
-            [
-                str(a.id),
-                name,
-                active,
-                departments_str,
-                emails_str,
-                roles_str,
-            ]
-        )
+          writer.writerow(
+              [
+                  str(a.id),
+                  name,
+                  active,
+                  departments_str,
+                  emails_str,
+                  roles_str,
+              ]
+          )
 
     csv_content = output.getvalue()
     row_count = len(artifacts)

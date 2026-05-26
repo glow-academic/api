@@ -23,6 +23,7 @@ from app.infra.profile.types import (
     ProfileResultItem,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.create import (
     create_profile as create_profile_artifact,
 )
@@ -57,12 +58,13 @@ async def create_profile_impl(
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -81,7 +83,7 @@ async def create_profile_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -102,6 +104,7 @@ async def create_profile_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -129,7 +132,8 @@ async def create_profile_impl(
     has_errors = False
     error_results: list[ProfileResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_profile_values(
                 conn,
@@ -157,7 +161,8 @@ async def create_profile_impl(
 
     results: list[ProfileResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             for item in items:
                 profiles_resource_id = None
@@ -196,6 +201,7 @@ async def create_profile_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -221,14 +227,15 @@ async def create_profile_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_profile_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].profile_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].profile_id if results else None),
+            )
 
     # ── Hydrate full row content for the client ──────────────────────
     # See ``hydrate_profile_list_rows``: returns the same shape
@@ -239,15 +246,16 @@ async def create_profile_impl(
     # active yet (denormalized snapshot is created on ack-accept).
     profiles_rows: list[ListProfilesApiProfile] | None = None
     if not soft:
-        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
-        new_ids = [
-            r.profile_id for r in results
-            if r.success and r.profile_id is not None
-        ]
-        if new_ids:
-            profiles_rows = await hydrate_profile_list_rows(
-                pool, redis, profile_id=profile_id, profile_ids=new_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+            new_ids = [
+                r.profile_id for r in results
+                if r.success and r.profile_id is not None
+            ]
+            if new_ids:
+                profiles_rows = await hydrate_profile_list_rows(
+                    pool, redis, profile_id=profile_id, profile_ids=new_ids,
+                )
 
     return CreateProfileApiResponse(
         results=results,

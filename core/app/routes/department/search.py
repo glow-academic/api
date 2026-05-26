@@ -6,7 +6,7 @@ Thin route handler. Core logic lives in app.infra.department.search.
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.infra.department.group import group_department_impl
 from app.infra.department.search import search_department_impl
@@ -26,6 +26,7 @@ class SearchDepartmentApiRequest(BaseModel):
     # Pagination
     page_size: int | None = 12
     page_offset: int | None = 0
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=ListDepartmentApiResponse)
@@ -55,6 +56,7 @@ async def search_department(
         if session_id:
             group_result = await group_department_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -80,6 +82,7 @@ async def search_department(
             response_model=ListDepartmentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

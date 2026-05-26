@@ -35,6 +35,7 @@ from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.websocket.generation_types import (
     ArtifactGenerateResponse,
     GeneratePayload,
@@ -89,12 +90,13 @@ async def generate_persona_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -117,16 +119,17 @@ async def generate_persona_impl(
     # falls back to its window/auto-create logic when omitted. Either
     # way the row is guaranteed to exist before runs/messages reference
     # it.
-    from app.infra.group.resolve import resolve_group_impl
-    group_result = await resolve_group_impl(
-        pool, redis,
-        artifact_type=ARTIFACT_TYPE,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        include_history=False,
-    )
-    group_id = group_result.group_id
+    with timed("group"):
+        from app.infra.group.resolve import resolve_group_impl
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type=ARTIFACT_TYPE,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            include_history=False,
+        )
+        group_id = group_result.group_id
 
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:
@@ -146,16 +149,17 @@ async def generate_persona_impl(
     )
 
     try:
-        prepared = await prepare_generation(
-            pool, redis,
-            profile_id=profile_id,
-            profiles_id=profile.profiles_id,
-            session_id=session_id,
-            group_id=uuid.UUID(str(group_id)),
-            artifact_type=ARTIFACT_TYPE,
-            artifact_config=config,
-            payload=payload,
-        )
+        with timed("prepare"):
+            prepared = await prepare_generation(
+                pool, redis,
+                profile_id=profile_id,
+                profiles_id=profile.profiles_id,
+                session_id=session_id,
+                group_id=uuid.UUID(str(group_id)),
+                artifact_type=ARTIFACT_TYPE,
+                artifact_config=config,
+                payload=payload,
+            )
 
         logger.info(
             f"GENERATE_PERSONA: prepared run_id={prepared.run_id}, "
@@ -196,19 +200,20 @@ async def generate_persona_impl(
         if wait_for_complete is None:
             wait_for_complete = True
 
-        run_result = await run_generation_with_refresh(
-            pool, redis,
-            prepared=prepared,
-            sid=resolved_sid,
-            tool_soft=tool_soft,
-            artifact_type=ARTIFACT_TYPE,
-            refresh_fn=refresh_persona_impl,
-            profile_id=profile_id,
-            session_id=session_id,
-            group_id=group_id,
-            internal_sio=internal_sio,
-            wait_for_complete=wait_for_complete,
-        )
+        with timed("execute"):
+            run_result = await run_generation_with_refresh(
+                pool, redis,
+                prepared=prepared,
+                sid=resolved_sid,
+                tool_soft=tool_soft,
+                artifact_type=ARTIFACT_TYPE,
+                refresh_fn=refresh_persona_impl,
+                profile_id=profile_id,
+                session_id=session_id,
+                group_id=group_id,
+                internal_sio=internal_sio,
+                wait_for_complete=wait_for_complete,
+            )
 
     except Exception as e:
         logger.exception(f"Persona generation failed: {e}")

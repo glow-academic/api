@@ -17,6 +17,7 @@ from app.infra.profile.types import (
     DeleteProfileResult,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.delete import delete_profiles
 from app.tools.artifacts.profile.get import get_profiles
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -69,7 +70,7 @@ async def delete_profile_impl(
     # canonical pattern.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "delete":
             raise HTTPException(
                 status_code=404,
@@ -89,6 +90,7 @@ async def delete_profile_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="delete",
@@ -158,12 +160,13 @@ async def delete_profile_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -179,7 +182,8 @@ async def delete_profile_impl(
     skipped_results: list[DeleteProfileResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, target_id in enumerate(profile_ids):
             ctx = await resolve_profile_permissions_context(conn, target_id)
 
@@ -196,12 +200,12 @@ async def delete_profile_impl(
                 )
 
             target_ctx = await resolve_profile_identity_context(pool, target_id, redis)
-            target_role = target_ctx.role if target_ctx else None
+            target_level = target_ctx.role_level if target_ctx else None
 
             if not compute_can_delete(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 target_is_self=(target_id == profile_id),
-                target_role=target_role,
+                target_level=target_level,
             ):
                 if all:
                     skipped_results.append(DeleteProfileResult(
@@ -226,7 +230,8 @@ async def delete_profile_impl(
                 idempotency_key=idempotency_key,
             )
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
         artifacts = await get_profiles(conn, profile_ids, names=True)
         for artifact in artifacts:
@@ -237,7 +242,8 @@ async def delete_profile_impl(
                     name = name_resources[0].name or "Unknown"
             name_map[artifact.id] = name
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_profiles(conn, profile_ids, soft=soft)
 
@@ -245,6 +251,7 @@ async def delete_profile_impl(
                 for pid in result.deleted_ids:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="delete",
@@ -255,14 +262,15 @@ async def delete_profile_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_profile_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_profile_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     results = [
         DeleteProfileResult(

@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.helpers import dedupe_by_id
 from app.infra.invocation.context import resolve_invocation_context
+from app.infra.server_timing import timed
 from app.infra.invocation.types import (
     GetInvocationApiRequest,
     GetSuiteResponse,
@@ -29,8 +30,6 @@ from app.infra.invocation.types import (
     InvocationVoiceResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
-
 INVOCATION_BUNDLE_RESOURCES: set[str] = {
     "names",
     "descriptions",
@@ -136,13 +135,14 @@ async def get_invocation_impl(
     if "descriptions" not in resolved_filters and descriptions_search is not None:
         resolved_filters["descriptions"] = SectionFilter(search=descriptions_search)
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -151,15 +151,17 @@ async def get_invocation_impl(
 
     # Invocation is test-scoped — use the canonical test group.
     from app.infra.test.group import group_test_impl
-    group_result = await group_test_impl(
-        pool, redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await group_test_impl(
+            pool, redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
 
-    ctx = await resolve_invocation_context(
+    with timed("hydrate"):
+     ctx = await resolve_invocation_context(
         pool,
         redis,
         group_id=group_id,
@@ -195,7 +197,6 @@ async def get_invocation_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, INVOCATION_BUNDLE_RESOURCES)
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
@@ -421,7 +422,7 @@ async def get_invocation_impl(
         can_edit=True,
         disabled_reason=None,
         group_id=group_id,
-        show_ai_generate=any(scores.best.get(section) is not None for section in SECTIONS),
+        show_ai_generate=True,
         pending_ids=sorted(pending_ids) if pending_ids else [],
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
         descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,

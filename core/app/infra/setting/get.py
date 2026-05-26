@@ -11,11 +11,11 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.setting.context import resolve_setting_context
-from app.infra.setting.permissions import SETTING_RESOURCES, has_access
+from app.infra.setting.permissions import has_access
 from app.infra.setting.permissions_context import resolve_setting_permissions_context
 from app.infra.setting.sections import SECTIONS, build_setting_get_result
 from app.infra.setting.types import GetSettingApiResponse, SectionFilter
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 
 def _sf(filters: dict[str, SectionFilter | None], section: str, attr: str, default=None):
@@ -45,14 +45,15 @@ async def get_setting_impl(
     resolved_filters = dict(filters or {})
     setting_id = id or setting_id or settings_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -60,23 +61,25 @@ async def get_setting_impl(
         )
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool,
-            redis,
-            artifact_type="setting",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool,
+                redis,
+                artifact_type="setting",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     actor = common.profile
 
     perms = None
     if setting_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_setting_permissions_context(conn, setting_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_setting_permissions_context(conn, setting_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Setting {setting_id} not found")
         if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
@@ -85,7 +88,8 @@ async def get_setting_impl(
                 detail="You don't have access to this setting. It may be restricted to other departments.",
             )
 
-    setting = await resolve_setting_context(
+    with timed("setting_ctx"):
+     setting = await resolve_setting_context(
         pool,
         redis,
         setting_id=setting_id,
@@ -131,15 +135,14 @@ async def get_setting_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, SETTING_RESOURCES)
     include = {s: _sf(resolved_filters, s, "include") is not False for s in SECTIONS}
     selected_only = {s: bool(_sf(resolved_filters, s, "selected")) for s in SECTIONS}
     suggested_only = {s: bool(_sf(resolved_filters, s, "suggested")) for s in SECTIONS}
 
-    return build_setting_get_result(
+    with timed("build"):
+      return build_setting_get_result(
         common=common,
         setting=setting,
-        scores=scores,
         perms=perms,
         group_id=effective_group_id,
         include=include,

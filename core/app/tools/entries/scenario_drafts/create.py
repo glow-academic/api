@@ -3,14 +3,17 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.scenario_drafts.types import (
     CreateScenarioDraftResponse,
 )
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_scenario_draft(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     id: UUID | None = None,
@@ -38,12 +41,12 @@ async def create_scenario_draft(
     pending_ids: resource IDs that should be created with active=false (pending acceptance).
     soft: when True, ALL connections are active=false (overrides pending_ids).
     """
-    draft_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO scenario_drafts_entry (id, session_id, active, mcp, generated, name)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at, active, mcp
         """,
         session_id,
         not soft,
@@ -52,8 +55,12 @@ async def create_scenario_draft(
         id,
     )
 
-    if draft_id is None:
+    if row is None:
         raise ValueError("Failed to create scenario_drafts entry")
+    draft_id = row["id"]
+    created_at = row["created_at"]
+    active_val = row["active"]
+    mcp_val = row["mcp"]
 
     connections: list[tuple[str, str, list[UUID]]] = [
         (
@@ -100,5 +107,61 @@ async def create_scenario_draft(
                 rid,
                 is_active,
             )
+
+    # Write-back cache row matching get response shape.
+    _pending_strs = {str(x) for x in _pending}
+    def _active_list(ids: list[UUID]) -> list[str]:
+        if soft:
+            return []
+        return [str(rid) for rid in ids if str(rid) not in _pending_strs]
+
+    def _pending_list(ids: list[UUID]) -> list[str]:
+        if soft:
+            return [str(rid) for rid in ids]
+        return [str(rid) for rid in ids if str(rid) in _pending_strs]
+
+    fresh_row = {
+        "id": str(draft_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp_val,
+        "active": active_val,
+        "session_id": str(session_id),
+        "name": name,
+        "department_ids": _active_list(department_ids or []),
+        "description_ids": _active_list(description_ids or []),
+        "document_ids": _active_list(document_ids or []),
+        "flag_ids": _active_list(flag_ids or []),
+        "image_ids": _active_list(image_ids or []),
+        "name_ids": _active_list(name_ids or []),
+        "objective_ids": _active_list(objective_ids or []),
+        "option_ids": _active_list(option_ids or []),
+        "parameter_field_ids": _active_list(parameter_field_ids or []),
+        "persona_ids": _active_list(persona_ids or []),
+        "problem_statement_ids": _active_list(problem_statement_ids or []),
+        "profile_ids": _active_list(profile_ids or []),
+        "question_ids": _active_list(question_ids or []),
+        "video_ids": _active_list(video_ids or []),
+        "pending_name_ids": _pending_list(name_ids or []),
+        "pending_description_ids": _pending_list(description_ids or []),
+        "pending_problem_statement_ids": _pending_list(problem_statement_ids or []),
+        "pending_department_ids": _pending_list(department_ids or []),
+        "pending_persona_ids": _pending_list(persona_ids or []),
+        "pending_document_ids": _pending_list(document_ids or []),
+        "pending_objective_ids": _pending_list(objective_ids or []),
+        "pending_image_ids": _pending_list(image_ids or []),
+        "pending_video_ids": _pending_list(video_ids or []),
+        "pending_question_ids": _pending_list(question_ids or []),
+        "pending_option_ids": _pending_list(option_ids or []),
+        "pending_flag_ids": _pending_list(flag_ids or []),
+        "pending_parameter_field_ids": _pending_list(parameter_field_ids or []),
+    }
+    await write_back_row(
+        redis,
+        "scenario_drafts",
+        draft_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateScenarioDraftResponse(id=draft_id)

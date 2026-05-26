@@ -16,6 +16,7 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.types import (
     GenerationsTestApiResponse,
     GenerationsTestListItem,
@@ -87,7 +88,8 @@ async def _generations_test_build(
     """
     # -- Step 1: Profile context --------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -107,10 +109,11 @@ async def _generations_test_build(
 
     session_ids = [session_id] if session_id else None
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         results = await search_groups(
             conn,
-            session_ids=session_ids,
+            redis, session_ids=session_ids,
             name=search,
             date_from=date_from,
             date_to=date_to,

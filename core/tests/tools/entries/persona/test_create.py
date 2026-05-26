@@ -10,15 +10,15 @@ from app.tools.resources.personas.create import (
 pytestmark = pytest.mark.asyncio
 
 
-async def test_returns_id(conn):
-    result = await create_persona(conn)
+async def test_returns_id(conn, redis_client):
+    result = await create_persona(conn, redis_client)
 
     assert result.id is not None
 
 
 async def test_links_personas_resource(conn, redis_client):
     linked_persona = await create_persona_resource(conn, redis=redis_client)
-    result = await create_persona(conn, personas_id=linked_persona.id)
+    result = await create_persona(conn, redis_client, personas_id=linked_persona.id)
 
     row = await conn.fetchrow(
         "SELECT personas_id FROM personas_personas_connection WHERE personas_entry_id = $1",
@@ -28,8 +28,8 @@ async def test_links_personas_resource(conn, redis_client):
     assert row["personas_id"] == linked_persona.id
 
 
-async def test_passes_mcp_flag(conn):
-    result = await create_persona(conn, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client):
+    result = await create_persona(conn, redis_client, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM personas_entry WHERE id = $1",

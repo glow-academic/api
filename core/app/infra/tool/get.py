@@ -21,6 +21,7 @@ from app.infra.tool.permissions import (
     has_access,
 )
 from app.infra.tool.permissions_context import resolve_tool_permissions_context
+from app.infra.server_timing import timed
 from app.infra.tool.types import (
     GetToolApiResponse,
     SectionFilter,
@@ -92,14 +93,15 @@ async def get_tool_impl(
     resolved_filters = dict(filters or {})
     tool_id = id or tool_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -108,20 +110,22 @@ async def get_tool_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="tool",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="tool",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     perms = None
     if tool_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_tool_permissions_context(conn, tool_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_tool_permissions_context(conn, tool_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -133,7 +137,8 @@ async def get_tool_impl(
                 detail="You don't have access to this tool.",
             )
 
-    tool_ctx = await resolve_tool_context(
+    with timed("tool_ctx"):
+     tool_ctx = await resolve_tool_context(
         pool,
         redis,
         tool_id=tool_id,
@@ -378,7 +383,8 @@ async def get_tool_impl(
         for item in all_departments
     ]
 
-    return GetToolApiResponse(
+    with timed("build"):
+     return GetToolApiResponse(
         actor_name=actor.name,
         tool_exists=tool_ctx.artifact_id is not None,
         can_edit=can_edit,

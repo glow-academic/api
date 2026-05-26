@@ -172,6 +172,7 @@ def _to_chat_item(r: GetAttemptChatResponse) -> ChatItem:
 
 async def _compute_message_stats(
     pool: asyncpg.Pool,
+    redis: Redis,
     chat_ids: list[UUID],
 ) -> dict[UUID, MessageStats]:
     """Compute message stats using search_attempt_messages + search_attempt_message_completions.
@@ -185,7 +186,7 @@ async def _compute_message_stats(
     # Step 1: Fetch all messages for these chats
     async with pool.acquire() as c:
         messages, _total_count = await search_attempt_messages(
-            c, chat_ids=chat_ids, limit=500000
+            c, redis, chat_ids=chat_ids, limit=500000
         )
 
     if not messages:
@@ -208,7 +209,7 @@ async def _compute_message_stats(
     if response_msg_created:
         async with pool.acquire() as c:
             completions = await search_attempt_message_completions(
-                c,
+                c, redis,
                 attempt_message_ids=list(response_msg_created.keys()),
                 limit=500000,
             )
@@ -268,7 +269,7 @@ async def _compute_rubric_scores(
 
     # Step 1: Fetch all grades for these chats, dedup to latest per chat
     async with pool.acquire() as c:
-        all_grades = await search_attempt_grades(c, chat_ids=chat_ids, limit=500000)
+        all_grades = await search_attempt_grades(c, redis, chat_ids=chat_ids, limit=500000)
 
     if not all_grades:
         return RubricScoresResponse(items=[], total_count=0)
@@ -292,7 +293,7 @@ async def _compute_rubric_scores(
     # Step 2: Fetch feedback entries for latest grades
     async with pool.acquire() as c:
         feedbacks = await search_attempt_feedback_entries(
-            c, grade_ids=grade_ids, limit=500000
+            c, redis, grade_ids=grade_ids, limit=500000
         )
 
     if not feedbacks:
@@ -301,8 +302,8 @@ async def _compute_rubric_scores(
     # Step 3: Collect unique standard_ids from feedback, fetch standards for mapping
     standard_ids_set: set[UUID] = set()
     for fb in feedbacks:
-        if fb.standard_id:
-            standard_ids_set.add(fb.standard_id)
+        for sid in fb.standard_ids:
+            standard_ids_set.add(sid)
 
     async with pool.acquire() as c:
         standards_list = await get_standards(
@@ -341,18 +342,18 @@ async def _compute_rubric_scores(
 
     for fb in feedbacks:
         chat_id = grade_to_chat.get(fb.grade_id)
-        if not chat_id or not fb.standard_id:
+        if not chat_id:
             continue
-        sg_id = std_to_sg.get(fb.standard_id)
-        if not sg_id:
-            continue
-        # Only include if this standard_group belongs to the chat's rubric
         rubric_id = chat_to_rubric.get(chat_id)
-        if rubric_id:
-            valid_sgs = rubric_sg_map.get(rubric_id, set())
-            if sg_id not in valid_sgs:
+        valid_sgs = rubric_sg_map.get(rubric_id, set()) if rubric_id else None
+        for sid in fb.standard_ids:
+            sg_id = std_to_sg.get(sid)
+            if not sg_id:
                 continue
-        score_agg[(chat_id, sg_id)] += fb.total
+            # Only include if this standard_group belongs to the chat's rubric
+            if valid_sgs is not None and sg_id not in valid_sgs:
+                continue
+            score_agg[(chat_id, sg_id)] += fb.total
 
     # Step 7: Build RubricScoreItems
     chat_meta: dict[UUID, ChatItem] = {item.chat_id: item for item in chat_items}
@@ -432,7 +433,7 @@ async def resolve_dashboard_context(
         async with pool.acquire() as c:
             raw, _total_count = await search_attempt_chats(
                 c,
-                profile_ids=profile_filter_ids,
+                redis, profile_ids=profile_filter_ids,
                 role_ids=role_ids,
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
@@ -523,7 +524,7 @@ async def resolve_dashboard_context(
         return rubrics, standard_groups
 
     async def _get_message_stats() -> dict[UUID, MessageStats]:
-        return await _compute_message_stats(pool, chat_ids)
+        return await _compute_message_stats(pool, redis, chat_ids)
 
     async def _get_cohorts() -> list:
         if not cohort_ids_set:
@@ -717,7 +718,7 @@ async def resolve_dashboard_search_context(
     # Step 1: Paginated attempts via search_attempts
     async with pool.acquire() as c:
         items, total_count = await search_attempts(
-            conn=c,
+            c, redis,
             profile_ids=query_profile_ids,
             simulation_ids=simulation_ids,
             role_ids=role_ids,
@@ -739,7 +740,7 @@ async def resolve_dashboard_search_context(
     if total_count and (page_offset != 0 or len(items) < total_count):
         async with pool.acquire() as c:
             option_items, _option_count = await search_attempts(
-                conn=c,
+                c, redis,
                 profile_ids=query_profile_ids,
                 simulation_ids=simulation_ids,
                 role_ids=role_ids,
@@ -765,7 +766,7 @@ async def resolve_dashboard_search_context(
     if paginated_ids:
         async with pool.acquire() as c:
             chats, _chat_count = await search_attempt_chats(
-                c, attempt_ids=paginated_ids, limit=10000
+                c, redis, attempt_ids=paginated_ids, limit=10000
             )
 
     # Step 3: Collect resource IDs

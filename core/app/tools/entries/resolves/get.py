@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.resolves.types import GetResolveResponse
@@ -13,6 +14,7 @@ MV_NAME = "resolves_mv"
 async def get_resolves(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     bypass_mv: bool = False,
 ) -> list[GetResolveResponse]:
     """Get resolves by IDs from resolves_mv."""

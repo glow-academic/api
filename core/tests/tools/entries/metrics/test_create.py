@@ -10,12 +10,12 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_create_returns_id(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_create_returns_id(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
 
     entry_id = await conn.fetchval(
         "INSERT INTO metrics_entry (ts, requests_total, errors_total, avg_latency_ms, cpu_percent, memory_bytes, session_id) VALUES (NOW(), $1, $2, $3, $4, $5, $6) RETURNING id",
@@ -30,8 +30,8 @@ async def test_create_returns_id(conn, profile_id):
     assert entry_id is not None
 
 
-async def test_roundtrip_via_db(conn, profile_id):
-    session = await _session(conn, profile_id)
+async def test_roundtrip_via_db(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
 
     entry_id = await conn.fetchval(
         "INSERT INTO metrics_entry (ts, requests_total, errors_total, avg_latency_ms, cpu_percent, memory_bytes, session_id) VALUES (NOW(), $1, $2, $3, $4, $5, $6) RETURNING id",
@@ -57,14 +57,14 @@ async def test_roundtrip_via_db(conn, profile_id):
     assert row["mcp"] is False
 
 
-async def test_create_metrics_entry_internal_with_datetime(pool):
+async def test_create_metrics_entry_internal_with_datetime(pool, redis_client):
     """Verify create_metrics_entry_internal accepts a datetime object (not a string)."""
     ts = datetime(2031, 1, 1, 10, 0, tzinfo=UTC)
 
     async with pool.acquire() as conn:
         result = await create_metrics_entry_internal(
             conn,
-            ts=ts,
+            redis_client, ts=ts,
             requests_total=100,
             errors_total=2,
             avg_latency_ms=45.5,

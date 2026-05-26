@@ -1,0 +1,96 @@
+# Default deploy config — committed so `make seed-gen` works out of the box
+# for any fresh checkout. For personal/local overrides, create a
+# `glow-deploy.local.yaml` next to this file (gitignored — see .gitignore L21)
+# and the loader at database/seeds/config.py:50 will pick it up first.
+#
+# Restored 2026-05-21 — was removed during the v1.0.0 port from the private
+# learnloopllc-glow-api repo, leaving the seed pipeline unable to find any
+# models. evals.py references `sid("model-resource/glow-text")` etc. by
+# deterministic ID, so the models below MUST stay listed for evals seeding
+# to succeed. Adding/renaming models here is a coordinated change with
+# database/seeds/evals.py.
+
+setup: fresh
+topology: local
+client_origin: http://localhost:3000
+client_http_port: "3000"
+
+ai:
+  providers:
+    # Single bundled provider — points at the LearnLoop free tier. Replace
+    # the endpoint/key in your local override (or per-instance config) to
+    # route to your own provider. Empty key here keeps the OSS default safe
+    # to commit; real keys go in glow-deploy.local.yaml or per-instance .env.
+    - name: learnloop
+      endpoint: https://api.learn-loop.org/ai/v1
+      key: ""
+
+  roles:
+    text: glow-text
+    grader: glow-grader
+    image: glow-image
+    video: glow-video
+    audio: glow-audio
+    transcribe: glow-transcribe
+    realtime: glow-realtime
+
+  models:
+    - name: glow-text
+      provider: learnloop
+      description: "Default text generation model"
+      modalities: [text_in, text_out, call_in, call_out]
+      reasoning_levels: [none, low, medium, high]
+      temperature: {min: 0, max: 1.0, step: 0.01}
+      pricing:
+        - {type: input, price: 0, unit: million_text}
+        - {type: output, price: 0, unit: million_text}
+    - name: glow-grader
+      provider: learnloop
+      description: "Multimodal grading and evaluation model"
+      modalities: [text_in, text_out, image_in, audio_in, call_in]
+      reasoning_levels: [none, low, medium, high]
+      temperature: {min: 0, max: 1.0, step: 0.01}
+      pricing:
+        - {type: input, price: 0, unit: million_text}
+        - {type: output, price: 0, unit: million_text}
+    - name: glow-image
+      provider: learnloop
+      description: "Image generation model"
+      modalities: [text_in, image_in, image_out]
+      pricing:
+        - {type: output, price: 0, unit: image}
+    - name: glow-video
+      provider: learnloop
+      description: "Video generation model"
+      modalities: [text_in, image_in, video_out, audio_out]
+      pricing:
+        - {type: output, price: 0, unit: second}
+    - name: glow-audio
+      provider: learnloop
+      description: "Text to speech model"
+      modalities: [text_in, audio_out]
+      voices: [alloy, ash, ballad, coral, echo, sage, shimmer, verse]
+      pricing:
+        - {type: input, price: 0, unit: million_text}
+        - {type: output, price: 0, unit: million_audio}
+    - name: glow-transcribe
+      provider: learnloop
+      description: "Speech to text model"
+      modalities: [audio_in, text_out]
+      pricing:
+        - {type: input, price: 0, unit: million_audio}
+        - {type: output, price: 0, unit: million_text}
+    - name: glow-realtime
+      provider: learnloop
+      description: "Realtime voice conversation model"
+      modalities: [text_in, text_out, audio_in, audio_out, image_in, call_in, call_out]
+      temperature: {min: 0, max: 1.0, step: 0.01}
+      voices: [alloy, ash, ballad, coral, echo, sage, shimmer, verse]
+      pricing:
+        - {type: input, price: 0, unit: million_text}
+        - {type: output, price: 0, unit: million_text}
+        - {type: input, price: 0, unit: million_audio}
+        - {type: output, price: 0, unit: million_audio}
+
+auth:
+  providers: []

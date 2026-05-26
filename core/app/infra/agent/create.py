@@ -27,6 +27,7 @@ from app.infra.agent.types import (
     CreateAgentApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.agent.create import (
     create_agent as create_agent_artifact,
 )
@@ -65,43 +66,15 @@ async def create_agent_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    items = request.agents
-    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
-        items = [items[0].model_copy(update={"id": idempotency_key})]
-
-    # ── Step 1: Profile context ────────────────────────────────────────
-
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Step 2: Permission check ───────────────────────────────────────
-
-    if not compute_can_create(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        user_department_ids=profile.department_ids,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create agents.",
-        )
-
     # ── Short-circuit: ack path ───────────────────────────────────────
     # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
     # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id)
-    # we need to act on. See project_soft_calls_entry_pattern.
+    # we need to act on. See project_soft_calls_entry_pattern. This runs
+    # before the payload is read so a bare ack ({idempotency_key, accept})
+    # need not carry ``agents``.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -117,6 +90,7 @@ async def create_agent_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -143,25 +117,65 @@ async def create_agent_impl(
             idempotency_key=idempotency_key,
         )
 
+    # ── First-call requirement ────────────────────────────────────────
+    if request is None or not request.agents:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.agents` is required for first-call creation "
+            "(or pass `idempotency_key` + `accept` for the ack call).",
+        )
+
+    items = request.agents
+    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
+        items = [items[0].model_copy(update={"id": idempotency_key})]
+
+    # ── Step 1: Profile context ────────────────────────────────────────
+
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    # ── Step 2: Permission check ───────────────────────────────────────
+
+    if not compute_can_create(
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        user_department_ids=profile.department_ids,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to create agents.",
+        )
+
     # ── Step 3: Per-item value resolution ──────────────────────────────
 
     has_errors = False
     error_results: list[AgentResultItem] = []
 
-    async with pool.acquire() as conn:
-        for idx, item in enumerate(items):
-            item_errors = await resolve_agent_values(conn, redis, item, is_create=True)
-            if item_errors:
-                has_errors = True
-                error_results.append(
-                    AgentResultItem(
-                        success=False,
-                        message=f"Item {idx}: Validation errors",
-                        errors=item_errors,
+    with timed("resolve_values"):
+        async with pool.acquire() as conn:
+            for idx, item in enumerate(items):
+                item_errors = await resolve_agent_values(conn, redis, item, is_create=True)
+                if item_errors:
+                    has_errors = True
+                    error_results.append(
+                        AgentResultItem(
+                            success=False,
+                            message=f"Item {idx}: Validation errors",
+                            errors=item_errors,
+                        )
                     )
-                )
-            else:
-                error_results.append(AgentResultItem(success=True, message="Validated"))
+                else:
+                    error_results.append(AgentResultItem(success=True, message="Validated"))
 
     if has_errors:
         return CreateAgentApiResponse(
@@ -192,9 +206,10 @@ async def create_agent_impl(
             )
             snapshot_ids.append(agents_resource_id)
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            for idx, item in enumerate(items):
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+             for idx, item in enumerate(items):
                 combined_flag_ids = list(item.flag_ids or [])
 
                 result = await create_agent_artifact(
@@ -225,6 +240,7 @@ async def create_agent_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -252,14 +268,15 @@ async def create_agent_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_agent_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].agent_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_agent_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].agent_id if results else None),
+            )
 
     return CreateAgentApiResponse(
         results=results,

@@ -63,11 +63,11 @@ async def resolve_session_context(
     # for general users. Mirrors the unscoped behavior of the activity list.
     async def _fetch_sessions() -> list:
         async with pool.acquire() as c:
-            return await get_sessions(c, ids=[session_id])
+            return await get_sessions(c, [session_id], redis)
 
     async def _fetch_groups() -> list:
         async with pool.acquire() as c:
-            return await search_groups(c, session_ids=[session_id], limit=10000)
+            return await search_groups(c, redis, session_ids=[session_id], limit=10000)
 
     async def _fetch_actor_name() -> list:
         return await get_names(pool, [profile_id], redis, bypass_cache=bypass_cache)
@@ -90,31 +90,31 @@ async def resolve_session_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_runs(
-                c, group_ids=group_ids, sort_order="asc", limit=100000
+                c, redis, group_ids=group_ids, sort_order="asc", limit=100000
             )
             return items
 
     async def _fetch_logins() -> list:
         async with pool.acquire() as c:
-            return await search_logins(c, session_ids=[session_id], limit=100000)
+            return await search_logins(c, redis, session_ids=[session_id], limit=100000)
 
     async def _fetch_problems() -> list:
         async with pool.acquire() as c:
-            return await search_problems(c, session_ids=[session_id], limit=100000)
+            return await search_problems(c, redis, session_ids=[session_id], limit=100000)
 
     async def _fetch_chats() -> list:
         async with pool.acquire() as c:
             return await search_chat_entries_internal(
-                c, session_ids=[session_id], limit_count=100000
+                c, redis, session_ids=[session_id], limit_count=100000
             )
 
     async def _fetch_attempt_homes() -> list:
         async with pool.acquire() as c:
-            return await search_attempt_homes(c, session_ids=[session_id], limit=100000)
+            return await search_attempt_homes(c, redis, session_ids=[session_id], limit=100000)
 
     async def _fetch_practices() -> list:
         async with pool.acquire() as c:
-            return await search_practices(c, session_ids=[session_id], limit=100000)
+            return await search_practices(c, redis, session_ids=[session_id], limit=100000)
 
     runs, logins, problems, chats, attempt_homes, practices = await asyncio.gather(
         _fetch_runs(),

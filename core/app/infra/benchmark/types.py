@@ -25,6 +25,7 @@ class BenchmarkRequest(BaseModel):
     history_archived: bool | None = Field(None, description="Filter by archived status")
     history_sort_by: str = Field("date", description="History sort field")
     history_sort_order: str = Field("desc", description="History sort direction")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class BenchmarkEvalOperational(BaseModel):

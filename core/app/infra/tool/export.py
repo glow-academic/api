@@ -26,9 +26,13 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
+from app.infra.server_timing import timed
 from app.tools.resources.files.create import create_file as create_file_resource
+from app.infra.activate.activate import activate_rows
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.artifacts.tool.get import get_tools
 from app.tools.artifacts.tool.search import search_tools
 from app.tools.resources.arg_positions.get import get_arg_positions
@@ -59,6 +63,10 @@ async def export_tool_impl(
     profile_id: UUID,
     session_id: UUID | None = None,
     tool_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
 ) -> dict:
     """Tool full export using composable infra functions.
 
@@ -75,12 +83,48 @@ async def export_tool_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
+        )
+
+    # ── Short-circuit: ack path — promote/reject a staged export ──────────────
+    # (mirrors persona/create; soft-call keyed by the server call_id which FKs
+    # calls_entry, so the ack arrives with idempotency_key set to the echoed key.)
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact="tool")
+        if entry is None or entry.status != "pending" or entry.operation != "export":
+            raise HTTPException(
+                status_code=404, detail="No pending export for this call.",
+            )
+        ids = entry.patch or {}
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
+                    await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
+                    await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])
+                    await activate_rows(conn, table="file_uploads_entry", ids=[UUID(ids["junction_id"])])
+            await enqueue_refreshes(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                artifact_type="file", targets=["files_mv"], tags=["files"],
+            )
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn, redis, call_id=idempotency_key, artifact="tool",
+                operation="export", artifact_id=entry.artifact_id,
+                status="accepted" if accept else "rejected",
+            )
+        return ExportToolApiResponse(
+            file_id=entry.artifact_id,
+            file_name=str(ids.get("file_name", "")),
+            row_count=int(ids.get("row_count", 0)),
+            idempotency_key=idempotency_key,
         )
 
     # -- Step 2: Search all tools (full dump) --
@@ -99,7 +143,8 @@ async def export_tool_impl(
 
     # -- Step 3: Get tool artifacts with all junction IDs --
 
-    artifacts = await get_tools(
+    with timed("query"):
+     artifacts = await get_tools(
         pool,
         tool_ids,
         names=True,
@@ -158,14 +203,15 @@ async def export_tool_impl(
             return []
         return await get_args_outputs(pool, all_args_outputs_ids, redis)
 
-    (
+    with timed("hydrate"):
+     (
         names_data,
         descriptions_data,
         departments_data,
         args_data,
         arg_positions_data,
         args_outputs_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _fetch_names(),
         _fetch_descriptions(),
         _fetch_departments(),
@@ -189,11 +235,12 @@ async def export_tool_impl(
 
     # -- Step 5: Generate CSV + upload --
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("render"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+     for a in artifacts:
         # Single-select: first resource value
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
@@ -231,41 +278,71 @@ async def export_tool_impl(
     csv_content = output.getvalue()
     row_count = len(artifacts)
 
-    csv_bytes = csv_content.encode("utf-8")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"tools_export_{timestamp}.csv"
-    upload_uuid = uuid_mod.uuid4()
-    relative_path = f"{upload_uuid}.csv"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
+    with timed("upload_save"):
+     csv_bytes = csv_content.encode("utf-8")
+     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+     file_name = f"tools_export_{timestamp}.csv"
+     upload_uuid = uuid_mod.uuid4()
+     relative_path = f"{upload_uuid}.csv"
+     disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+     with open(disk_path, "wb") as f:
         f.write(csv_bytes)
 
-    async with pool.acquire() as conn:
+    with timed("db_insert"):
+     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
-            session_id=session_id,
+            redis, session_id=session_id,
             file_path=relative_path,
             mime_type="text/csv",
             size=len(csv_bytes),
+            soft=soft,
         )
-        resource_row = await create_file_resource(conn, redis)
+        resource_row = await create_file_resource(conn, redis, soft=soft)
         if session_id is not None:
             entry_row = await create_file_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 files_id=resource_row.id,
+                soft=soft,
             )
-            await create_file_upload(
+            junction_row = await create_file_upload(
                 conn,
-                file_id=entry_row.id,
+                redis, file_id=entry_row.id,
                 upload_id=upload_row.id,
                 session_id=session_id,
+                soft=soft,
             )
-            await refresh_files_internal(conn, redis)
+            if soft and call_id is not None:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=call_id,
+                    artifact="tool",
+                    operation="export",
+                    artifact_id=resource_row.id,
+                    status="pending",
+                    patch={
+                        "upload_id": str(upload_row.id),
+                        "resource_id": str(resource_row.id),
+                        "entry_id": str(entry_row.id),
+                        "junction_id": str(junction_row.id),
+                        "file_name": file_name,
+                        "row_count": row_count,
+                    },
+                )
+
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportToolApiResponse(
         file_id=resource_row.id,
         file_name=file_name,
         row_count=row_count,
+        idempotency_key=call_id,
     )

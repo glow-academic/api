@@ -1,9 +1,17 @@
-"""Test export endpoint — view-aware, canonical file-modality output."""
+"""Test export endpoint — view-aware, canonical file-modality output.
+
+Routed through the audit wrapper: idempotency replay (operation_key) + soft/accept
+staging of the dormant export file chain (propose → accept activates).
+"""
+
+from uuid import UUID
 
 from fastapi import APIRouter, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.test.export import export_test_impl
+from app.infra.test.group import group_test_impl
 from app.infra.test.types import ExportTestApiRequest, ExportTestApiResponse
 
 router = APIRouter()
@@ -24,15 +32,47 @@ async def export_test(
     profile_id = http_request.state.profile_id
     session_id = http_request.state.session_id
     pool = get_pool()
+    redis = get_redis_client()
 
-    return await export_test_impl(
+    # Resolve time-windowed group for audit linking.
+    group_id = None
+    if session_id:
+        group_result = await group_test_impl(
+            pool, redis, profile_id=UUID(str(profile_id)), session_id=session_id,
+            id_only=True,
+        )
+        group_id = group_result.group_id
+
+    is_ack = body.accept is not None and body.idempotency_key is not None
+
+    async def _runner(call_id: UUID | None = None) -> ExportTestApiResponse:
+        return await export_test_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            view=body.view,
+            test_id=body.test_id,
+            invocation_id=body.invocation_id,
+            draft_id=body.draft_id,
+            mode=body.mode,
+            soft=body.soft,
+            accept=body.accept,
+            idempotency_key=body.idempotency_key,
+            call_id=call_id,
+        )
+
+    return await run_artifact_operation_with_audit(
         pool,
-        get_redis_client(),
+        redis,
+        artifact="test",
         profile_id=profile_id,
         session_id=session_id,
-        view=body.view,
-        test_id=body.test_id,
-        invocation_id=body.invocation_id,
-        draft_id=body.draft_id,
-        mode=body.mode,
+        group_id=group_id,
+        operation="export",
+        arguments={"accept": body.accept} if is_ack else body.model_dump(mode="json"),
+        operation_key=body.idempotency_key,  # idempotency replay gate
+        response_model=ExportTestApiResponse,
+        runner=_runner,
+        upload_folder=get_upload_folder(),
     )

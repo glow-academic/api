@@ -19,6 +19,7 @@ from app.infra.agent.types import (
     SaveAgentFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.agent_drafts.create import create_agent_draft
 from app.tools.entries.agent_drafts.get import get_agent_drafts
@@ -46,6 +47,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_agent_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -62,6 +64,7 @@ async def _maybe_auto_accept_agent_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -73,7 +76,7 @@ async def _maybe_auto_accept_agent_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_agent_drafts(conn, [draft_id], active=None)
+        drafts = await get_agent_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -99,7 +102,7 @@ async def _maybe_auto_accept_agent_draft(
         async with conn.transaction():
             await create_agent_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -121,6 +124,7 @@ async def _maybe_auto_accept_agent_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -369,12 +373,13 @@ async def patch_agent_draft_impl(
     request.instructions_id = request.instructions_id or request.instruction_id
     request.instruction_id = request.instructions_id or request.instruction_id
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -389,7 +394,7 @@ async def patch_agent_draft_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -399,13 +404,13 @@ async def patch_agent_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_agent_drafts(conn, [target_id], active=None)
+                drafts = await get_agent_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_agent_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -428,7 +433,7 @@ async def patch_agent_draft_impl(
                     else:
                         await create_agent_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -437,6 +442,7 @@ async def patch_agent_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -469,7 +475,8 @@ async def patch_agent_draft_impl(
             ),
         )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
 
@@ -481,7 +488,8 @@ async def patch_agent_draft_impl(
     request.rubric_ids = _dedupe_ids(request.rubric_ids)
 
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             snapshot_id: UUID | None = None
             if any(
@@ -511,7 +519,7 @@ async def patch_agent_draft_impl(
                 )
             result = await create_agent_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key or request.draft_id,
                 soft=soft,
                 name=request.name or "",
@@ -539,6 +547,7 @@ async def patch_agent_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -553,7 +562,7 @@ async def patch_agent_draft_impl(
     # resolved. Mirrors persona/draft.py::_maybe_auto_accept_draft.
     if not soft:
         await _maybe_auto_accept_agent_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],
@@ -590,14 +599,15 @@ async def patch_agent_draft_impl(
     )
 
     if not soft:
-        await refresh_agent_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            targets=["agent_drafts_mv"],
-            operation_key=result.id,
-        )
+        with timed("refresh"):
+            await refresh_agent_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["agent_drafts_mv"],
+                operation_key=result.id,
+            )
 
     return PatchAgentDraftApiResponse(
         success=True,

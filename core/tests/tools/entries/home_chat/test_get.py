@@ -12,11 +12,11 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _home_chat(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _home_chat(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     home = await create_home(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         cohorts_ids=[bundle.cohort_id],
         departments_ids=[bundle.department_id],
         simulations_ids=[bundle.simulation_id],
@@ -25,10 +25,10 @@ async def _home_chat(conn, profile_id, bundle):
         simulation_availability_ids=[bundle.simulation_availability_id],
         simulation_positions_ids=[bundle.simulation_position_id],
     )
-    chat = await create_chat(conn, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
     home_chat = await create_home_chat(
         conn,
-        home_id=home.id,
+        redis_client, home_id=home.id,
         chat_id=chat.id,
         session_id=session.id,
     )
@@ -39,23 +39,23 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_gets_created_home_chat(conn, profile_id):
-    _created(await _home_chat(conn, profile_id))
+async def test_gets_created_home_chat(conn, redis_client, profile_id):
+    _created(await _home_chat(conn, redis_client, profile_id))
     await refresh_home_chat(conn)
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
-    items = await get_home_chats(conn, ids=[lookup_id])
+    items = await get_home_chats(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_returns_empty_for_missing_id(conn):
-    items = await get_home_chats(conn, ids=[nonexistent_id()])
+async def test_returns_empty_for_missing_id(conn, redis_client):
+    items = await get_home_chats(conn, ids=[nonexistent_id()], redis=redis_client)
 
     assert items == []
 
 
-async def test_returns_empty_for_empty_ids(conn):
-    items = await get_home_chats(conn, ids=[])
+async def test_returns_empty_for_empty_ids(conn, redis_client):
+    items = await get_home_chats(conn, ids=[], redis=redis_client)
 
     assert items == []

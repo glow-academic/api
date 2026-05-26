@@ -40,6 +40,7 @@ async def get_leaderboard(
         if session_id:
             group_result = await group_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -67,6 +68,7 @@ async def get_leaderboard(
             response_model=LeaderboardResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,leaderboard"
         response.headers.setdefault("X-Cache-Hit", "0")

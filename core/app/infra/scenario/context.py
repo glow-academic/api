@@ -157,7 +157,7 @@ async def resolve_scenario_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_scenario_drafts(conn, [draft_id])
+            return await get_scenario_drafts(conn, [draft_id], redis)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
 
@@ -544,20 +544,24 @@ async def resolve_scenario_context(
             return []
         async with pool.acquire() as conn:
             return await search_file_entries(
-                conn, files_ids=all_doc_file_ids, limit=200
+                conn, redis, files_ids=all_doc_file_ids, limit=200
             )
 
     async def _fetch_image_entries() -> list:
         if not all_image_ids:
             return []
         async with pool.acquire() as conn:
-            return await search_image_entries(conn, images_ids=all_image_ids, limit=200)
+            return await search_image_entries(
+                conn, redis, images_ids=all_image_ids, limit=200
+            )
 
     async def _fetch_video_entries() -> list:
         if not all_video_ids:
             return []
         async with pool.acquire() as conn:
-            return await search_video_entries(conn, videos_ids=all_video_ids, limit=200)
+            return await search_video_entries(
+                conn, redis, videos_ids=all_video_ids, limit=200
+            )
 
     file_entries, image_entries, video_entries = await asyncio.gather(
         _fetch_file_entries(),

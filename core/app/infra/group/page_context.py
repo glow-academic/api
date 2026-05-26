@@ -27,6 +27,7 @@ from app.infra.docs.types import (
 )
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 # Entry tool docs
 from app.tools.entries.groups.docs import get_groups_docs
@@ -52,6 +53,7 @@ async def page_context_group_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -61,6 +63,7 @@ async def page_context_group_impl(
         key=big_cache_key("group/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "group", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -69,6 +72,7 @@ async def page_context_group_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -80,6 +84,7 @@ async def _page_context_group_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Group page context.
 
@@ -92,7 +97,8 @@ async def _page_context_group_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -103,12 +109,15 @@ async def _page_context_group_build(
     # -- Step 2: Parallel docs fetches ------------------------------------------
 
     async def _fetch_groups_docs() -> DocsResponse:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_groups_docs(conn)
 
-    (groups,) = await asyncio.gather(
-        _fetch_groups_docs(),
-    )
+    with timed("hydrate"):
+        (groups,) = await asyncio.gather(
+            _fetch_groups_docs(),
+        )
 
     # -- Step 3: Page metadata --------------------------------------------------
 
@@ -124,7 +133,8 @@ async def _page_context_group_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("build"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 
@@ -153,10 +163,10 @@ async def _page_context_group_build(
             "Group analytics provides detailed views of test invocation groups "
             "including runs, results, and aggregated metrics."
         ),
-        entries=[groups],
-        resources=[],
-        permission_docs=[],
-        api_operations=[
+        entries=([groups] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_group,
                 description="POST /get — Get a single group with runs and metrics.",
@@ -165,7 +175,7 @@ async def _page_context_group_build(
                 export_group,
                 description="POST /export — Export group data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

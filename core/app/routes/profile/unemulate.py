@@ -40,7 +40,9 @@ async def unemulate_profile(
         )
         session_id = getattr(http_request.state, "session_id", None)
 
-        target_profile_id = UUID(request.target_profile_id)
+        target_profile_id = (
+            UUID(request.target_profile_id) if request.target_profile_id else None
+        )
 
         pool = get_pool()
         redis = get_redis_client()
@@ -50,8 +52,25 @@ async def unemulate_profile(
         if session_id:
             group_result = await group_profile_impl(
                 pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
+
+        is_ack = request.accept is not None and request.idempotency_key is not None
+
+        # ``call_id`` is threaded in by the audit wrapper (signature opt-in).
+        async def _runner(call_id: UUID | None = None) -> UnemulateProfileApiResponse:
+            return await unemulate_profile_impl(
+                pool,
+                redis,
+                profile_id=UUID(profile_id),
+                actor_profile_id=actor_profile_id,
+                target_profile_id=target_profile_id,
+                soft=request.soft,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
+                call_id=call_id,
+            )
 
         result = await run_artifact_operation_with_audit(
             pool,
@@ -61,19 +80,15 @@ async def unemulate_profile(
             session_id=session_id,
             group_id=group_id,
             operation="unemulate",
-            arguments={
+            # On ack, carry only `accept` so the gate's _is_bare_ack skips it.
+            arguments={"accept": request.accept} if is_ack else {
                 "profile_id": str(profile_id),
                 "target_profile_id": str(target_profile_id),
             },
             response_model=UnemulateProfileApiResponse,
-            runner=lambda: unemulate_profile_impl(
-                pool,
-                redis,
-                profile_id=UUID(profile_id),
-                actor_profile_id=actor_profile_id,
-                target_profile_id=target_profile_id,
-            ),
+            runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "profile"

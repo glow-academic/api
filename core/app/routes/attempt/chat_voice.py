@@ -21,6 +21,9 @@ router = APIRouter()
 
 class ChatVoiceRequest(BaseModel):
     chat_id: UUID
+    idempotency_key: UUID | None = None
+    soft: bool = False
+    accept: bool | None = None
 
 
 @router.post("/chat_voice", response_model=AudioStartInternalResult)
@@ -40,6 +43,7 @@ async def chat_voice(
                 "chat_id": str(request.chat_id),
                 "profile_id": str(profile_id),
                 "session_id": str(session_id),
+                **request.model_dump(mode="json"),
             }
         )
     except ValueError as exc:

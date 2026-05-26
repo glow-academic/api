@@ -44,8 +44,12 @@ async def update_agent(
         if session_id:
             group_result = await group_agent_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
+
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
 
         async def _runner() -> UpdateAgentApiResponse:
             return await update_agent_impl(
@@ -53,6 +57,7 @@ async def update_agent(
                 redis,
                 profile_id=profile_id,
                 request=request,
+                soft=request.soft,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -73,6 +78,8 @@ async def update_agent(
             response_model=UpdateAgentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = "agents"

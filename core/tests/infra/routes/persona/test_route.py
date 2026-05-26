@@ -429,6 +429,7 @@ class TestPersonaRoute:
     async def test_persona_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         persona_route_client,
         persona_route_actor,
     ):
@@ -438,7 +439,12 @@ class TestPersonaRoute:
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=persona_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=persona_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_persona_draft(
                 conn,
                 group_id=group.id,

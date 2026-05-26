@@ -14,8 +14,9 @@ from redis.asyncio import Redis
 
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.calls.get import get_calls
+from app.infra.test.refresh import refresh_test_impl
+from app.infra.server_timing import timed
 from app.tools.entries.test_feedback.create import create_test_feedback
-from app.tools.entries.test_feedback.refresh import refresh_test_feedback
 from app.tools.entries.test_grade.get import get_test_grades
 from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.standards.search import search_standards
@@ -58,7 +59,8 @@ async def create_feedback_impl(
     if not standard_group_id:
         raise ValueError("standard_group_id is required")
 
-    async with pool.acquire() as conn:
+    with timed("feedback_write"):
+      async with pool.acquire() as conn:
         # Step 1: Get standard group → total_points, pass_points + standards.
         # The grader scores at the group level (one tool call → one score
         # for the group). We fan that out at write time into one feedback
@@ -91,9 +93,9 @@ async def create_feedback_impl(
         if "run_id" in kwargs and kwargs["run_id"]:
             run_id = kwargs["run_id"] if isinstance(kwargs["run_id"], UUID) else UUID(str(kwargs["run_id"]))
         else:
-            grades = await get_test_grades(conn, ids=[grade_id])
+            grades = await get_test_grades(conn, [grade_id], redis)
             if grades and grades[0].call_id:
-                calls = await get_calls(conn, [grades[0].call_id])
+                calls = await get_calls(conn, [grades[0].call_id], redis)
                 if calls:
                     run_id = calls[0].run_id
 
@@ -104,7 +106,7 @@ async def create_feedback_impl(
         # invocation — shared by every fanned-out feedback row).
         call = await create_call(
             conn,
-            run_id=run_id,
+            redis, run_id=run_id,
             session_id=session_id,
         )
 
@@ -115,7 +117,7 @@ async def create_feedback_impl(
         for std_id in standard_ids_to_write:
             result = await create_test_feedback(
                 conn,
-                grade_id=grade_id,
+                redis, grade_id=grade_id,
                 call_id=call.id,
                 tool_call_id=tool_call_id,
                 total=score,
@@ -126,7 +128,11 @@ async def create_feedback_impl(
             )
             feedback_ids.append(result.id)
 
-        await refresh_test_feedback(conn)
+    with timed("refresh"):
+        await refresh_test_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["test_feedback_mv"],
+        )
 
     await invalidate_tags(["test", "tests", "feedbacks"], redis=redis)
 

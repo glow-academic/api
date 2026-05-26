@@ -13,7 +13,7 @@ class CreateAttemptFeedbackResponse(BaseModel):
 class GetAttemptFeedbackResponse(BaseModel):
     feedback_id: UUID
     grade_id: UUID
-    standard_id: UUID | None
+    standard_ids: list[UUID] = []
     total: int
     feedback: str
     created_at: datetime

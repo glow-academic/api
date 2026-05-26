@@ -13,6 +13,7 @@ build the agent payload.
 """
 
 from __future__ import annotations
+from app.infra.globals import get_redis_client
 
 from dataclasses import dataclass, field
 from uuid import UUID
@@ -49,19 +50,20 @@ async def resolve_trace_context(
 
     Reads from MVs. Bypasses MV when freshness matters (callers can decide).
     """
+    redis = get_redis_client()
     from app.tools.entries.test.get import get_tests
     from app.tools.entries.test_invocation.get import get_test_invocations
     from app.tools.entries.test_invocation_traces.get import (
         get_test_invocation_traces,
     )
 
-    traces = await get_test_invocation_traces(conn, [trace_id])
+    traces = await get_test_invocation_traces(conn, [trace_id], redis)
     if not traces:
         raise ValueError(f"Trace not found: {trace_id}")
     trace = traces[0]
 
     invs = await get_test_invocations(
-        conn, [trace.test_invocation_id], bypass_mv=True
+        conn, [trace.test_invocation_id], redis,
     )
     if not invs:
         raise ValueError(
@@ -69,7 +71,7 @@ async def resolve_trace_context(
         )
     inv = invs[0]
 
-    tests = await get_tests(conn, ids=[inv.test_id]) if inv.test_id else []
+    tests = await get_tests(conn, [inv.test_id], redis) if inv.test_id else []
     if not tests:
         raise ValueError(
             f"Parent test {inv.test_id} not found for trace {trace_id}"

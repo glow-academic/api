@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.rubric.permissions_context import (
     create_denormalized_snapshot,
     resolve_rubric_point_totals,
@@ -55,31 +56,33 @@ async def create_rubric_impl(
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_create(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-        department_ids=None,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create rubrics.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+            department_ids=None,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create rubrics.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -99,6 +102,7 @@ async def create_rubric_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -126,7 +130,8 @@ async def create_rubric_impl(
     has_errors = False
     error_results: list[RubricResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_rubric_values(conn, redis, item, is_create=True)
             if item_errors:
@@ -178,6 +183,7 @@ async def create_rubric_impl(
         return out
 
     if not soft:
+      with timed("snapshot"):
         for item in items:
             pass_value, total_value = await resolve_rubric_point_totals(
                 pool,
@@ -202,7 +208,8 @@ async def create_rubric_impl(
             )
             snapshot_ids.append(rubrics_resource_id)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
                 # Only pass points are writeable; total is derived on read.
@@ -224,6 +231,7 @@ async def create_rubric_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -249,27 +257,29 @@ async def create_rubric_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_rubric_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].rubric_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_rubric_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].rubric_id if results else None),
+            )
 
     # Hydrate the freshly-created rows so the client's ghost rail can
     # materialize them without a ``router.refresh()``. Skipped on soft
     # writes (the dormant artifact isn't fully active until ack-accept).
     hydrated_rows = None
     if not soft:
-        from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
+        with timed("hydrate"):
+            from app.infra.rubric.hydrate_list_rows import hydrate_rubric_list_rows
 
-        new_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
-        if new_ids:
-            hydrated_rows = await hydrate_rubric_list_rows(
-                pool, redis, profile_id=profile_id, rubric_ids=new_ids,
-            )
+            new_ids = [r.rubric_id for r in results if r.success and r.rubric_id]
+            if new_ids:
+                hydrated_rows = await hydrate_rubric_list_rows(
+                    pool, redis, profile_id=profile_id, rubric_ids=new_ids,
+                )
 
     return CreateRubricApiResponse(
         results=results,

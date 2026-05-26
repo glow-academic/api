@@ -16,7 +16,7 @@ async def get_setting_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
     """Get full documentation for the setting_drafts entry."""
     mv_info = await get_mv_info(conn, "setting_drafts_mv")
     entry_table = await get_table_info(conn, "setting_drafts_entry")
-    agents_connection = await get_table_info(conn, "setting_drafts_agents_connection")
+    systems_connection = await get_table_info(conn, "setting_drafts_systems_connection")
     auth_item_keys_connection = await get_table_info(
         conn, "setting_drafts_auth_item_keys_connection"
     )
@@ -45,7 +45,7 @@ async def get_setting_drafts_docs(conn: asyncpg.Connection) -> DocsResponse:
         t
         for t in [
             entry_table,
-            agents_connection,
+            systems_connection,
             auth_item_keys_connection,
             auths_connection,
             colors_connection,

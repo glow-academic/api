@@ -43,6 +43,7 @@ async def get_rubric(
         if session_id:
             group_result = await group_rubric_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -81,6 +82,7 @@ async def get_rubric(
             response_model=GetRubricApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "rubrics"

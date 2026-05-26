@@ -47,6 +47,7 @@ async def generations_rubric(
         if session_id:
             group_result = await group_rubric_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -75,6 +76,7 @@ async def generations_rubric(
             response_model=GenerationsRubricApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

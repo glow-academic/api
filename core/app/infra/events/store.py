@@ -216,7 +216,7 @@ async def read_artifact_events(
 
         calls = await search_calls(
             conn,
-            tool_ids=[tool_info.tool_id],
+            redis, tool_ids=[tool_info.tool_id],
             limit=limit * _FETCH_MULTIPLIER,
             offset=0,
         )
@@ -226,13 +226,13 @@ async def read_artifact_events(
         call_ids = [call.call_id for call in calls]
         uploads = await search_call_uploads(
             conn,
-            call_ids=call_ids,
+            redis, call_ids=call_ids,
             limit=len(call_ids) * 3,
             offset=0,
         )
         upload_by_call_id: dict[UUID, UUID] = {}
         for junction in uploads:
-            upload = await get_upload(conn, junction.upload_id)
+            upload = await get_upload(conn, junction.upload_id, redis)
             if upload is None or upload.mime_type != "application/json":
                 continue
             upload_by_call_id[junction.call_id] = upload.id
@@ -250,7 +250,7 @@ async def read_artifact_events(
             if upload_id in upload_cache:
                 file_path, mime_type = upload_cache[upload_id]
             else:
-                upload = await get_upload(conn, upload_id)
+                upload = await get_upload(conn, upload_id, redis)
                 if upload is None:
                     continue
                 file_path = upload.file_path

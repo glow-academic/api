@@ -32,6 +32,7 @@ from app.infra.persona.types import (
     ListPersonaApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.resources.colors.get import get_colors
@@ -234,7 +235,8 @@ async def _search_persona_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -250,7 +252,8 @@ async def _search_persona_build(
 
     personas_resource_ids: list[UUID] | None = None
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+      async with pool.acquire() as conn:
         if scenario_ids:
             # scenarios_resource has persona_ids (personas_resource IDs) denormalized
             scenarios = await get_scenarios(conn, scenario_ids, redis)
@@ -288,7 +291,7 @@ async def _search_persona_build(
         # the user's "what's pending my attention" view.
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="persona", status="pending", limit=1000,
+            conn, redis, artifact="persona", status="pending", limit=1000,
         )
         pending_ledger_ids = [e.artifact_id for e in pending_entries]
         # Latest ledger row per artifact_id for stamping onto rows.
@@ -423,35 +426,36 @@ async def _search_persona_build(
                 conn, redis, search=flag_search, persona=True, limit_count=100
             )
 
-    (
-        names_data,
-        descriptions_data,
-        colors_data,
-        icons_data,
-        profile_personas_data,
-        scenario_facet,
-        field_facet,
-        department_facet,
-        color_facet,
-        icon_facet,
-        voice_facet,
-        instruction_facet,
-        flag_facet,
-    ) = await asyncio.gather(
-        _get_names(),
-        _get_descriptions(),
-        _get_colors(),
-        _get_icons(),
-        _get_profile_persona_counts(),
-        _get_scenario_facet(),
-        _get_field_facet(),
-        _get_department_facet(),
-        _get_color_facet(),
-        _get_icon_facet(),
-        _get_voice_facet(),
-        _get_instruction_facet(),
-        _get_flag_facet(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            colors_data,
+            icons_data,
+            profile_personas_data,
+            scenario_facet,
+            field_facet,
+            department_facet,
+            color_facet,
+            icon_facet,
+            voice_facet,
+            instruction_facet,
+            flag_facet,
+        ) = await asyncio.gather(
+            _get_names(),
+            _get_descriptions(),
+            _get_colors(),
+            _get_icons(),
+            _get_profile_persona_counts(),
+            _get_scenario_facet(),
+            _get_field_facet(),
+            _get_department_facet(),
+            _get_color_facet(),
+            _get_icon_facet(),
+            _get_voice_facet(),
+            _get_instruction_facet(),
+            _get_flag_facet(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -463,65 +467,66 @@ async def _search_persona_build(
 
     personas: list[ListPersonaApiPersona] = []
 
-    for a in artifacts:
-        # Resolve first resource for display
-        name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
-        desc_obj = (
-            description_map.get(a.description_ids[0]) if a.description_ids else None
-        )
-        color_obj = color_map.get(a.color_ids[0]) if a.color_ids else None
-        icon_obj = icon_map.get(a.icon_ids[0]) if a.icon_ids else None
-
-        dept_ids_str = [str(d) for d in (a.department_ids or [])]
-
-        # Count scenarios from facet data that reference this persona's personas_resource
-        persona_resource_set = set(a.persona_ids or [])
-        num_scenarios = sum(
-            1 for s in scenario_facet if persona_resource_set & set(s.persona_ids or [])
-        )
-
-        num_profiles = profile_personas_data.get(a.id, 0)
-
-        is_inactive = not a.active
-
-        can_edit = compute_can_edit(
-            role_level=user_role_level, role_permissions=profile.role_permissions,
-            persona_department_ids=dept_ids_str,
-            active_scenario_count=num_scenarios,
-            user_department_ids=user_department_ids,
-        )
-        can_delete = compute_can_delete(
-            role_level=user_role_level, role_permissions=profile.role_permissions,
-            persona_department_ids=dept_ids_str,
-            active_scenario_count=num_scenarios,
-        )
-        can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
-
-        ledger = ledger_by_artifact_id.get(a.id)
-        personas.append(
-            ListPersonaApiPersona(
-                persona_id=a.id,
-                name=name_obj.name if name_obj else None,
-                description=desc_obj.description if desc_obj else None,
-                color=color_obj.hex_code if color_obj else None,
-                icon=icon_obj.value if icon_obj else None,
-                department_ids=dept_ids_str,
-                scenario_ids=None,
-                field_ids=[str(f) for f in (a.parameter_field_ids or [])],
-                is_inactive=is_inactive,
-                pending_status=ledger.status if ledger else None,
-                pending_operation=ledger.operation if ledger else None,
-                pending_call_id=ledger.call_id if ledger else None,
-                generated=a.generated,
-                mcp=a.mcp,
-                num_scenarios=num_scenarios,
-                num_profiles=num_profiles,
-                can_edit=can_edit,
-                can_duplicate=can_duplicate,
-                can_delete=can_delete,
-                updated_at=a.updated_at,
+    with timed("build"):
+        for a in artifacts:
+            # Resolve first resource for display
+            name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
+            desc_obj = (
+                description_map.get(a.description_ids[0]) if a.description_ids else None
             )
-        )
+            color_obj = color_map.get(a.color_ids[0]) if a.color_ids else None
+            icon_obj = icon_map.get(a.icon_ids[0]) if a.icon_ids else None
+
+            dept_ids_str = [str(d) for d in (a.department_ids or [])]
+
+            # Count scenarios from facet data that reference this persona's personas_resource
+            persona_resource_set = set(a.persona_ids or [])
+            num_scenarios = sum(
+                1 for s in scenario_facet if persona_resource_set & set(s.persona_ids or [])
+            )
+
+            num_profiles = profile_personas_data.get(a.id, 0)
+
+            is_inactive = not a.active
+
+            can_edit = compute_can_edit(
+                role_level=user_role_level, role_permissions=profile.role_permissions,
+                persona_department_ids=dept_ids_str,
+                active_scenario_count=num_scenarios,
+                user_department_ids=user_department_ids,
+            )
+            can_delete = compute_can_delete(
+                role_level=user_role_level, role_permissions=profile.role_permissions,
+                persona_department_ids=dept_ids_str,
+                active_scenario_count=num_scenarios,
+            )
+            can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
+
+            ledger = ledger_by_artifact_id.get(a.id)
+            personas.append(
+                ListPersonaApiPersona(
+                    persona_id=a.id,
+                    name=name_obj.name if name_obj else None,
+                    description=desc_obj.description if desc_obj else None,
+                    color=color_obj.hex_code if color_obj else None,
+                    icon=icon_obj.value if icon_obj else None,
+                    department_ids=dept_ids_str,
+                    scenario_ids=None,
+                    field_ids=[str(f) for f in (a.parameter_field_ids or [])],
+                    is_inactive=is_inactive,
+                    pending_status=ledger.status if ledger else None,
+                    pending_operation=ledger.operation if ledger else None,
+                    pending_call_id=ledger.call_id if ledger else None,
+                    generated=a.generated,
+                    mcp=a.mcp,
+                    num_scenarios=num_scenarios,
+                    num_profiles=num_profiles,
+                    can_edit=can_edit,
+                    can_duplicate=can_duplicate,
+                    can_delete=can_delete,
+                    updated_at=a.updated_at,
+                )
+            )
 
     # ── Step 7: Build facet sections ───────────────────────────────────
 

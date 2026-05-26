@@ -122,7 +122,7 @@ async def resolve_eval_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_eval_drafts(conn, [draft_id])
+            return await get_eval_drafts(conn, [draft_id], redis)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
     artifact = artifacts[0] if artifacts else None

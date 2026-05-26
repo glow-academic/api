@@ -389,6 +389,7 @@ class TestScenarioRoute:
     async def test_scenario_drafts_route_lists_owned_drafts(
         self,
         pool,
+        redis_client,
         scenario_route_client,
         scenario_route_actor,
     ):
@@ -398,7 +399,12 @@ class TestScenarioRoute:
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(conn, session_id=scenario_route_actor.session_id, artifact_type="persona")
+            group = await create_group(
+                conn,
+                redis_client,
+                session_id=scenario_route_actor.session_id,
+                artifact_type="persona",
+            )
             draft = await create_scenario_draft(
                 conn,
                 group_id=group.id,

@@ -32,11 +32,11 @@ class TestResolveEmulation:
         async with pool.acquire() as conn:
             requester_session = await create_session(
                 conn,
-                profile_id=requester.profile_resource_id,
+                redis_client, profile_id=requester.profile_resource_id,
             )
             target_session = await create_session(
                 conn,
-                profile_id=target.profile_resource_id,
+                redis_client, profile_id=target.profile_resource_id,
             )
             await refresh_sessions(conn)
 
@@ -56,13 +56,13 @@ class TestResolveEmulation:
         async with pool.acquire() as conn:
             grants = await search_grants(
                 conn,
-                session_ids=[requester_session.id],
+                redis_client, session_ids=[requester_session.id],
                 bypass_mv=True,
                 active=True,
             )
             emulations = await search_emulations(
                 conn,
-                session_ids=[target_session.id],
+                redis_client, session_ids=[target_session.id],
                 bypass_mv=True,
             )
 
@@ -87,7 +87,7 @@ class TestResolveEmulation:
         async with pool.acquire() as conn:
             session = await create_session(
                 conn,
-                profile_id=fixture.profile_resource_id,
+                redis_client, profile_id=fixture.profile_resource_id,
             )
             await refresh_sessions(conn)
 
@@ -104,7 +104,7 @@ class TestResolveEmulation:
         async with pool.acquire() as conn:
             grants = await search_grants(
                 conn,
-                session_ids=[session.id],
+                redis_client, session_ids=[session.id],
                 bypass_mv=True,
             )
 
@@ -125,8 +125,8 @@ class TestResolveEmulation:
         )
 
         async with pool.acquire() as conn:
-            await create_session(conn, profile_id=requester.profile_resource_id)
-            await create_session(conn, profile_id=target.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=requester.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=target.profile_resource_id)
             await refresh_sessions(conn)
 
         result = await resolve_emulation(
@@ -154,7 +154,7 @@ class TestResolveEmulation:
         )
 
         async with pool.acquire() as conn:
-            await create_session(conn, profile_id=target.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=target.profile_resource_id)
             await refresh_sessions(conn)
 
         result = await resolve_emulation(
@@ -181,7 +181,7 @@ class TestResolveEmulation:
         )
 
         async with pool.acquire() as conn:
-            await create_session(conn, profile_id=requester.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=requester.profile_resource_id)
             await refresh_sessions(conn)
 
         result = await resolve_emulation(

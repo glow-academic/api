@@ -49,8 +49,28 @@ async def emulate_profile(
         if session_id:
             group_result = await group_profile_impl(
                 pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
+
+        is_ack = request.accept is not None and request.idempotency_key is not None
+
+        # ``call_id`` is threaded in by the audit wrapper (signature opt-in) —
+        # it's the server-minted calls_entry id the soft ledger keys on.
+        async def _runner(call_id: UUID | None = None) -> EmulateProfileApiResponse:
+            return await emulate_profile_impl(
+                pool,
+                redis,
+                profile_id=UUID(profile_id),
+                target_profile_id=request.target_profile_id,
+                ttl_minutes=request.ttl_minutes or 120,
+                bypass_cache=bypass_cache,
+                actor_profile_id=actor_profile_id,
+                soft=request.soft,
+                accept=request.accept,
+                idempotency_key=request.idempotency_key,
+                call_id=call_id,
+            )
 
         result = await run_artifact_operation_with_audit(
             pool,
@@ -60,19 +80,13 @@ async def emulate_profile(
             session_id=session_id,
             group_id=group_id,
             operation="emulate",
-            arguments=request.model_dump(mode="json"),
+            # On ack, carry only `accept` so the gate's _is_bare_ack skips it.
+            arguments={"accept": request.accept} if is_ack else request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=EmulateProfileApiResponse,
-            runner=lambda: emulate_profile_impl(
-                pool,
-                redis,
-                profile_id=UUID(profile_id),
-                target_profile_id=request.target_profile_id,
-                ttl_minutes=request.ttl_minutes or 120,
-                bypass_cache=bypass_cache,
-                actor_profile_id=actor_profile_id,
-            ),
+            runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "profile"

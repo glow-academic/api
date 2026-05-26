@@ -189,13 +189,14 @@ class TestTestWorkflowRoutes:
     async def test_start_test_route_uses_real_http_stack(
         self,
         pool,
+        redis_client,
         test_route_client,
         test_route_actor,
     ):
         async with pool.acquire() as conn:
             benchmark = await create_benchmark(
                 conn,
-                session_id=test_route_actor.session_id,
+                redis_client, session_id=test_route_actor.session_id,
                 profiles_ids=[test_route_actor.profiles_id],
                 departments_ids=[test_route_actor.department_id],
             )

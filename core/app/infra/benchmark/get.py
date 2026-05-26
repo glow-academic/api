@@ -39,6 +39,7 @@ from app.infra.benchmark.types import (
     BenchmarkResponse,
 )
 from app.infra.common_context import resolve_common_context
+from app.infra.server_timing import timed
 from app.infra.types import ArtifactContext
 
 BENCHMARK_FACETS_CONFIG = AnalyticsFacetsConfig(
@@ -82,30 +83,32 @@ async def get_benchmark_impl(
         datetime.fromisoformat(request.end_date) if request.end_date else None
     )
 
-    common = await resolve_common_context(
-        pool, redis, profile_id=profile_id, bypass_cache=bypass_cache
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool, redis, profile_id=profile_id, bypass_cache=bypass_cache
+        )
     if not common:
         raise HTTPException(status_code=401, detail="Profile not found")
 
-    (cards_ctx, history_ctx), analytics_facets = await asyncio.gather(
-        _resolve_both(
-            pool,
-            redis,
-            request=request,
-            department_ids=department_uuids,
-            date_from=date_from,
-            date_to=date_to,
-            bypass_cache=bypass_cache,
-        ),
-        resolve_analytics_facets(
-            pool,
-            redis,
-            config=BENCHMARK_FACETS_CONFIG,
-            profile=common.profile,
-            bypass_cache=bypass_cache,
-        ),
-    )
+    with timed("gather_contexts"):
+        (cards_ctx, history_ctx), analytics_facets = await asyncio.gather(
+            _resolve_both(
+                pool,
+                redis,
+                request=request,
+                department_ids=department_uuids,
+                date_from=date_from,
+                date_to=date_to,
+                bypass_cache=bypass_cache,
+            ),
+            resolve_analytics_facets(
+                pool,
+                redis,
+                config=BENCHMARK_FACETS_CONFIG,
+                profile=common.profile,
+                bypass_cache=bypass_cache,
+            ),
+        )
 
     benchmarks = cards_ctx.entries.get("benchmarks", [])
     invocations = cards_ctx.entries.get("invocations", [])
@@ -125,7 +128,8 @@ async def get_benchmark_impl(
         else []
     )
 
-    eval_cards = _build_eval_cards(
+    with timed("build_eval_cards"):
+     eval_cards = _build_eval_cards(
         benchmarks,
         invocations,
         tests,
@@ -155,7 +159,8 @@ async def get_benchmark_impl(
             date_range_earliest = min(dates).isoformat()
             date_range_latest = max(dates).isoformat()
 
-    history = _build_history(history_ctx, request)
+    with timed("build_history"):
+        history = _build_history(history_ctx, request)
     return BenchmarkResponse(
         evals=eval_cards,
         departments=department_items,

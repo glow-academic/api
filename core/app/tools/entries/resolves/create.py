@@ -3,12 +3,14 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.resolves.types import CreateResolveResponse
 
 
 async def create_resolve(
     conn: asyncpg.Connection,
+    redis: Redis,
     problem_id: UUID,
     resolved: bool,
     call_id: UUID,

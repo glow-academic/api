@@ -11,8 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.department.context import resolve_department_context
 from app.infra.department.permissions import (
-    DEPARTMENT_BASIC_RESOURCES,
-    DEPARTMENT_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_description_required,
@@ -39,7 +37,7 @@ from app.infra.department.types import (
 )
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 SECTIONS = ["names", "descriptions", "flags", "settings"]
 
@@ -99,14 +97,15 @@ async def get_department_impl(
     department_id = id or department_id
     resolved_filters = dict(filters or {})
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -115,19 +114,21 @@ async def get_department_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="department",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="department",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if department_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_department_permissions_context(conn, department_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_department_permissions_context(conn, department_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -139,7 +140,8 @@ async def get_department_impl(
                 detail="You don't have access to this department.",
             )
 
-    department = await resolve_department_context(
+    with timed("department_ctx"):
+     department = await resolve_department_context(
         pool,
         redis,
         department_id=department_id,
@@ -156,7 +158,9 @@ async def get_department_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, DEPARTMENT_RESOURCES)
+    # Tool-graph scoring decoration is dead weight — the client always
+    # shows "AI generate" regardless and agent dispatch happens
+    # server-side in ``prepare_generation``.
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -212,7 +216,7 @@ async def get_department_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "settings": compute_show_settings(len(all_settings)),
@@ -292,13 +296,14 @@ async def get_department_impl(
     basic_show_ai_generate = compute_can_draft(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in DEPARTMENT_BASIC_RESOURCES)
+    )
     show_ai_generate = compute_can_draft(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in DEPARTMENT_RESOURCES)
+    )
 
-    return GetDepartmentApiResponse(
+    with timed("build"):
+     return GetDepartmentApiResponse(
         actor_name=profile.name,
         department_exists=department.artifact_id is not None,
         can_edit=can_edit,

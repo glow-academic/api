@@ -31,6 +31,7 @@ class ReportsRequest(BaseModel):
 
     page_limit: int = Field(default=50, ge=1, le=200, description="Max items per page")
     page_offset: int = Field(default=0, ge=0, description="Pagination offset")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class ReportsMetric(BaseModel):

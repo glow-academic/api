@@ -23,6 +23,7 @@ from app.infra.document.types import TextDownloadDocumentApiResult
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.text_uploads.search import search_text_uploads
 from app.tools.entries.uploads.get import get_upload
 
@@ -45,9 +46,10 @@ async def text_download_document_impl(
       5. Verify file exists on disk
     """
     # -- Step 1: Profile context ------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -55,15 +57,17 @@ async def text_download_document_impl(
         )
 
     # -- Step 2: Permission check -----------------------------------------------
-    if not has_permission(profile.role_permissions, "document", "text_download"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to download document texts.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, "document", "text_download"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to download document texts.",
+            )
 
     # -- Step 3: Resolve text_id -> upload_id -----------------------------------
-    async with pool.acquire() as conn:
-        junctions = await search_text_uploads(conn, text_ids=[text_id], limit=1)
+    with timed("query"):
+     async with pool.acquire() as conn:
+        junctions = await search_text_uploads(conn, redis, text_ids=[text_id], limit=1)
 
         if not junctions:
             raise HTTPException(
@@ -74,7 +78,7 @@ async def text_download_document_impl(
         upload_id = junctions[0].upload_id
 
         # -- Step 4: Resolve upload_id -> file metadata -------------------------
-        upload = await get_upload(conn, upload_id)
+        upload = await get_upload(conn, upload_id, redis)
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")

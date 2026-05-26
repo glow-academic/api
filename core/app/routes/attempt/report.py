@@ -1,12 +1,15 @@
 """Get endpoint for reports artifact — bundle response, not paginated.
 
 Renamed from /search; reports returns a multi-section bundle, not a row list.
-Use ``/attempt/search`` for paginated attempt history.
+Use ``/attempt/search`` for paginated attempt history. Routed through the audit
+wrapper so ``snapshot_key`` replays a consistent view across related reads.
 """
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.attempt.group import group_attempt_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.reports.get import get_reports_impl
 from app.infra.reports.types import ReportsRequest, ReportsResponse
 from app.utils.error.handle_route_error import handle_route_error
@@ -32,14 +35,39 @@ async def get_reports(
                 status_code=401,
                 detail="Profile ID is required. Please sign in again.",
             )
-
+        session_id = getattr(http_request.state, "session_id", None)
         redis = get_redis_client()
-        result = await get_reports_impl(
+
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
+            )
+            group_id = group_result.group_id
+
+        async def _runner() -> ReportsResponse:
+            return await get_reports_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                request=request,
+                bypass_cache=bypass_cache,
+            )
+
+        result = await run_artifact_operation_with_audit(
             pool,
             redis,
+            artifact="attempt",
             profile_id=profile_id,
-            request=request,
+            session_id=session_id,
+            group_id=group_id,
+            operation="report",
+            arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
+            response_model=ReportsResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
         response.headers["X-Cache-Tags"] = ",".join(tags)
         return result

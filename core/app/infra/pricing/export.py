@@ -68,7 +68,7 @@ async def export_pricing_impl(
     # -- Step 2: Search all runs (full dump) --
 
     async with pool.acquire() as conn:
-        runs, _total_count = await search_runs(conn, limit=100000, offset=0)
+        runs, _total_count = await search_runs(conn, redis, limit=100000, offset=0)
 
     if not runs:
         return ExportPricingApiResponse(
@@ -103,7 +103,7 @@ async def export_pricing_impl(
 
     # Hydrate group names
     async with pool.acquire() as conn:
-        groups = await get_groups(conn, list(all_group_ids)) if all_group_ids else []
+        groups = await get_groups(conn, list(all_group_ids), redis) if all_group_ids else []
     group_map = {g.id: g.name or "" for g in groups}
 
     # -- Step 5: Generate ZIP (runs.csv) + upload --

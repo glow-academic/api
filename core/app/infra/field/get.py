@@ -11,8 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.field.context import resolve_field_context
 from app.infra.field.permissions import (
-    FIELD_BASIC_RESOURCES,
-    FIELD_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -30,7 +28,7 @@ from app.infra.field.types import (
 )
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "conditional_parameters"]
 
@@ -103,14 +101,15 @@ async def get_field_impl(
 
     field_id = id or field_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -119,19 +118,21 @@ async def get_field_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="field",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="field",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if field_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_field_permissions_context(conn, field_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_field_permissions_context(conn, field_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -143,7 +144,8 @@ async def get_field_impl(
                 detail="You don't have access to this field. It may be restricted to other departments.",
             )
 
-    field = await resolve_field_context(
+    with timed("field_ctx"):
+     field = await resolve_field_context(
         pool,
         redis,
         field_id=field_id,
@@ -171,7 +173,6 @@ async def get_field_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, FIELD_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -194,7 +195,7 @@ async def get_field_impl(
     basic_show_ai_generate = compute_can_draft(
         role_level=profile.role_level,
         role_permissions=profile.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in FIELD_BASIC_RESOURCES)
+    )
 
     pending_ids: set[UUID] = field.entries.get("pending_ids", set())
 
@@ -334,7 +335,8 @@ async def get_field_impl(
             )
         return items
 
-    return GetFieldApiResponse(
+    with timed("build"):
+     return GetFieldApiResponse(
         actor_name=profile.name,
         field_exists=field.artifact_id is not None,
         can_edit=can_edit,

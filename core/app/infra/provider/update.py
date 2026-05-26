@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.provider.permissions_context import (
     create_denormalized_snapshot,
     resolve_provider_permissions_context,
@@ -66,40 +67,43 @@ async def update_provider_impl(
     # ``request.providers`` is None and the perm loop would explode.
     # The dormant row is located by ``idempotency_key``.
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "update":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending provider update for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await update_provider_artifact(
-                        conn,
-                        target_id,
-                        soft=False,
-                    )
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "update":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending provider update for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="update",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await update_provider_artifact(
+                            conn,
+                            target_id,
+                            soft=False,
+                        )
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_provider_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_provider_impl(
-            pool, redis, profile_id=profile_id, session_id=session_id,
-            operation_key=idempotency_key,
-        )
 
         return UpdateProviderApiResponse(
             results=[
@@ -169,12 +173,13 @@ async def update_provider_impl(
 
     items = request.providers
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -188,7 +193,8 @@ async def update_provider_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_provider_permissions_context(conn, item.id)
             if not perms.exists:
@@ -232,7 +238,8 @@ async def update_provider_impl(
     has_errors = False
     error_results: list[ProviderResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_provider_values(
                 conn,
@@ -260,7 +267,8 @@ async def update_provider_impl(
 
     results: list[ProviderResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         providers_resource_id = None
         if not soft:
             providers_resource_id = await create_denormalized_snapshot(
@@ -290,6 +298,7 @@ async def update_provider_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -309,14 +318,15 @@ async def update_provider_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_provider_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].provider_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_provider_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].provider_id if results else None),
+            )
 
     # ── Hydrate full row content for the client ──────────────────────
     # See ``hydrate_provider_list_rows``. Soft-pending updates skip
@@ -324,12 +334,13 @@ async def update_provider_impl(
     # yet (artifact is deactivated until ack-accept promotes it).
     providers: list[ListProviderApiProvider] | None = None
     if not soft:
-        from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
-        updated_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
-        if updated_ids:
-            providers = await hydrate_provider_list_rows(
-                pool, redis, profile_id=profile_id, provider_ids=updated_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
+            updated_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
+            if updated_ids:
+                providers = await hydrate_provider_list_rows(
+                    pool, redis, profile_id=profile_id, provider_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

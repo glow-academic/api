@@ -15,6 +15,7 @@ class StartTestApiResponse(BaseModel):
     test_id: str
     invocation_id: str | None = None
     benchmark_id: str | None = None
+    idempotency_key: str | None = None
 
 
 @router.post("/start", response_model=StartTestApiResponse)
@@ -43,4 +44,5 @@ async def start_test(
         test_id=result.test_id,
         invocation_id=result.invocation_id,
         benchmark_id=result.benchmark_id,
+        idempotency_key=str(result.idempotency_key) if result.idempotency_key else None,
     )

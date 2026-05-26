@@ -9,26 +9,26 @@ from app.tools.entries.benchmark.refresh import refresh_benchmark
 pytestmark = pytest.mark.asyncio
 
 
-async def _benchmark(conn, profile_id, department_id, **overrides):
+async def _benchmark(conn, redis_client, profile_id, department_id, **overrides):
     defaults = dict(
         profiles_ids=[profile_id],
         departments_ids=[department_id],
     )
     defaults.update(overrides)
-    return await create_benchmark(conn, **defaults)
+    return await create_benchmark(conn, redis_client, **defaults)
 
 
-async def test_returns_id(conn, profile_id, department_id):
-    result = await _benchmark(conn, profile_id, department_id)
+async def test_returns_id(conn, redis_client, profile_id, department_id):
+    result = await _benchmark(conn, redis_client, profile_id, department_id)
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id, department_id):
-    result = await _benchmark(conn, profile_id, department_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, department_id):
+    result = await _benchmark(conn, redis_client, profile_id, department_id)
     await refresh_benchmark(conn)
 
-    items = await get_benchmarks(conn, [result.id])
+    items = await get_benchmarks(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].benchmark_id == result.id
@@ -36,8 +36,8 @@ async def test_visible_via_get_after_refresh(conn, profile_id, department_id):
     assert items[0].department_ids == [department_id]
 
 
-async def test_passes_mcp_flag(conn, profile_id, department_id):
-    result = await _benchmark(conn, profile_id, department_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id, department_id):
+    result = await _benchmark(conn, redis_client, profile_id, department_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM benchmark_entry WHERE id = $1",

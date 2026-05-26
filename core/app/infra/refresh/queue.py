@@ -86,7 +86,7 @@ async def enqueue_refreshes(
             for target in targets:
                 await create_refresh(
                     conn,
-                    operation_key=op_key,
+                    redis, operation_key=op_key,
                     artifact_type=artifact_type,
                     target=target,
                     session_id=session_id,

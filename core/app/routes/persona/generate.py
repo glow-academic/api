@@ -6,6 +6,8 @@ Fire-and-return: progress/completion events arrive via SSE at /stream.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Request
 
 from app.infra.events.audit import run_artifact_operation_with_audit
@@ -49,16 +51,20 @@ async def generate_persona(
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
-        async def _runner() -> ArtifactGenerateResponse:
+        async def _runner(group_id: UUID | None = None) -> ArtifactGenerateResponse:
+            dumped = request.model_dump(exclude={'config'}, exclude_none=True)
+            if group_id is not None:
+                dumped['group_id'] = group_id
             return await generate_persona_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
-                **request.model_dump(exclude={'config'}, exclude_none=True),
+                **dumped,
                 **(request.config or GenerateConfig()).model_dump(exclude_none=True),
             )
 
@@ -74,6 +80,7 @@ async def generate_persona(
             response_model=ArtifactGenerateResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate (double-billing)
         )
     except HTTPException:
         raise

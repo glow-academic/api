@@ -31,6 +31,7 @@ from redis.asyncio import Redis
 
 from app.infra.generation.execute import ExecuteGenerationResult, execute_generation
 from app.infra.generation.prepare import PrepareGenerationResult
+from app.infra.server_timing import timed
 
 logger = logging.getLogger(__name__)
 
@@ -69,19 +70,21 @@ async def run_generation_with_refresh(
 
     async def _run() -> ExecuteGenerationResult | None:
         try:
-            result = await execute_generation(
-                pool, redis,
-                prepared=prepared,
-                sid=sid,
-                tool_soft=tool_soft,
-            )
+            with timed("model_call"):
+                result = await execute_generation(
+                    pool, redis,
+                    prepared=prepared,
+                    sid=sid,
+                    tool_soft=tool_soft,
+                )
             if refresh_fn is not None:
                 refresh_kwargs: dict[str, Any] = {"profile_id": profile_id}
                 if refresh_session_id:
                     refresh_kwargs["session_id"] = session_id
                 if operation_key is not None:
                     refresh_kwargs["operation_key"] = operation_key
-                await refresh_fn(pool, redis, **refresh_kwargs)
+                with timed("refresh"):
+                    await refresh_fn(pool, redis, **refresh_kwargs)
             return result
         except Exception as exc:
             logger.exception(

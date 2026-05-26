@@ -44,6 +44,7 @@ async def title_document(
         # Resolve time-windowed group for audit linking (session context).
         group_result = await group_document_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         audit_group_id = group_result.group_id
 
@@ -68,6 +69,7 @@ async def title_document(
             response_model=TitleDocumentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "groups"

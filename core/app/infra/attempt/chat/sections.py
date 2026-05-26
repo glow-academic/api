@@ -24,7 +24,6 @@ from app.infra.attempt.chat.types import (
 )
 from app.infra.common_context import CommonContext
 from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 
 CHAT_SECTIONS = [
@@ -50,7 +49,6 @@ def build_chat_get_result(
     *,
     common: CommonContext,
     context: ArtifactContext,
-    scores: ArtifactToolScores,
     chat_entry_id: UUID | None,
     attempt_id: UUID | None,
     include: dict[str, bool] | None = None,
@@ -176,7 +174,10 @@ def build_chat_get_result(
     )
     objectives = _section("objectives", ChatObjectiveResource)
 
-    show_ai_generate = any(scores.best.get(section) is not None for section in CHAT_SECTIONS)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and dispatch happens server-side in
+    # ``prepare_generation``.
+    show_ai_generate = True
 
     return GetChatResponse(
         actor_name=common.profile.name,

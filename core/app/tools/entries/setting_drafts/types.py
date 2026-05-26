@@ -18,7 +18,7 @@ class GetSettingDraftResponse(BaseModel):
     active: bool = Field(..., description="Whether this draft is active")
     session_id: UUID = Field(..., description="Associated session UUID")
     name: str = Field(default="", description="Immutable draft label set at create time")
-    agent_ids: list[UUID] = Field(..., description="Associated agent UUIDs")
+    system_ids: list[UUID] = Field(..., description="Associated system UUIDs")
     auth_item_key_ids: list[UUID] = Field(..., description="Associated auth item key UUIDs")
     auth_ids: list[UUID] = Field(..., description="Associated auth UUIDs")
     color_ids: list[UUID] = Field(..., description="Associated color UUIDs")
@@ -32,7 +32,7 @@ class GetSettingDraftResponse(BaseModel):
     threshold_ids: list[UUID] = Field(..., description="Associated threshold UUIDs")
     mcp_ids: list[UUID] | None = None
     logins_ids: list[UUID] | None = None
-    pending_agent_ids: list[UUID] = Field(default_factory=list, description="Pending agent UUIDs")
+    pending_system_ids: list[UUID] = Field(default_factory=list, description="Pending system UUIDs")
     pending_auth_item_key_ids: list[UUID] = Field(default_factory=list, description="Pending auth item key UUIDs")
     pending_auth_ids: list[UUID] = Field(default_factory=list, description="Pending auth UUIDs")
     pending_color_ids: list[UUID] = Field(default_factory=list, description="Pending color UUIDs")

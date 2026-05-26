@@ -30,12 +30,12 @@ pytestmark = pytest.mark.asyncio
 
 async def _profile_session_run_call(conn, redis_client):
     profile = await create_profile(conn, redis_client)
-    session = await create_session(conn, profile_id=profile.id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
+    session = await create_session(conn, redis_client, profile_id=profile.id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(
-        conn, group_id=group.id, session_id=session.id, profiles_id=profile.id
+        conn, redis_client, group_id=group.id, session_id=session.id, profiles_id=profile.id
     )
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return profile, session, group, run, call
 
 
@@ -105,10 +105,10 @@ class TestPricingFilters:
                 department_ids=[department.id],
                 profile_ids=[profile.id],
             )
-            later_group = await create_group(conn, session_id=session.id, artifact_type="persona")
+            later_group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
             late_run = await create_run(
                 conn,
-                group_id=later_group.id,
+                redis_client, group_id=later_group.id,
                 session_id=session.id,
                 profiles_id=profile.id,
             )
@@ -164,20 +164,20 @@ class TestBenchmarkFilters:
                 profile_ids=[profile.id],
             )
             early_test = await create_test(
-                conn, call_id=early_call.id, profiles_id=profile.id
+                conn, redis_client, call_id=early_call.id, profiles_id=profile.id
             )
-            later_group = await create_group(conn, session_id=_session.id, artifact_type="persona")
+            later_group = await create_group(conn, redis_client, session_id=_session.id, artifact_type="persona")
             later_run = await create_run(
                 conn,
-                group_id=later_group.id,
+                redis_client, group_id=later_group.id,
                 session_id=_session.id,
                 profiles_id=profile.id,
             )
             late_call = await create_call(
-                conn, run_id=later_run.id, session_id=_session.id
+                conn, redis_client, run_id=later_run.id, session_id=_session.id
             )
             late_test = await create_test(
-                conn, call_id=late_call.id, profiles_id=profile.id
+                conn, redis_client, call_id=late_call.id, profiles_id=profile.id
             )
             await conn.execute(
                 "UPDATE test_entry SET created_at = $2 WHERE id = $1",
@@ -215,18 +215,18 @@ class TestBenchmarkFilters:
 
 
 class TestHealthFilters:
-    async def test_returns_date_range(self, pool):
+    async def test_returns_date_range(self, pool, redis_client):
         async with pool.acquire() as conn:
             await create_health(
                 conn,
-                service="redis",
+                redis_client, service="redis",
                 ok=True,
                 latency_ms=20.0,
                 ts=datetime(2034, 1, 1, tzinfo=UTC),
             )
             await create_health(
                 conn,
-                service="redis",
+                redis_client, service="redis",
                 ok=False,
                 latency_ms=35.0,
                 ts=datetime(2035, 12, 31, tzinfo=UTC),

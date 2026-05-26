@@ -7,7 +7,6 @@ from uuid import UUID
 from app.infra.common_context import CommonContext
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.scenario.permissions import (
-    SCENARIO_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -30,7 +29,6 @@ from app.infra.scenario.types import (
     ScenarioQuestion,
     ScenarioVideo,
 )
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext, ResourcePair
 
 
@@ -38,7 +36,6 @@ def build_scenario_get_result(
     *,
     common: CommonContext,
     scenario: ArtifactContext,
-    scores: ArtifactToolScores,
     perms: ScenarioPermissionsContext | None,
     group_id: UUID | None,
     video_enabled: bool | None = None,
@@ -75,12 +72,11 @@ def build_scenario_get_result(
     # Pending IDs from soft draft connections
     pending_ids: set[UUID] = scenario.entries.get("pending_ids", set())
 
-    agent_ids: dict[str, UUID | None] = {
-        resource: (
-            scores.best[resource].agent_id if scores.best.get(resource) else None
-        )
-        for resource in SCENARIO_RESOURCES
-    }
+    # ``agent_ids`` decoration is dead weight — the client always shows
+    # the "AI generate" button regardless, and the actual agent dispatch
+    # happens server-side in ``prepare_generation``. Empty dict keeps the
+    # response shape stable for any FE still reading it.
+    agent_ids: dict[str, UUID | None] = {}
 
 
     scenario_department_ids = [d.id for d in scenario.resources["departments"].selected]

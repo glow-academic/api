@@ -28,6 +28,7 @@ async def model_refresh(
     if session_id:
         group_result = await group_model_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
@@ -51,6 +52,7 @@ async def model_refresh(
         response_model=RefreshResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=request.idempotency_key,  # idempotency replay gate
         group_id=group_id,
     )
 

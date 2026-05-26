@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.simulation.permissions_context import (
     create_denormalized_snapshot,
     resolve_simulation_values,
@@ -72,12 +73,13 @@ async def create_simulation_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -91,20 +93,21 @@ async def create_simulation_impl(
         department_id for item in items for department_id in (item.department_ids or [])
     ]
 
-    if not compute_can_create(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        department_ids=requested_department_ids or None,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create simulations.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(
+            role_level=profile.role_level, role_permissions=profile.role_permissions,
+            department_ids=requested_department_ids or None,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create simulations.",
+            )
 
     # ── Short-circuit: ack path ───────────────────────────────────────
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -166,6 +169,7 @@ async def create_simulation_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -199,7 +203,8 @@ async def create_simulation_impl(
     has_errors = False
     error_results: list[SimulationResultItem] = []
 
-    for idx, item in enumerate(items):
+    with timed("resolve_values"):
+     for idx, item in enumerate(items):
         item_errors = await resolve_simulation_values(pool, redis, item, is_create=True)
         if item_errors:
             has_errors = True
@@ -227,6 +232,7 @@ async def create_simulation_impl(
 
     snapshot_ids: list[UUID] = []
     if not soft:
+      with timed("snapshot"):
         for item in items:
             practice = False
             if item.flag_ids:
@@ -256,7 +262,8 @@ async def create_simulation_impl(
 
     # ── Step 5: Single transaction — artifact writes ───────────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
                 combined_flag_ids: list[UUID] = list(item.flag_ids or [])
@@ -280,6 +287,7 @@ async def create_simulation_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -302,13 +310,14 @@ async def create_simulation_impl(
 
     # ── Step 7: Refresh via canonical simulation refresh ───────────────
 
-    await refresh_simulation_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (results[0].simulation_id if results else None),
-    )
+    with timed("refresh"):
+        await refresh_simulation_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].simulation_id if results else None),
+        )
 
     return CreateSimulationApiResponse(results=results, idempotency_key=idempotency_key)

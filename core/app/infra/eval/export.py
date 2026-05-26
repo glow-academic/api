@@ -24,11 +24,15 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.files.create import create_file as create_file_resource
+from app.infra.activate.activate import activate_rows
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.artifacts.eval.get import get_evals
 from app.tools.artifacts.eval.search import search_evals
 from app.tools.resources.departments.get import get_departments
@@ -55,6 +59,10 @@ async def export_eval_impl(
     profile_id: UUID,
     session_id: UUID | None = None,
     eval_id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
 ) -> dict:
     """Eval full export using composable infra functions.
 
@@ -71,7 +79,8 @@ async def export_eval_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -79,11 +88,47 @@ async def export_eval_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Short-circuit: ack path — promote/reject a staged export ──────────────
+    # (mirrors persona/create; soft-call keyed by the server call_id which FKs
+    # calls_entry, so the ack arrives with idempotency_key set to the echoed key.)
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact="eval")
+        if entry is None or entry.status != "pending" or entry.operation != "export":
+            raise HTTPException(
+                status_code=404, detail="No pending export for this call.",
+            )
+        ids = entry.patch or {}
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
+                    await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
+                    await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])
+                    await activate_rows(conn, table="file_uploads_entry", ids=[UUID(ids["junction_id"])])
+            await enqueue_refreshes(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                artifact_type="file", targets=["files_mv"], tags=["files"],
+            )
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn, redis, call_id=idempotency_key, artifact="eval",
+                operation="export", artifact_id=entry.artifact_id,
+                status="accepted" if accept else "rejected",
+            )
+        return ExportEvalApiResponse(
+            file_id=entry.artifact_id,
+            file_name=str(ids.get("file_name", "")),
+            row_count=int(ids.get("row_count", 0)),
+            idempotency_key=idempotency_key,
+        )
+
     # ── Step 2: Search all evals (full dump) ────────────────────────
 
-    if eval_id:
+    with timed("query"):
+     if eval_id:
         eval_ids = [eval_id]
-    else:
+     else:
         async with pool.acquire() as conn:
             eval_ids, _total_count = await search_evals(
                 conn,
@@ -95,15 +140,16 @@ async def export_eval_impl(
 
     # ── Step 3: Get eval artifacts with all junction IDs ────────────
 
-    artifacts = await get_evals(
-        pool,
-        eval_ids,
-        names=True,
-        descriptions=True,
-        departments=True,
-        flags=True,
-        models=True,
-    )
+    with timed("hydrate"):
+        artifacts = await get_evals(
+            pool,
+            eval_ids,
+            names=True,
+            descriptions=True,
+            departments=True,
+            flags=True,
+            models=True,
+        )
 
     # ── Step 4: Parallel resource hydration ────────────────────────────
 
@@ -159,11 +205,12 @@ async def export_eval_impl(
 
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("build_csv"):
+     output = io.StringIO()
+     writer = csv.writer(output)
+     writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+     for a in artifacts:
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
             description_map.get(a.description_ids[0], "") if a.description_ids else ""
@@ -188,41 +235,70 @@ async def export_eval_impl(
     csv_content = output.getvalue()
     row_count = len(artifacts)
 
-    csv_bytes = csv_content.encode("utf-8")
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    file_name = f"evals_export_{timestamp}.csv"
-    upload_uuid = uuid_mod.uuid4()
-    relative_path = f"{upload_uuid}.csv"
-    disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    with open(disk_path, "wb") as f:
-        f.write(csv_bytes)
+    with timed("upload"):
+     csv_bytes = csv_content.encode("utf-8")
+     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+     file_name = f"evals_export_{timestamp}.csv"
+     upload_uuid = uuid_mod.uuid4()
+     relative_path = f"{upload_uuid}.csv"
+     disk_path = os.path.join(UPLOAD_FOLDER, relative_path)
+     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+     with open(disk_path, "wb") as f:
+         f.write(csv_bytes)
 
-    async with pool.acquire() as conn:
+     async with pool.acquire() as conn:
         upload_row = await create_upload(
             conn,
-            session_id=session_id,
+            redis, session_id=session_id,
             file_path=relative_path,
             mime_type="text/csv",
             size=len(csv_bytes),
+            soft=soft,
         )
-        resource_row = await create_file_resource(conn, redis)
+        resource_row = await create_file_resource(conn, redis, soft=soft)
         if session_id is not None:
             entry_row = await create_file_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 files_id=resource_row.id,
+                soft=soft,
             )
-            await create_file_upload(
+            junction_row = await create_file_upload(
                 conn,
-                file_id=entry_row.id,
+                redis, file_id=entry_row.id,
                 upload_id=upload_row.id,
                 session_id=session_id,
+                soft=soft,
             )
-            await refresh_files_internal(conn, redis)
+            if soft and call_id is not None:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=call_id,
+                    artifact="eval",
+                    operation="export",
+                    artifact_id=resource_row.id,
+                    status="pending",
+                    patch={
+                        "upload_id": str(upload_row.id),
+                        "resource_id": str(resource_row.id),
+                        "entry_id": str(entry_row.id),
+                        "junction_id": str(junction_row.id),
+                        "file_name": file_name,
+                        "row_count": row_count,
+                    },
+                )
+
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
+        )
 
     return ExportEvalApiResponse(
         file_id=resource_row.id,
         file_name=file_name,
         row_count=row_count,
+        idempotency_key=call_id,
     )

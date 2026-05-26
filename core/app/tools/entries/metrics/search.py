@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.metrics.types import GetMetricsSearchResponse
@@ -12,6 +13,7 @@ MV_NAME = "metrics_mv"
 
 async def search_metrics(
     conn: asyncpg.Connection,
+    redis: Redis,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     limit: int = 20,

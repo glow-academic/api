@@ -40,6 +40,7 @@ async def get_eval(
         if session_id:
             group_result = await group_eval_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -78,6 +79,7 @@ async def get_eval(
             response_model=GetEvalApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "evals"

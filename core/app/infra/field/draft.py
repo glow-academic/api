@@ -18,6 +18,7 @@ from app.infra.field.types import (
     SaveFieldFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.field_drafts.create import create_field_draft
 from app.tools.entries.field_drafts.get import get_field_drafts
@@ -32,6 +33,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_field_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -41,6 +43,7 @@ async def _maybe_auto_accept_field_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -52,7 +55,7 @@ async def _maybe_auto_accept_field_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_field_drafts(conn, [draft_id], active=None)
+        drafts = await get_field_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -69,7 +72,7 @@ async def _maybe_auto_accept_field_draft(
         async with conn.transaction():
             await create_field_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -82,6 +85,7 @@ async def _maybe_auto_accept_field_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -312,30 +316,32 @@ async def patch_field_draft_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit field drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit field drafts.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -345,13 +351,13 @@ async def patch_field_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_field_drafts(conn, [target_id], active=None)
+                drafts = await get_field_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_field_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -365,7 +371,7 @@ async def patch_field_draft_impl(
                     else:
                         await create_field_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -374,6 +380,7 @@ async def patch_field_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -399,19 +406,21 @@ async def patch_field_draft_impl(
             form_state=DraftFormState(),
         )
 
-    async with pool.acquire() as conn:
-        errors = await _resolve_creatable_values(conn, redis, request)
+    with timed("resolve_values"):
+        async with pool.acquire() as conn:
+            errors = await _resolve_creatable_values(conn, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
             detail=[error.model_dump() for error in errors],
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_field_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
                 name=request.name or "",
@@ -430,6 +439,7 @@ async def patch_field_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -476,22 +486,24 @@ async def patch_field_draft_impl(
 
     auto_accepted = False
     if not soft:
-        auto_accepted = await _maybe_auto_accept_field_draft(
-            pool,
-            draft_id=result.id,
-            session_id=session_id,
-            profile_ids=[profile.profiles_id],
-        )
-        await refresh_field_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            targets=["field_drafts_mv"],
-            soft=soft,
-            name=request.name or "",
-            operation_key=result.id,
-        )
+        with timed("auto_accept"):
+            auto_accepted = await _maybe_auto_accept_field_draft(
+                pool, redis,
+                draft_id=result.id,
+                session_id=session_id,
+                profile_ids=[profile.profiles_id],
+            )
+        with timed("refresh"):
+            await refresh_field_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["field_drafts_mv"],
+                soft=soft,
+                name=request.name or "",
+                operation_key=result.id,
+            )
 
     if auto_accepted:
         message = "Draft accepted (all fields resolved)"

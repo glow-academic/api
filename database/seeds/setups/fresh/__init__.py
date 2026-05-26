@@ -31,5 +31,6 @@ AGENT_DEPARTMENT_IDS: list = []
 MODULES = [
     "profiles",
     "logins",
+    "colors",
     "settings",
 ]

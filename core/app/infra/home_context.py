@@ -82,13 +82,13 @@ async def resolve_home_context(
     # Step 2: Parallel raw MV reads (attempt_chats scoped by cohort for superset)
     async def _fetch_homes() -> list:
         async with pool.acquire() as conn:
-            return await search_homes(conn, limit=10000)
+            return await search_homes(conn, redis, limit=10000)
 
     async def _fetch_attempt_chats() -> list:
         async with pool.acquire() as conn:
             items, _ = await search_attempt_chats(
                 conn,
-                cohort_ids=user_cohort_ids,
+                redis, cohort_ids=user_cohort_ids,
                 limit=10000,
             )
             return items
@@ -114,7 +114,7 @@ async def resolve_home_context(
 
     if chat_ids_deduped:
         async with pool.acquire() as conn:
-            all_chats = await get_chats(conn, chat_ids_deduped)
+            all_chats = await get_chats(conn, chat_ids_deduped, redis)
     else:
         all_chats = []
 
@@ -240,7 +240,7 @@ async def resolve_home_search_context(
     async with pool.acquire() as conn:
         all_attempts, _total_count = await search_attempts(
             conn,
-            profile_ids=[profiles_resource_id],
+            redis, profile_ids=[profiles_resource_id],
             practice=False,
             is_archived=False,
             scenario_ids=scenario_ids,
@@ -254,7 +254,7 @@ async def resolve_home_search_context(
     async with pool.acquire() as conn:
         total_attempts, total_count = await search_attempts(
             conn,
-            profile_ids=[profiles_resource_id],
+            redis, profile_ids=[profiles_resource_id],
             practice=False,
             is_archived=False,
             scenario_ids=scenario_ids,
@@ -268,7 +268,7 @@ async def resolve_home_search_context(
     if attempt_ids:
         async with pool.acquire() as conn:
             all_attempt_chats = (
-                await search_attempt_chats(conn, attempt_ids=attempt_ids, limit=10000)
+                await search_attempt_chats(conn, redis, attempt_ids=attempt_ids, limit=10000)
             )[0]
     else:
         all_attempt_chats = []

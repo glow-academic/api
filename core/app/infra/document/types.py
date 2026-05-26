@@ -28,6 +28,7 @@ class GetDocumentDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetDocumentDraftsApiResponse(BaseModel):
@@ -397,7 +398,8 @@ class CreateDocumentApiRequest(BaseModel):
 
     documents: list[CreateDocumentItem] = Field(..., description="List of documents to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class CreateDocumentApiResponse(BaseModel):
@@ -488,7 +490,8 @@ class UpdateDocumentApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class UpdateDocumentApiResponse(BaseModel):
@@ -545,7 +548,8 @@ class DeleteDocumentApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
-    accept: bool = Field(True, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
 class DeleteDocumentResult(BaseModel):
@@ -571,7 +575,8 @@ class DuplicateDocumentApiRequest(BaseModel):
 
     document_id: UUID = Field(..., description="Document UUID to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DuplicateDocumentApiResponse(BaseModel):
@@ -659,7 +664,8 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     parameter_ids: list[UUID] | None = Field(None, description="Parameter UUIDs")
     pending_ids: list[UUID] | None = Field(None, description="Resource IDs to keep as pending where supported by the tool layer")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack or retry")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class DraftFormState(BaseModel):
@@ -700,6 +706,7 @@ class ExportDocumentApiRequest(BaseModel):
     """Request model for document export."""
 
     document_id: UUID | None = Field(None, description="Document UUID to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
 
 class ExportDocumentApiResponse(BaseModel):
@@ -721,6 +728,11 @@ class TextUploadDocumentApiResponse(BaseModel):
 
     text_id: UUID = Field(..., description="UUID of the created texts_resource")
     upload_id: UUID = Field(..., description="UUID of the uploads_entry (file on disk)")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Server-minted soft-call key (the audit call_id). On a soft "
+        "propose, echo this back with `accept` to promote/reject the staged upload.",
+    )
 
 
 class TextDownloadDocumentApiRequest(BaseModel):
@@ -751,6 +763,42 @@ class FileUploadDocumentApiResponse(BaseModel):
     """Response model for document file upload endpoint."""
 
     file_id: UUID = Field(..., description="UUID of the created files_resource")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Server-minted soft-call key (the audit call_id). On a soft "
+        "propose, echo this back with `accept` to promote/reject the staged upload.",
+    )
+
+
+class ImageUploadDocumentApiResponse(BaseModel):
+    """Response model for document image upload endpoint. Mirrors scenario."""
+
+    image_id: UUID = Field(..., description="UUID of the created images_resource")
+    upload_id: UUID = Field(..., description="UUID of the underlying uploads_entry")
+    idempotency_key: UUID | None = Field(
+        None,
+        description="Server-minted soft-call key (the audit call_id). On a soft "
+        "propose, echo this back with `accept` to promote/reject the staged upload.",
+    )
+
+
+class ImageDownloadDocumentApiRequest(BaseModel):
+    """Request model for document image download endpoint. Mirrors scenario."""
+
+    image_id: UUID = Field(..., description="UUID of the images_resource to download")
+
+
+class ImageDownloadDocumentApiResult(BaseModel):
+    """Resolved file info returned by the infra function.
+
+    The transport layer (HTTP/WS) uses this to serve the file appropriately.
+    """
+
+    upload_id: UUID = Field(..., description="UUID of the uploads_entry")
+    file_path: str = Field(..., description="Absolute path to the file on disk")
+    content_type: str = Field(..., description="MIME type of the file")
+    filename: str = Field(..., description="Original filename for Content-Disposition")
+    size: int = Field(..., description="File size in bytes")
 
 
 class FileDownloadDocumentApiRequest(BaseModel):
@@ -791,6 +839,7 @@ class GenerationsDocumentApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsDocumentListItem(BaseModel):
@@ -821,7 +870,7 @@ class ProblemDocumentApiRequest(BaseModel):
     type: str = Field(..., description="Problem type: feature, bug, question, other")
     message: str = Field(..., description="Problem description (max 1000 chars)")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant problem")
-    accept: bool = Field(True, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
+    accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
 class ProblemDocumentApiResponse(BaseModel):

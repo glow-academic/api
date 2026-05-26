@@ -34,6 +34,7 @@ from app.infra.department.types import (
     ListDepartmentApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.department.get import get_departments
 from app.tools.artifacts.department.search import (
     search_departments as search_department_artifacts,
@@ -137,7 +138,8 @@ async def _search_department_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -150,7 +152,8 @@ async def _search_department_build(
 
     # ── Step 2: Search departments ─────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         department_ids, total_count = await search_department_artifacts(
             conn,
             search=search,
@@ -162,7 +165,7 @@ async def _search_department_build(
     from app.tools.entries.soft_calls.search import search_soft_calls
     async with pool.acquire() as conn:
         pending_entries = await search_soft_calls(
-            conn, artifact="department", status="pending", limit=1000,
+            conn, redis, artifact="department", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -299,13 +302,14 @@ async def _search_department_build(
     staff_tasks = [_fetch_staff(a.department_ids) for a in artifacts]
 
     # Gather all
-    results = await asyncio.gather(
-        _fetch_names(),
-        _fetch_descriptions(),
-        _fetch_flag_facet(),
-        *perm_tasks,
-        *staff_tasks,
-    )
+    with timed("hydrate"):
+        results = await asyncio.gather(
+            _fetch_names(),
+            _fetch_descriptions(),
+            _fetch_flag_facet(),
+            *perm_tasks,
+            *staff_tasks,
+        )
 
     names_data = results[0]
     descriptions_data = results[1]
@@ -323,7 +327,8 @@ async def _search_department_build(
 
     departments: list[ListDepartmentApiDepartment] = []
 
-    for i, a in enumerate(artifacts):
+    with timed("build"):
+     for i, a in enumerate(artifacts):
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

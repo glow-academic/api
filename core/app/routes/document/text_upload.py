@@ -1,11 +1,18 @@
 """Document text upload endpoint — composable infra architecture.
 
 Thin route handler. Core logic lives in app.infra.document.text_upload.
+
+Soft/accept (canonical lifecycle): a propose call uploads the text with
+``soft=true`` (staged dormant); the ack posts ``{idempotency_key, accept}`` with
+NO file (``file`` is optional) to promote/reject. ``accept`` is placed in the audit
+``arguments`` on the ack so the replay gate's ``_is_bare_ack`` skips it.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response, UploadFile
+from uuid import UUID
+
+from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 
 from app.infra.document.group import group_document_impl
 from app.infra.document.text_upload import text_upload_document_impl
@@ -30,11 +37,14 @@ ALLOWED_TEXT_TYPES = {
 
 @router.post("/text_upload", response_model=TextUploadDocumentApiResponse)
 async def upload_text(
-    file: UploadFile,
     http_request: Request,
     response: Response,
+    file: UploadFile | None = File(None),
+    idempotency_key: UUID | None = Form(None),
+    soft: bool = Form(False),
+    accept: bool | None = Form(None),
 ) -> TextUploadDocumentApiResponse:
-    """Upload a text file for later use in documents."""
+    """Upload a text file for later use in documents (soft/accept dormant flow)."""
     try:
         profile_id = http_request.state.profile_id
         session_id = http_request.state.session_id
@@ -44,22 +54,33 @@ async def upload_text(
                 detail="Profile ID is required. Please sign in again.",
             )
 
-        # -- Validate file ------------------------------------------------------
-        if not file.filename:
-            raise HTTPException(status_code=400, detail="Missing filename")
+        is_ack = accept is not None and idempotency_key is not None
 
-        content_type = file.content_type or get_content_type(file.filename)
-        if content_type not in ALLOWED_TEXT_TYPES:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported text type: {content_type}",
-            )
+        if is_ack:
+            # Ack call: no file. Carry `accept` in arguments so the replay gate's
+            # _is_bare_ack skips it (don't replay the propose receipt).
+            file_bytes = None
+            filename = None
+            content_type = None
+            arguments: dict = {"accept": accept}
+        else:
+            if file is None or not file.filename:
+                raise HTTPException(status_code=400, detail="Missing file")
+            content_type = file.content_type or get_content_type(file.filename)
+            if content_type not in ALLOWED_TEXT_TYPES:
+                raise HTTPException(
+                    status_code=400, detail=f"Unsupported text type: {content_type}",
+                )
+            file_bytes = await file.read()
+            if not file_bytes:
+                raise HTTPException(status_code=400, detail="Empty file")
+            filename = file.filename
+            arguments = {
+                "filename": filename,
+                "content_type": content_type,
+                "size": len(file_bytes),
+            }
 
-        file_bytes = await file.read()
-        if not file_bytes:
-            raise HTTPException(status_code=400, detail="Empty file")
-
-        # -- Run with audit -----------------------------------------------------
         pool = get_pool()
         redis = get_redis_client()
 
@@ -68,18 +89,25 @@ async def upload_text(
         if session_id:
             group_result = await group_document_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
-        async def _runner() -> TextUploadDocumentApiResponse:
+        # ``call_id`` is threaded in by the audit wrapper (signature opt-in) —
+        # it's the server-minted calls_entry id the soft ledger keys on.
+        async def _runner(call_id: UUID | None = None) -> TextUploadDocumentApiResponse:
             return await text_upload_document_impl(
                 pool,
                 redis,
                 profile_id=profile_id,
                 session_id=session_id,
                 file_bytes=file_bytes,
-                filename=file.filename,
+                filename=filename,
                 content_type=content_type,
+                soft=soft,
+                accept=accept,
+                idempotency_key=idempotency_key,
+                call_id=call_id,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -90,14 +118,11 @@ async def upload_text(
             session_id=session_id,
             group_id=group_id,
             operation="text_upload",
-            arguments={
-                "filename": file.filename,
-                "content_type": content_type,
-                "size": len(file_bytes),
-            },
+            arguments=arguments,
             response_model=TextUploadDocumentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "uploads,resources,texts"

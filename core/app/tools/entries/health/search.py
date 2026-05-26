@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.health.types import GetHealthResponse
@@ -12,6 +13,7 @@ MV_NAME = "health_mv"
 
 async def search_health(
     conn: asyncpg.Connection,
+    redis: Redis,
     service: str | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,

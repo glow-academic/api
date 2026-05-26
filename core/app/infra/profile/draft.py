@@ -21,6 +21,7 @@ from app.infra.profile.types import (
     SaveProfileFieldError,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.profile_drafts.create import create_profile_draft
 from app.tools.entries.profile_drafts.get import get_profile_drafts
@@ -44,6 +45,7 @@ from app.tools.resources.roles.search import search_roles
 
 async def _maybe_auto_accept_profile_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -53,6 +55,7 @@ async def _maybe_auto_accept_profile_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -64,7 +67,7 @@ async def _maybe_auto_accept_profile_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_profile_drafts(conn, [draft_id], active=None)
+        drafts = await get_profile_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -82,7 +85,7 @@ async def _maybe_auto_accept_profile_draft(
         async with conn.transaction():
             await create_profile_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -96,6 +99,7 @@ async def _maybe_auto_accept_profile_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -347,12 +351,13 @@ async def patch_profile_draft_impl(
     if accept is None and idempotency_key is not None:
         accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -370,7 +375,7 @@ async def patch_profile_draft_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -380,13 +385,13 @@ async def patch_profile_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_profile_drafts(conn, [target_id], active=None)
+                drafts = await get_profile_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_profile_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -401,7 +406,7 @@ async def patch_profile_draft_impl(
                     else:
                         await create_profile_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -410,6 +415,7 @@ async def patch_profile_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -435,14 +441,16 @@ async def patch_profile_draft_impl(
             form_state=DraftFormState(),
         )
 
-    errors = await _resolve_creatable_values(pool, redis, request)
+    with timed("resolve_values"):
+        errors = await _resolve_creatable_values(pool, redis, request)
     if errors:
         raise HTTPException(
             status_code=400,
             detail=[error.model_dump() for error in errors],
         )
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             primary_departments_resource_id: UUID | None = None
             if request.primary_department_id is not None:
@@ -456,7 +464,7 @@ async def patch_profile_draft_impl(
 
             result = await create_profile_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=idempotency_key,
                 soft=soft,
                 name=request.name or "",
@@ -477,6 +485,7 @@ async def patch_profile_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -562,21 +571,22 @@ async def patch_profile_draft_impl(
     auto_accepted = False
     if not soft:
         auto_accepted = await _maybe_auto_accept_profile_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],
         )
 
     if not soft:
-        await refresh_profile_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            targets=["profile_drafts_mv"],
-            operation_key=result.id,
-        )
+        with timed("refresh"):
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                targets=["profile_drafts_mv"],
+                operation_key=result.id,
+            )
 
     if auto_accepted:
         message = "Draft accepted (all fields resolved)"

@@ -66,9 +66,9 @@ async def video_download_scenario_impl(
     # Try resource filter first, then entry filter. Same idea as
     # ``image_download_scenario_impl``.
     async with pool.acquire() as conn:
-        results = await search_videos(conn, videos_ids=[video_id], limit=1)
+        results = await search_videos(conn, redis, videos_ids=[video_id], limit=1)
         if not results:
-            results = await search_videos(conn, video_ids=[video_id], limit=1)
+            results = await search_videos(conn, redis, video_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

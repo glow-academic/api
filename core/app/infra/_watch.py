@@ -59,6 +59,15 @@ class WatchApiRequest(BaseModel):
         le=600,
         description="Max wait time when ``wait_for_complete=True``.",
     )
+    snapshot_key: str | None = Field(
+        None,
+        description=(
+            "Read snapshot key — on the one-shot POST /watch, the audit wrapper "
+            "records this watch's point-in-time view (latest run state at call "
+            "time) keyed by it and replays the same view on any later call with "
+            "the same key. Ignored by the SSE GET stream."
+        ),
+    )
 
 
 class RunStatus(BaseModel):

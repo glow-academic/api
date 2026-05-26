@@ -36,6 +36,7 @@ async def resolve_runs_context(
 
     Defaults date_from and date_to to today if not provided.
     """
+    from app.infra.globals import get_redis_client
     now = datetime.now(UTC)
     start = date_from or now.replace(hour=0, minute=0, second=0, microsecond=0)
     end = date_to or now
@@ -43,6 +44,7 @@ async def resolve_runs_context(
     async with pool.acquire() as conn:
         items, total_count = await search_runs(
             conn,
+            get_redis_client(),
             group_ids=[group_id] if group_id else None,
             profiles_ids=[profile_id],
             date_from=start,

@@ -1,6 +1,7 @@
 """Shared test workflow logic, transport-agnostic apart from emitted payload shape."""
 
 from __future__ import annotations
+from app.infra.globals import get_redis_client
 
 import uuid
 from typing import Any
@@ -9,6 +10,34 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.websocket.socket_event import EmitFn, client_event, internal_event
+from app.infra.server_timing import timed
+
+
+def _find_next_run_id(runs: list[Any], prev_run_id: str | None) -> str | None:
+    """Return the next run's id after the one matching ``prev_run_id``.
+
+    Used by ``test_group_impl`` to advance through a sorted list of runs in a
+    test group. ``runs`` is whatever ``search_runs(...)`` returns — duck-typed
+    on a ``.run_id`` attribute. ``prev_run_id`` is the previously-completed
+    run's id (or ``None`` if we haven't started yet).
+
+    Returns ``None`` when:
+      - the list is empty,
+      - ``prev_run_id`` doesn't match any run in the list,
+      - or the matched run is the last one.
+
+    When ``prev_run_id`` is ``None``, returns the first run's id.
+    """
+    if not runs:
+        return None
+    if prev_run_id is None:
+        return runs[0].run_id
+    for idx, run in enumerate(runs):
+        if run.run_id == prev_run_id:
+            if idx + 1 < len(runs):
+                return runs[idx + 1].run_id
+            return None
+    return None
 
 
 async def test_progress_impl(
@@ -162,6 +191,7 @@ async def test_grade_complete_impl(
     profile_id: str,
 ) -> None:
     """Handle test grade completion and emit test_grade_progress."""
+    redis = get_redis_client()
     from app.infra.websocket.test_types import TestGradedData
     from app.tools.entries.tokens.create import create_token
     from app.utils.logging.db_logger import get_logger
@@ -184,7 +214,7 @@ async def test_grade_complete_impl(
         if run_id and session_id:
             async with pool.acquire() as conn:
                 await create_token(
-                    conn,
+                    conn, redis,
                     run_id=uuid.UUID(run_id),
                     session_id=uuid.UUID(session_id),
                     input_tokens=input_tokens,
@@ -231,6 +261,7 @@ async def test_group_impl(
     pool: asyncpg.Pool,
 ) -> None:
     """Orchestrate sequential runs within a group."""
+    redis = get_redis_client()
     from app.infra.test.client_types import TestGroupPayload
     from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.runs.search import search_runs
@@ -258,12 +289,12 @@ async def test_group_impl(
         group_id = uuid.UUID(str(group_id_raw))
         prev_run_id = payload.prev_run_id
 
-        async with pool.acquire() as conn:
+        with timed("fetch_runs"):
+          async with pool.acquire() as conn:
             runs, _ = await search_runs(
-                conn,
+                conn, redis,
                 group_ids=[group_id],
                 sort_order="asc",
-                bypass_mv=True,
                 limit=1000,
             )
 
@@ -323,6 +354,7 @@ async def test_next_impl(
     pool: asyncpg.Pool,
 ) -> None:
     """Find next invocation with pending runs and emit test_run or test_all_complete."""
+    redis = get_redis_client()
     sid = data.get("sid", "")
     if not sid:
         return
@@ -354,12 +386,12 @@ async def test_next_impl(
         return
 
     try:
-        async with pool.acquire() as conn:
+        with timed("fetch_runs"):
+          async with pool.acquire() as conn:
             invocations, _total_count = await search_test_invocation_entries_internal(
-                conn,
+                conn, redis,
                 test_ids=[test_id],
                 limit=1000,
-                bypass_mv=True,
             )
     except Exception as e:
         logger.exception(f"Error in test_next: {e}")
@@ -458,17 +490,16 @@ async def test_start_impl(
     redis: Redis | None = None,
 ) -> None:
     """Create test via black boxes, optional benchmark bridge, delegate to test_proceed."""
+    redis = get_redis_client()
     from app.infra.group.resolve import resolve_group_impl
     from app.infra.websocket.test_types import TestErrorData
     from app.tools.entries.benchmark_test.create import create_benchmark_test
     from app.tools.entries.calls.create import create_call
     from app.tools.entries.runs.create import create_run
     from app.tools.entries.sessions.create import create_session
+    from app.infra.invocation.refresh import refresh_invocation_impl
+    from app.infra.test.refresh import refresh_test_impl
     from app.tools.entries.test.create import create_test
-    from app.tools.entries.test.refresh import refresh_test
-    from app.tools.entries.test_invocation.refresh import (
-        refresh_test_invocation,
-    )
     from app.utils.cache.invalidate_tags import invalidate_tags
     from app.utils.logging.db_logger import get_logger
 
@@ -488,6 +519,11 @@ async def test_start_impl(
     eval_id_raw = data.get("eval_id") or data.get("benchmark_id")
     eval_id = uuid.UUID(str(eval_id_raw)) if eval_id_raw else None
     infinite_mode = data.get("infinite_mode", False)
+    # Soft/accept staging: create the test + junction dormant and stash a
+    # pending soft_call keyed by the wrapper call_id (threaded in via data).
+    soft = bool(data.get("soft", False))
+    call_id_raw = data.get("call_id")
+    soft_call_id = uuid.UUID(str(call_id_raw)) if call_id_raw else None
     profiles_id_str = data.get("profiles_id")
     if not profiles_id_str:
         logger.error("profiles_id missing from test_start payload")
@@ -502,29 +538,31 @@ async def test_start_impl(
             session_id = uuid.UUID(session_id_str)
         else:
             async with pool.acquire() as conn:
-                session_id = (await create_session(conn, profile_id=profiles_id)).id
+                session_id = (await create_session(conn, redis, profile_id=profiles_id)).id
 
         if redis is None:
             logger.error("test_start_impl requires redis for canonical group resolve")
             return
 
-        group_result = await resolve_group_impl(
-            pool, redis,
-            artifact_type="test",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = group_result.group_id
+        with timed("group"):
+            group_result = await resolve_group_impl(
+                pool, redis,
+                artifact_type="test",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = group_result.group_id
 
-        async with pool.acquire() as conn:
+        with timed("db_write"):
+         async with pool.acquire() as conn:
             # Resolve eval → parent benchmark + dynamic flag.
             benchmark_id: uuid.UUID | None = None
             is_dynamic = True
             if eval_id:
                 from app.tools.entries.benchmark.search import search_benchmarks
                 benchmarks = await search_benchmarks(
-                    conn, eval_ids=[eval_id], limit=1, bypass_mv=True,
+                    conn, redis, eval_ids=[eval_id], limit=1,
                 )
                 if not benchmarks:
                     raise ValueError(f"No benchmark found for eval {eval_id}")
@@ -533,27 +571,29 @@ async def test_start_impl(
 
             run_id = (
                 await create_run(
-                    conn,
+                    conn, redis,
                     group_id=group_id,
                     session_id=session_id,
                 )
             ).id
-            call_id = (await create_call(conn, run_id=run_id, session_id=session_id)).id
+            call_id = (await create_call(conn, redis, run_id=run_id, session_id=session_id)).id
             result = await create_test(
-                conn,
+                conn, redis,
                 call_id=call_id,
                 profiles_id=profiles_id,
                 infinite_mode=infinite_mode,
                 is_dynamic=is_dynamic,
+                soft=soft,
             )
             test_id = result.id
 
             if benchmark_id is not None:
                 await create_benchmark_test(
-                    conn,
+                    conn, redis,
                     benchmark_id=benchmark_id,
                     test_id=test_id,
                     session_id=session_id,
+                    soft=soft,
                 )
 
             # No pre-seeding of test_invocation_entry rows. Mirrors
@@ -574,8 +614,17 @@ async def test_start_impl(
                         f"Failed to store generation_test_link for test {test_id}"
                     )
 
-            await refresh_test(conn)
-            await refresh_test_invocation(conn)
+        # Dormant (soft) rows won't surface in the MVs — defer refresh +
+        # invalidation to the ack (accept) so a staged test costs nothing.
+        if not soft:
+            await refresh_test_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["test_mv"],
+            )
+            await refresh_invocation_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                targets=["test_invocation_mv"],
+            )
             if redis:
                 await invalidate_tags(["test", "tests", "benchmark"], redis=redis)
 
@@ -594,10 +643,25 @@ async def test_start_impl(
                     search_invocations,
                 )
                 templates = await search_invocations(
-                    conn, benchmark_ids=[benchmark_id], limit=1,
+                    conn, redis, benchmark_ids=[benchmark_id], limit=1,
                 )
                 if templates:
                     first_invocation_id = str(templates[0].id)
+
+        # Soft: stash the staged test as a pending soft_call (keyed by the
+        # server call_id) so the ack can activate test_entry + the junction.
+        if soft and soft_call_id is not None:
+            from app.tools.entries.soft_calls.create import create_soft_call
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn, redis, call_id=soft_call_id, artifact="test",
+                    operation="start", artifact_id=test_id, status="pending",
+                    patch={
+                        "test_id": str(test_id),
+                        "invocation_id": first_invocation_id,
+                        "benchmark_id": str(benchmark_id) if benchmark_id else None,
+                    },
+                )
 
         data["_result"] = {
             "test_id": str(test_id),

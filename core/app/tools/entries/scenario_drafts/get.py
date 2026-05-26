@@ -3,14 +3,19 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_scenario_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
     active: bool | None = True,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetScenarioDraftResponse]:
     """Get scenario_drafts entries by IDs with connection data.
 
@@ -20,6 +25,24 @@ async def get_scenario_drafts(
     """
     if not ids:
         return []
+
+    cached_results: dict[str, GetScenarioDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for did in ids:
+            cached = await read_back_row(redis, "scenario_drafts", did)
+            if cached is not None:
+                # Honor `active` filter on the cached row
+                if active is not None and cached.get("active") != active:
+                    continue
+                cached_results[str(did)] = GetScenarioDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(did)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(did)] for did in ids if str(did) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -76,12 +99,13 @@ async def get_scenario_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
         active,
     )
 
-    return [
-        GetScenarioDraftResponse(
+    mv_results: dict[str, GetScenarioDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetScenarioDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -117,5 +141,12 @@ async def get_scenario_drafts(
             pending_flag_ids=r["pending_flag_ids"],
             pending_parameter_field_ids=r["pending_parameter_field_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetScenarioDraftResponse] = []
+    for did in ids:
+        key = str(did)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

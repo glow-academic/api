@@ -18,6 +18,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.docs.build_profile_summary import build_profile_summary
+from app.infra.server_timing import timed
 from app.infra.docs.get_operation_info import get_operation_info
 from app.infra.docs.types import (
     CallerPermissions,
@@ -81,6 +82,7 @@ async def page_context_tool_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -90,6 +92,7 @@ async def page_context_tool_impl(
         key=big_cache_key("tool/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "tool", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -98,6 +101,7 @@ async def page_context_tool_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -109,6 +113,7 @@ async def _page_context_tool_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Tool page context.
 
@@ -124,7 +129,8 @@ async def _page_context_tool_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -136,34 +142,50 @@ async def _page_context_tool_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_tool_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_tool_docs(conn)
 
     async def _get_tool_drafts_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_tool_drafts_docs(conn)
 
     async def _get_names_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_flags_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_args_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_args_docs(conn)
 
     async def _get_arg_positions_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_arg_positions_docs(conn)
 
     async def _get_args_outputs_docs() -> list:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_args_outputs_docs(conn)
 
@@ -181,7 +203,8 @@ async def _page_context_tool_build(
             return None
         return await _resolve_entity_name(pool, redis, entity_id)
 
-    (
+    with timed("docs"):
+     (
         artifact,
         drafts,
         names,
@@ -192,7 +215,7 @@ async def _page_context_tool_build(
         args_outputs,
         entity_perms,
         entity_name,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_tool_docs(),
         _get_tool_drafts_docs(),
         _get_names_docs(),
@@ -258,7 +281,8 @@ async def _page_context_tool_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("profile_summary"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 
@@ -312,17 +336,17 @@ async def _page_context_tool_build(
             "Each tool links to resources (names, descriptions, flags, args, "
             "arg_positions, args_outputs) via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             flags,
             args,
             arg_positions,
             args_outputs,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the tool.",
@@ -347,8 +371,8 @@ async def _page_context_tool_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_tool,
                 description="POST /get — Get a single tool by ID with hydrated resources.",
@@ -381,7 +405,7 @@ async def _page_context_tool_build(
                 export_tools,
                 description="POST /export — Export tools as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

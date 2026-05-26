@@ -16,16 +16,17 @@ import asyncpg
 from fastapi import HTTPException
 
 from app.infra.common_context import resolve_common_context
+from app.infra.runs_context import resolve_runs_context
 from app.infra.globals import get_redis_client
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.session.context import resolve_session_context
+from app.infra.server_timing import timed
 from app.infra.session.types import (
     ArtifactSessionGroup,
     GetSessionDetailResponse,
     SessionInternalData,
     SessionTimelineItem,
 )
-from app.infra.tool_graph import score_tools
 from app.tools.resources.agents.get import get_agents
 from app.tools.resources.models.get import get_models
 from app.tools.resources.providers.get import get_providers
@@ -34,10 +35,6 @@ from app.tools.resources.tools.get import get_tools
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
-
-# Session entry types for tool scoring
-SESSION_BUNDLE_ENTRIES: set[str] = {"problems"}
-
 
 # =============================================================================
 # Layer 1: Core data fetcher (context resolver → pure Python assembly)
@@ -60,24 +57,26 @@ async def get_session_impl(
 
     # Resolve common/profile context first so session queries can use the
     # canonical profiles_resource id expected by sessions_mv.
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("permissions"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            bypass_cache=bypass_cache,
+        )
 
     session_profile_id = (
         common.profile.profiles_id if common is not None else profile_id
     )
 
-    ctx = await resolve_session_context(
-        pool,
-        redis,
-        session_id=session_id,
-        profile_id=session_profile_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("resolve_session"):
+        ctx = await resolve_session_context(
+            pool,
+            redis,
+            session_id=session_id,
+            profile_id=session_profile_id,
+            bypass_cache=bypass_cache,
+        )
 
     # Extract domain entries from session context
     session = ctx.entries.get("session")
@@ -117,15 +116,11 @@ async def get_session_impl(
     resource_system_ids: dict[str, UUID | None] = {}
 
     if common:
-        scores = score_tools(common.tool_graph, SESSION_BUNDLE_ENTRIES)
-        resource_agent_ids = {
-            target: (tool.agent_id if tool else None)
-            for target, tool in scores.best.items()
-        }
-        resource_system_ids = {
-            target: (tool.system_id if tool else None)
-            for target, tool in scores.best.items()
-        }
+        # Tool-graph scoring decoration is dead weight — the client
+        # always shows "AI generate" regardless and the actual agent
+        # dispatch happens server-side in ``prepare_generation``.
+        # Keep empty maps to preserve the response shape.
+        pass
 
         # Hydrate config chain from tool_graph
         all_system_ids = list(
@@ -152,11 +147,12 @@ async def get_session_impl(
             async with pool.acquire() as c:
                 return await get_tools(c, all_tool_ids, redis, bypass_cache)
 
-        config_systems, config_agents, config_tools = await asyncio.gather(
-            _fetch_systems(),
-            _fetch_agents(),
-            _fetch_tools_config(),
-        )
+        with timed("hydrate"):
+            config_systems, config_agents, config_tools = await asyncio.gather(
+                _fetch_systems(),
+                _fetch_agents(),
+                _fetch_tools_config(),
+            )
 
         # Walk agent → model → provider chain
         model_ids = list(dict.fromkeys(a.model_id for a in config_agents if a.model_id))
@@ -181,7 +177,10 @@ async def get_session_impl(
                 pool, [common.profile.profiles_id], redis, bypass_cache
             )
 
-        runs_today = common.runs if common.runs else None
+        # Direct call — runs is no longer carried on CommonContext.
+        runs_today = await resolve_runs_context(
+            pool, profile_id=common.profile.profiles_id,
+        )
 
     return SessionInternalData(
         session_exists=True,
@@ -276,7 +275,8 @@ async def get_session_detail_impl(
             )
         )
 
-    timeline = _build_timeline(data)
+    with timed("build"):
+        timeline = _build_timeline(data)
 
     return GetSessionDetailResponse(
         actor_name=data.actor_name,

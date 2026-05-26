@@ -228,6 +228,9 @@ async def _call_chat_completions_api(
 # ---------------------------------------------------------------------------
 
 
+from app.infra.server_timing import timed
+
+
 async def execute_generation(
     pool: Any,
     redis: Any,
@@ -250,6 +253,16 @@ async def execute_generation(
     internal_sio = get_internal_sio()
     emit = make_emit()
     run_id = prepared.run_id
+
+    # Flip the eval contextvar for this task + its descendants. Every
+    # ``create_soft_call`` invocation downstream (300+ callsites across
+    # the impl tree) will tag its ledger row ``eval=true`` automatically
+    # via the contextvar default. ``asyncio.gather`` / ``create_task``
+    # inherit contextvars per PEP 567, so parallel agent fan-out picks
+    # this up without per-task plumbing.
+    if prepared.eval:
+        from app.infra.events.eval_context import set_eval_mode
+        set_eval_mode(True)
 
     total_result = ExecuteGenerationResult(run_id=run_id)
 
@@ -315,31 +328,32 @@ async def execute_generation(
 
     # Run all agent dispatches in parallel (enables A/B evals when
     # multiple agents in the winning system handle the same operations)
-    if len(prepared.dispatches) > 1:
-        import asyncio
-        agent_results = await asyncio.gather(
-            *[_run_one(dispatch) for dispatch in prepared.dispatches],
-            return_exceptions=True,
-        )
-        for agent_result in agent_results:
-            if isinstance(agent_result, Exception):
-                logger.error(f"Agent dispatch failed: {agent_result}")
-                continue
-            if agent_result is None:
-                continue
-            total_result.total_input_tokens += agent_result.total_input_tokens
-            total_result.total_output_tokens += agent_result.total_output_tokens
-            total_result.tool_results.extend(agent_result.tool_results)
-            total_result.assistant_output = agent_result.assistant_output
-            total_result.reasoning_output = agent_result.reasoning_output
-    elif prepared.dispatches:
-        agent_result = await _run_one(prepared.dispatches[0])
-        if agent_result is not None:
-            total_result.total_input_tokens += agent_result.total_input_tokens
-            total_result.total_output_tokens += agent_result.total_output_tokens
-            total_result.tool_results.extend(agent_result.tool_results)
-            total_result.assistant_output = agent_result.assistant_output
-            total_result.reasoning_output = agent_result.reasoning_output
+    with timed("model_call"):
+        if len(prepared.dispatches) > 1:
+            import asyncio
+            agent_results = await asyncio.gather(
+                *[_run_one(dispatch) for dispatch in prepared.dispatches],
+                return_exceptions=True,
+            )
+            for agent_result in agent_results:
+                if isinstance(agent_result, Exception):
+                    logger.error(f"Agent dispatch failed: {agent_result}")
+                    continue
+                if agent_result is None:
+                    continue
+                total_result.total_input_tokens += agent_result.total_input_tokens
+                total_result.total_output_tokens += agent_result.total_output_tokens
+                total_result.tool_results.extend(agent_result.tool_results)
+                total_result.assistant_output = agent_result.assistant_output
+                total_result.reasoning_output = agent_result.reasoning_output
+        elif prepared.dispatches:
+            agent_result = await _run_one(prepared.dispatches[0])
+            if agent_result is not None:
+                total_result.total_input_tokens += agent_result.total_input_tokens
+                total_result.total_output_tokens += agent_result.total_output_tokens
+                total_result.tool_results.extend(agent_result.tool_results)
+                total_result.assistant_output = agent_result.assistant_output
+                total_result.reasoning_output = agent_result.reasoning_output
 
     return total_result
 
@@ -388,17 +402,6 @@ async def _execute_agent_dispatch(
     if LITELLM_AVAILABLE and hasattr(litellm, "aresponses"):
         api_mode = "responses"
     logger.info(f"EXECUTE_GEN: api_mode={api_mode}, model={llm_config['model']}, tools={len(dispatch.tools or [])}")
-
-    # ── Benchmark replay tape state ───────────────────────────────────
-    # When the run was prepared from a trace (prepared.replay_tape set),
-    # tool calls are served from the historical recording instead of
-    # running the impl. Per-permission consumption counter: calls
-    # resolving to (artifact, operation) consume tape entries with that
-    # pair in chronological order. The historical tool_id doesn't
-    # matter — user can swap to any tool granting the same permission
-    # and still get the canned output. Divergence (no remaining match)
-    # returns a graceful soft error.
-    replay_consumed: dict[tuple[str, str], int] = {}
 
     # Agentic loop state
     chat_messages = list(messages)
@@ -700,61 +703,12 @@ async def _execute_agent_dispatch(
                 td = tool_def_by_name.get(tool_name)
                 call_success: bool
 
-                # ── Benchmark replay tape substitution ────────────────
-                # When the run is a benchmark replay, every tool call is
-                # served from the historical recording. The impl is
-                # never invoked; no rows are written to calls_entry,
-                # soft_calls_entry, or any artifact table. The model
-                # sees byte-identical historical raw_output regardless
-                # of args or which tool it picked. Match key is
-                # (artifact, operation) so the user can swap a
-                # historical tool for any other tool granting the same
-                # permission. Divergence (LLM calls a tool whose op
-                # isn't in the tape, or exhausts entries for that op)
-                # returns a graceful soft error so the model can adapt.
-                replay_tape = prepared.replay_tape
-                if td and replay_tape is not None:
-                    route = _resolve_tool_route(td)
-                    if route is None:
-                        # Multi-op tool — replay tape can't single-op
-                        # match. Soft error.
-                        tool_result_str = json.dumps({
-                            "success": False,
-                            "message": (
-                                f"Tool '{tool_name}' grants multiple permissions; "
-                                f"benchmark replay needs a single-permission tool."
-                            ),
-                        })
-                        call_success = False
-                    else:
-                        used = replay_consumed.get(route, 0)
-                        matches = [
-                            e for e in replay_tape
-                            if (e.artifact, e.operation) == route
-                        ]
-                        if used < len(matches):
-                            entry = matches[used]
-                            replay_consumed[route] = used + 1
-                            raw_output = entry.raw_output
-                            if isinstance(raw_output, dict):
-                                tool_result_str = json.dumps(raw_output)
-                                call_success = bool(raw_output.get("success", True))
-                            else:
-                                tool_result_str = (
-                                    str(raw_output) if raw_output is not None else ""
-                                )
-                                call_success = True
-                        else:
-                            tool_result_str = json.dumps({
-                                "success": False,
-                                "message": (
-                                    f"No remaining historical response for "
-                                    f"{route[0]}.{route[1]} in the benchmark "
-                                    f"replay tape."
-                                ),
-                            })
-                            call_success = False
-                elif not td:
+                # Eval runs dispatch live (no replay tape). The
+                # ``soft=True`` + ``eval=True`` flags on InfraContext
+                # below stage every write as dormant + tag the
+                # soft_calls ledger so the UI filters eval entries
+                # out of normal listings.
+                if not td:
                     tool_result_str = json.dumps({
                         "success": False,
                         "message": f"Tool not found: {tool_name}",
@@ -772,6 +726,7 @@ async def _execute_agent_dispatch(
                             run_id=run_id,
                             sid=sid,
                             soft=tool_soft,
+                            eval=prepared.eval,
                             operation_key=uuid.uuid4(),
                             instruction_template=td.get("_instruction_template"),
                             call_id=st.get("call_id"),

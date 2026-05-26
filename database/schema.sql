@@ -10351,12 +10351,12 @@ CREATE TABLE public.setting_descriptions_junction (
 
 
 --
--- Name: setting_drafts_agents_connection; Type: TABLE; Schema: public; Owner: -
+-- Name: setting_drafts_systems_connection; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.setting_drafts_agents_connection (
+CREATE TABLE public.setting_drafts_systems_connection (
     draft_id uuid NOT NULL,
-    agents_id uuid NOT NULL,
+    systems_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     generated boolean DEFAULT false NOT NULL,
     mcp boolean DEFAULT false NOT NULL,
@@ -11130,6 +11130,7 @@ CREATE TABLE public.soft_calls_entry (
     status text NOT NULL,
     artifact_id uuid NOT NULL,
     patch jsonb,
+    eval boolean DEFAULT false NOT NULL,
     CONSTRAINT soft_calls_entry_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])))
 );
 
@@ -11146,6 +11147,7 @@ CREATE MATERIALIZED VIEW public.soft_calls_mv AS
     status,
     artifact_id,
     patch,
+    eval,
     created_at
    FROM public.soft_calls_entry s
   WHERE (active = true)
@@ -16950,11 +16952,11 @@ ALTER TABLE ONLY public.setting_descriptions_junction
 
 
 --
--- Name: setting_drafts_agents_connection setting_drafts_agents_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_drafts_systems_connection setting_drafts_systems_connection_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_drafts_agents_connection
-    ADD CONSTRAINT setting_drafts_agents_connection_pkey PRIMARY KEY (draft_id, agents_id);
+ALTER TABLE ONLY public.setting_drafts_systems_connection
+    ADD CONSTRAINT setting_drafts_systems_connection_pkey PRIMARY KEY (draft_id, systems_id);
 
 
 --
@@ -24176,7 +24178,7 @@ CREATE INDEX idx_setting_descriptions_mcp ON public.setting_descriptions_junctio
 -- Name: idx_setting_drafts_agents_resource_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_setting_drafts_agents_resource_id ON public.setting_drafts_agents_connection USING btree (agents_id);
+CREATE INDEX idx_setting_drafts_systems_resource_id ON public.setting_drafts_systems_connection USING btree (systems_id);
 
 
 --
@@ -34056,19 +34058,19 @@ ALTER TABLE ONLY public.setting_descriptions_junction
 
 
 --
--- Name: setting_drafts_agents_connection setting_drafts_agents_connection_agents_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_drafts_systems_connection setting_drafts_systems_connection_systems_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_drafts_agents_connection
-    ADD CONSTRAINT setting_drafts_agents_connection_agents_id_fkey FOREIGN KEY (agents_id) REFERENCES public.agents_resource(id);
+ALTER TABLE ONLY public.setting_drafts_systems_connection
+    ADD CONSTRAINT setting_drafts_systems_connection_systems_id_fkey FOREIGN KEY (systems_id) REFERENCES public.systems_resource(id);
 
 
 --
--- Name: setting_drafts_agents_connection setting_drafts_agents_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: setting_drafts_systems_connection setting_drafts_systems_connection_draft_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.setting_drafts_agents_connection
-    ADD CONSTRAINT setting_drafts_agents_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.setting_drafts_systems_connection
+    ADD CONSTRAINT setting_drafts_systems_connection_draft_id_fkey FOREIGN KEY (draft_id) REFERENCES public.setting_drafts_entry(id) ON DELETE CASCADE;
 
 
 --

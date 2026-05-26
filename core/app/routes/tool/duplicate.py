@@ -49,8 +49,12 @@ async def duplicate_tool(
         if session_id:
             group_result = await group_tool_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
+
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
 
         async def _runner() -> DuplicateToolApiResponse:
             return await duplicate_tool_impl(
@@ -61,6 +65,7 @@ async def duplicate_tool(
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,
+                soft=request.soft,
             )
 
         result = await run_artifact_operation_with_audit(
@@ -75,6 +80,8 @@ async def duplicate_tool(
             response_model=DuplicateToolApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

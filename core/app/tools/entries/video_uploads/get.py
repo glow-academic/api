@@ -3,15 +3,25 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.video_uploads.types import GetVideoUploadResponse
+from app.utils.cache.hedged_row import read_back_row
 
 
 async def get_video_upload(
     conn: asyncpg.Connection,
     video_upload_id: UUID,
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
 ) -> GetVideoUploadResponse | None:
     """Get a video_uploads entry by ID."""
+    if not bypass_cache:
+        cached = await read_back_row(redis, "video_uploads", video_upload_id)
+        if cached is not None:
+            return GetVideoUploadResponse.model_validate(cached)
+
     row = await conn.fetchrow(
         """
         SELECT id, video_id, upload_id, session_id,

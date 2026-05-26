@@ -351,7 +351,7 @@ async def resolve_authorization(
 
     if emulation_grant is not None:
         async with pool.acquire() as conn:
-            grants = await get_grants(conn, ids=[emulation_grant])
+            grants = await get_grants(conn, [emulation_grant], redis)
             if not grants:
                 raise AuthorizationError(404, "Emulation grant not found.")
 
@@ -360,16 +360,16 @@ async def resolve_authorization(
                 raise AuthorizationError(403, "Grant expired.")
 
             consumptions = await search_grant_consumptions(
-                conn, grant_ids=[emulation_grant], limit=1
+                conn, redis, grant_ids=[emulation_grant], limit=1
             )
             if consumptions:
                 raise AuthorizationError(403, "Grant already used.")
 
-            await create_grant_consumption(conn, grant_id=emulation_grant)
+            await create_grant_consumption(conn, redis, grant_id=emulation_grant)
             actor_profile_id = grant.profiles_id
 
             emulations = await search_emulations(
-                conn, grant_ids=[emulation_grant], limit=1
+                conn, redis, grant_ids=[emulation_grant], limit=1
             )
             if emulations:
                 resolved_profile_id = emulations[0].profile_id

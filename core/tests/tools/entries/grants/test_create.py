@@ -8,20 +8,20 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _session(conn, profile_id):
-    return await create_session(conn, profile_id=profile_id)
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_create_returns_id(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_grant(conn, session_id=session.id)
+async def test_create_returns_id(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_grant(conn, redis_client, session_id=session.id)
 
     assert result.id is not None
 
 
-async def test_roundtrip_via_db(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_grant(conn, session_id=session.id)
+async def test_roundtrip_via_db(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_grant(conn, redis_client, session_id=session.id)
 
     row = await conn.fetchrow("SELECT * FROM grants_entry WHERE id = $1", result.id)
 
@@ -33,9 +33,9 @@ async def test_roundtrip_via_db(conn, profile_id):
     assert row["generated"] is True
 
 
-async def test_default_expiry(conn, profile_id):
-    session = await _session(conn, profile_id)
-    result = await create_grant(conn, session_id=session.id)
+async def test_default_expiry(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    result = await create_grant(conn, redis_client, session_id=session.id)
 
     row = await conn.fetchrow("SELECT * FROM grants_entry WHERE id = $1", result.id)
 

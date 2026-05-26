@@ -17,6 +17,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tool.hydrate_list_rows import hydrate_tool_list_rows
 from app.infra.tool.permissions_context import (
     create_denormalized_snapshot,
@@ -114,12 +115,13 @@ async def create_tool_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -129,15 +131,16 @@ async def create_tool_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create tools.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create tools.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -149,6 +152,7 @@ async def create_tool_impl(
             async with pool.acquire() as conn:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="create",
@@ -177,7 +181,8 @@ async def create_tool_impl(
     has_errors = False
     error_results: list[ToolResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_tool_values(conn, redis, item, is_create=True)
             # Schema audit: derived surface from the selected permissions must
@@ -215,6 +220,7 @@ async def create_tool_impl(
     snapshot_ids: list[UUID] = []
 
     if not soft:
+      with timed("snapshot"):
         for item in items:
             tools_resource_id = await create_denormalized_snapshot(
                 pool,
@@ -232,7 +238,8 @@ async def create_tool_impl(
 
     # ── Step 5: Single transaction — artifact writes ───────────────────
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
                 combined_flag_ids = list(item.flag_ids or [])
@@ -258,6 +265,7 @@ async def create_tool_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -266,6 +274,7 @@ async def create_tool_impl(
                 elif accept is True and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -293,25 +302,27 @@ async def create_tool_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_tool_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].tool_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_tool_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].tool_id if results else None),
+            )
 
     # ── Step 6: Hydrate created rows for the client's ghost rail ───────
     # Skip on soft writes — the dormant artifact isn't fully active until
     # the ack-accept path promotes it (which has its own flow).
     hydrated_tools: list | None = None
     if not soft:
-        created_ids = [r.tool_id for r in results if r.tool_id is not None]
-        if created_ids:
-            hydrated_tools = await hydrate_tool_list_rows(
-                pool, redis, profile_id=profile_id, tool_ids=created_ids,
-            )
+        with timed("hydrate"):
+            created_ids = [r.tool_id for r in results if r.tool_id is not None]
+            if created_ids:
+                hydrated_tools = await hydrate_tool_list_rows(
+                    pool, redis, profile_id=profile_id, tool_ids=created_ids,
+                )
 
     return CreateToolApiResponse(
         results=results,

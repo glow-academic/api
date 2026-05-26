@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.metrics.types import CreateMetricsEntryResponse
 from app.tools.entries.sessions.create import create_session
@@ -11,6 +12,7 @@ from app.tools.entries.sessions.create import create_session
 
 async def create_metrics_entry_internal(
     conn: asyncpg.Connection,
+    redis: Redis,
     ts: datetime,
     requests_total: int,
     errors_total: int,
@@ -23,7 +25,7 @@ async def create_metrics_entry_internal(
 ) -> CreateMetricsEntryResponse:
     """Create a metrics entry."""
     if session_id is None:
-        session = await create_session(conn, mcp=mcp, soft=soft)
+        session = await create_session(conn, redis, mcp=mcp, soft=soft)
         session_id = session.id
 
     out_ts = await conn.fetchval(

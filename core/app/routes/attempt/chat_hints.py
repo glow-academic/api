@@ -1,16 +1,21 @@
 """Chat hints — create hint items for a chat message.
 
-POST /attempt/chat/hints
+POST /attempt/chat/hints — canonical: idempotency replay + soft/accept
+(stage-inactive) via the shared chat-analysis write helper. Hints key on
+message_id (no grade lookup).
 """
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from redis.asyncio import Redis
 
-from app.infra.globals import get_pool
+from app.infra.attempt.chat_analysis_common import run_chat_analysis_write
+from app.infra.globals import get_pool, get_redis_client
 from app.tools.entries.attempt_hint.create import create_attempt_hint
 
 router = APIRouter()
@@ -26,7 +31,8 @@ class ChatHintsRequest(BaseModel):
     chat_id: UUID
     hints: list[ChatHintItem]
     idempotency_key: UUID | None = None
-    accept: bool = True
+    soft: bool = False
+    accept: bool | None = None
 
 
 class ChatHintsResponse(BaseModel):
@@ -45,30 +51,35 @@ async def chat_hints(
     session_id = getattr(http_request.state, "session_id", None)
     if not profile_id or not session_id:
         raise HTTPException(status_code=401, detail="Missing profile or session")
-
     if not request.hints:
         raise HTTPException(status_code=400, detail="At least one hint is required")
-
+    profile_id = UUID(str(profile_id))
+    session_id = UUID(str(session_id))
     pool = get_pool()
-    async with pool.acquire() as conn:
-        hint_ids: list[UUID] = []
+    redis = get_redis_client()
+
+    async def _create(conn: asyncpg.Connection, r: Redis, soft: bool) -> dict[str, list[UUID]]:
+        ids: list[UUID] = []
         for item in request.hints:
             if not item.message_id:
-                raise HTTPException(
-                    status_code=400,
-                    detail="message_id is required for each hint",
-                )
+                raise HTTPException(status_code=400, detail="message_id is required for each hint")
             result = await create_attempt_hint(
-                conn,
-                message_id=item.message_id,
-                session_id=session_id,
-                hint=item.hint,
-                soft=not request.accept,
+                conn, r, message_id=item.message_id, session_id=session_id,
+                hint=item.hint, soft=soft,
             )
-            hint_ids.append(result.id)
+            ids.append(result.id)
+        return {"attempt_hint_entry": ids}
 
+    result = await run_chat_analysis_write(
+        pool, redis,
+        operation="chat_hints",
+        primary_table="attempt_hint_entry",
+        mv_target="attempt_hint_mv",
+        profile_id=profile_id, session_id=session_id,
+        idempotency_key=request.idempotency_key, soft=request.soft, accept=request.accept,
+        arguments=request.model_dump(mode="json"),
+        create_fn=_create,
+    )
     return ChatHintsResponse(
-        success=True,
-        hint_ids=hint_ids,
-        idempotency_key=request.idempotency_key,
+        success=True, hint_ids=result.primary_ids, idempotency_key=result.idempotency_key,
     )

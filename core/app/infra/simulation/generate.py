@@ -90,12 +90,14 @@ async def generate_simulation_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    from app.infra.server_timing import timed
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -105,11 +107,12 @@ async def generate_simulation_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not has_permission(profile.role_permissions, ARTIFACT_TYPE, "generate"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to generate simulations.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, ARTIFACT_TYPE, "generate"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to generate simulations.",
+            )
 
     # ── Step 3: Validate resources ─────────────────────────────────────
     from app.infra.group.resolve import resolve_group_impl
@@ -117,14 +120,15 @@ async def generate_simulation_impl(
     # client-minted group_id is supplied, or falls back to window-based
     # auto-create when omitted. Either way the groups_entry row exists
     # before any FK-referencing run/message insert downstream.
-    group_result = await resolve_group_impl(
-        pool, redis,
-        artifact_type=ARTIFACT_TYPE,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        include_history=False,
-    )
+    with timed("group"):
+        group_result = await resolve_group_impl(
+            pool, redis,
+            artifact_type=ARTIFACT_TYPE,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            include_history=False,
+        )
     group_id = group_result.group_id
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:
@@ -144,7 +148,8 @@ async def generate_simulation_impl(
     )
 
     try:
-        prepared = await prepare_generation(
+        with timed("prepare"):
+            prepared = await prepare_generation(
             pool,
             redis,
             profile_id=profile_id,
@@ -196,20 +201,21 @@ async def generate_simulation_impl(
         if wait_for_complete is None:
             wait_for_complete = True
 
-        run_result = await run_generation_with_refresh(
-            pool, redis,
-            prepared=prepared,
-            sid=resolved_sid,
-            tool_soft=tool_soft,
-            artifact_type=ARTIFACT_TYPE,
-            refresh_fn=refresh_simulation_impl,
-            profile_id=profile_id,
-            session_id=session_id,
-            group_id=group_id,
-            internal_sio=internal_sio,
-            wait_for_complete=wait_for_complete,
-            operation_key=generated_key,
-        )
+        with timed("run"):
+            run_result = await run_generation_with_refresh(
+                pool, redis,
+                prepared=prepared,
+                sid=resolved_sid,
+                tool_soft=tool_soft,
+                artifact_type=ARTIFACT_TYPE,
+                refresh_fn=refresh_simulation_impl,
+                profile_id=profile_id,
+                session_id=session_id,
+                group_id=group_id,
+                internal_sio=internal_sio,
+                wait_for_complete=wait_for_complete,
+                operation_key=generated_key,
+            )
 
     except Exception as e:
         logger.exception(f"Simulation generation failed: {e}")

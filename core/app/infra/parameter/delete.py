@@ -27,6 +27,7 @@ from app.infra.parameter.types import (
     DeleteParameterResult,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.delete import delete_parameters
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -88,45 +89,48 @@ async def delete_parameter_impl(
     # path doesn't need ``ids`` to be populated (matches persona/scenario
     # pattern; see batch-1/2 lessons in project_bulk_write_pattern.md).
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "delete":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending parameter delete for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
-            pass
-        else:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await restore_artifacts(
-                        conn,
-                        table="parameter_artifact",
-                        ids=[target_id],
-                    )
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "delete":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending parameter delete for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="delete",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                pass
+            else:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await restore_artifacts(
+                            conn,
+                            table="parameter_artifact",
+                            ids=[target_id],
+                        )
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="delete",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_parameter_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_parameter_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key,
-        )
 
         return DeleteParameterApiResponse(
             results=[
@@ -183,12 +187,13 @@ async def delete_parameter_impl(
 
     # -- Step 1: Profile context -----------------------------------------------
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -204,7 +209,8 @@ async def delete_parameter_impl(
     skipped_results: list[DeleteParameterResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, parameter_id in enumerate(ids):
             ctx = await resolve_parameter_permissions_context(conn, parameter_id)
 
@@ -252,7 +258,8 @@ async def delete_parameter_impl(
 
     # -- Step 4: Fetch names for result messages -------------------------------
 
-    async with pool.acquire() as conn:
+    with timed("hydrate_names"):
+     async with pool.acquire() as conn:
         name_map: dict[UUID, str] = {}
         artifacts = await get_parameters(conn, ids, names=True)
         for artifact in artifacts:
@@ -265,7 +272,8 @@ async def delete_parameter_impl(
 
     # -- Step 5: Single transaction -- bulk delete -----------------------------
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_parameters(conn, ids, soft=soft)
 
@@ -273,6 +281,7 @@ async def delete_parameter_impl(
                 for pid in result.deleted_ids:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="delete",
@@ -284,14 +293,15 @@ async def delete_parameter_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_parameter_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     results = [
         DeleteParameterResult(

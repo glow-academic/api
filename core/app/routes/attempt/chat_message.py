@@ -13,7 +13,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.utils.logging.db_logger import get_logger
 
@@ -47,6 +47,7 @@ class ChatMessageRequest(BaseModel):
     # links via ``attempt_audio_entry`` (same junction the realtime
     # path uses for assistant audio).
     audios_id: UUID | None = None
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 class ChatMessageResponse(BaseModel):
@@ -91,6 +92,7 @@ async def chat_message(
         profile_id=profile_id,
         session_id=session_id,
         include_history=False,
+        id_only=True,
     )
     group_id = group_resolve.group_id
 
@@ -125,6 +127,7 @@ async def chat_message(
                 "persona_id": str(request.persona_id) if request.persona_id else None,
             },
             response_model=AttemptMessageInternalResult,
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -2,6 +2,11 @@
 
 Composes black-box entry tools (create_metrics_entry_internal, create_health)
 with system session resolution. Called by the metrics collector.
+
+``redis`` is an injected boundary — callers (lifespan-managed code in
+``core/app/infra/metrics/collector.py``) pass ``get_redis_client()``;
+tests pass the testcontainers-backed ``redis_client`` fixture. This keeps
+these writers testable without standing up the FastAPI lifespan.
 """
 
 from __future__ import annotations
@@ -9,6 +14,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import asyncpg
+from redis.asyncio import Redis
 
 from app.tools.entries.metrics.create import create_metrics_entry_internal
 from app.tools.entries.metrics.types import CreateMetricsEntryResponse
@@ -16,6 +22,7 @@ from app.tools.entries.metrics.types import CreateMetricsEntryResponse
 
 async def write_metrics_snapshot(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     ts: datetime,
     requests_total: int,
@@ -29,10 +36,11 @@ async def write_metrics_snapshot(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            session_id = await get_system_session_id(conn)
+            session_id = await get_system_session_id(conn, redis)
 
             return await create_metrics_entry_internal(
                 conn,
+                redis,
                 ts=ts,
                 requests_total=requests_total,
                 errors_total=errors_total,
@@ -45,6 +53,7 @@ async def write_metrics_snapshot(
 
 async def write_health_checks(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     ts: datetime,
     checks: dict,
@@ -55,11 +64,12 @@ async def write_health_checks(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
-            session_id = await get_system_session_id(conn)
+            session_id = await get_system_session_id(conn, redis)
 
             for service, result in checks.items():
                 await create_health(
                     conn,
+                    redis,
                     service=service,
                     ok=result.ok,
                     latency_ms=result.latency_ms,

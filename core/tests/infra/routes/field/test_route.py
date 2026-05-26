@@ -46,7 +46,7 @@ async def _create_field_route_resources(pool, redis_client) -> FieldRouteResourc
         )
         conditional_parameter_res = await create_conditional_parameter(
             conn,
-            parameter_res.id,
+            parameter_res.parameter_id,
             redis_client,
         )
 

@@ -17,6 +17,7 @@ from app.infra.auth.types import FileDownloadAuthApiResult
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.files.search import search_files
 
 
@@ -29,9 +30,10 @@ async def file_download_auth_impl(
     session_id: UUID | None = None,
 ) -> FileDownloadAuthApiResult:
     """Resolve a file resource to its file on disk."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -44,8 +46,9 @@ async def file_download_auth_impl(
             detail="You don't have permission to download auth files.",
         )
 
-    async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+    with timed("search_files"):
+     async with pool.acquire() as conn:
+        results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

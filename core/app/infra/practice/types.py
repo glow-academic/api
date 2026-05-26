@@ -36,7 +36,7 @@ class ExportPracticeApiResponse(BaseModel):
 class GetPracticeRequest(BaseModel):
     """Request for practice get endpoint — simulation cards only."""
 
-    pass
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetPracticeResponse(BaseModel):

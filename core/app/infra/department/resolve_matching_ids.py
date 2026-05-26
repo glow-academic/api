@@ -27,6 +27,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.server_timing import timed
 from app.tools.artifacts.department.search import search_departments
 
 # Sentinel for "we want every matching row, not a page". The underlying
@@ -57,7 +58,8 @@ async def resolve_matching_department_ids(
     text), but skips pagination/hydration. Facet-search params are
     accepted-but-ignored here since they don't affect the row set.
     """
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         ids, _total = await search_departments(
             conn,
             search=search,

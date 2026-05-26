@@ -23,11 +23,12 @@ from redis.asyncio import Redis
 
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.artifacts.persona.search import search_personas
 from app.tools.entries.file_uploads.create import create_file_upload
 from app.tools.entries.files.create import create_file as create_file_entry
-from app.tools.entries.files.refresh import refresh_files_internal
+from app.infra.refresh.queue import enqueue_refreshes
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.departments.get import get_departments
@@ -35,6 +36,9 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.examples.get import get_examples
 from app.tools.resources.fields.get import get_fields
 from app.tools.resources.files.create import create_file as create_file_resource
+from app.infra.activate.activate import activate_rows
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.resources.icons.get import get_icons
 from app.tools.resources.instructions.get import get_instructions
 from app.tools.resources.names.get import get_names
@@ -65,6 +69,10 @@ async def export_persona_impl(
     profile_id: UUID,
     session_id: UUID | None = None,
     id: UUID | None = None,
+    soft: bool = False,
+    accept: bool | None = None,
+    idempotency_key: UUID | None = None,
+    call_id: UUID | None = None,
     **_kwargs,
 ) -> dict:
     """Persona full export using composable infra functions.
@@ -86,7 +94,8 @@ async def export_persona_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -94,9 +103,45 @@ async def export_persona_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # ── Short-circuit: ack path — promote/reject a staged export ──────────────
+    # (mirrors persona/create; soft-call keyed by the server call_id which FKs
+    # calls_entry, so the ack arrives with idempotency_key set to the echoed key.)
+    if accept is not None and idempotency_key is not None:
+        async with pool.acquire() as conn:
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact="persona")
+        if entry is None or entry.status != "pending" or entry.operation != "export":
+            raise HTTPException(
+                status_code=404, detail="No pending export for this call.",
+            )
+        ids = entry.patch or {}
+        if accept:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
+                    await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
+                    await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])
+                    await activate_rows(conn, table="file_uploads_entry", ids=[UUID(ids["junction_id"])])
+            await enqueue_refreshes(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                artifact_type="file", targets=["files_mv"], tags=["files"],
+            )
+        async with pool.acquire() as conn:
+            await create_soft_call(
+                conn, redis, call_id=idempotency_key, artifact="persona",
+                operation="export", artifact_id=entry.artifact_id,
+                status="accepted" if accept else "rejected",
+            )
+        return ExportPersonaApiResponse(
+            file_id=entry.artifact_id,
+            file_name=str(ids.get("file_name", "")),
+            row_count=int(ids.get("row_count", 0)),
+            idempotency_key=idempotency_key,
+        )
+
     # ── Step 2: Search all personas (full dump) ────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+      async with pool.acquire() as conn:
         if persona_id:
             persona_ids = [persona_id]
         else:
@@ -198,27 +243,28 @@ async def export_persona_impl(
             return []
         return await get_voices(pool, all_voice_ids, redis)
 
-    (
-        names_data,
-        descriptions_data,
-        colors_data,
-        icons_data,
-        instructions_data,
-        examples_data,
-        departments_data,
-        parameter_fields_data,
-        voices_data,
-    ) = await asyncio.gather(
-        _get_names(),
-        _get_descriptions(),
-        _get_colors(),
-        _get_icons(),
-        _get_instructions(),
-        _get_examples(),
-        _get_departments(),
-        _get_parameter_fields(),
-        _get_voices(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            colors_data,
+            icons_data,
+            instructions_data,
+            examples_data,
+            departments_data,
+            parameter_fields_data,
+            voices_data,
+        ) = await asyncio.gather(
+            _get_names(),
+            _get_descriptions(),
+            _get_colors(),
+            _get_icons(),
+            _get_instructions(),
+            _get_examples(),
+            _get_departments(),
+            _get_parameter_fields(),
+            _get_voices(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n.name for n in names_data}
@@ -247,11 +293,12 @@ async def export_persona_impl(
 
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(CSV_COLUMNS)
+    with timed("build_csv"):
+      output = io.StringIO()
+      writer = csv.writer(output)
+      writer.writerow(CSV_COLUMNS)
 
-    for a in artifacts:
+      for a in artifacts:
         # Single-select: first resource value
         name = name_map.get(a.name_ids[0], "") if a.name_ids else ""
         description = (
@@ -322,38 +369,63 @@ async def export_persona_impl(
     #     file_files_connection) — needed because ``file_uploads_entry``
     #     FKs to ``files_entry``, not ``files_resource``
     #   → file_uploads junction (entry.id ↔ upload.id)
-    async with pool.acquire() as conn:
-        upload_row = await create_upload(
-            conn,
-            session_id=session_id,
-            file_path=relative_path,
-            mime_type="text/csv",
-            size=len(csv_bytes),
+    with timed("upload"):
+        async with pool.acquire() as conn:
+            upload_row = await create_upload(
+                conn,
+                redis, session_id=session_id,
+                file_path=relative_path,
+                mime_type="text/csv",
+                size=len(csv_bytes),
+                soft=soft,
+            )
+            resource_row = await create_file_resource(conn, redis, soft=soft)
+            if session_id is not None:
+                entry_row = await create_file_entry(
+                    conn,
+                    redis,
+                    session_id=session_id,
+                    files_id=resource_row.id,
+                    soft=soft,
+                )
+                junction_row = await create_file_upload(
+                    conn,
+                    redis, file_id=entry_row.id,
+                    upload_id=upload_row.id,
+                    session_id=session_id,
+                    soft=soft,
+                )
+                if soft and call_id is not None:
+                    await create_soft_call(
+                        conn,
+                        redis,
+                        call_id=call_id,
+                        artifact="persona",
+                        operation="export",
+                        artifact_id=resource_row.id,
+                        status="pending",
+                        patch={
+                            "upload_id": str(upload_row.id),
+                            "resource_id": str(resource_row.id),
+                            "entry_id": str(entry_row.id),
+                            "junction_id": str(junction_row.id),
+                            "file_name": file_name,
+                            "row_count": row_count,
+                        },
+                    )
+    # Enqueue async files_mv refresh via the MV worker. The client's
+    # follow-up download will retry briefly if it loses the race; this
+    # path is rare enough that we accept the trade-off vs. blocking the
+    # request 50–200ms.
+    with timed("refresh"):
+        await enqueue_refreshes(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            artifact_type="file", targets=["files_mv"], tags=["files"],
         )
-        resource_row = await create_file_resource(conn, redis)
-        if session_id is not None:
-            entry_row = await create_file_entry(
-                conn,
-                session_id=session_id,
-                files_id=resource_row.id,
-            )
-            await create_file_upload(
-                conn,
-                file_id=entry_row.id,
-                upload_id=upload_row.id,
-                session_id=session_id,
-            )
-            # ``search_files`` (used by file_download) reads from
-            # ``files_mv``, so the new chain must be refreshed before
-            # the client's follow-up download can resolve the file_id.
-            # ``WITH NO DATA`` on the MV definition means it stays
-            # empty until something refreshes it. Synchronous refresh
-            # is correct here — the client downloads in the very next
-            # call.
-            await refresh_files_internal(conn, redis)
 
     return ExportPersonaApiResponse(
         file_id=resource_row.id,
         file_name=file_name,
         row_count=row_count,
+        idempotency_key=call_id,
     )

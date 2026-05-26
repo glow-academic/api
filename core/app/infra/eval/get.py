@@ -11,9 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.eval.context import resolve_eval_context
 from app.infra.eval.permissions import (
-    EVAL_BASIC_RESOURCES,
-    EVAL_MODEL_RESOURCES,
-    EVAL_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -51,7 +48,7 @@ from app.infra.eval.types import (
 )
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 SECTIONS = [
     "names",
@@ -102,14 +99,15 @@ async def get_eval_impl(
     eval_id = id or eval_id
     resolved_filters = dict(filters or {})
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -118,19 +116,21 @@ async def get_eval_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="eval",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="eval",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if eval_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_eval_permissions_context(conn, eval_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_eval_permissions_context(conn, eval_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Eval {eval_id} not found")
         if not has_access(profile.role_level, profile.department_ids, perms.department_ids):
@@ -139,7 +139,8 @@ async def get_eval_impl(
                 detail="You don't have access to this eval. It may be restricted to other departments.",
             )
 
-    eval_ctx = await resolve_eval_context(
+    with timed("eval_ctx"):
+     eval_ctx = await resolve_eval_context(
         pool,
         redis,
         eval_id=eval_id,
@@ -163,7 +164,9 @@ async def get_eval_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, EVAL_RESOURCES)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and agent dispatch happens server-side in
+    # ``prepare_generation``.
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -259,7 +262,7 @@ async def get_eval_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_active_flag() or compute_show_groups_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -466,7 +469,8 @@ async def get_eval_impl(
         else []
     )
 
-    return GetEvalApiResponse(
+    with timed("build"):
+     return GetEvalApiResponse(
         actor_name=profile.name,
         eval_exists=perms.exists if perms else None,
         can_edit=can_edit,
@@ -475,9 +479,9 @@ async def get_eval_impl(
         # Draft label sourced from ``entries['draft_name']`` (set by
         # ``resolve_eval_context``). ``None`` when no draft was active.
         draft_name=eval_ctx.entries.get("draft_name") if eval_ctx.entries else None,
-        basic_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_BASIC_RESOURCES),
-        model_show_ai_generate=any(scores.has_any.get(section, False) for section in EVAL_MODEL_RESOURCES),
-        show_ai_generate=any(scores.has_any.values()),
+        basic_show_ai_generate=True,
+        model_show_ai_generate=True,
+        show_ai_generate=True,
         pending_ids=sorted(pending_ids) or None,
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only) if include["names"] else None,
         descriptions=_filter_items(descriptions, "descriptions", selected_only=selected_only, suggested_only=suggested_only) if include["descriptions"] else None,

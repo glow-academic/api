@@ -150,6 +150,7 @@ async def run_complete_impl(
         if reasoning_output:
             await persist_run_message(
                 conn,
+                redis,
                 run_id=run_uuid,
                 session_id=session_id,
                 role="assistant",
@@ -162,6 +163,7 @@ async def run_complete_impl(
         if assistant_output:
             await persist_run_message(
                 conn,
+                redis,
                 run_id=run_uuid,
                 session_id=session_id,
                 role="assistant",
@@ -172,7 +174,7 @@ async def run_complete_impl(
         if input_tokens or output_tokens:
             await create_token(
                 conn,
-                run_id=run_uuid,
+                redis, run_id=run_uuid,
                 session_id=session_id,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -209,13 +211,16 @@ async def run_complete_impl(
     # attempt_chat_started / attempt_grade_complete before the final completion
     # event so downstream UI sees consistent state.
     if artifact_type in ("chat", "attempt"):
+        profile_id_str = data.get("profile_id")
+        profile_id_uuid = uuid.UUID(profile_id_str) if profile_id_str else None
         await _chat_post_complete(
             emit=emit,
-            conn=conn,
             redis=redis,
             sid=sid,
             artifact_type=artifact_type,
             metadata=metadata,
+            profile_id=profile_id_uuid,
+            session_id=session_id,
         )
 
     # Step 7: ``<artifact>.generate.completed`` is emitted by the audit
@@ -232,32 +237,40 @@ async def run_complete_impl(
 async def _chat_post_complete(
     *,
     emit: EmitFn,
-    conn: asyncpg.Connection,
     redis: Any,
     sid: str,
     artifact_type: str,
     metadata: dict[str, Any],
+    profile_id: uuid.UUID | None = None,
+    session_id: uuid.UUID | None = None,
 ) -> None:
     """Chat/attempt post-complete: refresh MVs + emit attempt lifecycle events.
 
     Called inline so no top-level dispatcher event is needed.
     """
+    from app.infra.attempt.refresh import refresh_attempt_impl
+    from app.infra.globals import get_pool
     from app.infra.websocket.attempt_types import (
         AttemptChatStartedData,
         AttemptGradeCompleteData,
     )
-    from app.tools.entries.attempt.refresh import refresh_attempt
-    from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
-    from app.utils.cache.invalidate_tags import invalidate_tags
 
     if artifact_type == "chat":
         attempt_id = metadata.get("attempt_id")
         attempt_chat_id = metadata.get("attempt_chat_id")
         if attempt_id and attempt_chat_id and not metadata.get("chat_started_emitted"):
             try:
-                await refresh_attempt(conn)
-                await refresh_attempt_chat(conn)
-                await invalidate_tags(["attempt", "attempts"], redis=redis)
+                if profile_id is not None:
+                    await refresh_attempt_impl(
+                        get_pool(), redis,
+                        profile_id=profile_id,
+                        session_id=session_id,
+                        targets=["attempt_mv", "attempt_chat_mv"],
+                    )
+                # Preserve legacy "attempts" tag invalidation (orchestrator
+                # already busted "attempt" + "artifacts").
+                from app.utils.cache.invalidate_tags import invalidate_tags
+                await invalidate_tags(["attempts"], redis=redis)
                 await emit(
                     [
                         internal_event(

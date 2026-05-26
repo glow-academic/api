@@ -14,34 +14,34 @@ from app.tools.entries.test.create import create_test
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup_entry(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    seed = await create_test(conn, call_id=call.id)
+async def _setup_entry(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    seed = await create_test(conn, redis_client, call_id=call.id)
     return session, call, seed
 
 
-async def test_create_returns_id(conn, profile_id):
-    session, call, seed = await _setup_entry(conn, profile_id)
-    result = await create_test_completion(conn, test_id=seed.id, call_id=call.id)
+async def test_create_returns_id(conn, redis_client, profile_id):
+    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+    result = await create_test_completion(conn, redis_client, test_id=seed.id, call_id=call.id)
 
     assert result.id is not None
 
 
-async def test_row_not_visible_before_refresh(conn, profile_id):
-    session, call, seed = await _setup_entry(conn, profile_id)
-    result = await create_test_completion(conn, test_id=seed.id, call_id=call.id)
+async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
+    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+    result = await create_test_completion(conn, redis_client, test_id=seed.id, call_id=call.id)
 
     row = await conn.fetchrow(f"SELECT id FROM {MV_NAME} WHERE id = $1", result.id)
 
     assert row is None
 
 
-async def test_refresh_exposes_created_row(conn, profile_id):
-    session, call, seed = await _setup_entry(conn, profile_id)
-    result = await create_test_completion(conn, test_id=seed.id, call_id=call.id, mcp=True)
+async def test_refresh_exposes_created_row(conn, redis_client, profile_id):
+    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+    result = await create_test_completion(conn, redis_client, test_id=seed.id, call_id=call.id, mcp=True)
     await refresh_test_completion(conn)
 
     row = await conn.fetchrow(f"SELECT id, mcp FROM {MV_NAME} WHERE id = $1", result.id)

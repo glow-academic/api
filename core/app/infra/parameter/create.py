@@ -28,6 +28,7 @@ from app.infra.parameter.types import (
     ParameterResultItem,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.create import (
     create_parameter as create_parameter_artifact,
 )
@@ -73,12 +74,13 @@ async def create_parameter_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -91,19 +93,20 @@ async def create_parameter_impl(
     requested_department_ids = [
         department_id for item in items for department_id in (item.department_ids or [])
     ]
-    if not compute_can_create(
-            role_level=profile.role_level, role_permissions=profile.role_permissions,
-            department_ids=requested_department_ids or None,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create parameters.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(
+                role_level=profile.role_level, role_permissions=profile.role_permissions,
+                department_ids=requested_department_ids or None,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create parameters.",
+            )
 
     if accept is not None and idempotency_key is not None:
         # Locate the dormant create via the canonical soft_calls ledger.
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "create":
             raise HTTPException(
                 status_code=404,
@@ -158,6 +161,7 @@ async def create_parameter_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="create",
@@ -190,7 +194,8 @@ async def create_parameter_impl(
     has_errors = False
     error_results: list[ParameterResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_parameter_values(
                 conn, redis, item, is_create=True
@@ -221,7 +226,8 @@ async def create_parameter_impl(
     snapshot_ids: list[UUID] = []
 
     if not soft:
-        for item in items:
+        with timed("snapshot"):
+         for item in items:
             parameters_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -239,7 +245,8 @@ async def create_parameter_impl(
 
     # ── Step 5: Artifact writes ───────────────────────────────────────
 
-    for idx, item in enumerate(items):
+    with timed("db_write"):
+     for idx, item in enumerate(items):
         async with pool.acquire() as conn:
             async with conn.transaction():
                 result = await create_parameter_artifact(
@@ -259,6 +266,7 @@ async def create_parameter_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -282,14 +290,15 @@ async def create_parameter_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_parameter_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (results[0].parameter_id if results else None),
-    )
+    with timed("refresh"):
+        await refresh_parameter_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (results[0].parameter_id if results else None),
+        )
 
     # ── Step 7: Hydrate list rows (skip soft — dormant artifact not yet active) ─
     # Returns rows in the same shape as ``/parameter/search`` so the
@@ -297,13 +306,14 @@ async def create_parameter_impl(
     # the audit ``.completed`` payload — no follow-up search burst.
     hydrated_rows = None
     if not soft:
-        created_ids = [r.parameter_id for r in results if r.success and r.parameter_id]
-        if created_ids:
-            hydrated_rows = await hydrate_parameter_list_rows(
-                pool, redis,
-                profile_id=profile_id,
-                parameter_ids=created_ids,
-            )
+        with timed("hydrate"):
+            created_ids = [r.parameter_id for r in results if r.success and r.parameter_id]
+            if created_ids:
+                hydrated_rows = await hydrate_parameter_list_rows(
+                    pool, redis,
+                    profile_id=profile_id,
+                    parameter_ids=created_ids,
+                )
 
     return CreateParameterApiResponse(
         results=results,

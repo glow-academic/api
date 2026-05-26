@@ -28,6 +28,7 @@ from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.trace_context import resolve_trace_context
 from app.infra.websocket.generation_types import (
     ArtifactGenerateResponse,
@@ -158,9 +159,10 @@ async def generate_test_impl(
     **_kwargs,
 ) -> ArtifactGenerateResponse:
     """Trigger test generation."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again.",
@@ -261,16 +263,17 @@ async def generate_test_impl(
     )
 
     try:
-        prepared = await prepare_generation(
-            pool, redis,
-            profile_id=profile_id,
-            profiles_id=profile.profiles_id,
-            session_id=session_id,
-            group_id=UUID(str(group_id_str)),
-            artifact_type=ARTIFACT_TYPE,
-            artifact_config=config,
-            payload=payload,
-        )
+        with timed("prepare"):
+            prepared = await prepare_generation(
+                pool, redis,
+                profile_id=profile_id,
+                profiles_id=profile.profiles_id,
+                session_id=session_id,
+                group_id=UUID(str(group_id_str)),
+                artifact_type=ARTIFACT_TYPE,
+                artifact_config=config,
+                payload=payload,
+            )
 
         logger.info(
             f"GENERATE_TEST: prepared run_id={prepared.run_id}, "
@@ -311,19 +314,20 @@ async def generate_test_impl(
         if wait_for_complete is None:
             wait_for_complete = True
 
-        run_result = await run_generation_with_refresh(
-            pool, redis,
-            prepared=prepared,
-            sid=resolved_sid,
-            tool_soft=tool_soft,
-            artifact_type=ARTIFACT_TYPE,
-            refresh_fn=None,
-            profile_id=profile_id,
-            session_id=session_id,
-            group_id=group_id,
-            internal_sio=internal_sio,
-            wait_for_complete=wait_for_complete,
-        )
+        with timed("model_call"):
+            run_result = await run_generation_with_refresh(
+                pool, redis,
+                prepared=prepared,
+                sid=resolved_sid,
+                tool_soft=tool_soft,
+                artifact_type=ARTIFACT_TYPE,
+                refresh_fn=None,
+                profile_id=profile_id,
+                session_id=session_id,
+                group_id=group_id,
+                internal_sio=internal_sio,
+                wait_for_complete=wait_for_complete,
+            )
     except Exception as e:
         logger.exception(f"Test generation failed: {e}")
         raise

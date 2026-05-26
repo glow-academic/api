@@ -11,12 +11,12 @@ from app.tools.entries.uploads.create import create_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _deps(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    file = await create_file(conn, session_id=session.id)
+async def _deps(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    file = await create_file(conn, redis_client, session_id=session.id)
     upload = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/doc.pdf",
         mime_type="application/pdf",
         size=3072,
@@ -24,22 +24,22 @@ async def _deps(conn, profile_id):
     return session, file, upload
 
 
-async def test_creates_file_upload_entry(conn, profile_id):
-    session, file, upload = await _deps(conn, profile_id)
+async def test_creates_file_upload_entry(conn, redis_client, profile_id):
+    session, file, upload = await _deps(conn, redis_client, profile_id)
     result = await create_file_upload(
-        conn, file_id=file.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, file_id=file.id, upload_id=upload.id, session_id=session.id
     )
 
     assert result.id is not None
 
 
-async def test_file_upload_exists_in_table(conn, profile_id):
-    session, file, upload = await _deps(conn, profile_id)
+async def test_file_upload_exists_in_table(conn, redis_client, profile_id):
+    session, file, upload = await _deps(conn, redis_client, profile_id)
     result = await create_file_upload(
-        conn, file_id=file.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, file_id=file.id, upload_id=upload.id, session_id=session.id
     )
 
-    row = await get_file_upload(conn, result.id)
+    row = await get_file_upload(conn, result.id, redis_client)
 
     assert row is not None
     assert row.file_id == file.id
@@ -48,13 +48,13 @@ async def test_file_upload_exists_in_table(conn, profile_id):
     assert row.active is True
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    session, file, upload = await _deps(conn, profile_id)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    session, file, upload = await _deps(conn, redis_client, profile_id)
     result = await create_file_upload(
-        conn, file_id=file.id, upload_id=upload.id, session_id=session.id, mcp=True
+        conn, redis_client, file_id=file.id, upload_id=upload.id, session_id=session.id, mcp=True
     )
 
-    row = await get_file_upload(conn, result.id)
+    row = await get_file_upload(conn, result.id, redis_client)
 
     assert row is not None
     assert row.mcp is True

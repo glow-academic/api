@@ -17,22 +17,22 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    grant = await create_grant(conn, session_id=session.id)
-    return await create_grant_consumption(conn, grant_id=grant.id)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    grant = await create_grant(conn, redis_client, session_id=session.id)
+    return await create_grant_consumption(conn, redis_client, grant_id=grant.id)
 
 
-async def test_appears_after_refresh(conn, profile_id):
-    result = await _setup(conn, profile_id)
+async def test_appears_after_refresh(conn, redis_client, profile_id):
+    result = await _setup(conn, redis_client, profile_id)
     await refresh_grant_consumptions(conn)
 
-    items = await get_grant_consumptions(conn, ids=[result.id])
+    items = await get_grant_consumptions(conn, ids=[result.id], redis=redis_client)
     assert len(items) >= 1
 
 
-async def test_not_visible_before_refresh(conn, profile_id):
-    result = await _setup(conn, profile_id)
+async def test_not_visible_before_refresh(conn, redis_client, profile_id):
+    result = await _setup(conn, redis_client, profile_id)
 
-    items = await get_grant_consumptions(conn, ids=[result.id])
+    items = await get_grant_consumptions(conn, ids=[result.id], redis=redis_client)
     assert len(items) == 0

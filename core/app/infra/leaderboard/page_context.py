@@ -46,6 +46,7 @@ async def page_context_leaderboard_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -55,6 +56,7 @@ async def page_context_leaderboard_impl(
         key=big_cache_key("leaderboard/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "leaderboard", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -63,6 +65,7 @@ async def page_context_leaderboard_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -74,6 +77,7 @@ async def _page_context_leaderboard_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Leaderboard page context.
 
@@ -154,9 +158,9 @@ async def _page_context_leaderboard_build(
             "Leaderboard analytics ranks user performance with accolades, "
             "comparative metrics, and historical tracking across simulations."
         ),
-        entries=[],
-        resources=[],
-        permission_docs=[
+        entries=([] if schema else None),
+        resources=([] if schema else None),
+        permission_docs=([
             get_operation_info(
                 build_leaderboard_rows,
                 description="Build ranked leaderboard data rows from MV slices.",
@@ -173,8 +177,8 @@ async def _page_context_leaderboard_build(
                 compute_message_stats,
                 description="Compute message-level statistics for leaderboard entries.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_leaderboard,
                 description="POST /get — Get leaderboard rankings and accolades.",
@@ -191,7 +195,7 @@ async def _page_context_leaderboard_build(
                 export_leaderboard,
                 description="POST /export — Export leaderboard data as CSV/ZIP.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

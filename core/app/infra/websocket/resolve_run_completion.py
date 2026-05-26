@@ -22,6 +22,7 @@ from uuid import UUID
 
 import asyncpg
 
+from app.infra.globals import get_redis_client
 from app.tools.entries.calls.search import search_calls
 from app.tools.entries.messages.search import search_messages
 from app.tools.entries.runs.search import search_runs
@@ -63,12 +64,12 @@ async def resolve_run_completion(
 
     Returns RunCompletionState with all_done flag and per-agent results.
     """
+    redis = get_redis_client()
     # Step 1: Expected agents from the run record
     runs, _total = await search_runs(
-        conn,
+        conn, redis,
         group_ids=[group_id],
         limit=1,
-        bypass_mv=True,
     )
 
     if not runs:
@@ -90,11 +91,10 @@ async def resolve_run_completion(
 
     # Step 2: Completed agents = assistant messages for this run
     messages, _msg_total = await search_messages(
-        conn,
+        conn, redis,
         run_ids=[run_id],
         role="assistant",
         limit=100,
-        bypass_mv=True,
     )
 
     # Count unique agents from messages (if agent_ids populated)
@@ -112,9 +112,9 @@ async def resolve_run_completion(
     # Step 3: Tool calls for this run
     calls = await search_calls(
         conn,
+        get_redis_client(),
         run_ids=[run_id],
         limit=200,
-        bypass_mv=True,
     )
     all_tool_ids = [c.tool_id for c in calls if c.tool_id]
 

@@ -35,6 +35,7 @@ async def get_test_context(
     if session_id:
         group_result = await group_test_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
@@ -44,6 +45,7 @@ async def get_test_context(
             redis,
             profile_id=profile_id,
             entity_id=body.entity_id,
+            schema=body.schema,
         )
 
     result = await run_artifact_operation_with_audit(
@@ -58,6 +60,7 @@ async def get_test_context(
         response_model=ComposedContextResponse,
         runner=_runner,
         upload_folder=get_upload_folder(),
+        operation_key=body.snapshot_key,  # read snapshot
     )
 
     response.headers["X-Cache-Tags"] = "tests"

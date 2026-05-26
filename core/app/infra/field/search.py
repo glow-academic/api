@@ -30,6 +30,7 @@ from app.infra.field.types import (
     ListFieldApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.field.get import get_fields
 from app.tools.artifacts.field.search import search_fields
 from app.tools.resources.departments.search import search_departments
@@ -158,7 +159,8 @@ async def _search_field_build(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -173,7 +175,8 @@ async def _search_field_build(
     # -- Step 2: Search fields --
     # The artifact search tool handles parameter_ids and persona_ids filters internally
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         field_ids, total_count = await search_fields(
             conn,
             search=search,
@@ -186,7 +189,7 @@ async def _search_field_build(
 
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="field", status="pending", limit=1000,
+            conn, redis, artifact="field", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -269,23 +272,24 @@ async def _search_field_build(
 
     perm_tasks = [_fetch_perm(a.id) for a in artifacts]
 
-    (
-        names_data,
-        descriptions_data,
-        parameter_facet,
-        persona_facet,
-        department_facet,
-        flag_facet,
-        *perm_results,
-    ) = await asyncio.gather(
-        _fetch_names(),
-        _fetch_descriptions(),
-        _fetch_parameter_facet(),
-        _fetch_persona_facet(),
-        _fetch_department_facet(),
-        _fetch_flag_facet(),
-        *perm_tasks,
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            parameter_facet,
+            persona_facet,
+            department_facet,
+            flag_facet,
+            *perm_results,
+        ) = await asyncio.gather(
+            _fetch_names(),
+            _fetch_descriptions(),
+            _fetch_parameter_facet(),
+            _fetch_persona_facet(),
+            _fetch_department_facet(),
+            _fetch_flag_facet(),
+            *perm_tasks,
+        )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -295,7 +299,8 @@ async def _search_field_build(
 
     fields: list[ListFieldApiField] = []
 
-    for i, a in enumerate(artifacts):
+    with timed("build"):
+     for i, a in enumerate(artifacts):
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

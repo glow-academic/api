@@ -21,6 +21,7 @@ from app.infra.document.types import (
 )
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.tools.sanitize import sanitize_model_kwargs
 from app.tools.entries.document_drafts.create import create_document_draft
 from app.tools.entries.document_drafts.get import get_document_drafts
@@ -35,6 +36,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_document_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -47,6 +49,7 @@ async def _maybe_auto_accept_document_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -58,7 +61,7 @@ async def _maybe_auto_accept_document_draft(
     call_id = ledger_entries[0].call_id
 
     async with pool.acquire() as conn:
-        drafts = await get_document_drafts(conn, [draft_id], active=None)
+        drafts = await get_document_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -79,7 +82,7 @@ async def _maybe_auto_accept_document_draft(
         async with conn.transaction():
             await create_document_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -96,6 +99,7 @@ async def _maybe_auto_accept_document_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -182,7 +186,7 @@ async def _resolve_creatable_values(
             )
             await create_file_upload(
                 conn,
-                file_id=file_entry.id,
+                redis, file_id=file_entry.id,
                 upload_id=file_val.upload_id,
                 session_id=session_id,
             )
@@ -200,7 +204,7 @@ async def _resolve_creatable_values(
 
             upload_result = await create_upload(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 file_path=final_file_path,
                 mime_type="text/plain",
                 size=size,
@@ -208,12 +212,13 @@ async def _resolve_creatable_values(
             text_resource = await create_text_resource(conn, redis)
             text_entry = await create_text_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 texts_id=text_resource.id,
             )
             await create_text_upload(
                 conn,
-                text_id=text_entry.id,
+                redis, text_id=text_entry.id,
                 upload_id=upload_result.id,
                 session_id=session_id,
             )
@@ -279,7 +284,7 @@ async def _resolve_creatable_values(
             if image_val.upload_id is not None:
                 await create_image_upload(
                     conn,
-                    image_id=image_entry.id,
+                    redis, image_id=image_entry.id,
                     upload_id=image_val.upload_id,
                     session_id=session_id,
                 )
@@ -336,28 +341,30 @@ async def patch_document_draft_impl(
         if idempotency_key is not None and accept is None:
             accept = request.accept
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
-    if not compute_can_draft(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit document drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit document drafts.",
+            )
 
     # ── Step 3: ACK short-circuit ──────────────────────────────────────
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -367,13 +374,13 @@ async def patch_document_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                drafts = await get_document_drafts(conn, [target_id], active=None)
+                drafts = await get_document_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_document_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -391,7 +398,7 @@ async def patch_document_draft_impl(
                     else:
                         await create_document_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -400,6 +407,7 @@ async def patch_document_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
@@ -430,18 +438,20 @@ async def patch_document_draft_impl(
     if draft_id is not None and request.input_draft_id is None:
         request.input_draft_id = draft_id
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         errors = await _resolve_creatable_values(conn, redis, request, session_id)
     if errors:
         raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
 
     operation_key = idempotency_key or uuid.uuid4()
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_document_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=operation_key,
                 soft=soft,
                 name=request.name or "",
@@ -462,6 +472,7 @@ async def patch_document_draft_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation=OPERATION,
@@ -514,22 +525,23 @@ async def patch_document_draft_impl(
     auto_accepted = False
     if not soft:
         auto_accepted = await _maybe_auto_accept_document_draft(
-            pool,
+            pool, redis,
             draft_id=result.id,
             session_id=session_id,
             profile_ids=[profile.profiles_id],
         )
 
-    await refresh_document_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        targets=["document_drafts_mv"],
-        soft=soft,
-        name=request.name or "",
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_document_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            targets=["document_drafts_mv"],
+            soft=soft,
+            name=request.name or "",
+            operation_key=idempotency_key or result.id,
+        )
 
     response_idempotency_key = idempotency_key or result.id
 

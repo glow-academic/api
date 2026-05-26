@@ -12,8 +12,6 @@ from uuid import UUID
 from app.infra.common_context import CommonContext
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.setting.permissions import (
-    SETTING_GENERATION_RESOURCES,
-    SETTING_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_colors_required,
@@ -57,7 +55,6 @@ from app.infra.setting.types import (
     SettingSystemResource,
     SettingThresholdResource,
 )
-from app.infra.tool_graph import ArtifactToolScores
 from app.infra.types import ArtifactContext
 
 SECTIONS = [
@@ -80,7 +77,6 @@ def build_setting_get_result(
     *,
     common: CommonContext,
     setting: ArtifactContext,
-    scores: ArtifactToolScores,
     perms: SettingPermissionsContext | None,
     group_id: UUID | None,
     include: dict[str, bool] | None = None,
@@ -513,11 +509,11 @@ def build_setting_get_result(
     basic_show_ai_generate = compute_can_draft(
         role_level=actor.role_level,
         role_permissions=actor.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in SETTING_GENERATION_RESOURCES)
+    )
     show_ai_generate = compute_can_draft(
         role_level=actor.role_level,
         role_permissions=actor.role_permissions,
-    ) and any(scores.has_any.get(resource, False) for resource in SETTING_RESOURCES)
+    )
 
     def _section_or_none(items: list, section: str) -> list | None:
         if not inc.get(section, True):

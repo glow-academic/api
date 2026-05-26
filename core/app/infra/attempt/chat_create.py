@@ -25,10 +25,10 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
+from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_chat.create import create_attempt_chat
-from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
 from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bridge
-from app.tools.entries.attempt_chat_bridge.refresh import refresh_attempt_chat_bridge
 
 # ---------------------------------------------------------------------------
 # Value types for denormalized input
@@ -222,14 +222,15 @@ async def create_attempt_chat_impl(
         async with pool.acquire() as conn:
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=request.attempt_id,
+                redis, attempt_id=request.attempt_id,
                 attempt_chat_id=request.previous_attempt_chat_id,
                 session_id=session_id,
                 soft=soft,
             )
-        async with pool.acquire() as conn:
-            await refresh_attempt_chat(conn)
-            await refresh_attempt_chat_bridge(conn)
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_chat_mv", "attempt_chat_bridge_mv"],
+        )
         return CreateAttemptChatApiResponse(
             attempt_chat_id=request.previous_attempt_chat_id,
             idempotency_key=request.idempotency_key,
@@ -237,9 +238,10 @@ async def create_attempt_chat_impl(
 
     # ── Step 1: Profile context + permissions ─────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(401, "Profile not found. Please sign in again.")
 
@@ -251,7 +253,8 @@ async def create_attempt_chat_impl(
     from app.infra.attempt.department import resolve_attempt_department
     from app.tools.entries.chat.get import get_chat_entries_internal
 
-    templates = await get_chat_entries_internal(pool, [request.chat_id], bypass_cache=True)
+    with timed("fetch_template"):
+        templates = await get_chat_entries_internal(pool, [request.chat_id], bypass_cache=True)
     if not templates:
         raise HTTPException(404, "Chat template not found.")
     tmpl = templates[0]
@@ -318,7 +321,8 @@ async def create_attempt_chat_impl(
 
     scope_dept_ids = [department_id] if department_id else profile.department_ids
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         # Single-select text resources (create if value provided)
         resolved_name_id = await _resolve_single_text(
             conn, redis, resource_id=request.name_id, value=request.name,
@@ -481,19 +485,20 @@ async def create_attempt_chat_impl(
 
     from app.tools.entries.persona.create import create_persona
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             # Create personas_entry for each AI persona resource ID
             assistant_entry_ids: list[UUID] = []
             for persona_resource_id in (final_personas_ids or []):
                 persona_entry = await create_persona(
-                    conn, personas_id=persona_resource_id,
+                    conn, redis, personas_id=persona_resource_id,
                 )
                 assistant_entry_ids.append(persona_entry.id)
 
             result = await create_attempt_chat(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 chat_id=request.chat_id,
                 title=cfg_name,
                 position=cfg_position,
@@ -536,7 +541,7 @@ async def create_attempt_chat_impl(
             )
             await create_attempt_chat_bridge(
                 conn,
-                attempt_id=request.attempt_id,
+                redis, attempt_id=request.attempt_id,
                 attempt_chat_id=result.id,
                 session_id=session_id,
                 soft=soft,
@@ -544,9 +549,11 @@ async def create_attempt_chat_impl(
 
     # ── Step 7: Refresh + return ──────────────────────────────────────────────
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_chat(conn)
-        await refresh_attempt_chat_bridge(conn)
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_chat_mv", "attempt_chat_bridge_mv"],
+        )
 
     return CreateAttemptChatApiResponse(
         attempt_chat_id=result.id,

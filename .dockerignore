@@ -7,9 +7,14 @@
 # Heavy: ~700MB of recorded call test data, not needed at runtime
 uploads/call/
 
-# Generated at runtime, never seed data
+# Generated at runtime, never seed data — EXCEPT for the 3 seed videos
+# referenced by database/seeds/setups/university/videos.py. Without these
+# carve-outs, --reseed university crashes at the video-load step.
 uploads/audio/
 uploads/video/
+!uploads/video/cheating.mp4
+!uploads/video/ferpa.mp4
+!uploads/video/upset.mp4
 
 # Local dev / VCS noise
 .git/

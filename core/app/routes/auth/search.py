@@ -8,7 +8,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.infra.auth.group import group_auth_impl
 from app.infra.auth.search import search_auth_impl
@@ -31,6 +31,7 @@ class SearchAuthApiRequest(BaseModel):
     # Pagination
     page_size: int | None = 1000
     page_offset: int | None = 0
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 @router.post("/search", response_model=ListAuthApiResponse)
@@ -59,6 +60,7 @@ async def search_auth(
         if session_id:
             group_result = await group_auth_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -86,6 +88,7 @@ async def search_auth(
             response_model=ListAuthApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

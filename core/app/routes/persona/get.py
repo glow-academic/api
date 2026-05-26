@@ -40,11 +40,14 @@ async def get_persona(
         pool = get_pool()
         redis = get_redis_client()
 
-        # Resolve time-windowed group for audit linking
+        # Resolve time-windowed group for audit linking. `id_only=True`
+        # skips the title/history fetch — /get only uses group_id for the
+        # audit row's FK.
         group_id = None
         if session_id:
             group_result = await group_persona_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -60,7 +63,12 @@ async def get_persona(
             if getattr(request, s) is not None
         }
 
-        async def _runner() -> GetPersonaApiResponse:
+        # Accepting `group_id` here lets the audit wrapper's introspection
+        # plumb the resolved id through (audit.py uses _runner_accepts_group_id).
+        # Without this, get_persona_impl re-resolves group_id internally AND
+        # ends up calling resolve_common_context with group_id=None, missing
+        # the request-scoped cache populated by the audit wrapper's own call.
+        async def _runner(group_id: UUID | None = None) -> GetPersonaApiResponse:
             return await get_persona_impl(
                 pool,
                 redis,
@@ -68,6 +76,7 @@ async def get_persona(
                 session_id=session_id,
                 id=request.id,
                 draft_id=request.draft_id,
+                group_id=group_id,
                 filters=filters,
                 bypass_cache=bypass_cache,
             )
@@ -85,6 +94,7 @@ async def get_persona(
             response_model=GetPersonaApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "personas"

@@ -31,6 +31,7 @@ class CreateGradeApiRequest(BaseModel):
             "time. Overrides any caller-supplied score."
         ),
     )
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 @router.post("/grade")
@@ -80,6 +81,7 @@ async def create_grade(
             arguments=request.model_dump(mode="json"),
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = "test,tests,grades"

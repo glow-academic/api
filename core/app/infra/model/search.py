@@ -30,6 +30,7 @@ from app.infra.model.types import (
     ListModelApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.model.get import get_models
 from app.tools.artifacts.model.search import search_models
 from app.tools.resources.agents.search import (
@@ -154,7 +155,8 @@ async def _search_model_build(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -191,7 +193,8 @@ async def _search_model_build(
 
     # ── Step 3: Search models ────────────────────────────────────────
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+     async with pool.acquire() as conn:
         model_ids_list, total_count = await search_models(
             conn,
             search=search,
@@ -204,7 +207,7 @@ async def _search_model_build(
 
         from app.tools.entries.soft_calls.search import search_soft_calls
         pending_entries = await search_soft_calls(
-            conn, artifact="model", status="pending", limit=1000,
+            conn, redis, artifact="model", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -282,23 +285,24 @@ async def _search_model_build(
                 conn, redis, search=flag_search, model=True, limit_count=100
             )
 
-    (
-        names_data,
-        descriptions_data,
-        providers_resource_data,
-        provider_facet,
-        department_facet,
-        agent_facet,
-        flag_facet,
-    ) = await asyncio.gather(
-        _fetch_names() if all_name_ids else _empty_list(),
-        _fetch_descriptions() if all_description_ids else _empty_list(),
-        _fetch_providers_resource() if all_provider_resource_ids else _empty_list(),
-        _fetch_provider_facet(),
-        _fetch_department_facet(),
-        _fetch_agent_facet(),
-        _fetch_flag_facet(),
-    )
+    with timed("hydrate"):
+        (
+            names_data,
+            descriptions_data,
+            providers_resource_data,
+            provider_facet,
+            department_facet,
+            agent_facet,
+            flag_facet,
+        ) = await asyncio.gather(
+            _fetch_names() if all_name_ids else _empty_list(),
+            _fetch_descriptions() if all_description_ids else _empty_list(),
+            _fetch_providers_resource() if all_provider_resource_ids else _empty_list(),
+            _fetch_provider_facet(),
+            _fetch_department_facet(),
+            _fetch_agent_facet(),
+            _fetch_flag_facet(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -313,7 +317,8 @@ async def _search_model_build(
 
     models_list: list[ListModelApiModel] = []
 
-    for a in artifacts:
+    with timed("build"):
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         desc_obj = (
             description_map.get(a.description_ids[0]) if a.description_ids else None

@@ -27,6 +27,7 @@ from app.infra.attempt.types import (
 )
 from app.infra.globals import get_redis_client
 from app.infra.test.context import resolve_test_context
+from app.infra.server_timing import timed
 from app.infra.test.permissions import compute_test_status
 from app.infra.test.types import (
     GetTestArtifactRequest,
@@ -80,12 +81,13 @@ async def get_test_impl(
 
     try:
         # === RESOLVE CONTEXT ===
-        ctx = await resolve_test_context(
-            pool,
-            effective_redis,
-            test_id=test_id,
-            bypass_cache=bypass_cache,
-        )
+        with timed("resolve_test"):
+            ctx = await resolve_test_context(
+                pool,
+                effective_redis,
+                test_id=test_id,
+                bypass_cache=bypass_cache,
+            )
 
         # === EXTRACT ENTRIES ===
         tests = ctx.entries.get("tests", [])
@@ -166,14 +168,15 @@ async def get_test_impl(
         binding_ids = [r.id for r in runs]
         completed_binding_ids: set[UUID] = set()
         if binding_ids:
-            from app.tools.entries.test_invocation_runs_completion.search import (
-                search_test_invocation_runs_completion,
-            )
-            async with pool.acquire() as conn:
-                completions, _ = await search_test_invocation_runs_completion(
-                    conn, test_invocation_runs_ids=binding_ids, limit=100000,
+            with timed("fetch_runs"):
+                from app.tools.entries.test_invocation_runs_completion.search import (
+                    search_test_invocation_runs_completion,
                 )
-            completed_binding_ids = {c.test_invocation_runs_id for c in completions}
+                async with pool.acquire() as conn:
+                    completions, _ = await search_test_invocation_runs_completion(
+                        conn, redis, test_invocation_runs_ids=binding_ids, limit=100000,
+                    )
+                completed_binding_ids = {c.test_invocation_runs_id for c in completions}
 
         msg_count_by_run_id: dict[UUID, int] = {}
         for m in messages:
@@ -355,7 +358,7 @@ async def get_test_impl(
 
         async with pool.acquire() as conn:
             group_summaries = await search_groups(
-                conn,
+                conn, redis,
                 name=configs_search,
                 has_runs=True,
                 limit=configs_groups_page_size,
@@ -369,7 +372,7 @@ async def get_test_impl(
         async def _group_stats(gid: UUID):
             async with pool.acquire() as conn:
                 rows, total = await search_runs(
-                    conn,
+                    conn, redis,
                     group_ids=[gid],
                     sort_order="desc",
                     has_models=True,
@@ -447,7 +450,7 @@ async def get_test_impl(
                 rows_by_group: dict[UUID, list[Any]] = {}
                 for g in on_page_expanded:
                     rows, _total = await search_runs(
-                        conn,
+                        conn, redis,
                         group_ids=[g.id],
                         sort_order="desc",
                         has_models=True,
@@ -512,7 +515,7 @@ async def get_test_impl(
                         # Pull all calls for these runs in one batch.
                         run_ids_for_perms = [r.run_id for r in rows if r.run_id]
                         all_calls = await _search_calls(
-                            conn, run_ids=run_ids_for_perms, limit=10000,
+                            conn, redis or get_redis_client(), run_ids=run_ids_for_perms, limit=10000,
                         )
                         for call in all_calls:
                             if call.file_path is None or call.run_id is None:
@@ -602,6 +605,7 @@ async def get_test_impl(
         # context's "selected" sets. Pull the missing ones via canonical
         # black-box ``get_*`` so the panel can prefill bodies + display
         # values without a second fetch. Bulk lookup, cache-friendly.
+        # (hydrate phase: config-referenced resources)
         cfg_prompt_id_set: set[UUID] = set()
         cfg_instruction_id_set: set[UUID] = set()
         cfg_tool_id_set: set[UUID] = set()
@@ -760,8 +764,9 @@ async def get_test_impl(
                 messages = list(messages) + list(extra_messages)
 
         # === BUILD ENTRIES PAYLOAD ===
-        calls = ctx.entries.get("calls", [])
-        entries_payload = TestEntries(
+        with timed("build"):
+         calls = ctx.entries.get("calls", [])
+         entries_payload = TestEntries(
             tests=[test],
             invocations=invocations,
             runs=runs if runs else None,

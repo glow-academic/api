@@ -90,7 +90,7 @@ async def resolve_reports_context(
         async with pool.acquire() as c:
             raw, _total_count = await search_attempt_chats(
                 c,
-                profile_ids=[target_profile_id] if target_profile_id else None,
+                redis, profile_ids=[target_profile_id] if target_profile_id else None,
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
                 simulation_ids=simulation_ids,

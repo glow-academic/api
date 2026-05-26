@@ -46,8 +46,12 @@ async def delete_field(
         if session_id:
             group_result = await group_field_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
+
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
 
         async def _runner() -> DeleteFieldApiResponse:
             return await delete_field_impl(
@@ -56,6 +60,7 @@ async def delete_field(
                 profile_id=profile_id,
                 ids=request.field_ids,
                 session_id=session_id,
+                soft=request.soft,
                 accept=request.accept if request.idempotency_key else None,
                 idempotency_key=request.idempotency_key,
                 # All-matching path
@@ -83,6 +88,8 @@ async def delete_field(
             response_model=DeleteFieldApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

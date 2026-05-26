@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.setting.hydrate_list_rows import hydrate_setting_list_rows
 from app.infra.setting.permissions import compute_can_duplicate
 from app.infra.setting.refresh import refresh_setting_impl
@@ -41,30 +42,32 @@ async def duplicate_setting_impl(
 ) -> DuplicateSettingApiResponse:
     """Duplicate a setting artifact."""
     setting_id = id  # alias: tools send 'id', internal code uses 'setting_id'
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    if not compute_can_duplicate(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this setting.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this setting.",
+            )
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "duplicate":
             raise HTTPException(
                 status_code=404,
@@ -76,6 +79,7 @@ async def duplicate_setting_impl(
             async with pool.acquire() as conn:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -95,7 +99,8 @@ async def duplicate_setting_impl(
         soft = False
         idempotency_key = target_id
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
         originals = await get_settings(
             conn,
             [setting_id],
@@ -142,7 +147,8 @@ async def duplicate_setting_impl(
         if inactive_match:
             inactive_flag_id = inactive_match.id
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+      async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_setting_artifact(
                 conn,
@@ -168,6 +174,7 @@ async def duplicate_setting_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -176,6 +183,7 @@ async def duplicate_setting_impl(
             elif accept is True and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -188,13 +196,14 @@ async def duplicate_setting_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_setting_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key or result.id,
-        )
+        with timed("refresh"):
+            await refresh_setting_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key or result.id,
+            )
 
     # Hydrate the new row so the client's ghost rail can materialize
     # the duplicated card directly. Single-element list keeps the

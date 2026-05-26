@@ -510,7 +510,7 @@ class TestAttemptRoute:
         attempt_route_actor,
     ):
         graph = await _create_attempt_route_graph(
-            pool, attempt_route_actor, redis_client=redis_client
+            pool, attempt_route_actor, redis_client, redis_client=redis_client
         )
         attempt_route_client.authenticate(
             profile_id=attempt_route_actor.profile_id,

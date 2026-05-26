@@ -19,6 +19,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.test.media_types import FileDownloadTestApiResult
 from app.tools.entries.files.search import search_files
 
@@ -32,9 +33,10 @@ async def file_download_test_impl(
     session_id: UUID | None = None,
 ) -> FileDownloadTestApiResult:
     """Resolve a file resource to its file on disk for the test artifact."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -47,8 +49,9 @@ async def file_download_test_impl(
             detail="You don't have permission to download test files.",
         )
 
-    async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+    with timed("hydrate"):
+      async with pool.acquire() as conn:
+        results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

@@ -14,7 +14,7 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg  # type: ignore
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 # ========== Page Metadata Models ==========
 
@@ -25,8 +25,21 @@ class PageMetaItem(BaseModel):
 
 
 class DocsApiRequest(BaseModel):
+    # Allow the `schema` field name; suppress the v2 shadow warning from
+    # BaseModel's deprecated `.schema()` method. We deliberately use the
+    # literal `schema` field over the wire to match the public contract.
+    model_config = ConfigDict(protected_namespaces=())
+
     entity_id: UUID | None = None
     snapshot_key: str | None = None
+    schema: bool = Field(
+        False,
+        description=(
+            "If true, include MCP/tooling schema metadata (artifact, entries, "
+            "resources, permission_docs, api_operations). Defaults to false for "
+            "lean page-bootstrap responses."
+        ),
+    )
 
 
 class DocsApiResponse(BaseModel):

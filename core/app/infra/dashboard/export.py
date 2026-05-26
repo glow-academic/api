@@ -22,6 +22,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.chat.search import search_chat_entries_internal
 from app.tools.resources.cohorts.get import get_cohorts
@@ -82,7 +83,8 @@ async def export_dashboard_impl(
 
     # -- Step 1: Profile context --
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -92,19 +94,21 @@ async def export_dashboard_impl(
 
     # -- Step 2: Search all attempts (full dump) --
 
-    async with pool.acquire() as conn:
+    with timed("query_attempts"):
+     async with pool.acquire() as conn:
         attempts, _total_count = await search_attempts(
             conn,
-            limit=100000,
+            redis, limit=100000,
             offset=0,
         )
 
     # -- Step 3: Search all chat entries (full dump) --
 
-    async with pool.acquire() as conn:
+    with timed("query_chats"):
+     async with pool.acquire() as conn:
         chats = await search_chat_entries_internal(
             conn,
-            limit_count=100000,
+            redis, limit_count=100000,
             offset_count=0,
         )
 
@@ -179,14 +183,15 @@ async def export_dashboard_impl(
             return []
         return await get_departments(pool, list(all_department_ids), redis)
 
-    (
+    with timed("hydrate"):
+     (
         profiles_data,
         simulations_data,
         scenarios_data,
         personas_data,
         cohorts_data,
         departments_data,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_profiles(),
         _get_simulations(),
         _get_scenarios(),
@@ -262,12 +267,13 @@ async def export_dashboard_impl(
         )
 
     # Create ZIP
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("attempts.csv", attempts_output.getvalue())
-        zf.writestr("chats.csv", chats_output.getvalue())
+    with timed("zip_build"):
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("attempts.csv", attempts_output.getvalue())
+            zf.writestr("chats.csv", chats_output.getvalue())
 
-    zip_content = zip_buffer.getvalue()
+        zip_content = zip_buffer.getvalue()
     row_count = len(attempts) + len(chats)
 
     content = base64.b64encode(zip_content).decode("ascii")

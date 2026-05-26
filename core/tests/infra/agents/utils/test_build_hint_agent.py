@@ -25,7 +25,7 @@ def _make_context(**overrides):
 
 async def test_build_hint_agent_returns_generic_agent(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = build_hint_agent(_make_context(), hint_tools=[])
     assert isinstance(agent, GenericAgent)
@@ -34,7 +34,7 @@ async def test_build_hint_agent_returns_generic_agent(monkeypatch):
 
 async def test_build_hint_agent_uses_context_values(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     ctx = _make_context(temperature=0.3, model_name="gpt-3.5-turbo")
     agent = build_hint_agent(ctx, hint_tools=[])
@@ -45,7 +45,7 @@ async def test_build_hint_agent_uses_context_values(monkeypatch):
 
 async def test_build_hint_agent_passes_tools(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
 
     def fake_tool():
@@ -58,7 +58,7 @@ async def test_build_hint_agent_passes_tools(monkeypatch):
 
 async def test_build_hint_agent_enables_parallel_tool_calls(monkeypatch):
     monkeypatch.setattr(
-        "app.utils.auth.decrypt_api_key.decrypt_api_key", lambda k: k
+        "app.infra.agents.generic_agent.decrypt_api_key", lambda k: k
     )
     agent = build_hint_agent(_make_context(), hint_tools=[])
     assert agent.parallel_tool_calls is True

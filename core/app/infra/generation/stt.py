@@ -32,6 +32,7 @@ from app.infra.globals import UPLOAD_FOLDER, get_pool
 from app.infra.upload_paths import resolve_upload_path
 from app.infra.websocket.generation_types import GenerateErrorApiRequest
 from app.infra.websocket.socket_event import EmitFn
+from app.infra.server_timing import timed
 from app.tools.resources.audios.get import get_upload_by_audios_id
 
 
@@ -139,12 +140,13 @@ async def execute_stt_dispatch(
     model_name = llm_config.get("model") or ""
 
     try:
-        with open(full_path, "rb") as f:
-            transcription = await client.audio.transcriptions.create(
-                model=model_name,
-                file=f,
-                response_format="json",
-            )
+        with timed("model_call"):
+            with open(full_path, "rb") as f:
+                transcription = await client.audio.transcriptions.create(
+                    model=model_name,
+                    file=f,
+                    response_format="json",
+                )
     except Exception as exc:
         await emit_modality_event(
             emit, "text", "error",
@@ -166,7 +168,8 @@ async def execute_stt_dispatch(
     # Dual-emits legacy generate_text_complete + canonical
     # attempt.generate.text.complete so the client can await the canonical
     # event by group_id.
-    await emit_modality_event(
+    with timed("response_emit"):
+     await emit_modality_event(
         emit,
         "text",
         "complete",

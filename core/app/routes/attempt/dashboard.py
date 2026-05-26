@@ -39,6 +39,7 @@ async def get_dashboard(
         if session_id:
             group_result = await group_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -66,6 +67,7 @@ async def get_dashboard(
             response_model=DashboardBundleResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=dashboard_request.snapshot_key,  # read snapshot
         )
         response.headers["X-Cache-Tags"] = "artifacts,dashboard,views,analytics"
         response.headers.setdefault("X-Cache-Hit", "0")

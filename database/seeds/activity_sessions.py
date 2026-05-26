@@ -45,7 +45,7 @@ async def _ignore_existing(coro: Awaitable[Any]) -> UUID | None:
 
 async def ensure_activity_session(
     conn: asyncpg.Connection,
-    *,
+    redis_client, *,
     slug: str,
     profile_id: UUID,
     label: str,
@@ -69,7 +69,7 @@ async def ensure_activity_session(
     await _ignore_existing(
         create_session(
             conn,
-            profile_id=profile_id,
+            redis_client, profile_id=profile_id,
             id=session_id,
             created_at=base_created_at,
         )
@@ -77,7 +77,7 @@ async def ensure_activity_session(
     await _ignore_existing(
         create_activity(
             conn,
-            session_id=session_id,
+            redis_client, session_id=session_id,
             profile_id=profile_id,
             id=activity_id,
             created_at=base_created_at + timedelta(seconds=5),
@@ -86,7 +86,7 @@ async def ensure_activity_session(
     await _ignore_existing(
         create_login(
             conn,
-            session_id=session_id,
+            redis_client, session_id=session_id,
             profile_id=profile_id,
             id=login_id,
             created_at=base_created_at + timedelta(seconds=10),
@@ -99,7 +99,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_grant(
                 conn,
-                session_id=session_id,
+                redis_client, session_id=session_id,
                 profiles_id=profile_id,
                 id=grant_id,
                 expires_at=base_created_at + timedelta(days=7),
@@ -111,7 +111,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_emulation(
                 conn,
-                grant_id=grant_id,
+                redis_client, grant_id=grant_id,
                 session_id=session_id,
                 profile_id=profile_id,
                 id=sid(f"{slug}/emulation"),
@@ -126,7 +126,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_group(
                 conn,
-                session_id=session_id,
+                redis_client, session_id=session_id,
                 artifact_type="activity",
                 id=group_id,
                 created_at=base_created_at + timedelta(seconds=40),
@@ -135,7 +135,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_group_name(
                 conn,
-                group_id=group_id,
+                redis_client, group_id=group_id,
                 name=f"{label} issue",
                 session_id=session_id,
                 id=sid(f"{slug}/problem-group-name"),
@@ -146,7 +146,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_run(
                 conn,
-                group_id=group_id,
+                redis_client, group_id=group_id,
                 session_id=session_id,
                 id=run_id,
                 created_at=base_created_at + timedelta(seconds=50),
@@ -155,7 +155,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_call(
                 conn,
-                run_id=run_id,
+                redis_client, run_id=run_id,
                 session_id=session_id,
                 id=call_id,
                 created_at=base_created_at + timedelta(seconds=55),
@@ -164,7 +164,7 @@ async def ensure_activity_session(
         await _ignore_existing(
             create_problem(
                 conn,
-                session_id=session_id,
+                redis_client, session_id=session_id,
                 call_id=call_id,
                 type="bug",
                 artifact_type="activity",

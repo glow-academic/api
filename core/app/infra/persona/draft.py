@@ -20,6 +20,7 @@ from redis.asyncio import Redis
 
 from app.infra.persona.permissions import compute_can_draft
 from app.infra.persona.refresh import refresh_persona_impl
+from app.infra.server_timing import timed
 from app.infra.persona.types import (
     DraftFormState,
     PatchPersonaDraftApiRequest,
@@ -31,7 +32,6 @@ from app.tools.entries.persona_drafts.create import create_persona_draft
 from app.tools.entries.persona_drafts.get import get_persona_drafts
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
-from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.entries.soft_calls.search import search_soft_calls
 
 ARTIFACT = "persona"
@@ -40,6 +40,7 @@ OPERATION = "draft"
 
 async def _maybe_auto_accept_draft(
     pool: asyncpg.Pool,
+    redis: Redis,
     *,
     draft_id: UUID,
     session_id: UUID,
@@ -65,6 +66,7 @@ async def _maybe_auto_accept_draft(
     async with pool.acquire() as conn:
         ledger_entries = await search_soft_calls(
             conn,
+            redis,
             artifact=ARTIFACT,
             operation=OPERATION,
             artifact_ids=[draft_id],
@@ -79,7 +81,7 @@ async def _maybe_auto_accept_draft(
     #    every pending_*_ids list. Any non-empty list means the user
     #    still has decisions to make.
     async with pool.acquire() as conn:
-        drafts = await get_persona_drafts(conn, [draft_id], active=None)
+        drafts = await get_persona_drafts(conn, [draft_id], redis, active=None)
     if not drafts:
         return False
     draft = drafts[0]
@@ -103,7 +105,7 @@ async def _maybe_auto_accept_draft(
         async with conn.transaction():
             await create_persona_draft(
                 conn,
-                session_id=session_id,
+                redis, session_id=session_id,
                 id=draft_id,
                 soft=False,
                 name_ids=draft.name_ids,
@@ -121,14 +123,13 @@ async def _maybe_auto_accept_draft(
             )
             await create_soft_call(
                 conn,
+                redis,
                 call_id=call_id,
                 artifact=ARTIFACT,
                 operation=OPERATION,
                 artifact_id=draft_id,
                 status="accepted",
             )
-    async with pool.acquire() as conn:
-        await refresh_soft_calls(conn)
     return True
 from app.tools.resources.colors.search import search_colors
 from app.tools.resources.departments.search import search_departments
@@ -389,7 +390,7 @@ async def patch_persona_draft_impl(
     # artifact_id=<draft_id>). Resolve draft_id then promote/reject.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(
                 status_code=404,
@@ -401,13 +402,13 @@ async def patch_persona_draft_impl(
             async with pool.acquire() as conn:
                 # active=None so we find the dormant draft (active=false)
                 # we're about to promote.
-                drafts = await get_persona_drafts(conn, [target_id], active=None)
+                drafts = await get_persona_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
                         draft = drafts[0]
                         await create_persona_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             name_ids=draft.name_ids,
@@ -426,7 +427,7 @@ async def patch_persona_draft_impl(
                     else:
                         await create_persona_draft(
                             conn,
-                            session_id=session_id,
+                            redis, session_id=session_id,
                             id=target_id,
                             soft=False,
                             profile_ids=[profile.profiles_id],
@@ -437,18 +438,16 @@ async def patch_persona_draft_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation=OPERATION,
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["persona_drafts_mv"], operation_key=idempotency_key,
+            targets=["persona_drafts_mv", "soft_calls_mv"],
         )
         return PatchPersonaDraftApiResponse(
             success=True,
@@ -484,12 +483,13 @@ async def patch_persona_draft_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -499,62 +499,66 @@ async def patch_persona_draft_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create or edit persona drafts.",
-        )
+    with timed("permissions"):
+        if not compute_can_draft(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create or edit persona drafts.",
+            )
 
     # ── Step 3: Value resolution (search → create if not found) ────────
 
-    from app.infra.persona.permissions_context import resolve_persona_values
-    errors = await resolve_persona_values(pool, redis, request)
-    if errors:
-        raise HTTPException(
-            status_code=400,
-            detail=[e.model_dump() for e in errors],
-        )
+    with timed("resolve_values"):
+        from app.infra.persona.permissions_context import resolve_persona_values
+        errors = await resolve_persona_values(pool, redis, request)
+        if errors:
+            raise HTTPException(
+                status_code=400,
+                detail=[e.model_dump() for e in errors],
+            )
 
     # ── Step 4: Create draft entry (idempotent upsert) ──────────────────
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            result = await create_persona_draft(
-                conn,
-                session_id=session_id,
-                id=idempotency_key,
-                soft=soft,
-                name=request.name or "",
-                name_ids=[request.name_id] if request.name_id else None,
-                description_ids=[request.description_id]
-                if request.description_id
-                else None,
-                color_ids=[request.color_id] if request.color_id else None,
-                icon_ids=[request.icon_id] if request.icon_id else None,
-                instruction_ids=[request.instructions_id]
-                if request.instructions_id
-                else None,
-                flag_ids=list(request.flag_ids) if request.flag_ids else None,
-                department_ids=request.department_ids,
-                parameter_field_ids=request.parameter_field_ids,
-                example_ids=request.example_ids,
-                voice_ids=request.voice_ids,
-                pending_ids=set(request.pending_ids) if request.pending_ids else None,
-                profile_ids=[profile.profiles_id],
-            )
-
-            # Soft-write: append the pending ledger row in the same txn
-            # so ack lookups can resolve (artifact, operation, draft_id).
-            # idempotency_key here is the calls_entry.id (see
-            # execute_infra_operation).
-            if soft and idempotency_key is not None:
-                await create_soft_call(
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                result = await create_persona_draft(
                     conn,
-                    call_id=idempotency_key,
-                    artifact=ARTIFACT,
-                    operation=OPERATION,
-                    artifact_id=result.id,
+                    redis, session_id=session_id,
+                    id=idempotency_key,
+                    soft=soft,
+                    name=request.name or "",
+                    name_ids=[request.name_id] if request.name_id else None,
+                    description_ids=[request.description_id]
+                    if request.description_id
+                    else None,
+                    color_ids=[request.color_id] if request.color_id else None,
+                    icon_ids=[request.icon_id] if request.icon_id else None,
+                    instruction_ids=[request.instructions_id]
+                    if request.instructions_id
+                    else None,
+                    flag_ids=list(request.flag_ids) if request.flag_ids else None,
+                    department_ids=request.department_ids,
+                    parameter_field_ids=request.parameter_field_ids,
+                    example_ids=request.example_ids,
+                    voice_ids=request.voice_ids,
+                    pending_ids=set(request.pending_ids) if request.pending_ids else None,
+                    profile_ids=[profile.profiles_id],
                 )
+
+                # Soft-write: append the pending ledger row in the same txn
+                # so ack lookups can resolve (artifact, operation, draft_id).
+                # idempotency_key here is the calls_entry.id (see
+                # execute_infra_operation).
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        redis,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation=OPERATION,
+                        artifact_id=result.id,
+                    )
 
     # ── Step 5: Build form state (server is source of truth) ──────────
 
@@ -599,13 +603,7 @@ async def patch_persona_draft_impl(
         voice_ids=request.voice_ids or [],
     )
 
-    # ── Step 6: Refresh soft_calls_mv when a pending ledger row was just appended
-
-    if soft and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-    # ── Step 7: Merge step — auto-accept the draft if every pending
+    # ── Step 6: Merge step — auto-accept the draft if every pending
     # field is now resolved. Idempotent: the helper short-circuits when
     # any pending_*_ids list is non-empty or no pending ledger exists
     # for this draft. Runs on every patch (including soft creates) so
@@ -614,20 +612,21 @@ async def patch_persona_draft_impl(
     # explicit wholesale ✓.
     auto_accepted = False
     if not soft:
-        auto_accepted = await _maybe_auto_accept_draft(
-            pool,
-            draft_id=result.id,
-            session_id=session_id,
-            profile_ids=[profile.profiles_id],
+        with timed("auto_accept"):
+            auto_accepted = await _maybe_auto_accept_draft(
+                pool, redis,
+                draft_id=result.id,
+                session_id=session_id,
+                profile_ids=[profile.profiles_id],
+            )
+
+    # ── Step 7: Refresh persona_drafts MV + soft_calls_mv (async enqueue)
+
+    with timed("refresh"):
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["persona_drafts_mv", "soft_calls_mv"],
         )
-
-    # ── Step 8: Refresh persona_drafts MV + invalidate cache ─────────
-
-    await refresh_persona_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["persona_drafts_mv"], soft=soft,
-        operation_key=idempotency_key or result.id,
-    )
 
     if auto_accepted:
         message = "Draft accepted (all fields resolved)"

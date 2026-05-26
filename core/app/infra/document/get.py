@@ -11,7 +11,6 @@ from redis.asyncio import Redis
 from app.infra.common_context import resolve_common_context
 from app.infra.document.context import resolve_document_context
 from app.infra.document.permissions import (
-    DOCUMENT_RESOURCES,
     compute_can_draft,
     compute_can_edit,
     compute_disabled_reason,
@@ -33,7 +32,7 @@ from app.infra.document.types import (
 )
 from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 SECTIONS = [
     "names",
@@ -108,31 +107,34 @@ async def get_document_impl(
     raw_param_ids = _sf(f, "parameter_fields", "parameter_ids") or _sf(f, "parameters", "parameter_ids")
     parameter_ids = [UUID(pid) if isinstance(pid, str) else pid for pid in raw_param_ids] if raw_param_ids else None
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="document",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="document",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if document_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_document_permissions_context(conn, document_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_document_permissions_context(conn, document_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Document {document_id} not found")
         if not has_access(
@@ -145,7 +147,8 @@ async def get_document_impl(
                 detail="You don't have access to this document. It may be restricted to other departments.",
             )
 
-    document = await resolve_document_context(
+    with timed("document_ctx"):
+     document = await resolve_document_context(
         pool,
         redis,
         document_id=document_id,
@@ -183,7 +186,6 @@ async def get_document_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, DOCUMENT_RESOURCES)
     include = {section: _sf(f, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(f, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(f, section, "suggested")) for section in SECTIONS}
@@ -473,7 +475,8 @@ async def get_document_impl(
             )
         return items
 
-    return GetDocumentApiResponse(
+    with timed("build"):
+     return GetDocumentApiResponse(
         actor_name=profile.name,
         document_exists=document.artifact_id is not None,
         can_edit=can_edit,

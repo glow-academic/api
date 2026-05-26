@@ -13,10 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import sorted_dedupe_by_id
 from app.infra.model.context import resolve_model_context
 from app.infra.model.permissions import (
-    MODEL_BASIC_RESOURCES,
-    MODEL_FEATURES_RESOURCES,
-    MODEL_PROVIDER_RESOURCES,
-    MODEL_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -63,7 +59,7 @@ from app.infra.model.types import (
     ModelVoiceResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
+from app.infra.server_timing import timed
 
 SECTIONS = [
     "names",
@@ -118,14 +114,15 @@ async def get_model_impl(
     resolved_filters = dict(filters or {})
     model_id = id or model_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -134,20 +131,22 @@ async def get_model_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="model",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="model",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
 
     perms = None
     if model_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_model_permissions_context(conn, model_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_model_permissions_context(conn, model_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
         if not has_access(actor.role_level, actor.department_ids, perms.department_ids):
@@ -156,7 +155,8 @@ async def get_model_impl(
                 detail="You don't have access to this model. It may be restricted to other departments.",
             )
 
-    model_ctx = await resolve_model_context(
+    with timed("model_ctx"):
+     model_ctx = await resolve_model_context(
         pool,
         redis,
         model_id=model_id,
@@ -202,7 +202,6 @@ async def get_model_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, MODEL_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -230,9 +229,9 @@ async def get_model_impl(
         raise HTTPException(status_code=400, detail="No accessible departments found for user")
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
-        "values": compute_show_value(scores.has_any.get("values", False)),
+        "values": compute_show_value(True),
         "providers": compute_show_provider(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -258,9 +257,9 @@ async def get_model_impl(
         "voices": compute_voices_required(),
     }
 
-    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_BASIC_RESOURCES)
-    provider_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_PROVIDER_RESOURCES)
-    features_show_ai_generate = any(scores.has_any.get(resource, False) for resource in MODEL_FEATURES_RESOURCES)
+    basic_show_ai_generate = True
+    provider_show_ai_generate = True
+    features_show_ai_generate = True
 
     names_selected = model_ctx.resources["names"].selected
     names_suggestions = model_ctx.resources["names"].suggestions
@@ -486,7 +485,8 @@ async def get_model_impl(
         for item in all_voices
     ]
 
-    return GetModelApiResponse(
+    with timed("build"):
+     return GetModelApiResponse(
         actor_name=actor.name,
         model_exists=perms.exists if perms else (model_id is None),
         can_edit=can_edit,

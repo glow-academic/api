@@ -83,21 +83,21 @@ async def resolve_attempt_context(
     async def _fetch_attempts() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempts(
-                c, attempt_ids=[attempt_id], limit=1
+                c, redis, attempt_ids=[attempt_id], limit=1
             )
             return items
 
     async def _fetch_chats() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_chats(
-                c, attempt_ids=[attempt_id], sort_order="asc", limit=100000
+                c, redis, attempt_ids=[attempt_id], sort_order="asc", limit=100000
             )
             return items
 
     async def _fetch_messages() -> list:
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_messages(
-                c, attempt_ids=[attempt_id], limit=100000
+                c, redis, attempt_ids=[attempt_id], limit=100000
             )
             return items
 
@@ -119,7 +119,7 @@ async def resolve_attempt_context(
         async with pool.acquire() as c:
             items, _total_count = await search_attempts(
                 c,
-                profile_ids=[attempt.profile_id],
+                redis, profile_ids=[attempt.profile_id],
                 simulation_ids=(
                     [attempt.simulation_id] if attempt.simulation_id else None
                 ),
@@ -138,7 +138,7 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             items, _total_count = await search_attempt_chats(
-                c, attempt_ids=other_attempt_ids, sort_order="asc", limit=100000
+                c, redis, attempt_ids=other_attempt_ids, sort_order="asc", limit=100000
             )
             return items
 
@@ -153,7 +153,7 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_contents(
-                c, message_ids=message_ids, limit=100000
+                c, redis, message_ids=message_ids, limit=100000
             )
 
     async def _fetch_strengths() -> list:
@@ -161,7 +161,7 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_strengths(
-                c, message_ids=message_ids, limit=100000
+                c, redis, message_ids=message_ids, limit=100000
             )
 
     async def _fetch_improvements() -> list:
@@ -169,26 +169,26 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_improvements(
-                c, message_ids=message_ids, limit=100000
+                c, redis, message_ids=message_ids, limit=100000
             )
 
     async def _fetch_hints() -> list:
         if not message_ids:
             return []
         async with pool.acquire() as c:
-            return await search_attempt_hints(c, message_ids=message_ids, limit=100000)
+            return await search_attempt_hints(c, redis, message_ids=message_ids, limit=100000)
 
     async def _fetch_grades() -> list:
         if not chat_ids:
             return []
         async with pool.acquire() as c:
-            return await search_attempt_grades(c, chat_ids=chat_ids, limit=100000)
+            return await search_attempt_grades(c, redis, chat_ids=chat_ids, limit=100000)
 
     async def _fetch_responses() -> list:
         if not chat_ids:
             return []
         async with pool.acquire() as c:
-            return await search_attempt_responses(c, chat_ids=chat_ids, limit=100000)
+            return await search_attempt_responses(c, redis, chat_ids=chat_ids, limit=100000)
 
     (
         contents,
@@ -216,7 +216,7 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_highlights(
-                c, strength_ids=strength_ids, limit=100000
+                c, redis, strength_ids=strength_ids, limit=100000
             )
 
     async def _fetch_replacements() -> list:
@@ -224,7 +224,7 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_replacements(
-                c, improvement_ids=improvement_ids, limit=100000
+                c, redis, improvement_ids=improvement_ids, limit=100000
             )
 
     async def _fetch_feedbacks() -> list:
@@ -232,14 +232,14 @@ async def resolve_attempt_context(
             return []
         async with pool.acquire() as c:
             return await search_attempt_feedback_entries(
-                c, grade_ids=grade_ids, limit=100000
+                c, redis, grade_ids=grade_ids, limit=100000
             )
 
     async def _fetch_analyses() -> list:
         if not grade_ids:
             return []
         async with pool.acquire() as c:
-            return await search_attempt_analyses(c, grade_ids=grade_ids, limit=100000)
+            return await search_attempt_analyses(c, redis, grade_ids=grade_ids, limit=100000)
 
     highlights, replacements, feedbacks, analyses = await asyncio.gather(
         _fetch_highlights(),
@@ -314,13 +314,13 @@ async def resolve_attempt_context(
         if not image_ids_set:
             return []
         async with pool.acquire() as c:
-            return await search_images(c, images_ids=list(image_ids_set), limit=200)
+            return await search_images(c, redis, images_ids=list(image_ids_set), limit=200)
 
     async def _fetch_video_entries() -> list:
         if not video_ids_set:
             return []
         async with pool.acquire() as c:
-            return await search_videos(c, videos_ids=list(video_ids_set), limit=200)
+            return await search_videos(c, redis, videos_ids=list(video_ids_set), limit=200)
 
     (
         scenarios_res,
@@ -365,7 +365,7 @@ async def resolve_attempt_context(
         if not all_doc_file_ids:
             return []
         async with pool.acquire() as c:
-            return await search_files(c, files_ids=all_doc_file_ids, limit=200)
+            return await search_files(c, redis, files_ids=all_doc_file_ids, limit=200)
 
     file_entries = await _fetch_file_entries_real()
 

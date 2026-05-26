@@ -13,8 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.profile.context import resolve_profile_context
 from app.infra.profile.permissions import (
-    PROFILE_BASIC_RESOURCES,
-    PROFILE_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_disabled_reason,
@@ -31,6 +29,7 @@ from app.infra.profile.permissions import (
     has_access,
 )
 from app.infra.profile.permissions_context import resolve_profile_permissions_context
+from app.infra.server_timing import timed
 from app.infra.profile.types import (
     GetProfileApiResponse,
     ProfileDepartmentResource,
@@ -42,7 +41,6 @@ from app.infra.profile.types import (
     ProfileRoleResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
 from app.tools.resources.colors.get import get_colors
 from app.tools.resources.icons.get import get_icons
 
@@ -104,14 +102,15 @@ async def get_profile_impl(
     resolved_filters = dict(filters or {})
     target_profile_id = id or target_profile_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -120,14 +119,15 @@ async def get_profile_impl(
 
     actor = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="profile",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="profile",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     target_is_self = (
         target_profile_id is not None and profile_id == target_profile_id
@@ -135,8 +135,9 @@ async def get_profile_impl(
 
     perms = None
     if target_profile_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_profile_permissions_context(conn, target_profile_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_profile_permissions_context(conn, target_profile_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -148,7 +149,8 @@ async def get_profile_impl(
                 detail="You don't have access to this profile. It may be restricted to other departments.",
             )
 
-    profile_ctx = await resolve_profile_context(
+    with timed("profile_ctx"):
+      profile_ctx = await resolve_profile_context(
         pool,
         redis,
         profile_id=target_profile_id,
@@ -173,7 +175,6 @@ async def get_profile_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, PROFILE_RESOURCES)
     include = {section: _sf(resolved_filters, section, "include") is not False for section in SECTIONS}
     selected_only = {section: bool(_sf(resolved_filters, section, "selected")) for section in SECTIONS}
     suggested_only = {section: bool(_sf(resolved_filters, section, "suggested")) for section in SECTIONS}
@@ -193,8 +194,11 @@ async def get_profile_impl(
         target_department_ids=perms_department_ids,
     )
 
-    names_has_tools = scores.has_any.get("names", False)
-    emails_has_tools = scores.has_any.get("emails", False)
+    # Tool-graph scoring decoration is dead weight — client always shows
+    # "AI generate" and agent dispatch happens server-side in
+    # ``prepare_generation``.
+    names_has_tools = True
+    emails_has_tools = True
 
     names_selected = profile_ctx.resources["names"].selected
     names_suggestions = profile_ctx.resources["names"].suggestions
@@ -234,6 +238,7 @@ async def get_profile_impl(
     role_icon_ids = [item.icon_id for item in all_roles if item.icon_id]
     role_color_ids = [item.color_id for item in all_roles if item.color_id]
     if role_icon_ids or role_color_ids:
+      with timed("hydrate"):
         async with pool.acquire() as conn:
             if role_icon_ids:
                 icons = await get_icons(
@@ -364,7 +369,8 @@ async def get_profile_impl(
         for item in all_roles
     ]
 
-    return GetProfileApiResponse(
+    with timed("build"):
+      return GetProfileApiResponse(
         actor_name=actor.name,
         profile_exists=profile_ctx.artifact_id is not None,
         can_edit=can_edit,
@@ -374,9 +380,9 @@ async def get_profile_impl(
         # ``resolve_profile_context``). ``None`` when no draft was active.
         draft_name=profile_ctx.entries.get("draft_name") if profile_ctx.entries else None,
         profile_id=target_profile_id,
-        show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_RESOURCES),
-        basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in PROFILE_BASIC_RESOURCES),
-        contact_show_ai_generate=scores.has_any.get("emails", False),
+        show_ai_generate=True,
+        basic_show_ai_generate=True,
+        contact_show_ai_generate=True,
         pending_ids=sorted(pending_ids) if pending_ids else [],
         role_options=sorted(allowed_role_names),
         names=_filter_items(names, "names", selected_only=selected_only, suggested_only=suggested_only)

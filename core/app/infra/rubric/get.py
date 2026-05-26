@@ -13,9 +13,6 @@ from app.infra.group.resolve import resolve_group_impl
 from app.infra.helpers import dedupe_by_id
 from app.infra.rubric.context import resolve_rubric_context
 from app.infra.rubric.permissions import (
-    RUBRIC_BASIC_RESOURCES,
-    RUBRIC_CONTENT_RESOURCES,
-    RUBRIC_RESOURCES,
     compute_can_edit,
     compute_departments_required,
     compute_description_required,
@@ -35,6 +32,7 @@ from app.infra.rubric.permissions import (
     has_access,
 )
 from app.infra.rubric.permissions_context import resolve_rubric_permissions_context
+from app.infra.server_timing import timed
 from app.infra.rubric.types import (
     GetRubricApiResponse,
     RubricDepartmentResource,
@@ -46,8 +44,6 @@ from app.infra.rubric.types import (
     RubricStandardResource,
     SectionFilter,
 )
-from app.infra.tool_graph import score_tools
-
 SECTIONS = [
     "names",
     "descriptions",
@@ -107,14 +103,15 @@ async def get_rubric_impl(
     rubric_id = id or rubric_id
     resolved_filters = dict(filters or {})
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -123,19 +120,21 @@ async def get_rubric_impl(
 
     profile = common.profile
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="rubric",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="rubric",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if rubric_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_rubric_permissions_context(conn, rubric_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_rubric_permissions_context(conn, rubric_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -147,7 +146,8 @@ async def get_rubric_impl(
                 detail="You don't have access to this rubric. It may be restricted to other departments.",
             )
 
-    rubric = await resolve_rubric_context(
+    with timed("rubric_ctx"):
+        rubric = await resolve_rubric_context(
         pool,
         redis,
         rubric_id=rubric_id,
@@ -171,7 +171,6 @@ async def get_rubric_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, RUBRIC_RESOURCES)
     include = {
         section: _sf(resolved_filters, section, "include") is not False
         for section in SECTIONS
@@ -253,7 +252,7 @@ async def get_rubric_impl(
     }
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
         "departments": compute_show_departments(len(all_departments)),
@@ -396,10 +395,11 @@ async def get_rubric_impl(
         for item in all_standards
     ]
 
-    basic_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_BASIC_RESOURCES)
-    content_show_ai_generate = any(scores.has_any.get(resource, False) for resource in RUBRIC_CONTENT_RESOURCES)
+    basic_show_ai_generate = True
+    content_show_ai_generate = True
 
-    return GetRubricApiResponse(
+    with timed("build"):
+        return GetRubricApiResponse(
         actor_name=profile.name,
         rubric_exists=rubric.artifact_id is not None,
         can_edit=can_edit,

@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.metrics.types import GetMetricsSearchResponse
 
@@ -12,7 +13,7 @@ MV_NAME = "metrics_mv"
 async def get_metrics(
     conn: asyncpg.Connection,
     ids: list[datetime],
-) -> list[GetMetricsSearchResponse]:
+    redis: Redis) -> list[GetMetricsSearchResponse]:
     """Get metrics entries by date_hour IDs from metrics_mv."""
     if not ids:
         return []

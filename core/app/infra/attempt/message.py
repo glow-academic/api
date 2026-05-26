@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -85,9 +86,10 @@ async def attempt_message_internal_impl(
         content_items.append((resolved_text, persona_id))
 
     # Resolve profile
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(status_code=401, detail="Profile not found.")
 
@@ -104,7 +106,8 @@ async def attempt_message_internal_impl(
 
     effective_session_id = session_id or profile.session_id
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         # Auto-link to the chat's latest prior message when the caller
         # didn't specify one AND opted into auto-link (the default).
         # Makes every non-root message an explicit child of some parent
@@ -122,14 +125,14 @@ async def attempt_message_internal_impl(
         # active message in the chat.
         if parent_message_id is None and auto_link_parent:
             latest_items, _ = await search_attempt_messages(
-                conn, chat_ids=[chat_id], limit=1
+                conn, redis, chat_ids=[chat_id], limit=1
             )
             if latest_items:
                 parent_message_id = latest_items[0].message_id
 
         # Create attempt_message_entry (container)
         message_result = await create_attempt_message(
-            conn,
+            conn, redis,
             chat_id=chat_id,
             session_id=effective_session_id,
         )
@@ -138,7 +141,7 @@ async def attempt_message_internal_impl(
         content_ids = []
         for content_text, content_persona_id in content_items:
             content_result = await create_attempt_content(
-                conn,
+                conn, redis,
                 message_id=message_result.id,
                 session_id=effective_session_id,
                 content=content_text,
@@ -152,14 +155,14 @@ async def attempt_message_internal_impl(
         # roots, which is the expected shape.
         if parent_message_id is not None:
             await create_attempt_message_tree(
-                conn,
+                conn, redis,
                 parent_id=parent_message_id,
                 child_id=message_result.id,
                 session_id=effective_session_id,
             )
 
         await create_attempt_message_completion(
-            conn,
+            conn, redis,
             attempt_message_id=message_result.id,
             session_id=effective_session_id,
         )
@@ -177,33 +180,25 @@ async def attempt_message_internal_impl(
                 create_attempt_audio,
             )
             await create_attempt_audio(
-                conn,
+                conn, redis,
                 message_id=message_result.id,
                 audios_id=audios_uuid,
                 session_id=effective_session_id,
             )
 
     # Refresh MVs so messages appear in the UI
-    from app.tools.entries.attempt_content.refresh import refresh_attempt_content
-    from app.tools.entries.attempt_message.refresh import refresh_attempt_message
-    from app.tools.entries.attempt_message_completion.refresh import (
-        refresh_attempt_message_completion,
-    )
-    async with pool.acquire() as conn:
-        await refresh_attempt_content(conn)
-        await refresh_attempt_message_completion(conn)
-        await refresh_attempt_message(conn)
-        # Refresh the audio-link MV too when we attached an audio, so
-        # the user-bubble's playback affordance lands on the same UI
-        # tick as the message text.
-        if audios_id is not None:
-            try:
-                from app.tools.entries.attempt_audio.refresh import (
-                    refresh_attempt_audio,
-                )
-                await refresh_attempt_audio(conn)
-            except ImportError:
-                pass
+    # (audio-link MV is best-effort — there's no attempt_audio_mv in the
+    # registry, so we don't enqueue one here even when audios_id is set.)
+    from app.infra.attempt.refresh import refresh_attempt_impl
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=[
+                "attempt_content_mv",
+                "attempt_message_completion_mv",
+                "attempt_message_mv",
+            ],
+        )
 
     logger.info(
         f"Attempt message created: chat_id={chat_id}, "

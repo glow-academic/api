@@ -13,14 +13,14 @@ from app.tools.entries.uploads.create import create_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    parent = await create_message(conn, run_id=run.id, role="user")
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    parent = await create_message(conn, redis_client, run_id=run.id, role="user")
     upload = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/file.bin",
         mime_type="application/octet-stream",
         size=1024,
@@ -28,10 +28,10 @@ async def _setup(conn, profile_id):
     return session, parent, upload
 
 
-async def test_new_upload_appears_in_mv_after_refresh(conn, profile_id):
-    session, parent, upload = await _setup(conn, profile_id)
+async def test_new_upload_appears_in_mv_after_refresh(conn, redis_client, profile_id):
+    session, parent, upload = await _setup(conn, redis_client, profile_id)
     result = await create_message_upload(
-        conn, message_id=parent.id, upload_id=upload.id, session_id=session.id
+        conn, redis_client, message_id=parent.id, upload_id=upload.id, session_id=session.id
     )
 
     row = await conn.fetchrow(

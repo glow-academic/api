@@ -22,7 +22,6 @@ from app.infra.generation import convert_tools_to_dict
 from app.infra.generation.types import (
     AgentDispatch,
     PrepareGenerationResult,
-    ReplayTapeEntry,
 )
 from app.infra.types import ArtifactRequest
 from app.infra.websocket.generation_types import GeneratePayload
@@ -74,6 +73,9 @@ def _resolve_modality_pair(
 
     output_set = set(modalities) if modalities else {"text", "call"}
     return input_set, output_set
+
+
+from app.infra.server_timing import timed
 
 
 async def prepare_generation(
@@ -132,21 +134,22 @@ async def prepare_generation(
     # Thread modalities to filter systems by capability
     requested_modalities = payload.modalities
 
-    ws_ctx = await resolve_websocket_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        requests=[
-            ArtifactRequest(
-                artifact_type=artifact_type,
-                artifact_id=artifact_id,
-                group_id=group_id,
-                draft_id=draft_id,
-            )
-        ],
-        modalities=requested_modalities,
-        bypass_cache=True,
-    )
+    with timed("prepare"):
+        ws_ctx = await resolve_websocket_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            requests=[
+                ArtifactRequest(
+                    artifact_type=artifact_type,
+                    artifact_id=artifact_id,
+                    group_id=group_id,
+                    draft_id=draft_id,
+                )
+            ],
+            modalities=requested_modalities,
+            bypass_cache=True,
+        )
 
     if ws_ctx is None:
         raise ValueError("Failed to resolve context.")
@@ -194,39 +197,30 @@ async def prepare_generation(
     # for free as long as nobody flips dangerous=True on a trace
     # generate (a defensive guard here is a future refinement).
     #
-    # ── TODO: idempotency-key replay (next iteration) ──────────────
-    # Every historical tool call has an `operation_key` stored on
-    # `calls_entry.operation_key` (NOT NULL — confirmed in
-    # database/schema/tables/entries/calls.sql). For maximum replay
-    # fidelity:
-    #
-    #   • Query calls_entry WHERE run_id = trace_ctx.historical_run_id
-    #     to fetch the original tool calls + their operation_keys.
-    #   • Build a {(tool_id, args_fingerprint): operation_key} lookup.
-    #   • Stash on PrepareGenerationResult.replay_operation_keys.
-    #   • In execute.py, when the LLM emits a tool call that matches
-    #     the historical fingerprint, reuse that operation_key
-    #     instead of minting a fresh uuid.
-    #   • The system's existing dedup (create_call → operation_key
-    #     uniqueness) short-circuits: same tool + same args + same
-    #     key → return original call_id + result. LLM continues with
-    #     the EXACT result the original run saw.
-    #
-    # See memory/project_test_replay_design.md for the full plan and
-    # rationale, including paths considered and rejected.
+    # ── Why no replay tape ─────────────────────────────────────────
+    # Earlier iterations pre-loaded historical tool outputs and served
+    # them back at dispatch time, keyed by ``(artifact, operation)``.
+    # That was incorrect: it ignored the LLM's actual arguments, so a
+    # benchmark of a *new* prompt got tool responses tailored to the
+    # *original* prompt's questions — measurement was meaningless.
+    # We now dispatch live with ``soft=True`` (the default for
+    # trace-driven runs via ``not payload.dangerous``). Reads return
+    # current state; writes stage dormant ``soft_calls_entry`` rows
+    # tagged ``eval=true`` so the UI's pending surfaces filter them
+    # out. The tradeoff is non-historical responses for evolving data;
+    # the win is honest benchmarks.
     trace_dispatch_agent: Any = None
-    replay_tape: list[ReplayTapeEntry] | None = None
+    eval_run = False
     trace_id_param = payload_params.get("trace_id")
     if trace_id_param:
-        from app.infra.generation.chat_history import _load_call_data
         from app.infra.test.trace_context import resolve_trace_context
-        from app.tools.entries.calls.search import search_calls
         from app.tools.entries.test_invocation.get import get_test_invocations
         from app.tools.resources.agents.get import get_agents
         from app.tools.resources.instructions.get import get_instructions
         from app.tools.resources.prompts.get import get_prompts
         from app.tools.resources.tools.get import get_tools
 
+        eval_run = True
         trace_uuid = (
             trace_id_param
             if isinstance(trace_id_param, uuid.UUID)
@@ -235,70 +229,13 @@ async def prepare_generation(
         async with pool.acquire() as conn:
             trace_ctx = await resolve_trace_context(conn, trace_uuid)
             invs = await get_test_invocations(
-                conn, [trace_ctx.test_invocation_id], bypass_mv=True
+                conn, [trace_ctx.test_invocation_id], redis,
             )
         if not invs:
             raise ValueError(
                 f"trace replay: parent invocation {trace_ctx.test_invocation_id} not found"
             )
         inv_for_trace = invs[0]
-
-        # ── Replay tape (canned tool outputs from the historical run) ──
-        # Pre-load every historical tool call's persisted raw_output so
-        # the dispatch loop can substitute them at tool-call time.
-        # Tape entries are keyed by ``(artifact, operation)`` (not
-        # tool_id) so the user can swap a historical tool for any
-        # other tool granting the same permission and still get the
-        # canned output. Permission is parsed from the persisted
-        # receipt's ``events`` array — the canonical
-        # ``<artifact>.<operation>.completed`` event records what
-        # actually ran.
-        if trace_ctx.historical_run_id is not None:
-            async with pool.acquire() as conn:
-                historical_calls = await search_calls(
-                    conn,
-                    run_ids=[trace_ctx.historical_run_id],
-                    limit=10000,
-                )
-            tape: list[ReplayTapeEntry] = []
-            for c in historical_calls:
-                if c.tool_id is None or c.file_path is None:
-                    continue
-                receipt = await _load_call_data(c.file_path)
-                if receipt is None:
-                    continue
-                # Resolve (artifact, operation) from the events log —
-                # the source-of-truth signal for what actually ran.
-                artifact_name: str | None = None
-                operation_name: str | None = None
-                for evt in receipt.get("events", []):
-                    name = evt.get("event", "")
-                    parts = name.split(".") if isinstance(name, str) else []
-                    if len(parts) >= 3 and parts[-1] == "completed":
-                        artifact_name, operation_name = parts[0], parts[1]
-                        break
-                if artifact_name is None or operation_name is None:
-                    continue
-                # Prefer structured raw_output; fall back to the
-                # rendered output string so even calls without a
-                # parsed result still replay something sensible.
-                raw_output: Any = receipt.get("raw_output")
-                if raw_output is None:
-                    raw_output = {"output": receipt.get("output", "")}
-                tape.append(
-                    ReplayTapeEntry(
-                        artifact=artifact_name,
-                        operation=operation_name,
-                        operation_key=getattr(c, "operation_key", None) or uuid.uuid4(),
-                        historical_call_id=c.id,
-                        historical_tool_id=c.tool_id,
-                        raw_output=raw_output,
-                    )
-                )
-            # search_calls orders DESC by created_at; reverse so the
-            # tape is chronological — first-call-first.
-            tape.reverse()
-            replay_tape = tape if tape else None
 
         if inv_for_trace.agent_ids:
             # Load the canonical agent the test_invocation was set up
@@ -548,9 +485,10 @@ async def prepare_generation(
         # Reuse existing run (e.g., grading pipeline passes its own run_id)
         run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
     else:
-        async with pool.acquire() as conn:
+        with timed("db_write"):
+          async with pool.acquire() as conn:
             run = await create_run(
-                conn,
+                conn, redis,
                 group_id=group_id,
                 session_id=session_id,
                 agent_ids=agent_ids_for_run,
@@ -659,11 +597,13 @@ async def prepare_generation(
         )
 
         # Persist messages to the run
-        async with pool.acquire() as conn:
+        with timed("audit_write"):
+          async with pool.acquire() as conn:
             for msg in dispatch.messages:
                 if msg.persist:
                     await persist_run_message(
                         conn,
+                        redis,
                         run_id=run_id,
                         session_id=session_id,
                         role=msg.role,
@@ -680,6 +620,7 @@ async def prepare_generation(
                 for instruction in payload.instructions:
                     await persist_run_message(
                         conn,
+                        redis,
                         run_id=run_id,
                         session_id=session_id,
                         role=payload.instructions_role,
@@ -814,7 +755,7 @@ async def prepare_generation(
         dispatches=dispatches,
         test_id=test_id,
         resource_types=resource_types,
-        replay_tape=replay_tape,
+        eval=eval_run,
         eval_setup=eval_setup,
         # Forward caller-supplied label + derive description from the
         # instructions when none was provided. Media dispatches consume

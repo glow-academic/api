@@ -33,7 +33,11 @@ JUNCTIONS: list[tuple[str, str, str, str]] = [
         "parameter_fields_id",
         "parameter_field_ids",
     ),
-    ("parameters", "document_parameters_junction", "parameters_id", "parameter_ids"),
+    # Removed: ("parameters", "document_parameters_junction", ...) — schema
+    # renamed `parameters` to `parameter_fields`; the junction table was
+    # dropped but this stale entry stayed, breaking /document/get with
+    # `relation "document_parameters_junction" does not exist`. The
+    # parameter_fields junction above covers the same semantic surface.
     ("texts", "document_texts_junction", "texts_id", "texts_ids"),
     ("documents", "document_documents_junction", "documents_id", "document_ids"),
 ]
@@ -85,15 +89,11 @@ async def get_documents(
         "p.mcp",
         "p.active",
     ]
-    joins: list[str] = []
-
-    for i, (table, col, field) in enumerate(active_junctions):
-        alias = f"j{i}"
-        joins.append(
-            f"LEFT JOIN {table} {alias} ON {alias}.{ARTIFACT_FK} = p.id AND {alias}.active = true"
-        )
+    for table, col, field in active_junctions:
         columns.append(
-            f"ARRAY_AGG(DISTINCT {alias}.{col}) FILTER (WHERE {alias}.{col} IS NOT NULL) AS {field}"
+            f"(SELECT array_agg(DISTINCT {col}) "
+            f"FROM {table} "
+            f"WHERE {ARTIFACT_FK} = p.id AND active) AS {field}"
         )
 
     where_clauses = ["p.id = ANY($1)"]
@@ -105,9 +105,7 @@ async def get_documents(
     query = f"""
         SELECT {", ".join(columns)}
         FROM {TABLE} p
-        {" ".join(joins)}
         WHERE {" AND ".join(where_clauses)}
-        GROUP BY p.id, p.created_at, p.updated_at, p.generated, p.mcp, p.active
     """
 
     rows = await conn.fetch(query, *params)

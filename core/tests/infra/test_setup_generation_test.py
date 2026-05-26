@@ -39,10 +39,10 @@ from app.tools.resources.voices.create import create_voice
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup_run(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
+async def _setup_run(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
     return run.id
 
 
@@ -149,7 +149,7 @@ class TestSetupGenerationTest:
     async def test_single_agent_creates_test_and_invocation(
         self, conn, profile_id, redis_client
     ):
-        run_id = await _setup_run(conn, profile_id)
+        run_id = await _setup_run(conn, redis_client, profile_id)
         agent = await _create_agent_config(
             conn, redis_client, name="single-generation-agent"
         )
@@ -166,7 +166,7 @@ class TestSetupGenerationTest:
         assert isinstance(result, GenerationTestResult)
         assert set(result.invocations.keys()) == {agent.agent_id}
 
-        tests = await get_tests(conn, [result.test_id])
+        tests = await get_tests(conn, [result.test_id], redis_client)
         assert len(tests) == 1
         assert tests[0].test_id == result.test_id
         assert tests[0].profile_id == profile_id
@@ -175,7 +175,7 @@ class TestSetupGenerationTest:
         assert tests[0].is_dynamic is False
 
         invocation_id = result.invocations[agent.agent_id]
-        invocations = await get_test_invocations(conn, [invocation_id])
+        invocations = await get_test_invocations(conn, [invocation_id], redis_client)
         assert len(invocations) == 1
         assert invocations[0].test_id == result.test_id
         assert invocations[0].agent_ids == [agent.agent_id]
@@ -183,7 +183,7 @@ class TestSetupGenerationTest:
 
         invocation_runs, total_count = await search_test_invocation_runs(
             conn,
-            test_invocation_ids=[invocation_id],
+            redis_client, test_invocation_ids=[invocation_id],
         )
         assert total_count == 1
         assert len(invocation_runs) == 1
@@ -193,7 +193,7 @@ class TestSetupGenerationTest:
     async def test_multiple_agents_creates_invocation_per_agent(
         self, conn, profile_id, redis_client
     ):
-        run_id = await _setup_run(conn, profile_id)
+        run_id = await _setup_run(conn, redis_client, profile_id)
         first_agent = await _create_agent_config(
             conn, redis_client, name="first-multi-agent"
         )
@@ -215,12 +215,12 @@ class TestSetupGenerationTest:
             second_agent.agent_id,
         }
 
-        tests = await get_tests(conn, [result.test_id])
+        tests = await get_tests(conn, [result.test_id], redis_client)
         assert len(tests) == 1
         assert tests[0].num_invocations == 2
 
         invocation_ids = list(result.invocations.values())
-        invocations = await get_test_invocations(conn, invocation_ids)
+        invocations = await get_test_invocations(conn, invocation_ids, redis_client)
         assert len(invocations) == 2
         assert {item.test_id for item in invocations} == {result.test_id}
         assert {item.agent_ids[0] for item in invocations} == {
@@ -230,7 +230,7 @@ class TestSetupGenerationTest:
 
         invocation_runs, total_count = await search_test_invocation_runs(
             conn,
-            test_invocation_ids=invocation_ids,
+            redis_client, test_invocation_ids=invocation_ids,
             limit=10,
         )
         assert total_count == 2
@@ -242,7 +242,7 @@ class TestSetupGenerationTest:
     async def test_agent_config_flows_to_invocation_and_runs(
         self, conn, profile_id, redis_client
     ):
-        run_id = await _setup_run(conn, profile_id)
+        run_id = await _setup_run(conn, redis_client, profile_id)
         agent = await _create_agent_config(
             conn,
             redis_client,
@@ -260,7 +260,7 @@ class TestSetupGenerationTest:
         await _refresh_generation_test_views(conn)
 
         invocation_id = result.invocations[agent.agent_id]
-        invocations = await get_test_invocations(conn, [invocation_id])
+        invocations = await get_test_invocations(conn, [invocation_id], redis_client)
         assert len(invocations) == 1
         assert invocations[0].department_ids == agent.department_ids
         assert invocations[0].voice_id == agent.voice_ids[0]
@@ -271,7 +271,7 @@ class TestSetupGenerationTest:
 
         invocation_runs, total_count = await search_test_invocation_runs(
             conn,
-            test_invocation_ids=[invocation_id],
+            redis_client, test_invocation_ids=[invocation_id],
         )
         assert total_count == 1
         assert len(invocation_runs) == 1
@@ -287,7 +287,7 @@ class TestSetupGenerationTest:
     async def test_none_config_fields_round_trip_as_empty_lists(
         self, conn, profile_id, redis_client
     ):
-        run_id = await _setup_run(conn, profile_id)
+        run_id = await _setup_run(conn, redis_client, profile_id)
         agent = await _create_agent_config(
             conn, redis_client, name="none-config-generation-agent"
         )
@@ -302,7 +302,7 @@ class TestSetupGenerationTest:
         await _refresh_generation_test_views(conn)
 
         invocation_id = result.invocations[agent.agent_id]
-        invocations = await get_test_invocations(conn, [invocation_id])
+        invocations = await get_test_invocations(conn, [invocation_id], redis_client)
         assert len(invocations) == 1
         assert invocations[0].department_ids == []
         assert invocations[0].voice_id is None
@@ -310,7 +310,7 @@ class TestSetupGenerationTest:
 
         invocation_runs, total_count = await search_test_invocation_runs(
             conn,
-            test_invocation_ids=[invocation_id],
+            redis_client, test_invocation_ids=[invocation_id],
         )
         assert total_count == 1
         assert len(invocation_runs) == 1

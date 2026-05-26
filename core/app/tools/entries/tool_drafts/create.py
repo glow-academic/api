@@ -3,12 +3,15 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.tool_drafts.types import CreateToolDraftResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_tool_draft(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     *,
     id: UUID | None = None,
@@ -29,12 +32,12 @@ async def create_tool_draft(
     pending_ids: set[UUID] | None = None,
 ) -> CreateToolDraftResponse:
     """Create a tool_drafts entry with optional connection table links."""
-    draft_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO tool_drafts_entry (id, session_id, active, mcp, generated, name)
         VALUES (COALESCE($5, uuidv7()), $1, $2, $3, true, $4)
         ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active
-        RETURNING id
+        RETURNING id, created_at, active, mcp
         """,
         session_id,
         not soft,
@@ -43,8 +46,12 @@ async def create_tool_draft(
         id,
     )
 
-    if draft_id is None:
+    if row is None:
         raise ValueError("Failed to create tool_drafts entry")
+    draft_id = row["id"]
+    created_at = row["created_at"]
+    active_val = row["active"]
+    mcp_val = row["mcp"]
 
     connections: list[tuple[str, str, list[UUID]]] = [
         (
@@ -82,5 +89,55 @@ async def create_tool_draft(
                 rid,
                 False if soft else (rid not in _pending),
             )
+
+    _pending_strs = {str(x) for x in _pending}
+
+    def _active_list(ids: list[UUID]) -> list[str]:
+        if soft:
+            return []
+        return [str(rid) for rid in ids if str(rid) not in _pending_strs]
+
+    def _pending_list(ids: list[UUID]) -> list[str]:
+        if soft:
+            return [str(rid) for rid in ids]
+        return [str(rid) for rid in ids if str(rid) in _pending_strs]
+
+    fresh_row = {
+        "id": str(draft_id),
+        "created_at": created_at.isoformat(),
+        "generated": True,
+        "mcp": mcp_val,
+        "active": active_val,
+        "session_id": str(session_id),
+        "name": name,
+        "arg_position_ids": _active_list(arg_position_ids or []),
+        "arg_ids": _active_list(arg_ids or []),
+        "args_output_ids": _active_list(args_output_ids or []),
+        "department_ids": _active_list(department_ids or []),
+        "description_ids": _active_list(description_ids or []),
+        "flag_ids": _active_list(flag_ids or []),
+        "name_ids": _active_list(name_ids or []),
+        "instruction_ids": _active_list(instruction_ids or []),
+        "permission_ids": _active_list(permission_ids or []),
+        "profile_ids": _active_list(profile_ids or []),
+        "agent_ids": _active_list(agent_ids or []),
+        "pending_arg_position_ids": _pending_list(arg_position_ids or []),
+        "pending_arg_ids": _pending_list(arg_ids or []),
+        "pending_args_output_ids": _pending_list(args_output_ids or []),
+        "pending_department_ids": _pending_list(department_ids or []),
+        "pending_description_ids": _pending_list(description_ids or []),
+        "pending_flag_ids": _pending_list(flag_ids or []),
+        "pending_name_ids": _pending_list(name_ids or []),
+        "pending_instruction_ids": _pending_list(instruction_ids or []),
+        "pending_permission_ids": _pending_list(permission_ids or []),
+        "pending_agent_ids": _pending_list(agent_ids or []),
+    }
+    await write_back_row(
+        redis,
+        "tool_drafts",
+        draft_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateToolDraftResponse(id=draft_id)

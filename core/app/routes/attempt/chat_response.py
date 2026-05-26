@@ -20,6 +20,7 @@ class ResponseAttemptApiResponse(BaseModel):
     message: str | None = None
     is_correct: bool | None = None
     response_id: str | None = None
+    idempotency_key: str | None = None
 
 
 @router.post("/chat_response", response_model=ResponseAttemptApiResponse)

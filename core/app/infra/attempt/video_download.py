@@ -22,6 +22,7 @@ from app.infra.attempt.media_types import VideoDownloadAttemptApiResult
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.videos.search import search_videos
 
 
@@ -42,9 +43,10 @@ async def video_download_attempt_impl(
       4. Verify file exists on disk
     """
     # -- Step 1: Profile context -----------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -59,8 +61,9 @@ async def video_download_attempt_impl(
         )
 
     # -- Step 3: Resolve videos_id -> file metadata via videos_mv --------------
-    async with pool.acquire() as conn:
-        results = await search_videos(conn, videos_ids=[video_id], limit=1)
+    with timed("search_videos"):
+     async with pool.acquire() as conn:
+        results = await search_videos(conn, redis, videos_ids=[video_id], limit=1)
 
     if not results:
         raise HTTPException(

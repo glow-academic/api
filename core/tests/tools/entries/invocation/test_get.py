@@ -10,32 +10,32 @@ from app.tools.entries.invocation.get import get_invocations
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn):
-    benchmark = await create_benchmark(conn)
+async def _setup(conn, redis_client):
+    benchmark = await create_benchmark(conn, redis_client)
     return benchmark
 
 
-async def test_get_returns_created(conn):
-    benchmark = await _setup(conn)
-    created = await create_invocation(conn, benchmark_id=benchmark.id)
+async def test_get_returns_created(conn, redis_client):
+    benchmark = await _setup(conn, redis_client)
+    created = await create_invocation(conn, redis_client, benchmark_id=benchmark.id)
 
-    results = await get_invocations(conn, [created.id])
+    results = await get_invocations(conn, [created.id], redis_client)
 
     assert len(results) == 1
     assert results[0].id == created.id
 
 
-async def test_get_returns_base_fields(conn):
-    benchmark = await _setup(conn)
+async def test_get_returns_base_fields(conn, redis_client):
+    benchmark = await _setup(conn, redis_client)
     created = await create_invocation(
         conn,
-        benchmark_id=benchmark.id,
+        redis_client, benchmark_id=benchmark.id,
         use_custom=True,
         position=3,
         mcp=True,
     )
 
-    results = await get_invocations(conn, [created.id])
+    results = await get_invocations(conn, [created.id], redis_client)
 
     assert len(results) == 1
     item = results[0]
@@ -48,11 +48,11 @@ async def test_get_returns_base_fields(conn):
     assert item.created_at is not None
 
 
-async def test_get_without_connections_returns_empty_lists(conn):
-    benchmark = await _setup(conn)
-    created = await create_invocation(conn, benchmark_id=benchmark.id)
+async def test_get_without_connections_returns_empty_lists(conn, redis_client):
+    benchmark = await _setup(conn, redis_client)
+    created = await create_invocation(conn, redis_client, benchmark_id=benchmark.id)
 
-    results = await get_invocations(conn, [created.id])
+    results = await get_invocations(conn, [created.id], redis_client)
 
     assert len(results) == 1
     item = results[0]
@@ -72,8 +72,8 @@ async def test_get_without_connections_returns_empty_lists(conn):
     assert item.voice_ids == []
 
 
-async def test_get_with_connections(conn):
-    benchmark = await _setup(conn)
+async def test_get_with_connections(conn, redis_client):
+    benchmark = await _setup(conn, redis_client)
 
     # Use seed data for names_resource
     name_id = await conn.fetchval("SELECT id FROM names_resource LIMIT 1")
@@ -86,12 +86,12 @@ async def test_get_with_connections(conn):
 
     created = await create_invocation(
         conn,
-        benchmark_id=benchmark.id,
+        redis_client, benchmark_id=benchmark.id,
         name_ids=[name_id],
         department_ids=[dept_id],
     )
 
-    results = await get_invocations(conn, [created.id])
+    results = await get_invocations(conn, [created.id], redis_client)
 
     assert len(results) == 1
     item = results[0]
@@ -99,24 +99,24 @@ async def test_get_with_connections(conn):
     assert dept_id in item.department_ids
 
 
-async def test_returns_empty_for_nonexistent_id(conn):
-    results = await get_invocations(conn, [nonexistent_id()])
+async def test_returns_empty_for_nonexistent_id(conn, redis_client):
+    results = await get_invocations(conn, [nonexistent_id()], redis_client)
 
     assert results == []
 
 
-async def test_get_empty_ids_returns_empty(conn):
-    results = await get_invocations(conn, [])
+async def test_get_empty_ids_returns_empty(conn, redis_client):
+    results = await get_invocations(conn, [], redis_client)
 
     assert results == []
 
 
-async def test_get_multiple(conn):
-    benchmark = await _setup(conn)
-    c1 = await create_invocation(conn, benchmark_id=benchmark.id)
-    c2 = await create_invocation(conn, benchmark_id=benchmark.id)
+async def test_get_multiple(conn, redis_client):
+    benchmark = await _setup(conn, redis_client)
+    c1 = await create_invocation(conn, redis_client, benchmark_id=benchmark.id)
+    c2 = await create_invocation(conn, redis_client, benchmark_id=benchmark.id)
 
-    results = await get_invocations(conn, [c1.id, c2.id])
+    results = await get_invocations(conn, [c1.id, c2.id], redis_client)
 
     result_ids = {r.id for r in results}
     assert c1.id in result_ids

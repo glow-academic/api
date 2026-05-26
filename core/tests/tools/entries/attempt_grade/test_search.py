@@ -21,32 +21,32 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _setup(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     attempt = await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     await create_attempt_chat_bridge(
         conn,
-        attempt_id=attempt.id,
+        redis_client, attempt_id=attempt.id,
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
     result = await create_attempt_grade(
         conn,
-        chat_id=attempt_chat.id,
+        redis_client, chat_id=attempt_chat.id,
         call_id=call2.id,
         time_taken=120,
         passed=True,
@@ -55,57 +55,57 @@ async def _setup(conn, profile_id):
     return result, attempt_chat
 
 
-async def test_finds_created_entry(conn, profile_id):
-    result, attempt_chat = await _setup(conn, profile_id)
+async def test_finds_created_entry(conn, redis_client, profile_id):
+    result, attempt_chat = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_grade(conn)
 
-    items = await search_attempt_grades(conn, chat_ids=[attempt_chat.id])
+    items = await search_attempt_grades(conn, redis_client, chat_ids=[attempt_chat.id])
 
     ids = [item.grade_id for item in items]
     assert result.id in ids
 
 
-async def test_filters_by_chat_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_chat_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_grade(conn)
 
-    items = await search_attempt_grades(conn, chat_ids=[nonexistent_id()])
+    items = await search_attempt_grades(conn, redis_client, chat_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_filters_by_rubric_id(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_filters_by_rubric_id(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_grade(conn)
 
-    items = await search_attempt_grades(conn, rubric_ids=[nonexistent_id()])
+    items = await search_attempt_grades(conn, redis_client, rubric_ids=[nonexistent_id()])
 
     assert items == []
 
 
-async def test_pagination_limit(conn, profile_id):
-    result, attempt_chat = await _setup(conn, profile_id)
+async def test_pagination_limit(conn, redis_client, profile_id):
+    result, attempt_chat = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_grade(conn)
 
-    items = await search_attempt_grades(conn, chat_ids=[attempt_chat.id], limit=1)
+    items = await search_attempt_grades(conn, redis_client, chat_ids=[attempt_chat.id], limit=1)
 
     assert len(items) <= 1
 
 
-async def test_returns_all_without_filter(conn, profile_id):
-    await _setup(conn, profile_id)
+async def test_returns_all_without_filter(conn, redis_client, profile_id):
+    await _setup(conn, redis_client, profile_id)
     await refresh_attempt_grade(conn)
 
-    items = await search_attempt_grades(conn)
+    items = await search_attempt_grades(conn, redis_client)
 
     assert len(items) >= 1
 
 
-async def test_bypass_mv_finds_without_refresh(conn, profile_id):
-    result, attempt_chat = await _setup(conn, profile_id)
+async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
+    result, attempt_chat = await _setup(conn, redis_client, profile_id)
 
     items = await search_attempt_grades(
-        conn, chat_ids=[attempt_chat.id], bypass_mv=True
+        conn, redis_client, chat_ids=[attempt_chat.id], bypass_mv=True
     )
 
     ids = [item.grade_id for item in items]

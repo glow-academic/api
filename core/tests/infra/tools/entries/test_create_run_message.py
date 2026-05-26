@@ -15,16 +15,16 @@ from app.tools.entries.uploads.create import create_upload
 pytestmark = pytest.mark.asyncio
 
 
-async def _deps(conn, profile_id):
+async def _deps(conn, redis_client, profile_id):
     """Create session → group → run → upload for testing."""
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(
-        conn, group_id=group.id, session_id=session.id, profiles_id=profile_id
+        conn, redis_client, group_id=group.id, session_id=session.id, profiles_id=profile_id
     )
     upload = await create_upload(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         file_path="test/file.txt",
         mime_type="text/plain",
         size=1024,
@@ -49,8 +49,8 @@ async def test_returns_all_ids(conn, profile_id):
     assert result.message_upload_junction_id is not None
 
 
-async def test_creates_message_with_correct_role(conn, profile_id):
-    session, run, upload = await _deps(conn, profile_id)
+async def test_creates_message_with_correct_role(conn, redis_client, profile_id):
+    session, run, upload = await _deps(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
@@ -60,14 +60,14 @@ async def test_creates_message_with_correct_role(conn, profile_id):
         upload_id=upload.id,
     )
 
-    message = await get_message(conn, result.message_id)
+    message = await get_message(conn, result.message_id, redis_client)
     assert message is not None
     assert message.run_id == run.id
     assert message.role == "developer"
 
 
-async def test_creates_text_entry(conn, profile_id):
-    session, run, upload = await _deps(conn, profile_id)
+async def test_creates_text_entry(conn, redis_client, profile_id):
+    session, run, upload = await _deps(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
@@ -77,13 +77,13 @@ async def test_creates_text_entry(conn, profile_id):
         upload_id=upload.id,
     )
 
-    text = await get_text(conn, result.text_id)
+    text = await get_text(conn, result.text_id, redis_client)
     assert text is not None
     assert text.session_id == session.id
 
 
-async def test_links_text_to_upload(conn, profile_id):
-    session, run, upload = await _deps(conn, profile_id)
+async def test_links_text_to_upload(conn, redis_client, profile_id):
+    session, run, upload = await _deps(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
@@ -93,14 +93,14 @@ async def test_links_text_to_upload(conn, profile_id):
         upload_id=upload.id,
     )
 
-    row = await get_text_upload(conn, result.text_upload_junction_id)
+    row = await get_text_upload(conn, result.text_upload_junction_id, redis_client)
     assert row is not None
     assert row.text_id == result.text_id
     assert row.upload_id == upload.id
 
 
-async def test_links_message_to_upload(conn, profile_id):
-    session, run, upload = await _deps(conn, profile_id)
+async def test_links_message_to_upload(conn, redis_client, profile_id):
+    session, run, upload = await _deps(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
@@ -110,21 +110,21 @@ async def test_links_message_to_upload(conn, profile_id):
         upload_id=upload.id,
     )
 
-    row = await get_message_upload(conn, result.message_upload_junction_id)
+    row = await get_message_upload(conn, result.message_upload_junction_id, redis_client)
     assert row is not None
     assert row.message_id == result.message_id
     assert row.upload_id == upload.id
 
 
-async def test_multiple_messages_on_same_run(conn, profile_id):
+async def test_multiple_messages_on_same_run(conn, redis_client, profile_id):
     """Can create multiple messages on one run (system + developer + user)."""
-    session, run, _ = await _deps(conn, profile_id)
+    session, run, _ = await _deps(conn, redis_client, profile_id)
 
     results = []
     for role in ["system", "developer", "user"]:
         upload = await create_upload(
             conn,
-            session_id=session.id,
+            redis_client, session_id=session.id,
             file_path=f"test/{role}.txt",
             mime_type="text/plain",
             size=100,

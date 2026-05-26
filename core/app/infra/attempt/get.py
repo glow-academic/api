@@ -59,6 +59,7 @@ from app.infra.attempt.types import (
     VideoEntry,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -108,18 +109,20 @@ async def get_attempt_internal(
     **_kwargs,
 ) -> AttemptInternalData:
     """Core attempt detail fetcher with no HTTP concerns."""
-    requester = await resolve_profile_identity_context(
-        pool, profile_id, redis, bypass_cache
-    )
+    with timed("profile"):
+        requester = await resolve_profile_identity_context(
+            pool, profile_id, redis, bypass_cache
+        )
     profiles_id = requester.profiles_id if requester else None
     requester_role: str | None = requester.role if requester else None  # role from ProfileIdentityContext (name)
 
-    ctx = await resolve_attempt_context(
-        pool,
-        redis,
-        attempt_id=attempt_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("attempt_ctx"):
+        ctx = await resolve_attempt_context(
+            pool,
+            redis,
+            attempt_id=attempt_id,
+            bypass_cache=bypass_cache,
+        )
 
     attempts = ctx.entries.get("attempts", [])
     chats_result = ctx.entries.get("chats", [])
@@ -870,21 +873,21 @@ async def get_attempt_internal(
             async with pool.acquire() as conn:
                 if practice:
                     practice_entries = await search_attempt_practice_entries(
-                        conn, attempt_ids=[attempt_id], bypass_mv=True,
+                        conn, redis, attempt_ids=[attempt_id],
                     )
                     if practice_entries:
                         parent_links = await search_practice_chats(
-                            conn, practice_ids=[practice_entries[0].practice_id],
-                            limit=1000, bypass_mv=True,
+                            conn, redis, practice_ids=[practice_entries[0].practice_id],
+                            limit=1000,
                         )
                 else:
                     home_entries = await search_attempt_homes(
-                        conn, attempt_ids=[attempt_id], bypass_mv=True,
+                        conn, redis, attempt_ids=[attempt_id],
                     )
                     if home_entries:
                         parent_links = await search_home_chats(
-                            conn, home_ids=[home_entries[0].home_id],
-                            limit=1000, bypass_mv=True,
+                            conn, redis, home_ids=[home_entries[0].home_id],
+                            limit=1000,
                         )
                     else:
                         parent_links = []
@@ -970,17 +973,19 @@ async def get_attempt_impl(
     cache_key_val = cache_key(cache_key_path or "/attempt/get", body_dict)
 
     if not bypass_cache:
-        cached = await get_cached(cache_key_val, redis=redis)
+        with timed("cache_lookup"):
+            cached = await get_cached(cache_key_val, redis=redis)
         if cached:
             return GetAttemptDetailResponse.model_validate(cached["data"])
 
-    data = await get_attempt_internal(
-        pool,
-        redis,
-        profile_id=profile_id,
-        attempt_id=attempt_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("attempt_internal"):
+        data = await get_attempt_internal(
+            pool,
+            redis,
+            profile_id=profile_id,
+            attempt_id=attempt_id,
+            bypass_cache=bypass_cache,
+        )
 
     if not data.attempt_exists or data.access_denied:
         return GetAttemptDetailResponse(
@@ -1019,11 +1024,12 @@ async def get_attempt_impl(
         ),
     )
 
-    await set_cached(
-        cache_key_val,
-        {"data": api_response.model_dump(mode="json")},
-        ttl=300,
-        tags=tags,
-        redis=redis,
-    )
+    with timed("cache_set"):
+        await set_cached(
+            cache_key_val,
+            {"data": api_response.model_dump(mode="json")},
+            ttl=300,
+            tags=tags,
+            redis=redis,
+        )
     return api_response

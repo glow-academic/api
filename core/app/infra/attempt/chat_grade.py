@@ -13,9 +13,10 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_chat.search import search_attempt_chats
 from app.tools.entries.attempt_grade.create import create_attempt_grade
-from app.tools.entries.attempt_grade.refresh import refresh_attempt_grade
 from app.tools.resources.rubrics.get import get_rubrics
 
 
@@ -44,9 +45,10 @@ async def chat_grade_attempt_impl(
     if not chat_id:
         raise ValueError("chat_id is required")
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         # Step 1: Get chat → rubric, created_at
-        chats, _ = await search_attempt_chats(conn, attempt_chat_ids=[chat_id], limit=1)
+        chats, _ = await search_attempt_chats(conn, redis, attempt_chat_ids=[chat_id], limit=1)
         if not chats:
             raise ValueError(f"Attempt chat {chat_id} not found")
         chat = chats[0]
@@ -81,7 +83,7 @@ async def chat_grade_attempt_impl(
         # Step 4: Create grade + link rubric
         result = await create_attempt_grade(
             conn,
-            chat_id=chat_id,
+            redis, chat_id=chat_id,
             session_id=session_id,
             time_taken=time_taken,
             passed=passed,
@@ -89,8 +91,11 @@ async def chat_grade_attempt_impl(
             rubric_ids=[chat.rubric_id] if chat.rubric_id else None,
         )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_grade(conn)
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_grade_mv"],
+        )
 
     return {
         "grade_id": str(result.id),

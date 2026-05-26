@@ -51,6 +51,7 @@ async def problem_document(
         group_id = None
         group_result = await group_document_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
+            id_only=True,
         )
         group_id = group_result.group_id
 
@@ -76,6 +77,7 @@ async def problem_document(
             response_model=ProblemDocumentApiResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

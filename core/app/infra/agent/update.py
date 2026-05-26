@@ -24,6 +24,7 @@ from app.infra.agent.permissions_context import (
 from app.infra.agent.refresh import refresh_agent_impl
 from app.infra.agent.types import UpdateAgentApiRequest, UpdateAgentApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.agent.update import (
     _UNSET,
 )
@@ -87,7 +88,7 @@ async def update_agent_impl(
     # an empty/None agents list — same hoist scenario does for persona).
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -103,6 +104,7 @@ async def update_agent_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
@@ -187,12 +189,13 @@ async def update_agent_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -207,7 +210,8 @@ async def update_agent_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             perms = await resolve_agent_permissions_context(conn, item.id)
             if not perms.exists:
@@ -256,7 +260,8 @@ async def update_agent_impl(
     has_errors = False
     error_results: list[AgentResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_agent_values(conn, redis, item, is_create=False)
             if item_errors:
@@ -281,7 +286,8 @@ async def update_agent_impl(
 
     results: list[AgentResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+     for item in items:
         agents_resource_id = None
         if not soft:
             agents_resource_id = await create_denormalized_snapshot(
@@ -322,6 +328,7 @@ async def update_agent_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -347,14 +354,15 @@ async def update_agent_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_agent_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].agent_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_agent_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].agent_id if results else None),
+            )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

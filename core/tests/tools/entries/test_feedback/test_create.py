@@ -16,19 +16,19 @@ from app.tools.entries.test_invocation.create import create_test_invocation
 pytestmark = pytest.mark.asyncio
 
 
-async def _test_feedback(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    test = await create_test(conn, call_id=call.id, profiles_id=profile_id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _test_feedback(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    test = await create_test(conn, redis_client, call_id=call.id, profiles_id=profile_id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     test_invocation = await create_test_invocation(
-        conn, test_id=test.id, call_id=call2.id
+        conn, redis_client, test_id=test.id, call_id=call2.id
     )
     test_grade = await create_test_grade(
         conn,
-        invocation_id=test_invocation.id,
+        redis_client, invocation_id=test_invocation.id,
         call_id=call2.id,
         time_taken=120,
         passed=True,
@@ -43,24 +43,24 @@ async def _test_feedback(conn, profile_id, **overrides):
         pass_points=60,
     )
     defaults.update(overrides)
-    result = await create_test_feedback(conn, **defaults)
+    result = await create_test_feedback(conn, redis_client, **defaults)
     return result
 
 
-async def test_returns_id(conn, profile_id):
-    result = await _test_feedback(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result = await _test_feedback(conn, redis_client, profile_id)
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _test_feedback(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _test_feedback(conn, redis_client, profile_id)
     await refresh_test_feedback(conn)
-    items = await get_test_feedbacks(conn, [result.id])
+    items = await get_test_feedbacks(conn, [result.id], redis_client)
     assert len(items) == 1
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result = await _test_feedback(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result = await _test_feedback(conn, redis_client, profile_id, mcp=True)
     row = await conn.fetchrow(
         "SELECT mcp FROM test_feedback_entry WHERE id = $1", result.id
     )

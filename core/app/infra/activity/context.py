@@ -91,7 +91,7 @@ async def resolve_activity_context(
         async with pool.acquire() as c:
             return await search_sessions(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -101,7 +101,7 @@ async def resolve_activity_context(
         async with pool.acquire() as c:
             return await search_activity(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -111,7 +111,7 @@ async def resolve_activity_context(
         async with pool.acquire() as c:
             return await search_logins(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -121,7 +121,7 @@ async def resolve_activity_context(
         async with pool.acquire() as c:
             return await search_problems(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -129,11 +129,11 @@ async def resolve_activity_context(
 
     async def _fetch_grants() -> list:
         async with pool.acquire() as c:
-            return await search_grants(c, limit=100000)
+            return await search_grants(c, redis, limit=100000)
 
     async def _fetch_emulations() -> list:
         async with pool.acquire() as c:
-            return await search_emulations(c, limit=100000)
+            return await search_emulations(c, redis, limit=100000)
 
     (
         sessions,
@@ -239,7 +239,7 @@ async def resolve_activity_search_context(
         async with pool.acquire() as c:
             return await search_sessions(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 active=active,
@@ -251,7 +251,7 @@ async def resolve_activity_search_context(
         async with pool.acquire() as c:
             return await search_sessions(
                 c,
-                profile_ids=effective_profile_ids,
+                redis, profile_ids=effective_profile_ids,
                 date_from=date_from,
                 date_to=date_to,
                 active=active,
@@ -268,11 +268,11 @@ async def resolve_activity_search_context(
     session_ids = [s.id for s in sessions]
     if session_ids:
         async with pool.acquire() as c:
-            groups = await search_groups(c, session_ids=session_ids, limit=100000)
+            groups = await search_groups(c, redis, session_ids=session_ids, limit=100000)
         async with pool.acquire() as c:
             problems = await search_problems(
                 c,
-                session_ids=session_ids,
+                redis, session_ids=session_ids,
                 date_from=date_from,
                 date_to=date_to,
                 limit=100000,
@@ -285,7 +285,7 @@ async def resolve_activity_search_context(
     group_ids = [g.id for g in groups]
     if group_ids:
         async with pool.acquire() as c:
-            runs = (await search_runs(c, group_ids=group_ids, limit=100000))[0]
+            runs = (await search_runs(c, redis, group_ids=group_ids, limit=100000))[0]
     else:
         runs = []
 

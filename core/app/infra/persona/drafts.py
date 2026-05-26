@@ -24,6 +24,7 @@ from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.persona.types import GetPersonaDraftsApiResponse
+from app.infra.server_timing import timed
 from app.tools.entries.persona_drafts.search import search_persona_drafts
 
 
@@ -42,25 +43,27 @@ async def list_persona_drafts_impl(
     **_kwargs,
 ) -> GetPersonaDraftsApiResponse:
     """List/search persona drafts owned by the current profile."""
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id, bypass_cache=bypass_cache,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
         )
 
-    async with pool.acquire() as conn:
-        drafts = await search_persona_drafts(
-            conn,
-            profile_ids=[profile.profiles_id],
-            session_ids=[session_id] if session_id else None,
-            name=search,
-            date_from=date_from,
-            date_to=date_to,
-            limit=page_limit,
-            offset=page_offset,
-        )
+    with timed("search"):
+        async with pool.acquire() as conn:
+            drafts = await search_persona_drafts(
+                conn,
+                redis, profile_ids=[profile.profiles_id],
+                session_ids=[session_id] if session_id else None,
+                name=search,
+                date_from=date_from,
+                date_to=date_to,
+                limit=page_limit,
+                offset=page_offset,
+            )
 
     return GetPersonaDraftsApiResponse(entries=drafts)

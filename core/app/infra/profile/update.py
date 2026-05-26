@@ -23,6 +23,7 @@ from app.infra.profile.types import (
     UpdateProfileApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.profile.get import (
     get_profiles as get_profile_artifacts,
 )
@@ -74,7 +75,7 @@ async def update_profile_impl(
     # canonical pattern.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "update":
             raise HTTPException(
                 status_code=404,
@@ -95,6 +96,7 @@ async def update_profile_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="update",
@@ -180,12 +182,13 @@ async def update_profile_impl(
 
     items = request.profiles
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -199,7 +202,8 @@ async def update_profile_impl(
     is_all_matching = bool(request.all)
     permitted_items: list = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             target_is_self = item.profile_id == profile_id
             perms = await resolve_profile_permissions_context(conn, item.profile_id)
@@ -245,7 +249,8 @@ async def update_profile_impl(
     has_errors = False
     error_results: list[ProfileResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+      async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_profile_values(
                 conn,
@@ -273,7 +278,8 @@ async def update_profile_impl(
 
     results: list[ProfileResultItem] = []
 
-    for item in items:
+    with timed("db_write"):
+      for item in items:
         async with pool.acquire() as conn:
             existing = await get_profile_artifacts(
                 conn,
@@ -348,6 +354,7 @@ async def update_profile_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="update",
@@ -367,14 +374,15 @@ async def update_profile_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_profile_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].profile_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_profile_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].profile_id if results else None),
+            )
 
     # ── Hydrate full row content for the client ──────────────────────
     # See ``hydrate_profile_list_rows``: returns the same shape
@@ -385,15 +393,16 @@ async def update_profile_impl(
     # active until ack-accept).
     profiles_rows: list[ListProfilesApiProfile] | None = None
     if not soft:
-        from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
-        updated_ids = [
-            r.profile_id for r in results
-            if r.success and r.profile_id is not None
-        ]
-        if updated_ids:
-            profiles_rows = await hydrate_profile_list_rows(
-                pool, redis, profile_id=profile_id, profile_ids=updated_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.profile.hydrate_list_rows import hydrate_profile_list_rows
+            updated_ids = [
+                r.profile_id for r in results
+                if r.success and r.profile_id is not None
+            ]
+            if updated_ids:
+                profiles_rows = await hydrate_profile_list_rows(
+                    pool, redis, profile_id=profile_id, profile_ids=updated_ids,
+                )
 
     # All-matching path threads soft-skipped rows back into the
     # response so the client can surface "X updated, Y skipped" in

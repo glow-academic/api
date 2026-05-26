@@ -3,12 +3,15 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.chat.types import CreateChatResponse
+from app.utils.cache.hedged_row import write_back_row
 
 
 async def create_chat(
     conn: asyncpg.Connection,
+    redis: Redis,
     session_id: UUID,
     id: UUID | None = None,
     scenario_ids: list[UUID] | None = None,
@@ -70,7 +73,7 @@ async def create_chat(
     standard_ids: list[UUID] | None = None,
 ) -> CreateChatResponse:
     """Create a chat entry with optional connection tables."""
-    chat_id = await conn.fetchval(
+    row = await conn.fetchrow(
         """
         INSERT INTO chat_entry (
             id, session_id, "position", active, mcp, generated,
@@ -104,7 +107,7 @@ async def create_chat(
             $34, $35,
             $36
         )
-        RETURNING id
+        RETURNING id, created_at
         """,
         session_id,
         position,
@@ -145,8 +148,10 @@ async def create_chat(
         id,
     )
 
-    if chat_id is None:
+    if row is None:
         raise ValueError("Failed to create chat entry")
+    chat_id = row["id"]
+    created_at = row["created_at"]
 
     # ── Connection tables ──
     for scenario_id in scenario_ids or []:
@@ -318,5 +323,59 @@ async def create_chat(
             chat_id,
             s_id,
         )
+
+    # Write-back cache row — superset of GetChatResponse (canonical get
+    # shape) AND the legacy ``list[dict]`` shape returned by
+    # ``search_chat_entries_internal``. The latter needs ``chat_entry_id``,
+    # ``session_id``, ``name``, ``description``, ``created_at``, ``active``
+    # at the top level; the former needs the various *_ids and flag fields
+    # below. MV-derived fields (parent_id, scenario_id singular, name_ids,
+    # description_ids, flag_ids) aren't known at create-time and default
+    # to None/empty; the MV refresh path populates them.
+    _scenario_list = scenario_ids or []
+    fresh_row = {
+        # ── Canonical GET shape ──
+        "id": str(chat_id),
+        "parent_id": None,
+        "scenario_id": str(_scenario_list[0]) if _scenario_list else None,
+        "department_ids": [str(x) for x in (department_ids or [])],
+        "document_ids": [str(x) for x in (document_ids or [])],
+        "parameter_field_ids": [str(x) for x in (parameter_field_ids or [])],
+        "question_ids": [str(x) for x in (question_ids or [])],
+        "option_ids": [str(x) for x in (option_ids or [])],
+        "video_ids": [str(x) for x in (video_ids or [])],
+        "image_ids": [str(x) for x in (image_ids or [])],
+        "problem_statement_ids": [str(x) for x in (problem_statement_ids or [])],
+        "objective_ids": [str(x) for x in (objective_ids or [])],
+        "flag_ids": [],
+        "name_ids": [],
+        "description_ids": [],
+        "persona_ids": [str(x) for x in (persona_ids or [])],
+        "rubric_ids": [str(x) for x in (rubric_ids or [])],
+        "standard_ids": [str(x) for x in (standard_ids or [])],
+        "standard_group_ids": [str(x) for x in (standard_group_ids or [])],
+        "video_enabled": video_enabled,
+        "problem_statement_enabled": problem_statement_enabled,
+        "objectives_enabled": objectives_enabled,
+        "images_enabled": images_enabled,
+        "questions_enabled": questions_enabled,
+        "position": position,
+        "time_limit": time_limit,
+        "negative_time": negative_time,
+        # ── Legacy list[dict] SEARCH shape additions ──
+        "chat_entry_id": str(chat_id),
+        "session_id": str(session_id),
+        "name": name,
+        "description": description,
+        "created_at": created_at.isoformat() if created_at else None,
+        "active": not soft,
+    }
+    await write_back_row(
+        redis,
+        "chat",
+        chat_id,
+        fresh_row,
+        score_ms=int(created_at.timestamp() * 1000),
+    )
 
     return CreateChatResponse(id=chat_id)

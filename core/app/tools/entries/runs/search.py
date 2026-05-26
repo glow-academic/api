@@ -5,8 +5,10 @@ from uuid import UUID
 
 import asyncpg  # type: ignore
 from pydantic import BaseModel, Field
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
+from app.utils.cache.hedged_row import hedged_search_with_total
 
 MV_NAME = "runs_mv"
 
@@ -81,8 +83,22 @@ def _build_pricing_list(item: object) -> list[RunPricingItem]:
     return pricing
 
 
+def _pricing_from_cache(raw: object) -> list[RunPricingItem]:
+    """Hydrate pricing from a cached row's serialized list (list[dict])."""
+    if not raw:
+        return []
+    out: list[RunPricingItem] = []
+    for item in raw:
+        if isinstance(item, RunPricingItem):
+            out.append(item)
+        elif isinstance(item, dict):
+            out.append(RunPricingItem.model_validate(item))
+    return out
+
+
 async def search_runs(
     conn: asyncpg.Connection,
+    redis: Redis,
     group_ids: list[UUID] | None = None,
     profiles_ids: list[UUID] | None = None,
     date_from: datetime | None = None,
@@ -94,8 +110,16 @@ async def search_runs(
     limit: int = 20,
     offset: int = 0,
     bypass_mv: bool = False,
+    bypass_cache: bool = False,
 ) -> tuple[list[RunViewItem], int]:
     """Search runs from runs_mv with declarative filters.
+
+    Hedged: merges the MV result with the write-back cache (see
+    ``hedged_search_with_total``) so freshly-created runs appear before
+    the MV refresh has caught up. Cache rows default token counts to 0
+    and model/provider/pricing aggregates to empty — junction writes
+    (tokens_entry, run_pricing_entry, runs_agents_connection) must
+    invalidate the parent run-id row to surface the real aggregates.
 
     Returns (items, total_count). When has_models=True, only runs with
     at least one model_id are returned — used by the test picker to
@@ -128,26 +152,146 @@ async def search_runs(
         profiles_ids,
         date_from,
         date_to,
-        limit,
-        offset,
+        limit + offset + 1000,
+        0,
         has_models,
     )
 
-    total_count = rows[0]["total_count"] if rows else 0
-    items = [
-        RunViewItem(
-            run_id=r["run_id"],
-            group_id=r["group_id"],
-            profiles_id=r["profiles_id"],
-            input_tokens=r["input_tokens"] or 0,
-            output_tokens=r["output_tokens"] or 0,
-            cached_input_tokens=r["cached_input_tokens"] or 0,
-            run_created_at=r["run_created_at"],
-            agent_ids=list(r["agent_ids"]) if r["agent_ids"] else None,
-            model_ids=list(r["model_ids"]) if r["model_ids"] else None,
-            provider_ids=list(r["provider_ids"]) if r["provider_ids"] else None,
-            pricing=_build_pricing_list(r),
-        )
+    mv_total = rows[0]["total_count"] if rows else 0
+
+    # Reshape MV rows to match cache-row keyspace (str ids, isoformat ts,
+    # pricing as list[dict] of RunPricingItem.model_dump shape).
+    def _pricing_dicts(r: object) -> list[dict]:
+        return [p.model_dump(mode="json") for p in _build_pricing_list(r)]
+
+    mv_dicts = [
+        {
+            "run_id": str(r["run_id"]),
+            "group_id": str(r["group_id"]) if r["group_id"] else None,
+            "profiles_id": str(r["profiles_id"]) if r["profiles_id"] else None,
+            "input_tokens": r["input_tokens"] or 0,
+            "output_tokens": r["output_tokens"] or 0,
+            "cached_input_tokens": r["cached_input_tokens"] or 0,
+            "run_created_at": (
+                r["run_created_at"].isoformat()
+                if isinstance(r["run_created_at"], datetime)
+                else r["run_created_at"]
+            ),
+            "agent_ids": (
+                [str(a) for a in r["agent_ids"]] if r["agent_ids"] else None
+            ),
+            "model_ids": (
+                [str(m) for m in r["model_ids"]] if r["model_ids"] else None
+            ),
+            "provider_ids": (
+                [str(p) for p in r["provider_ids"]] if r["provider_ids"] else None
+            ),
+            "pricing": _pricing_dicts(r),
+        }
         for r in rows
     ]
-    return (items, total_count)
+
+    group_ids_str = {str(g) for g in group_ids} if group_ids else None
+    profiles_ids_str = {str(p) for p in profiles_ids} if profiles_ids else None
+
+    def matches(row: dict) -> bool:
+        if group_ids_str is not None and str(row.get("group_id")) not in group_ids_str:
+            return False
+        if profiles_ids_str is not None and str(row.get("profiles_id")) not in profiles_ids_str:
+            return False
+        ts = row.get("run_created_at")
+        ts_dt: datetime | None = None
+        if isinstance(ts, str):
+            try:
+                ts_dt = datetime.fromisoformat(ts)
+            except ValueError:
+                ts_dt = None
+        elif isinstance(ts, datetime):
+            ts_dt = ts
+        if date_from is not None and ts_dt is not None and ts_dt < date_from:
+            return False
+        if date_to is not None and ts_dt is not None and ts_dt > date_to:
+            return False
+        if has_models:
+            mids = row.get("model_ids")
+            if not mids:
+                return False
+        return True
+
+    def _sort_key(row: dict) -> datetime:
+        ts = row.get("run_created_at")
+        if ts is None:
+            return datetime.min
+        if isinstance(ts, str):
+            return datetime.fromisoformat(ts)
+        return ts
+
+    # ASC pagination doesn't compose with the helper's DESC-internal sort;
+    # fall back to MV-only for ASC requests.
+    if sort_order.lower() == "asc":
+        mv_dicts.sort(key=_sort_key)
+        page = mv_dicts[offset : offset + limit]
+        items = [
+            RunViewItem(
+                run_id=UUID(d["run_id"]),
+                group_id=UUID(d["group_id"]) if d.get("group_id") else None,
+                profiles_id=UUID(d["profiles_id"]) if d.get("profiles_id") else None,
+                input_tokens=d.get("input_tokens", 0),
+                output_tokens=d.get("output_tokens", 0),
+                cached_input_tokens=d.get("cached_input_tokens", 0),
+                run_created_at=d.get("run_created_at"),
+                agent_ids=(
+                    [UUID(a) for a in d["agent_ids"]] if d.get("agent_ids") else None
+                ),
+                model_ids=(
+                    [UUID(m) for m in d["model_ids"]] if d.get("model_ids") else None
+                ),
+                provider_ids=(
+                    [UUID(p) for p in d["provider_ids"]]
+                    if d.get("provider_ids")
+                    else None
+                ),
+                pricing=_pricing_from_cache(d.get("pricing")),
+            )
+            for d in page
+        ]
+        return items, mv_total
+
+    merged, total = await hedged_search_with_total(
+        redis,
+        "runs",
+        mv_rows=mv_dicts,
+        mv_total=mv_total,
+        matches_filter=matches,
+        sort_key=_sort_key,
+        limit=limit,
+        offset=offset,
+        id_key="run_id",
+        bypass_cache=bypass_cache,
+    )
+
+    items = [
+        RunViewItem(
+            run_id=UUID(d["run_id"]),
+            group_id=UUID(d["group_id"]) if d.get("group_id") else None,
+            profiles_id=UUID(d["profiles_id"]) if d.get("profiles_id") else None,
+            input_tokens=d.get("input_tokens", 0),
+            output_tokens=d.get("output_tokens", 0),
+            cached_input_tokens=d.get("cached_input_tokens", 0),
+            run_created_at=d.get("run_created_at"),
+            agent_ids=(
+                [UUID(a) for a in d["agent_ids"]] if d.get("agent_ids") else None
+            ),
+            model_ids=(
+                [UUID(m) for m in d["model_ids"]] if d.get("model_ids") else None
+            ),
+            provider_ids=(
+                [UUID(p) for p in d["provider_ids"]]
+                if d.get("provider_ids")
+                else None
+            ),
+            pricing=_pricing_from_cache(d.get("pricing")),
+        )
+        for d in merged
+    ]
+    return items, total

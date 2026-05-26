@@ -168,6 +168,13 @@ jobs:
             git push origin "$TAG"
           fi
 
+      # QEMU enables buildx to cross-compile the off-host platform.
+      # GitHub-hosted runners are linux/amd64; arm64 builds need QEMU
+      # registered as a binfmt_misc handler. ``tonistiigi/binfmt`` is
+      # the upstream image setup-qemu uses by default.
+      - uses: docker/setup-qemu-action@v3
+        if: steps.check.outputs.released == 'true'
+
       - uses: docker/setup-buildx-action@v3
         if: steps.check.outputs.released == 'true'
 
@@ -184,6 +191,13 @@ jobs:
         with:
           context: .
           file: ./core/Dockerfile
+          # Multi-arch manifest list: linux/amd64 (Intel/AMD Linux + Intel
+          # Mac + Windows/WSL) and linux/arm64 (Apple Silicon + AWS
+          # Graviton + Oracle Ampere). Without ``linux/arm64`` the
+          # published manifest list rejects ``docker compose pull`` on
+          # arm64 hosts ("no matching manifest"). ``buildx`` natively
+          # cross-compiles via QEMU for the off-host platform.
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ env.REGISTRY }}/glow-academic/api:${{ steps.version.outputs.tag }}

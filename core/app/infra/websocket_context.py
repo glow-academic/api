@@ -42,7 +42,7 @@ from app.infra.setting.context import resolve_setting_context
 from app.infra.simulation.context import resolve_simulation_context
 from app.infra.system_context import resolve_system_context
 from app.infra.tool.context import resolve_tool_context
-from app.infra.tool_graph import score_tools
+from app.infra.tool_graph import resolve_tool_graph, score_tools
 from app.infra.types import (
     ArtifactContext,
     ArtifactRequest,
@@ -380,6 +380,13 @@ async def resolve_websocket_context(
     profile = common.profile
 
     # ── Step 2: Tool scoring (uses static scoring_resources from config) ──
+    # tool_graph no longer carried on CommonContext — resolve directly.
+
+    tool_graph = (
+        await resolve_tool_graph(pool, profile.settings_id, redis, bypass_cache)
+        if profile.settings_id
+        else None
+    )
 
     all_scoring_resources: set[str] = set()
     for req in requests:
@@ -389,7 +396,12 @@ async def resolve_websocket_context(
         all_scoring_resources.add(req.artifact_type)
         all_scoring_resources |= config.scoring_resources
 
-    scores = score_tools(common.tool_graph, all_scoring_resources, modalities=modalities)
+    from app.infra.tool_graph import SettingsToolGraph
+    scores = score_tools(
+        tool_graph or SettingsToolGraph(tools=[]),
+        all_scoring_resources,
+        modalities=modalities,
+    )
 
     # ── Step 3: Collect winning system_ids ────────────────────────────────
 
@@ -454,5 +466,5 @@ async def resolve_websocket_context(
         tool_instructions=all_tool_instructions,
         rubrics=all_rubrics,
         profile=profile,
-        tool_graph=common.tool_graph,
+        tool_graph=tool_graph or SettingsToolGraph(tools=[]),
     )

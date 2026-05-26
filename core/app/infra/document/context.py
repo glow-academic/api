@@ -105,7 +105,7 @@ async def resolve_document_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_document_drafts(conn, [draft_id])
+            return await get_document_drafts(conn, [draft_id], redis)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifact(), _fetch_draft())
     artifact = artifacts[0] if artifacts else None
@@ -337,19 +337,19 @@ async def resolve_document_context(
         if not all_file_resource_ids:
             return []
         async with pool.acquire() as conn:
-            return await search_file_entries(conn, files_ids=all_file_resource_ids, limit=200)
+            return await search_file_entries(conn, redis, files_ids=all_file_resource_ids, limit=200)
 
     async def _fetch_image_entries() -> list:
         if not all_image_resource_ids:
             return []
         async with pool.acquire() as conn:
-            return await search_image_entries(conn, images_ids=all_image_resource_ids, limit=200)
+            return await search_image_entries(conn, redis, images_ids=all_image_resource_ids, limit=200)
 
     async def _fetch_text_entries() -> list:
         if not all_text_resource_ids:
             return []
         async with pool.acquire() as conn:
-            return await search_text_entries(conn, text_ids=all_text_resource_ids, limit=200)
+            return await search_text_entries(conn, redis, text_ids=all_text_resource_ids, limit=200)
 
     file_entries, image_entries, text_entries = await asyncio.gather(
         _fetch_file_entries(),

@@ -227,6 +227,7 @@ class GetProfileDraftsApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=200, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GetProfileDraftsApiResponse(BaseModel):
@@ -303,6 +304,7 @@ class CreateProfileApiRequest(BaseModel):
 
     profiles: list[CreateProfileItem] = Field(..., description="List of profiles to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -396,6 +398,7 @@ class UpdateProfileApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -454,6 +457,7 @@ class DeleteProfileApiRequest(BaseModel):
     flag_search: str | None = Field(None, description="Search text for flag facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -478,6 +482,7 @@ class DeleteProfileApiResponse(BaseModel):
 class DuplicateProfileApiRequest(BaseModel):
     target_profile_id: UUID = Field(..., description="UUID of the profile to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -544,6 +549,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     primary_department_id: UUID | None = Field(None, description="UUID of the department to designate as primary")
     pending_ids: list[UUID] | None = Field(None, description="Resources to keep dormant")
     idempotency_key: UUID | None = Field(None, description="Idempotency key for draft writes")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Whether to accept the pending draft state")
 
 
@@ -588,6 +594,7 @@ class ExportProfileApiRequest(BaseModel):
     """Request model for profile export."""
 
     profile_export_id: UUID | None = Field(None, description="UUID of the profile to export")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior export instead of re-running")
 
 
 class ExportProfileApiResponse(BaseModel):
@@ -605,8 +612,11 @@ class ExportProfileApiResponse(BaseModel):
 class EmulateProfileApiRequest(BaseModel):
     """Request model for profile emulation."""
 
-    target_profile_id: UUID = Field(..., description="UUID of the profile to emulate")
+    target_profile_id: UUID | None = Field(None, description="UUID of the profile to emulate (omit on the ack call)")
     ttl_minutes: int | None = Field(120, description="Emulation duration in minutes")
+    idempotency_key: UUID | None = Field(None, description="Idempotency / soft-call key. Echo the server-minted value with accept to promote/reject a staged emulation.")
+    soft: bool = Field(False, description="Stage the emulation grant dormant (active=False) — it impersonates nothing until accepted")
+    accept: bool | None = Field(None, description="Ack: True promotes the staged emulation, False rejects. Only meaningful with idempotency_key")
 
 
 class EmulateProfileApiResponse(BaseModel):
@@ -616,6 +626,7 @@ class EmulateProfileApiResponse(BaseModel):
     reason: str | None = Field(None, description="Reason if emulation is denied")
     grant_id: UUID | None = Field(None, description="UUID of the emulation grant")
     expires_at: datetime | None = Field(None, description="When the emulation grant expires")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to promote/reject the staged emulation.")
 
 
 # ========== Unemulate Endpoint Types ==========
@@ -624,7 +635,10 @@ class EmulateProfileApiResponse(BaseModel):
 class UnemulateProfileApiRequest(BaseModel):
     """Request model for exiting emulation of a specific profile."""
 
-    target_profile_id: str = Field(..., description="Profile ID to stop emulating")
+    target_profile_id: str | None = Field(None, description="Profile ID to stop emulating (omit on the ack call)")
+    idempotency_key: UUID | None = Field(None, description="Idempotency / soft-call key. Echo the server-minted value with accept to perform/reject a proposed unemulation.")
+    soft: bool = Field(False, description="Propose the unemulation without performing it — emulation continues until accepted (record-and-hold)")
+    accept: bool | None = Field(None, description="Ack: True performs the proposed unemulation, False discards it. Only meaningful with idempotency_key")
 
 
 class UnemulateProfileApiResponse(BaseModel):
@@ -632,6 +646,7 @@ class UnemulateProfileApiResponse(BaseModel):
 
     ok: bool = Field(..., description="Whether unemulation succeeded")
     reason: str | None = Field(None, description="Reason if unemulation failed")
+    idempotency_key: UUID | None = Field(None, description="Server-minted soft-call key (audit call_id). On a soft propose, echo this back with accept to perform/reject the proposed unemulation.")
 
 
 class ListProfilesApiProfile(BaseModel):
@@ -768,6 +783,7 @@ class GenerationsProfileApiRequest(BaseModel):
     date_to: datetime | None = Field(None, description="End date filter")
     page_limit: int = Field(50, ge=1, le=100, description="Maximum items per page")
     page_offset: int = Field(0, ge=0, description="Offset for pagination")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class GenerationsProfileListItem(BaseModel):

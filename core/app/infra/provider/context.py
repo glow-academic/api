@@ -120,7 +120,7 @@ async def resolve_provider_context(
         if not draft_id:
             return []
         async with pool.acquire() as conn:
-            return await get_provider_drafts(conn, [draft_id])
+            return await get_provider_drafts(conn, [draft_id], redis)
 
     artifacts, drafts = await asyncio.gather(_fetch_artifacts(), _fetch_drafts())
 

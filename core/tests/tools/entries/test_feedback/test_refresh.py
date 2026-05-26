@@ -16,19 +16,19 @@ from tests.helpers import nonexistent_id
 pytestmark = pytest.mark.asyncio
 
 
-async def _test_feedback(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    test = await create_test(conn, call_id=call.id, profiles_id=profile_id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+async def _test_feedback(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    test = await create_test(conn, redis_client, call_id=call.id, profiles_id=profile_id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     test_invocation = await create_test_invocation(
-        conn, test_id=test.id, call_id=call2.id
+        conn, redis_client, test_id=test.id, call_id=call2.id
     )
     test_grade = await create_test_grade(
         conn,
-        invocation_id=test_invocation.id,
+        redis_client, invocation_id=test_invocation.id,
         call_id=call2.id,
         time_taken=120,
         passed=True,
@@ -43,7 +43,7 @@ async def _test_feedback(conn, profile_id, **overrides):
         pass_points=60,
     )
     defaults.update(overrides)
-    result = await create_test_feedback(conn, **defaults)
+    result = await create_test_feedback(conn, redis_client, **defaults)
     return result
 
 
@@ -51,22 +51,22 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_new_test_feedback_appears_after_refresh(conn, profile_id):
-    _created(await _test_feedback(conn, profile_id))
+async def test_new_test_feedback_appears_after_refresh(conn, redis_client, profile_id):
+    _created(await _test_feedback(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
     await refresh_test_feedback(conn)
-    items = await get_test_feedbacks(conn, ids=[lookup_id])
+    items = await get_test_feedbacks(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
     assert items[0].id == lookup_id
 
 
-async def test_new_test_feedback_is_not_visible_before_refresh(conn, profile_id):
-    _created(await _test_feedback(conn, profile_id))
+async def test_new_test_feedback_is_not_visible_before_refresh(conn, redis_client, profile_id):
+    _created(await _test_feedback(conn, redis_client, profile_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_test_feedbacks(conn, ids=[lookup_id])
+    items = await get_test_feedbacks(conn, ids=[lookup_id], redis=redis_client)
 
     assert items == []
 

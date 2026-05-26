@@ -182,3 +182,35 @@ async def resolve_thresholds(
 
 async def _empty() -> list:
     return []
+
+
+async def resolve_platform_default_settings_resource_id(
+    pool: asyncpg.Pool,
+) -> UUID | None:
+    """Find the active platform-default setting (no department_ids) and
+    return its setting *resource* id.
+
+    Used by ``profile_identity_context`` when a profile has no primary
+    department to fall back on. Without this, ``settings_id`` would be
+    ``None`` and theme resolution would silently return the shadcn
+    defaults instead of the seeded LearnLoop palette.
+
+    Mirrors the realm-level lookup in
+    ``keycloak_resolvers.resolve_auths_for_realm``: search all active
+    setting artifacts, filter Python-side for empty ``department_ids``,
+    take the first match's ``setting_ids[0]`` (the resource id via the
+    ``setting_settings_junction`` black-box).
+    """
+    async with pool.acquire() as conn:
+        artifact_ids, _ = await search_settings(
+            conn, active_only=True, limit_count=100000,
+        )
+        if not artifact_ids:
+            return None
+        artifacts = await get_setting_artifacts(
+            conn, artifact_ids, settings=True,
+        )
+    for sa in artifacts:
+        if not sa.department_ids and sa.setting_ids:
+            return sa.setting_ids[0]
+    return None

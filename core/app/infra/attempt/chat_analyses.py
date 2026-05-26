@@ -8,8 +8,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.server_timing import timed
 from app.tools.entries.attempt_analysis.create import create_attempt_analysis
-from app.tools.entries.attempt_analysis.refresh import refresh_attempt_analysis
 
 
 async def chat_analyses_attempt_impl(
@@ -33,15 +34,19 @@ async def chat_analyses_attempt_impl(
     if not grade_id:
         raise ValueError("grade_id is required")
 
-    async with pool.acquire() as conn:
-        result = await create_attempt_analysis(
-            conn,
-            grade_id=grade_id,
-            session_id=session_id,
-            content=content or "No analysis provided",
-        )
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            result = await create_attempt_analysis(
+                conn,
+                redis, grade_id=grade_id,
+                session_id=session_id,
+                content=content or "No analysis provided",
+            )
 
-    async with pool.acquire() as conn:
-        await refresh_attempt_analysis(conn)
+    with timed("refresh"):
+        await refresh_attempt_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["attempt_analysis_mv"],
+        )
 
     return {"analysis_id": str(result.id)}

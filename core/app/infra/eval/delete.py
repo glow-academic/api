@@ -14,6 +14,7 @@ from app.infra.eval.permissions_context import resolve_eval_permissions_context
 from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import DeleteEvalApiResponse, DeleteEvalResult
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.eval.delete import delete_evals
 from app.tools.artifacts.eval.get import get_evals
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -59,41 +60,44 @@ async def delete_eval_impl(
     # Hoisted above per-row permission checks so the ack body
     # (idempotency_key + accept only, no ids) doesn't require ``ids``.
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "delete":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending eval delete for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if not accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await restore_artifacts(
-                        conn, table="eval_artifact", ids=[target_id],
-                    )
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "delete":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending eval delete for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="delete",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if not accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await restore_artifacts(
+                            conn, table="eval_artifact", ids=[target_id],
+                        )
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="delete",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_eval_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_eval_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key,
-        )
         return DeleteEvalApiResponse(
             results=[
                 DeleteEvalResult(
@@ -138,12 +142,13 @@ async def delete_eval_impl(
         )
 
     # ── Profile context ───────────────────────────────────────────────
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -158,7 +163,8 @@ async def delete_eval_impl(
     skipped_results: list[DeleteEvalResult] = []
     permitted_ids: list[UUID] = []
 
-    async with pool.acquire() as conn:
+    with timed("permissions"):
+     async with pool.acquire() as conn:
         for idx, eval_id in enumerate(ids):
             ctx = await resolve_eval_permissions_context(conn, eval_id)
             if not ctx.exists:
@@ -200,7 +206,8 @@ async def delete_eval_impl(
 
     # ── Fetch names for result messages ───────────────────────────────
     name_map: dict[UUID, str] = {}
-    async with pool.acquire() as conn:
+    with timed("hydrate_names"):
+     async with pool.acquire() as conn:
         artifacts = await get_evals(conn, ids, names=True)
         for artifact in artifacts:
             name = "Unknown"
@@ -211,7 +218,8 @@ async def delete_eval_impl(
             name_map[artifact.id] = name
 
     # ── Single transaction — bulk delete ──────────────────────────────
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await delete_evals(conn, ids, soft=soft)
 
@@ -220,6 +228,7 @@ async def delete_eval_impl(
                 for eid in result.deleted_ids:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="delete",
@@ -230,14 +239,15 @@ async def delete_eval_impl(
         async with pool.acquire() as conn:
             await refresh_soft_calls(conn)
 
-    await refresh_eval_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
-    )
+    with timed("refresh"):
+        await refresh_eval_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
+        )
 
     results = [
         DeleteEvalResult(

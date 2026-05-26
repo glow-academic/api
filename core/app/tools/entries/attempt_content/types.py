@@ -15,5 +15,5 @@ class GetAttemptContentResponse(BaseModel):
     message_id: UUID
     content: str
     persona_entry_id: UUID | None
-    idx: int
+    idx: int | None = None
     created_at: datetime

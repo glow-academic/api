@@ -23,22 +23,22 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_chat_completion(conn, profile_id, **overrides):
-    session = await create_session(conn, profile_id=profile_id)
-    group = await create_group(conn, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn)
+async def _attempt_chat_completion(conn, redis_client, profile_id, **overrides):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    persona = await create_persona(conn, redis_client)
     await create_attempt(
         conn,
-        call_id=call.id,
+        redis_client, session_id=session.id,
         user_persona_id=persona.id,
         profiles_id=profile_id,
     )
-    chat = await create_chat(conn, session_id=session.id)
-    call2 = await create_call(conn, run_id=run.id, session_id=session.id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, call_id=call2.id, chat_id=chat.id
     )
     defaults = dict(
         chat_id=attempt_chat.id,
@@ -48,26 +48,26 @@ async def _attempt_chat_completion(conn, profile_id, **overrides):
         message="",
     )
     defaults.update(overrides)
-    return await create_attempt_chat_completion(conn, **defaults)
+    return await create_attempt_chat_completion(conn, redis_client, **defaults)
 
 
-async def test_returns_id(conn, profile_id):
-    result = await _attempt_chat_completion(conn, profile_id)
+async def test_returns_id(conn, redis_client, profile_id):
+    result = await _attempt_chat_completion(conn, redis_client, profile_id)
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id):
-    result = await _attempt_chat_completion(conn, profile_id)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
+    result = await _attempt_chat_completion(conn, redis_client, profile_id)
     await refresh_attempt_chat_completion(conn)
 
-    items = await get_attempt_chat_completions(conn, [result.id])
+    items = await get_attempt_chat_completions(conn, [result.id], redis_client)
 
     assert len(items) == 1
 
 
-async def test_passes_mcp_flag(conn, profile_id):
-    result = await _attempt_chat_completion(conn, profile_id, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client, profile_id):
+    result = await _attempt_chat_completion(conn, redis_client, profile_id, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_chat_completion_entry WHERE id = $1",

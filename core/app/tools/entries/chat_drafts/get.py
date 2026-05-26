@@ -3,21 +3,41 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.globals import get_redis_client
 from app.tools.entries.chat_drafts.types import GetChatDraftResponse
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
+from app.utils.cache.hedged_row import read_back_row
 from app.utils.cache.set_cached import set_cached
 
 
 async def get_chat_drafts(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetChatDraftResponse]:
     """Get chat_drafts entries by IDs with connection data."""
     if not ids:
         return []
+
+    cached_results: dict[str, GetChatDraftResponse] = {}
+    missing_ids: list[UUID] = []
+    if not bypass_cache:
+        for rid in ids:
+            cached = await read_back_row(redis, "chat_drafts", rid)
+            if cached is not None and cached.get("active"):
+                cached_results[str(rid)] = GetChatDraftResponse.model_validate(cached)
+            else:
+                missing_ids.append(rid)
+    else:
+        missing_ids = list(ids)
+
+    if not missing_ids:
+        return [cached_results[str(rid)] for rid in ids if str(rid) in cached_results]
 
     rows = await conn.fetch(
         """
@@ -83,11 +103,12 @@ async def get_chat_drafts(
                  d.session_id, d.name
         ORDER BY d.created_at DESC
         """,
-        ids,
+        missing_ids,
     )
 
-    return [
-        GetChatDraftResponse(
+    mv_results: dict[str, GetChatDraftResponse] = {}
+    for r in rows:
+        mv_results[str(r["id"])] = GetChatDraftResponse(
             id=r["id"],
             created_at=r["created_at"],
             generated=r["generated"],
@@ -129,8 +150,15 @@ async def get_chat_drafts(
             video_ids=r["video_ids"],
             pending_video_ids=r["pending_video_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetChatDraftResponse] = []
+    for rid in ids:
+        key = str(rid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out
 
 
 async def get_chat_drafts_entries_internal(
@@ -160,9 +188,9 @@ async def get_chat_drafts_entries_internal(
 
     if isinstance(pool_or_conn, asyncpg.Pool):
         async with pool_or_conn.acquire() as conn:
-            items = await get_chat_drafts(conn, ids)
+            items = await get_chat_drafts(conn, ids, get_redis_client())
     else:
-        items = await get_chat_drafts(pool_or_conn, ids)
+        items = await get_chat_drafts(pool_or_conn, ids, get_redis_client())
 
     await set_cached(
         cache_key_val,

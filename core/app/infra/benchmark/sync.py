@@ -32,6 +32,7 @@ async def sync_benchmark_entries(
     2. Group sub-resources by model_id; derive eval-level + per-model flag bools
     3. Create entries using black-box entry creation tools
     """
+    redis = get_redis_client()
     from app.infra.globals import get_redis_client
     from app.tools.entries.benchmark.create import create_benchmark
     from app.tools.entries.invocation.create import create_invocation
@@ -147,7 +148,7 @@ async def sync_benchmark_entries(
     # Create benchmark entry
     async with pool.acquire() as conn:
         benchmark = await create_benchmark(
-            conn,
+            conn, redis,
             evals_ids=[evals_resource_id],
             departments_ids=department_ids or [],
             use_groups=use_groups,
@@ -171,7 +172,7 @@ async def sync_benchmark_entries(
 
         async with pool.acquire() as conn:
             await create_invocation(
-                conn,
+                conn, redis,
                 benchmark_id=benchmark.id,
                 use_custom=model_flag_bools.get("use_custom", False),
                 position=position,

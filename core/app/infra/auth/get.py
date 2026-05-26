@@ -10,8 +10,6 @@ from redis.asyncio import Redis
 
 from app.infra.auth.context import resolve_auth_context
 from app.infra.auth.permissions import (
-    AUTH_BASIC_RESOURCES,
-    AUTH_RESOURCES,
     compute_can_edit,
     compute_description_required,
     compute_disabled_reason,
@@ -39,8 +37,8 @@ from app.infra.auth.types import (
 )
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
+from app.infra.server_timing import timed
 from app.infra.helpers import sorted_dedupe_by_id
-from app.infra.tool_graph import score_tools
 
 SECTIONS = ["names", "descriptions", "flags", "departments", "protocols", "slugs", "items"]
 
@@ -87,36 +85,40 @@ async def get_auth_impl(
     f = filters or {}
     resolved_auth_id = id or auth_id
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(status_code=401, detail="Profile not found. Please sign in again.")
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="auth",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="auth",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     profile = common.profile
 
     if resolved_auth_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_auth_permissions_context(conn, resolved_auth_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_auth_permissions_context(conn, resolved_auth_id)
         if not perms.exists:
             raise HTTPException(status_code=404, detail=f"Auth {resolved_auth_id} not found")
 
-    auth_ctx = await resolve_auth_context(
+    with timed("auth_ctx"):
+     auth_ctx = await resolve_auth_context(
         pool,
         redis,
         auth_id=resolved_auth_id,
@@ -143,7 +145,11 @@ async def get_auth_impl(
         bypass_cache=bypass_cache,
     )
 
-    scores = score_tools(common.tool_graph, AUTH_RESOURCES)
+    # Tool-graph scoring decoration is dead weight — the client always
+    # shows the "AI generate" button regardless, and the actual agent
+    # dispatch happens server-side in ``prepare_generation``. Pass
+    # ``True`` to the compute_show_* helpers so visibility no longer
+    # depends on tool scores.
     can_edit = compute_can_edit(role_level=profile.role_level, role_permissions=profile.role_permissions)
     disabled_reason = compute_disabled_reason(role_permissions=profile.role_permissions)
 
@@ -153,11 +159,11 @@ async def get_auth_impl(
     pending_ids = set(auth_ctx.entries.get("pending_ids", set()))
 
     show_flags_map = {
-        "names": compute_show_name(scores.has_any.get("names", False)),
+        "names": compute_show_name(True),
         "descriptions": compute_show_description(),
         "flags": compute_show_flag(),
-        "protocols": compute_show_protocols(scores.has_any.get("protocols", False), len(auth_ctx.resources["protocols"].selected) + len(auth_ctx.resources["protocols"].suggestions)),
-        "slugs": compute_show_slugs(scores.has_any.get("slugs", False), len(auth_ctx.resources["slugs"].selected) + len(auth_ctx.resources["slugs"].suggestions)),
+        "protocols": compute_show_protocols(True, len(auth_ctx.resources["protocols"].selected) + len(auth_ctx.resources["protocols"].suggestions)),
+        "slugs": compute_show_slugs(True, len(auth_ctx.resources["slugs"].selected) + len(auth_ctx.resources["slugs"].suggestions)),
     }
     required_flags_map = {
         "names": compute_name_required(),
@@ -333,8 +339,8 @@ async def get_auth_impl(
         # Draft label sourced from ``entries['draft_name']`` (set by
         # ``resolve_auth_context``). ``None`` when no draft was active.
         draft_name=auth_ctx.entries.get("draft_name") if auth_ctx.entries else None,
-        show_ai_generate=any(scores.has_any.get(resource, False) for resource in AUTH_RESOURCES),
-        basic_show_ai_generate=any(scores.has_any.get(resource, False) for resource in AUTH_BASIC_RESOURCES),
+        show_ai_generate=True,
+        basic_show_ai_generate=True,
         pending_ids=list(pending_ids),
         names=names,
         descriptions=descriptions,

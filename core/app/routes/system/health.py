@@ -39,6 +39,7 @@ async def get_health(
         if session_id:
             group_result = await group_system_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
+                id_only=True,
             )
             group_id = group_result.group_id
 
@@ -68,6 +69,7 @@ async def get_health(
             response_model=HealthResponse,
             runner=_runner,
             upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot
         )
 
         response.headers["X-Cache-Tags"] = ",".join(tags)

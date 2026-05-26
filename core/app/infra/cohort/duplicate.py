@@ -24,6 +24,7 @@ from app.infra.cohort.types import (
     DuplicateCohortApiResponse,
 )
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.cohort.create import (
     create_cohort as create_cohort_artifact,
 )
@@ -66,7 +67,7 @@ async def duplicate_cohort_impl(
 
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "duplicate":
             raise HTTPException(
                 status_code=404,
@@ -82,6 +83,7 @@ async def duplicate_cohort_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="duplicate",
@@ -108,12 +110,13 @@ async def duplicate_cohort_impl(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -123,15 +126,17 @@ async def duplicate_cohort_impl(
 
     # -- Step 2: Permission check -----------------------------------------------
 
-    if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this cohort.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this cohort.",
+            )
 
     # -- Step 3: Fetch original cohort with all junctions -----------------------
 
-    async with pool.acquire() as conn:
+    with timed("hydrate"):
+     async with pool.acquire() as conn:
         originals = await get_cohorts(
             conn,
             [cohort_id],
@@ -184,7 +189,8 @@ async def duplicate_cohort_impl(
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             result = await create_cohort_artifact(
                 conn,
@@ -207,6 +213,7 @@ async def duplicate_cohort_impl(
             if soft and idempotency_key is not None:
                 await create_soft_call(
                     conn,
+                    redis,
                     call_id=idempotency_key,
                     artifact=ARTIFACT,
                     operation="duplicate",
@@ -219,14 +226,15 @@ async def duplicate_cohort_impl(
 
     # -- Step 7: Refresh via canonical refresh ---------------------------------
 
-    await refresh_cohort_impl(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        soft=soft,
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_cohort_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            soft=soft,
+            operation_key=idempotency_key or result.id,
+        )
 
     return DuplicateCohortApiResponse(
         success=True,

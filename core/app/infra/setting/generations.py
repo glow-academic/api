@@ -87,7 +87,9 @@ async def _generations_setting_build(
     """
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    from app.infra.server_timing import timed
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -97,20 +99,22 @@ async def _generations_setting_build(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not has_permission(profile.role_permissions, ARTIFACT_TYPE, "generations"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to view setting generations.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, ARTIFACT_TYPE, "generations"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to view setting generations.",
+            )
 
     # ── Step 3: Search groups ──────────────────────────────────────────
 
     session_ids = [session_id] if session_id else None
 
-    async with pool.acquire() as conn:
+    with timed("query"):
+      async with pool.acquire() as conn:
         results = await search_groups(
             conn,
-            session_ids=session_ids,
+            redis, session_ids=session_ids,
             name=search,
             date_from=date_from,
             date_to=date_to,

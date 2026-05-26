@@ -28,9 +28,7 @@ from app.tools.entries.test_invocation_runs.get import get_test_invocation_runs
 from app.tools.entries.test_invocation_runs_completion.create import (
     create_test_invocation_runs_completion,
 )
-from app.tools.entries.test_invocation_runs_completion.refresh import (
-    refresh_test_invocation_runs_completion,
-)
+from app.infra.invocation.refresh import refresh_invocation_impl
 
 router = APIRouter()
 
@@ -42,6 +40,7 @@ class TestRunEndPayload(BaseModel):
     success: bool = True
     error: bool = False
     message: str = ""
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call instead of re-running")
 
 
 class TestRunEndResponse(BaseModel):
@@ -66,7 +65,7 @@ async def terminate_invocation(
     async def _runner() -> TestRunEndResponse:
         async with pool.acquire() as conn:
             runs = await get_test_invocation_runs(
-                conn, [request.test_invocation_run_id]
+                conn, [request.test_invocation_run_id], redis
             )
             if not runs:
                 raise HTTPException(
@@ -75,7 +74,7 @@ async def terminate_invocation(
                 )
             run = runs[0]
             invs = await get_test_invocations(
-                conn, [run.test_invocation_id], bypass_mv=True,
+                conn, [run.test_invocation_id], redis,
             )
             if not invs:
                 raise HTTPException(status_code=404, detail="parent invocation not found")
@@ -83,24 +82,29 @@ async def terminate_invocation(
             group_id = inv.group_id
             if group_id is None:
                 raise HTTPException(status_code=400, detail="invocation has no group_id")
-            groups = await get_groups(conn, [group_id])
+            groups = await get_groups(conn, [group_id], redis)
             if not groups or groups[0].session_id is None:
                 raise HTTPException(status_code=400, detail="group has no session_id")
             new_run = await create_run(
-                conn, group_id=group_id, session_id=groups[0].session_id,
+                conn, redis, group_id=group_id, session_id=groups[0].session_id,
             )
             call = await create_call(
-                conn, run_id=new_run.id, session_id=groups[0].session_id,
+                conn, redis, run_id=new_run.id, session_id=groups[0].session_id,
             )
             completion = await create_test_invocation_runs_completion(
-                conn,
+                conn, redis,
                 test_invocation_runs_id=request.test_invocation_run_id,
                 call_id=call.id,
                 stop=False,
                 error=request.error,
                 message=request.message,
             )
-            await refresh_test_invocation_runs_completion(conn)
+        await refresh_invocation_impl(
+            pool, redis,
+            profile_id=UUID(str(profile_id)),
+            session_id=UUID(str(session_id)),
+            targets=["test_invocation_runs_completion_mv"],
+        )
 
         return TestRunEndResponse(
             test_invocation_run_id=str(request.test_invocation_run_id),
@@ -119,6 +123,7 @@ async def terminate_invocation(
             runner=_runner,
             arguments=build_audit_arguments(request.model_dump(mode="json")),
             response_model=TestRunEndResponse,
+            operation_key=request.idempotency_key,  # idempotency replay gate
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

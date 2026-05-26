@@ -29,6 +29,7 @@ from app.infra.agent.types import (
 )
 from app.infra.api_types import ListFilterOption, ListFilterSection
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.artifacts.agent.get import get_agents
 from app.tools.artifacts.agent.search import search_agents
 from app.tools.resources.departments.search import search_departments
@@ -152,7 +153,8 @@ async def _search_agent_build(
     from fastapi import HTTPException
 
     # -- Step 1: Profile context --
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -166,7 +168,8 @@ async def _search_agent_build(
     # model_ids and tool_ids are direct junction filters on agent search
 
     # -- Step 3: Search agents --
-    async with pool.acquire() as conn:
+    with timed("search_agents"):
+     async with pool.acquire() as conn:
         agent_ids_result, total_count = await search_agents(
             conn,
             search=search,
@@ -179,9 +182,10 @@ async def _search_agent_build(
 
     # -- Step 3a: Pending ledger entries -- mirrors persona/search.py
     from app.tools.entries.soft_calls.search import search_soft_calls
-    async with pool.acquire() as conn:
+    with timed("pending_ledger"):
+     async with pool.acquire() as conn:
         pending_entries = await search_soft_calls(
-            conn, artifact="agent", status="pending", limit=1000,
+            conn, redis, artifact="agent", status="pending", limit=1000,
         )
     pending_ledger_ids = [e.artifact_id for e in pending_entries]
     ledger_by_artifact_id = {e.artifact_id: e for e in pending_entries}
@@ -201,7 +205,8 @@ async def _search_agent_build(
 
     # -- Step 4: Get agent artifacts with junction IDs --
     # ``active=None`` so dormant pending-create rows come back too.
-    async with pool.acquire() as conn:
+    with timed("get_agents"):
+     async with pool.acquire() as conn:
         artifacts = await get_agents(
             conn,
             merged_ids,
@@ -266,23 +271,24 @@ async def _search_agent_build(
                 conn, redis, search=flag_search, agent=True, limit_count=100
             )
 
-    (
-        names_data,
-        models_data,
-        flag_rows_data,
-        department_facet,
-        model_facet,
-        tool_facet,
-        flag_facet,
-    ) = await asyncio.gather(
-        _fetch_names() if all_name_ids else _empty_list(),
-        _fetch_models() if all_model_ids else _empty_list(),
-        _fetch_flag_rows(),
-        _fetch_department_facet(),
-        _fetch_model_facet(),
-        _fetch_tool_facet(),
-        _fetch_flag_facet(),
-    )
+    with timed("hydrate_and_facets"):
+        (
+            names_data,
+            models_data,
+            flag_rows_data,
+            department_facet,
+            model_facet,
+            tool_facet,
+            flag_facet,
+        ) = await asyncio.gather(
+            _fetch_names() if all_name_ids else _empty_list(),
+            _fetch_models() if all_model_ids else _empty_list(),
+            _fetch_flag_rows(),
+            _fetch_department_facet(),
+            _fetch_model_facet(),
+            _fetch_tool_facet(),
+            _fetch_flag_facet(),
+        )
 
     # Build lookup maps
     name_map = {n.id: n for n in names_data}
@@ -307,8 +313,9 @@ async def _search_agent_build(
     # from artifact data alone. We'll need a separate query or accept 0.
     # For now: always 0 (agents returned are editable if role allows).
 
-    api_agents: list[ListAgentApiAgent] = []
-    for a in artifacts:
+    with timed("assemble"):
+     api_agents: list[ListAgentApiAgent] = []
+     for a in artifacts:
         name_obj = name_map.get(a.name_ids[0]) if a.name_ids else None
         dept_ids_str = [str(d) for d in (a.department_ids or [])]
 

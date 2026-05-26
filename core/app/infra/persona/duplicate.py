@@ -20,6 +20,7 @@ from redis.asyncio import Redis
 
 from app.infra.persona.permissions import compute_can_duplicate
 from app.infra.persona.refresh import refresh_persona_impl
+from app.infra.server_timing import timed
 from app.infra.persona.types import (
     DuplicatePersonaApiResponse,
     ListPersonaApiPersona,
@@ -31,7 +32,6 @@ from app.tools.artifacts.persona.create import (
 from app.tools.artifacts.persona.get import get_personas
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
-from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
@@ -46,6 +46,7 @@ async def duplicate_persona_impl(
     profile_id: UUID,
     id: UUID | None = None,
     session_id: UUID | None = None,
+    group_id: UUID | None = None,
     soft: bool = False,
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
@@ -72,7 +73,7 @@ async def duplicate_persona_impl(
     # Look up the ledger to resolve the dormant copy's artifact_id.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
+            entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
         if entry is None or entry.status != "pending" or entry.operation != "duplicate":
             raise HTTPException(
                 status_code=404,
@@ -91,18 +92,16 @@ async def duplicate_persona_impl(
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn,
+                redis,
                 call_id=idempotency_key,
                 artifact=ARTIFACT,
                 operation="duplicate",
                 artifact_id=target_id,
                 status="accepted" if accept else "rejected",
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
         await refresh_persona_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=["personas_mv"], operation_key=idempotency_key,
+            targets=["personas_mv", "soft_calls_mv"],
         )
         return DuplicatePersonaApiResponse(
             success=True,
@@ -122,12 +121,13 @@ async def duplicate_persona_impl(
 
     # ── Step 1: Profile context ────────────────────────────────────────
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
 
     if profile is None:
         raise HTTPException(
@@ -137,119 +137,120 @@ async def duplicate_persona_impl(
 
     # ── Step 2: Permission check ───────────────────────────────────────
 
-    if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to duplicate this persona.",
-        )
+    with timed("permissions"):
+        if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this persona.",
+            )
 
     # ── Step 3: Fetch original persona with all junctions ──────────────
 
-    async with pool.acquire() as conn:
-        originals = await get_personas(
-            conn,
-            [persona_id],
-            names=True,
-            descriptions=True,
-            colors=True,
-            icons=True,
-            instructions=True,
-            departments=True,
-            examples=True,
-            parameter_fields=True,
-            voices=True,
-        )
-
-        if not originals:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Persona {persona_id} not found.",
+    with timed("resolve_values"):
+        async with pool.acquire() as conn:
+            originals = await get_personas(
+                conn,
+                [persona_id],
+                names=True,
+                descriptions=True,
+                colors=True,
+                icons=True,
+                instructions=True,
+                departments=True,
+                examples=True,
+                parameter_fields=True,
+                voices=True,
             )
 
-        original = originals[0]
+            if not originals:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Persona {persona_id} not found.",
+                )
 
-        # ── Step 4: Create new name resource ───────────────────────────────
+            original = originals[0]
 
-        original_name = "Unknown"
-        if original.name_ids:
-            name_resources = await get_names(pool, original.name_ids, redis)
-            if name_resources:
-                original_name = name_resources[0].name or "Unknown"
+            # ── Step 4: Create new name resource ───────────────────────────────
 
-        new_name_resource = await create_name(conn, f"{original_name} Copy", redis)
+            original_name = "Unknown"
+            if original.name_ids:
+                name_resources = await get_names(pool, original.name_ids, redis)
+                if name_resources:
+                    original_name = name_resources[0].name or "Unknown"
 
-        # ── Step 5: Find inactive flag (persona_active, value=false) ───────
+            new_name_resource = await create_name(conn, f"{original_name} Copy", redis)
 
-        # Explicitly link the inactive flag rather than relying on absence.
-        # TODO: Requires a value=false row for persona_active in flags_resource.
-        # Once the seed/migration adds it, this will resolve correctly.
-        inactive_flag_id: UUID | None = None
-        flag_results = await search_flags(
-            conn,
-            redis,
-            flag_type="persona_active",
-            persona=True,
-            limit_count=10,
-        )
-        inactive_match = next((f for f in flag_results if not f.value), None)
-        if inactive_match:
-            inactive_flag_id = inactive_match.id
+            # ── Step 5: Find inactive flag (persona_active, value=false) ───────
+
+            # Explicitly link the inactive flag rather than relying on absence.
+            # TODO: Requires a value=false row for persona_active in flags_resource.
+            # Once the seed/migration adds it, this will resolve correctly.
+            inactive_flag_id: UUID | None = None
+            flag_results = await search_flags(
+                conn,
+                redis,
+                flag_type="persona_active",
+                persona=True,
+                limit_count=10,
+            )
+            inactive_match = next((f for f in flag_results if not f.value), None)
+            if inactive_match:
+                inactive_flag_id = inactive_match.id
 
     # ── Step 6: Create new persona artifact with inactive flag ─────────
 
     flag_ids = [inactive_flag_id] if inactive_flag_id else None
 
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            result = await create_persona_artifact(
-                conn,
-                name_id=new_name_resource.id,
-                description_id=original.description_ids[0]
-                if original.description_ids
-                else None,
-                color_id=original.color_ids[0] if original.color_ids else None,
-                icon_id=original.icon_ids[0] if original.icon_ids else None,
-                instruction_id=original.instruction_ids[0]
-                if original.instruction_ids
-                else None,
-                department_ids=original.department_ids,
-                example_ids=original.example_ids,
-                parameter_field_ids=original.parameter_field_ids,
-                voice_ids=original.voice_ids,
-                flag_ids=flag_ids,
-                soft=soft,
-            )
-
-            # Pending ledger row tied to this tool call so ack lookups
-            # can resolve which dormant copy to promote.
-            if soft and idempotency_key is not None:
-                await create_soft_call(
+    with timed("db_write"):
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                result = await create_persona_artifact(
                     conn,
-                    call_id=idempotency_key,
-                    artifact=ARTIFACT,
-                    operation="duplicate",
-                    artifact_id=result.id,
+                    name_id=new_name_resource.id,
+                    description_id=original.description_ids[0]
+                    if original.description_ids
+                    else None,
+                    color_id=original.color_ids[0] if original.color_ids else None,
+                    icon_id=original.icon_ids[0] if original.icon_ids else None,
+                    instruction_id=original.instruction_ids[0]
+                    if original.instruction_ids
+                    else None,
+                    department_ids=original.department_ids,
+                    example_ids=original.example_ids,
+                    parameter_field_ids=original.parameter_field_ids,
+                    voice_ids=original.voice_ids,
+                    flag_ids=flag_ids,
+                    soft=soft,
                 )
+
+                # Pending ledger row tied to this tool call so ack lookups
+                # can resolve which dormant copy to promote.
+                if soft and idempotency_key is not None:
+                    await create_soft_call(
+                        conn,
+                        redis,
+                        call_id=idempotency_key,
+                        artifact=ARTIFACT,
+                        operation="duplicate",
+                        artifact_id=result.id,
+                    )
 
     # ── Step 7: Refresh + invalidate (via canonical refresh) ────────────
 
-    if soft and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-    await refresh_persona_impl(
-        pool, redis, profile_id=profile_id, session_id=session_id,
-        targets=["personas_mv"], soft=soft,
-        operation_key=idempotency_key or result.id,
-    )
+    with timed("refresh"):
+        await refresh_persona_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id,
+            targets=["personas_mv", "soft_calls_mv"],
+        )
 
     # ── Step 8: Hydrate full row content for the client ──────────────
     personas: list[ListPersonaApiPersona] | None = None
     if not soft:
-        from app.infra.persona.hydrate_list_rows import hydrate_persona_list_rows
-        personas = await hydrate_persona_list_rows(
-            pool, redis, profile_id=profile_id, persona_ids=[result.id],
-        )
+        with timed("hydrate"):
+            from app.infra.persona.hydrate_list_rows import hydrate_persona_list_rows
+            personas = await hydrate_persona_list_rows(
+                pool, redis, profile_id=profile_id, persona_ids=[result.id],
+            )
 
     return DuplicatePersonaApiResponse(
         success=True,

@@ -3,8 +3,10 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
+from app.utils.cache.hedged_row import read_back_row
 
 MV_NAME = "attempt_chat_mv"
 
@@ -12,10 +14,33 @@ MV_NAME = "attempt_chat_mv"
 async def get_attempt_chats(
     conn: asyncpg.Connection,
     ids: list[UUID],
+    redis: Redis,
+    *,
+    bypass_cache: bool = False,
 ) -> list[GetAttemptChatResponse]:
-    """Get attempt_chat entries by IDs from attempt_chat_mv."""
+    """Get attempt_chat entries by IDs from attempt_chat_mv (with cache hedge)."""
     if not ids:
         return []
+
+    cached_results: dict[str, GetAttemptChatResponse] = {}
+    missing_ids: list[UUID] = list(ids)
+    if not bypass_cache:
+        missing_ids = []
+        for cid in ids:
+            cached = await read_back_row(redis, "attempt_chat", cid)
+            if cached is not None:
+                # Strip synthetic ``id``/``created_at`` aliases not on response.
+                payload = {
+                    k: v
+                    for k, v in cached.items()
+                    if k not in ("id", "created_at")
+                }
+                cached_results[str(cid)] = GetAttemptChatResponse.model_validate(payload)
+            else:
+                missing_ids.append(cid)
+
+    if not missing_ids:
+        return [cached_results[str(cid)] for cid in ids if str(cid) in cached_results]
 
     rows = await conn.fetch(
         f"""
@@ -39,11 +64,12 @@ async def get_attempt_chats(
         FROM {MV_NAME}
         WHERE chat_id = ANY($1)
         """,
-        ids,
+        missing_ids,
     )
 
-    return [
-        GetAttemptChatResponse(
+    mv_results: dict[str, GetAttemptChatResponse] = {}
+    for r in rows:
+        mv_results[str(r["chat_id"])] = GetAttemptChatResponse(
             chat_id=r["chat_id"],
             attempt_id=r["attempt_id"],
             chat_entry_id=r["chat_entry_id"],
@@ -96,5 +122,12 @@ async def get_attempt_chats(
             standard_group_ids=r["standard_group_ids"],
             standard_ids=r["standard_ids"],
         )
-        for r in rows
-    ]
+
+    out: list[GetAttemptChatResponse] = []
+    for cid in ids:
+        key = str(cid)
+        if key in cached_results:
+            out.append(cached_results[key])
+        elif key in mv_results:
+            out.append(mv_results[key])
+    return out

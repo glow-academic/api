@@ -27,6 +27,7 @@ from app.infra.docs.types import (
 )
 from app.infra.docs_helper import PageMetadataConfig, compute_docs_metadata
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 
 # Artifact tool docs
 from app.tools.artifacts.agent.docs import get_agent_docs
@@ -92,6 +93,7 @@ async def page_context_agent_impl(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> ComposedContextResponse:
@@ -101,6 +103,7 @@ async def page_context_agent_impl(
         key=big_cache_key("agent/page_context", {
             "profile_id": str(profile_id),
             "entity_id": str(entity_id) if entity_id else None,
+            "schema": schema,
         }),
         tags=["context", "agent", "artifacts"],
         ttl_s=DEFAULT_BIG_CACHE_TTL_S,
@@ -109,6 +112,7 @@ async def page_context_agent_impl(
             pool, redis,
             profile_id=profile_id,
             entity_id=entity_id,
+            schema=schema,
         ),
         bypass_cache=bypass_cache,
     )
@@ -120,6 +124,7 @@ async def _page_context_agent_build(
     *,
     profile_id: UUID,
     entity_id: UUID | None = None,
+    schema: bool = False,
 ) -> ComposedContextResponse:
     """Agent page context.
 
@@ -135,7 +140,8 @@ async def _page_context_agent_build(
 
     # -- Step 1: Profile context ------------------------------------------------
 
-    profile = await resolve_profile_identity_context(pool, profile_id, redis)
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(pool, profile_id, redis)
 
     if profile is None:
         raise HTTPException(
@@ -147,62 +153,92 @@ async def _page_context_agent_build(
     # Each branch acquires its own connection from the pool.
 
     async def _get_agent_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_agent_docs(conn)
 
     async def _get_agent_drafts_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_agent_drafts_docs(conn)
 
     async def _get_names_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_names_docs(conn)
 
     async def _get_descriptions_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_descriptions_docs(conn)
 
     async def _get_models_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_models_docs(conn)
 
     async def _get_prompts_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_prompts_docs(conn)
 
     async def _get_instructions_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_instructions_docs(conn)
 
     async def _get_flags_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_flags_docs(conn)
 
     async def _get_departments_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_departments_docs(conn)
 
     async def _get_tools_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_tools_docs(conn)
 
     async def _get_qualities_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_qualities_docs(conn)
 
     async def _get_reasoning_levels_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_reasoning_levels_docs(conn)
 
     async def _get_temperature_levels_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_temperature_levels_docs(conn)
 
     async def _get_rubrics_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_rubrics_docs(conn)
 
     async def _get_voices_docs() -> object:
+        if not schema:
+            return None  # type: ignore[return-value]
         async with pool.acquire() as conn:
             return await get_voices_docs(conn)
 
@@ -220,7 +256,8 @@ async def _page_context_agent_build(
             return None
         return await _resolve_entity_name(pool, redis, entity_id)
 
-    (
+    with timed("docs_gather"):
+     (
         artifact,
         drafts,
         names,
@@ -238,7 +275,7 @@ async def _page_context_agent_build(
         voices,
         entity_perms,
         entity_name,
-    ) = await asyncio.gather(
+     ) = await asyncio.gather(
         _get_agent_docs(),
         _get_agent_drafts_docs(),
         _get_names_docs(),
@@ -320,7 +357,8 @@ async def _page_context_agent_build(
 
     # -- Step 5: Build profile summary ------------------------------------------
 
-    profile_summary = await build_profile_summary(pool, redis, profile)
+    with timed("profile_summary"):
+        profile_summary = await build_profile_summary(pool, redis, profile)
 
     # -- Step 6: Starter prompts --------------------------------------------------
 
@@ -375,9 +413,9 @@ async def _page_context_agent_build(
             "instructions, departments, flags, tools, qualities, reasoning_levels, "
             "temperature_levels, rubrics, voices) via junction tables."
         ),
-        artifact=artifact,
-        entries=[drafts],
-        resources=[
+        artifact=(artifact if schema else None),
+        entries=([drafts] if schema else None),
+        resources=([
             names,
             descriptions,
             models,
@@ -390,8 +428,8 @@ async def _page_context_agent_build(
             temperature_levels,
             rubrics,
             voices,
-        ],
-        permission_docs=[
+        ] if schema else None),
+        permission_docs=([
             get_operation_info(
                 has_access,
                 description="View access — user shares ANY department with the agent.",
@@ -416,8 +454,8 @@ async def _page_context_agent_build(
                 compute_can_draft,
                 description="Draft — role-only check.",
             ),
-        ],
-        api_operations=[
+        ] if schema else None),
+        api_operations=([
             get_operation_info(
                 get_agent,
                 description="POST /get — Get a single agent by ID with hydrated resources.",
@@ -450,7 +488,7 @@ async def _page_context_agent_build(
                 export_agents,
                 description="POST /export — Export agents as denormalized CSV.",
             ),
-        ],
+        ] if schema else None),
         page_metadata=page_metadata,
         prompts=prompts,
         profile=profile_summary,

@@ -21,10 +21,10 @@ class GetVideoResponse(BaseModel):
 
 class SearchVideoResponse(BaseModel):
     video_id: UUID
-    videos_id: UUID
-    upload_id: UUID
-    file_path: str
-    mime_type: str
-    size: int
+    videos_id: UUID | None = None
+    upload_id: UUID | None = None
+    file_path: str | None = None
+    mime_type: str | None = None
+    size: int | None = None
     length_seconds: int
     created_at: datetime

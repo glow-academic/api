@@ -22,6 +22,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.department.types import FileDownloadDepartmentApiResult
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.tools.entries.files.search import search_files
 
 
@@ -42,9 +43,10 @@ async def file_download_department_impl(
       4. Verify file exists on disk
     """
     # -- Step 1: Profile context ------------------------------------------------
-    profile = await resolve_profile_identity_context(
-        pool, profile_id, redis, session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -52,15 +54,17 @@ async def file_download_department_impl(
         )
 
     # -- Step 2: Permission check -----------------------------------------------
-    if not has_permission(profile.role_permissions, "department", "file_download"):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to download department files.",
-        )
+    with timed("permissions"):
+        if not has_permission(profile.role_permissions, "department", "file_download"):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to download department files.",
+            )
 
     # -- Step 3: Resolve files_id -> file metadata via files_mv ----------------
-    async with pool.acquire() as conn:
-        results = await search_files(conn, files_ids=[file_id], limit=1)
+    with timed("query"):
+     async with pool.acquire() as conn:
+        results = await search_files(conn, redis, files_ids=[file_id], limit=1)
 
     if not results:
         raise HTTPException(

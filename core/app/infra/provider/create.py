@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.server_timing import timed
 from app.infra.provider.permissions_context import (
     create_denormalized_snapshot,
     resolve_provider_values,
@@ -54,12 +55,13 @@ async def create_provider_impl(
     if idempotency_key is not None and len(items) == 1 and items[0].id is None:
         items = [items[0].model_copy(update={"id": idempotency_key})]
 
-    profile = await resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        session_id=session_id,
-    )
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
     if profile is None:
         raise HTTPException(
             status_code=401,
@@ -71,51 +73,55 @@ async def create_provider_impl(
         for item in items
         for department_id in (item.department_ids or [])
     ]
-    if not compute_can_create(
-        role_level=profile.role_level,
-        role_permissions=profile.role_permissions,
-        department_ids=requested_department_ids or None,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create providers.",
-        )
+    with timed("permissions"):
+        if not compute_can_create(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+            department_ids=requested_department_ids or None,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to create providers.",
+            )
 
     if accept is not None and idempotency_key is not None:
-        async with pool.acquire() as conn:
-            entry = await get_soft_call(conn, idempotency_key, artifact=ARTIFACT)
-        if entry is None or entry.status != "pending" or entry.operation != "create":
-            raise HTTPException(
-                status_code=404,
-                detail="No pending provider create for this call.",
-            )
-        target_id = entry.artifact_id
-
-        if accept:
+        with timed("ack"):
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await create_provider_artifact(
-                        conn,
-                        id=target_id,
-                        soft=False,
-                    )
+                entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
+            if entry is None or entry.status != "pending" or entry.operation != "create":
+                raise HTTPException(
+                    status_code=404,
+                    detail="No pending provider create for this call.",
+                )
+            target_id = entry.artifact_id
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="create",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
+            if accept:
+                async with pool.acquire() as conn:
+                    async with conn.transaction():
+                        await create_provider_artifact(
+                            conn,
+                            id=target_id,
+                            soft=False,
+                        )
+
+            async with pool.acquire() as conn:
+                await create_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="create",
+                    artifact_id=target_id,
+                    status="accepted" if accept else "rejected",
+                )
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
+
+        with timed("refresh"):
+            await refresh_provider_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id,
+                operation_key=idempotency_key,
             )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
-
-        await refresh_provider_impl(
-            pool, redis, profile_id=profile_id, session_id=session_id,
-            operation_key=idempotency_key,
-        )
 
         return CreateProviderApiResponse(
             results=[
@@ -131,7 +137,8 @@ async def create_provider_impl(
     has_errors = False
     error_results: list[ProviderResultItem] = []
 
-    async with pool.acquire() as conn:
+    with timed("resolve_values"):
+     async with pool.acquire() as conn:
         for idx, item in enumerate(items):
             item_errors = await resolve_provider_values(
                 conn,
@@ -161,7 +168,8 @@ async def create_provider_impl(
     snapshot_ids: list[UUID] = []
 
     if not soft:
-        for item in items:
+        with timed("snapshot"):
+         for item in items:
             providers_resource_id = await create_denormalized_snapshot(
                 pool,
                 redis,
@@ -175,7 +183,8 @@ async def create_provider_impl(
             )
             snapshot_ids.append(providers_resource_id)
 
-    async with pool.acquire() as conn:
+    with timed("db_write"):
+     async with pool.acquire() as conn:
         async with conn.transaction():
             for idx, item in enumerate(items):
                 result = await create_provider_artifact(
@@ -195,6 +204,7 @@ async def create_provider_impl(
                 if soft and idempotency_key is not None:
                     await create_soft_call(
                         conn,
+                        redis,
                         call_id=idempotency_key,
                         artifact=ARTIFACT,
                         operation="create",
@@ -220,14 +230,15 @@ async def create_provider_impl(
             await refresh_soft_calls(conn)
 
     if not soft:
-        await refresh_provider_impl(
-            pool,
-            redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            soft=soft,
-            operation_key=idempotency_key or (results[0].provider_id if results else None),
-        )
+        with timed("refresh"):
+            await refresh_provider_impl(
+                pool,
+                redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                soft=soft,
+                operation_key=idempotency_key or (results[0].provider_id if results else None),
+            )
 
     # ── Hydrate full row content for the client ──────────────────────
     # See ``hydrate_provider_list_rows``: returns the same shape
@@ -239,12 +250,13 @@ async def create_provider_impl(
     # on ack-accept).
     providers: list[ListProviderApiProvider] | None = None
     if not soft:
-        from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
-        new_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
-        if new_ids:
-            providers = await hydrate_provider_list_rows(
-                pool, redis, profile_id=profile_id, provider_ids=new_ids,
-            )
+        with timed("hydrate"):
+            from app.infra.provider.hydrate_list_rows import hydrate_provider_list_rows
+            new_ids = [r.provider_id for r in results if r.success and r.provider_id is not None]
+            if new_ids:
+                providers = await hydrate_provider_list_rows(
+                    pool, redis, profile_id=profile_id, provider_ids=new_ids,
+                )
 
     return CreateProviderApiResponse(
         results=results,

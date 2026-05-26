@@ -23,6 +23,7 @@ from app.infra.cohort.types import (
 )
 from app.infra.common_context import resolve_common_context
 from app.infra.group.resolve import resolve_group_impl
+from app.infra.server_timing import timed
 
 
 def _sf(filters: dict[str, Any | None], section: str, attr: str, default=None):
@@ -146,14 +147,15 @@ async def get_cohort_impl(
     for section, value in fallback_filters.items():
         effective_filters.setdefault(section, value)
 
-    common = await resolve_common_context(
-        pool,
-        redis,
-        profile_id=profile_id,
-        session_id=session_id,
-        group_id=group_id,
-        bypass_cache=bypass_cache,
-    )
+    with timed("common"):
+        common = await resolve_common_context(
+            pool,
+            redis,
+            profile_id=profile_id,
+            session_id=session_id,
+            group_id=group_id,
+            bypass_cache=bypass_cache,
+        )
     if common is None:
         raise HTTPException(
             status_code=401,
@@ -161,19 +163,21 @@ async def get_cohort_impl(
         )
 
     if group_id is None:
-        _gr = await resolve_group_impl(
-            pool, redis,
-            artifact_type="cohort",
-            profile_id=profile_id,
-            session_id=session_id,
-            include_history=False,
-        )
-        group_id = _gr.group_id
+        with timed("group"):
+            _gr = await resolve_group_impl(
+                pool, redis,
+                artifact_type="cohort",
+                profile_id=profile_id,
+                session_id=session_id,
+                include_history=False,
+            )
+            group_id = _gr.group_id
     effective_group_id = group_id
     perms = None
     if cohort_id is not None:
-        async with pool.acquire() as conn:
-            perms = await resolve_cohort_permissions_context(conn, cohort_id)
+        with timed("permissions"):
+            async with pool.acquire() as conn:
+                perms = await resolve_cohort_permissions_context(conn, cohort_id)
         if not perms.exists:
             raise HTTPException(
                 status_code=404,
@@ -189,16 +193,17 @@ async def get_cohort_impl(
                 detail="You don't have access to this cohort. It may be restricted to other departments.",
             )
 
-    cohort = await resolve_cohort_context(
-        pool,
-        redis,
-        cohort_id=cohort_id,
-        group_id=effective_group_id,
-        draft_id=draft_id,
-        user_department_ids=common.profile.department_ids,
-        filters=effective_filters,
-        bypass_cache=bypass_cache,
-    )
+    with timed("cohort_ctx"):
+        cohort = await resolve_cohort_context(
+            pool,
+            redis,
+            cohort_id=cohort_id,
+            group_id=effective_group_id,
+            draft_id=draft_id,
+            user_department_ids=common.profile.department_ids,
+            filters=effective_filters,
+            bypass_cache=bypass_cache,
+        )
 
     profile = common.profile
     cohort_department_ids = list(perms.department_ids) if perms else [
@@ -463,25 +468,26 @@ async def get_cohort_impl(
         filters=effective_filters,
     )
 
-    return GetCohortApiResponse(
-        actor_name=profile.name,
-        cohort_exists=cohort.artifact_id is not None,
-        can_edit=can_edit,
-        disabled_reason=disabled_reason,
-        group_id=effective_group_id,
-        show_ai_generate=can_draft,
-        names=names,
-        descriptions=descriptions,
-        flags=flags,
-        departments=departments,
-        simulations=simulations,
-        simulation_positions=simulation_positions,
-        simulation_availability=simulation_availability,
-        profiles=profiles,
-        profile_personas=profile_personas,
-        personas=personas,
-        pending_ids=sorted(pending_ids, key=str),
-        basic_show_ai_generate=can_draft,
-        simulations_step_show_ai_generate=can_draft,
-        profiles_step_show_ai_generate=can_draft,
-    )
+    with timed("build"):
+        return GetCohortApiResponse(
+            actor_name=profile.name,
+            cohort_exists=cohort.artifact_id is not None,
+            can_edit=can_edit,
+            disabled_reason=disabled_reason,
+            group_id=effective_group_id,
+            show_ai_generate=can_draft,
+            names=names,
+            descriptions=descriptions,
+            flags=flags,
+            departments=departments,
+            simulations=simulations,
+            simulation_positions=simulation_positions,
+            simulation_availability=simulation_availability,
+            profiles=profiles,
+            profile_personas=profile_personas,
+            personas=personas,
+            pending_ids=sorted(pending_ids, key=str),
+            basic_show_ai_generate=can_draft,
+            simulations_step_show_ai_generate=can_draft,
+            profiles_step_show_ai_generate=can_draft,
+        )

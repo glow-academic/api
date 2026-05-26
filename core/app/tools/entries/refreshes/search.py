@@ -3,6 +3,7 @@
 from uuid import UUID
 
 import asyncpg  # type: ignore
+from redis.asyncio import Redis
 
 from app.infra.docs.resolve_mv_source import resolve_mv_source
 from app.tools.entries.refreshes.types import GetRefreshResponse
@@ -12,6 +13,7 @@ MV_NAME = "refreshes_mv"
 
 async def search_refreshes(
     conn: asyncpg.Connection,
+    redis: Redis,
     operation_keys: list[UUID] | None = None,
     artifact_type: str | None = None,
     target: str | None = None,

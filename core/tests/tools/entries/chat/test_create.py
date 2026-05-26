@@ -12,46 +12,46 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _chat(conn, profile_id, bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def _chat(conn, redis_client, profile_id, bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     return session, await create_chat(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         department_ids=[bundle.department_id],
     )
 
 
-async def test_returns_id(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_returns_id(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
 
     assert result.id is not None
 
 
-async def test_visible_via_get_after_refresh(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_visible_via_get_after_refresh(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
     await refresh_chat(conn)
 
-    items = await get_chats(conn, [result.id])
+    items = await get_chats(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == result.id
 
 
-async def test_departments_populated(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_departments_populated(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
     await refresh_chat(conn)
 
-    items = await get_chats(conn, [result.id])
+    items = await get_chats(conn, [result.id], redis_client)
 
     assert len(items) == 1
     assert simulation_bundle.department_id in items[0].department_ids
 
 
-async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
-    session = await create_session(conn, profile_id=profile_id)
+async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     result = await create_chat(
         conn,
-        session_id=session.id,
+        redis_client, session_id=session.id,
         mcp=True,
     )
 
@@ -63,8 +63,8 @@ async def test_passes_mcp_flag(conn, profile_id, simulation_bundle):
     assert row["mcp"] is True
 
 
-async def test_internal_get_returns_created_chat(conn, profile_id, simulation_bundle):
-    _, result = await _chat(conn, profile_id, simulation_bundle)
+async def test_internal_get_returns_created_chat(conn, redis_client, profile_id, simulation_bundle):
+    _, result = await _chat(conn, redis_client, profile_id, simulation_bundle)
     await refresh_chat(conn)
 
     items = await get_chat_entries_internal(conn, [result.id], bypass_cache=True)
