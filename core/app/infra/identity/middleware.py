@@ -21,9 +21,6 @@ check without amplifying writes on hot endpoints.
 from __future__ import annotations
 
 import asyncio
-import hmac
-import logging
-import os
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -32,52 +29,12 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 
 from app.infra.globals import get_pool, get_redis_client
+from app.infra.identity.e2e_bypass import try_e2e_bypass
 from app.infra.identity.resolve_identity import (
     Identity,
-    get_or_create_session,
     resolve_identity,
 )
-from app.infra.profile_identity_context import resolve_profile_identity_context
 
-logger = logging.getLogger(__name__)
-
-# ── E2E auth bypass ──────────────────────────────────────────────
-# Gated by env. When ``E2E_BYPASS_TOKEN`` is set, requests with a
-# matching ``Authorization: Bearer <token>`` are accepted without
-# JWT verification, resolving to the bootstrap superadmin profile by
-# default. Tests can target a different profile by sending
-# ``X-E2E-Profile-Id: <uuid>`` — the middleware verifies the profile
-# exists in the DB and refuses otherwise.
-#
-# This MUST be unset in production. The middleware logs a loud
-# warning at first activation so accidental enablement is obvious
-# in the logs of any restart.
-_E2E_BYPASS_TOKEN = os.getenv("E2E_BYPASS_TOKEN", "").strip()
-_E2E_BYPASS_ENABLED = bool(_E2E_BYPASS_TOKEN)
-# Default profile_artifact id to impersonate when X-E2E-Profile-Id is
-# not provided. Setup-specific — the right UUID depends on which seed
-# the user restored (fresh/university/organization each create their
-# own superadmin artifact). User puts the right one in
-# E2E_BYPASS_PROFILE_ID. No silent fallback: enabling bypass without
-# this set logs a loud warning and any unrouted request errors with
-# a clear "missing E2E_BYPASS_PROFILE_ID" message.
-_E2E_DEFAULT_PROFILE_ID_RAW = os.getenv("E2E_BYPASS_PROFILE_ID", "").strip()
-_E2E_DEFAULT_PROFILE_ID: UUID | None = None
-if _E2E_DEFAULT_PROFILE_ID_RAW:
-    try:
-        _E2E_DEFAULT_PROFILE_ID = UUID(_E2E_DEFAULT_PROFILE_ID_RAW)
-    except ValueError:
-        logger.error(
-            "E2E_BYPASS_PROFILE_ID is not a valid UUID: %r — bypass requests "
-            "without an X-E2E-Profile-Id header will fail.",
-            _E2E_DEFAULT_PROFILE_ID_RAW,
-        )
-if _E2E_BYPASS_ENABLED:
-    logger.warning(
-        "⚠️  E2E_BYPASS_TOKEN is set — auth bypass enabled "
-        "(default profile %s). NEVER enable in production.",
-        _E2E_DEFAULT_PROFILE_ID or "(unset — pass X-E2E-Profile-Id per request)",
-    )
 from app.tools.entries.activity.create import create_activity
 from app.utils.logging.db_logger import get_logger
 
@@ -160,48 +117,12 @@ async def require_auth(
     pool = get_pool()
 
     # E2E bypass — short-circuits JWT verification when the env-gated
-    # bypass token matches. See module-level docstring for safety
-    # invariants. Per-test profile selection via X-E2E-Profile-Id.
-    # Composes the existing identity helpers — no new DB access here.
-    if _E2E_BYPASS_ENABLED and hmac.compare_digest(
-        credentials.credentials, _E2E_BYPASS_TOKEN
-    ):
-        header_profile = request.headers.get("X-E2E-Profile-Id", "").strip()
-        if header_profile:
-            try:
-                profile_id = UUID(header_profile)
-            except ValueError as e:
-                raise HTTPException(
-                    status_code=401,
-                    detail=f"E2E bypass: invalid X-E2E-Profile-Id ({header_profile!r})",
-                ) from e
-        elif _E2E_DEFAULT_PROFILE_ID is not None:
-            profile_id = _E2E_DEFAULT_PROFILE_ID
-        else:
-            raise HTTPException(
-                status_code=401,
-                detail="E2E bypass: no profile to impersonate. Set E2E_BYPASS_PROFILE_ID "
-                "in the api .env or send X-E2E-Profile-Id on the request.",
-            )
-        redis = get_redis_client()
-        profile_ctx = await resolve_profile_identity_context(pool, profile_id, redis)
-        if profile_ctx is None:
-            raise HTTPException(
-                status_code=401,
-                detail=f"E2E bypass: profile {profile_id} not found in DB. "
-                "Reseed or pass a real X-E2E-Profile-Id.",
-            )
-        async with pool.acquire() as conn:
-            session_id = await get_or_create_session(conn, profile_id)
-        identity = Identity(
-            profile_id=profile_id,
-            session_id=session_id,
-            email=profile_ctx.primary_email,
-            role=profile_ctx.role,
-        )
-        request.state.profile_id = str(identity.profile_id)
-        request.state.session_id = str(identity.session_id)
-        request.state.identity = identity
+    # bypass token matches. Shared with the MCP middleware via
+    # app/infra/identity/e2e_bypass.py (single prod-safety gate).
+    # Returns None when disabled or the token doesn't match, so we fall
+    # through to normal JWT verification below.
+    identity = await try_e2e_bypass(request, credentials.credentials)
+    if identity is not None:
         return identity
 
     from app.infra.server_timing import timed
