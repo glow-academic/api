@@ -212,6 +212,7 @@ async def _resolve_creatable_values(
             text_resource = await create_text_resource(conn, redis)
             text_entry = await create_text_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 texts_id=text_resource.id,
             )

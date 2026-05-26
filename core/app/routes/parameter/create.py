@@ -48,6 +48,9 @@ async def create_parameter(
             )
             group_id = group_result.group_id
 
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
+
         async def _runner() -> CreateParameterApiResponse:
             return await create_parameter_impl(
                 pool,
@@ -57,6 +60,7 @@ async def create_parameter(
                 session_id=session_id,
                 accept=request.accept,
                 idempotency_key=request.idempotency_key,
+                soft=request.soft,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -72,6 +76,7 @@ async def create_parameter(
             runner=_runner,
             upload_folder=get_upload_folder(),
             operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = "parameters"

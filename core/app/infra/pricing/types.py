@@ -72,6 +72,7 @@ class ListPricingRequest(BaseModel):
     page_size: int = Field(50, description="Items per page")
     sort_by: str = Field("date", description="Sort field (date | total_cost | total_tokens | run_count)")
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
     @property
     def effective_date_from(self) -> datetime | None:

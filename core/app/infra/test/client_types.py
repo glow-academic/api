@@ -66,6 +66,9 @@ class TestRunPayload(BaseModel):
         None, description="UUID of the parent trace (test_invocation_traces_entry)"
     )
     run_id: UUID = Field(..., description="UUID of the runs_entry to bind")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject the staged run binding")
+    soft: bool = Field(False, description="Stage the run binding dormant (active=False); accept activates it")
+    accept: bool | None = Field(None, description="Ack: True activates the staged run binding, False rejects. Only meaningful with idempotency_key")
 
 
 class TestGroupPayload(BaseModel):
@@ -87,6 +90,9 @@ class TestInvocationCompletePayload(BaseModel):
     test_id: UUID = Field(..., description="UUID of the test")
     test_invocation_id: UUID = Field(..., description="UUID of the test invocation")
     message: str = Field("", description="Optional completion message")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject the staged completion")
+    soft: bool = Field(False, description="Stage the completion dormant (active=False); accept activates it")
+    accept: bool | None = Field(None, description="Ack: True activates the staged completion, False rejects. Only meaningful with idempotency_key")
 
 
 class TestCompletePayload(BaseModel):

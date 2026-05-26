@@ -80,6 +80,7 @@ class InfraContext(BaseModel):
     sid: str = Field(default="", description="Socket ID for event emission")
     soft: bool = Field(default=False, description="Create dormant records (active=False) for generation pipeline")
     accept: bool | None = Field(default=None, description="Ack phase: True=promote dormant state, False=reject (no-op or restore for delete)")
+    eval: bool = Field(default=False, description="When True, soft_calls_entry rows for this operation are tagged ``eval=true`` so UI surfaces filter them out. Set by trace-driven benchmark runs (see prepare.py).")
     operation_key: UUID | None = Field(default=None, description="Universal key for call dedup — idempotency_key for writes, snapshot_key for reads")
     instruction_template: str | None = Field(default=None, description="Tool response template (Layer 3) for rendered saves")
     call_id: UUID | None = Field(default=None, description="Pre-minted UUID for the calls_entry row — reused by create_call so the same id flows through streaming progress events, audit .started/.completed/.failed, and the DB call record")

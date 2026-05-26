@@ -36,6 +36,7 @@ class ListActivityRequest(BaseModel):
     page: int = Field(0, description="Pagination page number")
     page_size: int = Field(50, description="Items per page")
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class ProfileSummaryItem(BaseModel):

@@ -541,6 +541,7 @@ class CreatePersonaApiRequest(BaseModel):
     # route threads this through as ``operation_key``) AND the soft/accept ack
     # flow (with ``accept`` set → promotes/rejects the dormant create).
     idempotency_key: UUID | None = Field(None, description="Idempotency key — safe-retry replay on the first call; ack of a dormant create when sent with accept")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the response echoes a server key to ack with ({idempotency_key, accept})")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -647,6 +648,7 @@ class UpdatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -711,6 +713,7 @@ class DeletePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant — propose; the ack ({idempotency_key, accept}) confirms/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm deletion) or reject (restore). Only meaningful with idempotency_key")
 
 
@@ -747,6 +750,7 @@ class DuplicatePersonaApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -804,6 +808,7 @@ class PatchPersonaDraftApiRequest(ScopedItem):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant draft")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

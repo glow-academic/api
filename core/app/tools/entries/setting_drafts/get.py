@@ -49,8 +49,8 @@ async def get_setting_drafts(
             d.id, d.created_at, d.generated, d.mcp, d.active,
             d.session_id,
             d.name,
-            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL), '{}') AS agent_ids,
-            COALESCE(ARRAY_AGG(DISTINCT ag.agents_id) FILTER (WHERE ag.agents_id IS NOT NULL AND ag.active = false), '{}') AS pending_agent_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.systems_id) FILTER (WHERE ag.systems_id IS NOT NULL), '{}') AS system_ids,
+            COALESCE(ARRAY_AGG(DISTINCT ag.systems_id) FILTER (WHERE ag.systems_id IS NOT NULL AND ag.active = false), '{}') AS pending_system_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL), '{}') AS auth_item_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT aik.auth_item_keys_id) FILTER (WHERE aik.auth_item_keys_id IS NOT NULL AND aik.active = false), '{}') AS pending_auth_item_key_ids,
             COALESCE(ARRAY_AGG(DISTINCT au.auths_id) FILTER (WHERE au.auths_id IS NOT NULL), '{}') AS auth_ids,
@@ -79,7 +79,7 @@ async def get_setting_drafts(
             COALESCE(ARRAY_AGG(DISTINCT lo.logins_id) FILTER (WHERE lo.logins_id IS NOT NULL), '{}') AS logins_ids,
             COALESCE(ARRAY_AGG(DISTINCT lo.logins_id) FILTER (WHERE lo.logins_id IS NOT NULL AND lo.active = false), '{}') AS pending_logins_ids
         FROM setting_drafts_entry d
-        LEFT JOIN setting_drafts_agents_connection ag ON ag.draft_id = d.id
+        LEFT JOIN setting_drafts_systems_connection ag ON ag.draft_id = d.id
         LEFT JOIN setting_drafts_auth_item_keys_connection aik ON aik.draft_id = d.id
         LEFT JOIN setting_drafts_auths_connection au ON au.draft_id = d.id
         LEFT JOIN setting_drafts_colors_connection c ON c.draft_id = d.id
@@ -113,7 +113,7 @@ async def get_setting_drafts(
             active=r["active"],
             session_id=r["session_id"],
             name=r["name"],
-            agent_ids=r["agent_ids"],
+            system_ids=r["system_ids"],
             auth_item_key_ids=r["auth_item_key_ids"],
             auth_ids=r["auth_ids"],
             color_ids=r["color_ids"],
@@ -125,7 +125,7 @@ async def get_setting_drafts(
             provider_ids=r["provider_ids"],
             provider_key_ids=r["provider_key_ids"],
             threshold_ids=r["threshold_ids"],
-            pending_agent_ids=r["pending_agent_ids"],
+            pending_system_ids=r["pending_system_ids"],
             pending_auth_item_key_ids=r["pending_auth_item_key_ids"],
             pending_auth_ids=r["pending_auth_ids"],
             pending_color_ids=r["pending_color_ids"],

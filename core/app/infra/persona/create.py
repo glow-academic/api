@@ -281,6 +281,11 @@ async def create_persona_impl(
                     # originating tool call so ack lookups can resolve
                     # (artifact, operation, artifact_id). idempotency_key here
                     # is the calls_entry.id (see execute_infra_operation).
+                    # idempotency_key is the calls_entry.id — the route pre-mints
+                    # the calls_entry with it (wrapper ``call_id=request.idempotency_key``),
+                    # so this soft_call FK to calls_entry holds over HTTP too. The
+                    # tool path passes idempotency_key=ctx.call_id (also a real
+                    # calls_entry). Either way the FK is satisfied.
                     if soft and idempotency_key is not None:
                         await create_soft_call(
                             conn,

@@ -109,8 +109,16 @@ async def search_soft_calls(
     offset: int = 0,
     bypass_mv: bool = False,
     bypass_cache: bool = False,
+    include_eval: bool = False,
 ) -> list[GetSoftCallResponse]:
-    """Hedged search: cache ∪ MV, dedupe by call_id, cache wins."""
+    """Hedged search: cache ∪ MV, dedupe by call_id, cache wins.
+
+    ``include_eval`` defaults to False so the user's normal UI surfaces
+    (artifact list responses' ``pending_*`` fields, the chat-panel
+    ledger panel, etc.) never see dormant eval-run writes as if they
+    were actionable pending state. Eval-aware tools (e.g. a benchmark
+    inspector) can pass ``include_eval=True`` to surface them.
+    """
     # 1. Cache half of the hedge — recent writes matching the filter.
     cached_matches: list[dict[str, Any]] = []
     if not bypass_cache:
@@ -126,6 +134,8 @@ async def search_soft_calls(
         except Exception:
             # Hedge falls back to MV-only on Redis failure.
             cached_matches = []
+    if not include_eval:
+        cached_matches = [r for r in cached_matches if not r.get("eval", False)]
     cached_call_ids = {str(r["call_id"]) for r in cached_matches}
 
     # 2. MV half — same SQL as pre-cache implementation. Fetch enough to
@@ -136,13 +146,14 @@ async def search_soft_calls(
     rows = await conn.fetch(
         f"""
         SELECT soft_call_entry_id, call_id, artifact, operation,
-               status, artifact_id, patch, created_at
+               status, artifact_id, patch, eval, created_at
         FROM {source}
         WHERE ($1::text     IS NULL OR artifact    = $1)
           AND ($2::uuid[]   IS NULL OR artifact_id = ANY($2))
           AND ($3::text     IS NULL OR operation   = $3)
           AND ($4::text     IS NULL OR status      = $4)
           AND ($5::uuid[]   IS NULL OR call_id     = ANY($5))
+          AND ($7::boolean OR eval = false)
         ORDER BY created_at DESC
         LIMIT $6
         """,
@@ -152,6 +163,7 @@ async def search_soft_calls(
         status,
         call_ids,
         mv_fetch_limit,
+        include_eval,
     )
 
     mv_matches: list[dict[str, Any]] = []
@@ -167,6 +179,7 @@ async def search_soft_calls(
             "operation": r["operation"],
             "status": r["status"],
             "artifact_id": r["artifact_id"],
+            "eval": r["eval"],
             "patch": patch,
             "created_at": r["created_at"],
         })

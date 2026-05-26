@@ -55,6 +55,11 @@ class AudioSession:
         self.tool_def_by_name: dict[str, dict[str, Any]] = {}
         self.inbound_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=500)
         self.outbound_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        # Soft/accept staging buffer for /attempt/chat/speak — frames pushed
+        # with soft=True are held here (keyed by idempotency_key) and flushed
+        # into ``inbound_queue`` on accept (mirrors refresh's "record intent,
+        # don't enqueue until ack" — in-memory since the queue itself is).
+        self.pending_frames: dict[str, list[bytes]] = {}
         self.last_activity: float = time.monotonic()
         self.muted = False
         # User speech audio buffering — accumulates PCM16 frames between

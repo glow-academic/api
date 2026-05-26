@@ -41,10 +41,17 @@ COPY --from=deps /install /usr/local
 # the live stock postgres at first deploy.
 COPY core/app/ ./app/
 COPY database/ ./database/
-# Bake seed assets (text excerpts, themes) so first-deploy db-init can
-# resolve them from /app/uploads. uploads/call (700MB of test data)
+# Bake seed assets (text excerpts, themes) at a NON-volume path so the
+# runtime mount target (``/app/uploads``, a named volume) stays empty in
+# the image. Docker 29's copy-up does a non-idempotent mkdir at mount
+# time and hard-errors with ``file exists`` when the image bakes any
+# content at the volume's destination — fresh deploys fail at
+# ``compose up`` once a second service mounts the same volume. By
+# baking at ``/app/seed/uploads`` instead, the image carries the seed
+# assets without triggering copy-up; ``volume-init`` copies them into
+# the runtime volume on first boot. uploads/call (700MB of test data)
 # and uploads/audio|video (runtime artifacts) are pruned via .dockerignore.
-COPY uploads/ ./uploads/
+COPY uploads/ ./seed/uploads/
 
 # non-root for prod
 ARG APP_UID=1001

@@ -6,7 +6,9 @@ from fastapi import APIRouter, Request, Response
 
 from app.infra.docs.types import ComposedContextResponse
 from app.infra.docs_helper import DocsApiRequest
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.system.group import group_system_impl
 from app.infra.system.page_context import page_context_system_impl
 
 router = APIRouter()
@@ -21,18 +23,43 @@ async def get_system_context(
     """Get page context for the system artifact.
 
     Returns docs + profile identity + evaluated permissions in a single call.
-    Superset of /docs — clients can migrate from /docs to /context incrementally.
+    Routed through the audit wrapper so ``snapshot_key`` replays a consistent
+    view across related reads.
     """
     profile_id = http_request.state.profile_id
+    session_id = getattr(http_request.state, "session_id", None)
     pool = get_pool()
     redis = get_redis_client()
 
-    result = await page_context_system_impl(
+    group_id = None
+    if session_id:
+        group_result = await group_system_impl(
+            pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
+        )
+        group_id = group_result.group_id
+
+    async def _runner() -> ComposedContextResponse:
+        return await page_context_system_impl(
+            pool,
+            redis,
+            profile_id=profile_id,
+            entity_id=body.entity_id,
+            schema=body.schema,
+        )
+
+    result = await run_artifact_operation_with_audit(
         pool,
         redis,
+        artifact="system",
         profile_id=profile_id,
-        entity_id=body.entity_id,
-        schema=body.schema,
+        session_id=session_id,
+        group_id=group_id,
+        operation="context",
+        arguments=body.model_dump(mode="json"),
+        response_model=ComposedContextResponse,
+        runner=_runner,
+        upload_folder=get_upload_folder(),
+        operation_key=body.snapshot_key,  # read snapshot: replay this view if echoed
     )
 
     response.headers["X-Cache-Tags"] = "system"

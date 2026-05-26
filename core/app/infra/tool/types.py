@@ -269,6 +269,7 @@ class CreateToolApiRequest(BaseModel):
 
     tools: list[CreateToolItem] = Field(..., description="List of tools to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -364,6 +365,7 @@ class UpdateToolApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -423,6 +425,7 @@ class DeleteToolApiRequest(BaseModel):
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -448,6 +451,7 @@ class DeleteToolApiResponse(BaseModel):
 class DuplicateToolApiRequest(BaseModel):
     tool_id: UUID = Field(..., description="Tool identifier to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -547,6 +551,7 @@ class PatchToolDraftApiRequest(ScopedItem):
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept or reject acknowledgement when idempotency_key is supplied")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {

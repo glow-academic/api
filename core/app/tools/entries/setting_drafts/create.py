@@ -18,7 +18,7 @@ async def create_setting_draft(
     mcp: bool = False,
     soft: bool = False,
     name: str = "",
-    agent_ids: list[UUID] | None = None,
+    system_ids: list[UUID] | None = None,
     auth_item_key_ids: list[UUID] | None = None,
     auth_ids: list[UUID] | None = None,
     color_ids: list[UUID] | None = None,
@@ -59,7 +59,7 @@ async def create_setting_draft(
 
     _pending = pending_ids or set()
     connections: list[tuple[str, str, list[UUID]]] = [
-        ("setting_drafts_agents_connection", "agents_id", agent_ids or []),
+        ("setting_drafts_systems_connection", "systems_id", system_ids or []),
         (
             "setting_drafts_auth_item_keys_connection",
             "auth_item_keys_id",
@@ -121,7 +121,7 @@ async def create_setting_draft(
         "active": active_val,
         "session_id": str(session_id),
         "name": name,
-        "agent_ids": _active_list(agent_ids or []),
+        "system_ids": _active_list(system_ids or []),
         "auth_item_key_ids": _active_list(auth_item_key_ids or []),
         "auth_ids": _active_list(auth_ids or []),
         "color_ids": _active_list(color_ids or []),
@@ -135,7 +135,7 @@ async def create_setting_draft(
         "threshold_ids": _active_list(threshold_ids or []),
         "mcp_ids": _active_list(mcp_ids or []),
         "logins_ids": _active_list(logins_ids or []),
-        "pending_agent_ids": _pending_list(agent_ids or []),
+        "pending_system_ids": _pending_list(system_ids or []),
         "pending_auth_item_key_ids": _pending_list(auth_item_key_ids or []),
         "pending_auth_ids": _pending_list(auth_ids or []),
         "pending_color_ids": _pending_list(color_ids or []),

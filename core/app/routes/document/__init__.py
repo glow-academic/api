@@ -13,6 +13,8 @@ from app.routes.document.export import router as export_router
 from app.routes.document.file_download import router as file_download_router
 from app.routes.document.file_preview import router as file_preview_router
 from app.routes.document.file_upload import router as file_upload_router
+from app.routes.document.image_upload import router as image_upload_router
+from app.routes.document.image_download import router as image_download_router
 from app.routes.document.generate import router as generate_router
 from app.routes.document.generations import router as generations_router
 from app.routes.document.get import router as get_router
@@ -55,6 +57,8 @@ router.include_router(text_upload_router)
 router.include_router(file_download_router)
 router.include_router(file_preview_router)
 router.include_router(file_upload_router)
+router.include_router(image_upload_router)
+router.include_router(image_download_router)
 
 # Typed media operations
 router.include_router(call_download_router)

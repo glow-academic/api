@@ -50,6 +50,9 @@ async def delete_cohort(
             )
             group_id = group_result.group_id
 
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
+
         async def _runner() -> DeleteCohortApiResponse:
             return await delete_cohort_impl(
                 pool,
@@ -57,6 +60,7 @@ async def delete_cohort(
                 profile_id=profile_id,
                 ids=request.cohort_ids,
                 session_id=session_id,
+                soft=request.soft,
                 idempotency_key=request.idempotency_key,
                 accept=request.accept if request.idempotency_key else None,
                 # All-matching path
@@ -85,6 +89,7 @@ async def delete_cohort(
             runner=_runner,
             upload_folder=get_upload_folder(),
             operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = ",".join(tags)

@@ -1,6 +1,7 @@
 """Chat drafts list endpoint — composable infra architecture.
 
 Thin route handler. Core logic lives in app.infra.attempt.chat.drafts.
+Routed through the audit wrapper so ``snapshot_key`` replays a consistent view.
 """
 
 from __future__ import annotations
@@ -14,7 +15,9 @@ from app.infra.attempt.chat.types import (
     GetChatDraftsApiRequest,
     GetChatDraftsApiResponse,
 )
-from app.infra.globals import get_pool, get_redis_client
+from app.infra.attempt.group import group_attempt_impl
+from app.infra.events.audit import run_artifact_operation_with_audit
+from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -40,17 +43,41 @@ async def get_chat_drafts(
         redis = get_redis_client()
         bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
-        result = await list_chat_drafts_impl(
+        group_id = None
+        if session_id:
+            group_result = await group_attempt_impl(
+                pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
+            )
+            group_id = group_result.group_id
+
+        async def _runner() -> GetChatDraftsApiResponse:
+            return await list_chat_drafts_impl(
+                pool,
+                redis,
+                profile_id=UUID(profile_id),
+                session_id=session_id,
+                search=request.search,
+                date_from=request.date_from,
+                date_to=request.date_to,
+                page_limit=request.page_limit,
+                page_offset=request.page_offset,
+                bypass_cache=bypass_cache,
+            )
+
+        result = await run_artifact_operation_with_audit(
             pool,
             redis,
-            profile_id=UUID(profile_id),
+            artifact="attempt",
+            profile_id=profile_id,
             session_id=session_id,
-            search=request.search,
-            date_from=request.date_from,
-            date_to=request.date_to,
-            page_limit=request.page_limit,
-            page_offset=request.page_offset,
+            group_id=group_id,
+            operation="drafts",
+            arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
+            response_model=GetChatDraftsApiResponse,
+            runner=_runner,
+            upload_folder=get_upload_folder(),
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         response.headers["X-Cache-Tags"] = "chats,drafts"

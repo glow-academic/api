@@ -13,6 +13,7 @@ CREATE MATERIALIZED VIEW public.soft_calls_mv AS
     status,
     artifact_id,
     patch,
+    eval,
     created_at
    FROM public.soft_calls_entry s
   WHERE (active = true)

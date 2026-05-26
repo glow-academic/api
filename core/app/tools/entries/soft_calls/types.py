@@ -20,3 +20,4 @@ class GetSoftCallResponse(BaseModel):
     artifact_id: UUID
     patch: dict[str, Any] | None
     created_at: datetime
+    eval: bool = False

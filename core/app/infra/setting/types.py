@@ -520,6 +520,7 @@ class CreateSettingApiRequest(BaseModel):
 
     settings: list[CreateSettingItem] = Field(..., description="List of settings to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
+    soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -632,6 +633,7 @@ class UpdateSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant update")
+    soft: bool = Field(False, description="Stage the update dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -666,6 +668,7 @@ class PatchSettingDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
     input_draft_id: UUID | None = Field(None, description="Legacy draft UUID alias")
     idempotency_key: UUID | None = Field(None, description="Operation key for accept/reject acknowledgement")
+    soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept or reject pending draft state when used with idempotency_key")
 
     name: str | None = Field(None, description="Name value to resolve or create")
@@ -874,6 +877,7 @@ class DeleteSettingApiRequest(BaseModel):
     department_search: str | None = Field(None, description="Search text for department facet (no-op for row filtering)")
 
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — confirms or rejects a dormant delete")
+    soft: bool = Field(False, description="Stage the delete dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (confirm) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -900,6 +904,7 @@ class DuplicateSettingApiRequest(BaseModel):
 
     setting_id: UUID = Field(..., description="UUID of the setting to duplicate")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant duplicate")
+    soft: bool = Field(False, description="Stage the duplicate dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
 
 
@@ -968,6 +973,7 @@ class DecryptSettingKeyApiRequest(BaseModel):
 
     setting_id: UUID = Field(..., description="UUID of the parent setting")
     key_id: UUID = Field(..., description="UUID of the key to decrypt")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
 class DecryptSettingKeyApiResponse(BaseModel):

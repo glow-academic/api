@@ -107,8 +107,8 @@ def _merge_junction_ids(artifact: Any, draft: Any) -> _MergedIds:
             department_ids = list(draft.department_ids)
         if getattr(draft, "logins_ids", None):
             logins_ids = list(draft.logins_ids)
-        if draft.agent_ids:
-            systems_ids = list(draft.agent_ids)
+        if draft.system_ids:
+            systems_ids = list(draft.system_ids)
         if getattr(draft, "mcp_ids", None):
             mcp_ids = list(draft.mcp_ids)
         if draft.threshold_ids:
@@ -619,7 +619,7 @@ async def resolve_setting_context(
         pending_ids.update(draft.pending_flag_ids or [])
         pending_ids.update(draft.pending_department_ids or [])
         pending_ids.update(getattr(draft, "pending_logins_ids", None) or [])
-        pending_ids.update(draft.pending_agent_ids or [])
+        pending_ids.update(draft.pending_system_ids or [])
         pending_ids.update(getattr(draft, "pending_mcp_ids", None) or [])
         pending_ids.update(draft.pending_threshold_ids or [])
         pending_ids.update(draft.pending_provider_key_ids or [])

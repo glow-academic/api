@@ -47,18 +47,34 @@ async def create_soft_call(
     id: UUID | None = None,
     mcp: bool = False,
     soft: bool = False,
+    eval: bool | None = None,
 ) -> CreateSoftCallResponse:
-    """Append a soft-call ledger row, write-back the row, index it for merge."""
+    """Append a soft-call ledger row, write-back the row, index it for merge.
+
+    ``eval`` flags the ledger entry as produced by a benchmark/eval run.
+    UI surfaces (artifact list responses' ``pending_*`` fields,
+    ``search_soft_calls`` defaults) filter eval entries out so dormant
+    eval writes never appear as actionable pending state. When
+    ``eval`` is None (the default), the value comes from the
+    ``glow_eval_mode`` contextvar — flipped at the top of an eval run
+    in ``execute_with_emit`` — so the 300+ impl callsites inherit
+    correctly without per-callsite plumbing. Passing ``eval=True``
+    explicitly forces the flag on regardless of context.
+    """
     if status not in ("pending", "accepted", "rejected"):
         raise ValueError(f"Invalid status: {status!r}")
+
+    if eval is None:
+        from app.infra.events.eval_context import is_eval_mode
+        eval = is_eval_mode()
 
     patch_json = json.dumps(patch) if patch is not None else None
 
     row = await conn.fetchrow(
         """
         INSERT INTO soft_calls_entry
-            (id, call_id, artifact, operation, status, artifact_id, patch, active, mcp, generated)
-        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7::jsonb, $8, $9, true)
+            (id, call_id, artifact, operation, status, artifact_id, patch, active, mcp, generated, eval)
+        VALUES (COALESCE($1, uuidv7()), $2, $3, $4, $5, $6, $7::jsonb, $8, $9, true, $10)
         RETURNING id, created_at
         """,
         id,
@@ -70,6 +86,7 @@ async def create_soft_call(
         patch_json,
         not soft,
         mcp,
+        eval,
     )
 
     if row is None:
@@ -88,6 +105,7 @@ async def create_soft_call(
             artifact_id=artifact_id,
             patch=patch,
             created_at=created_at,
+            eval=eval,
         ).model_dump(mode="json")
     )
     score = int(created_at.timestamp() * 1000)  # ms-precision matches MV ORDER BY

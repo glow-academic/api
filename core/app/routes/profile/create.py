@@ -48,6 +48,9 @@ async def create_profile(
             )
             group_id = group_result.group_id
 
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
+
         async def _runner() -> CreateProfileApiResponse:
             return await create_profile_impl(
                 pool,
@@ -55,6 +58,7 @@ async def create_profile(
                 profile_id=profile_id,
                 request=request,
                 session_id=session_id,
+                soft=request.soft,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -70,6 +74,7 @@ async def create_profile(
             runner=_runner,
             upload_folder=get_upload_folder(),
             operation_key=request.idempotency_key,  # idempotency replay gate
+            call_id=premint_call_id,  # pre-mint calls_entry with client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = "profiles"

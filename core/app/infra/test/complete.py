@@ -180,11 +180,22 @@ async def test_complete_internal_impl(
     if not audit:
         return await _run()
 
+    # Resolve the time-windowed test group — the wrapper only mints a
+    # calls_entry (which the soft ledger + call_id threading need) when
+    # group_id/session/profile/tool are all present (``can_audit``).
+    from app.infra.test.group import group_test_impl
+    group_result = await group_test_impl(
+        get_pool(), get_redis_client(),
+        profile_id=UUID(str(profile_id)), session_id=UUID(str(session_id)),
+        id_only=True,
+    )
+
     return await run_artifact_operation_with_audit(
         get_pool(),
         get_redis_client(),
         artifact=ARTIFACT,
         profile_id=UUID(str(profile_id)),
+        group_id=group_result.group_id,
         operation=OPERATION,
         runner=_run,
         arguments={"accept": accept} if is_ack else build_audit_arguments(data),

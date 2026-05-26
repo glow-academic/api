@@ -200,12 +200,12 @@ async def delete_profile_impl(
                 )
 
             target_ctx = await resolve_profile_identity_context(pool, target_id, redis)
-            target_role = target_ctx.role if target_ctx else None
+            target_level = target_ctx.role_level if target_ctx else None
 
             if not compute_can_delete(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 target_is_self=(target_id == profile_id),
-                target_role=target_role,
+                target_level=target_level,
             ):
                 if all:
                     skipped_results.append(DeleteProfileResult(

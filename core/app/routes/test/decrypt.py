@@ -71,6 +71,7 @@ async def decrypt_invocation_key(
             runner=_runner,
             upload_folder=get_upload_folder(),
             response_model=DecryptInvocationKeyApiResponse,
+            operation_key=request.snapshot_key,  # read snapshot: replay this view if echoed
         )
 
         return response_data

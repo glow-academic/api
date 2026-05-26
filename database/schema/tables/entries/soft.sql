@@ -17,6 +17,7 @@ CREATE TABLE public.soft_calls_entry (
     status text NOT NULL,
     artifact_id uuid NOT NULL,
     patch jsonb,
+    eval boolean DEFAULT false NOT NULL,
     CONSTRAINT soft_calls_entry_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])))
 );
 

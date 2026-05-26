@@ -50,6 +50,14 @@ async def create_persona(
             )
             group_id = group_result.group_id
 
+        # On the ack ({idempotency_key, accept}) the calls_entry already exists
+        # from the propose, so don't re-mint it (PK collision). On the propose,
+        # pre-mint the calls_entry WITH the client idempotency_key so the soft_call
+        # FK (call_id → calls_entry) holds over HTTP — retries replay via the gate;
+        # a genuine key collision surfaces as 409 and the client picks a new key.
+        is_ack = request.accept is not None and request.idempotency_key is not None
+        premint_call_id = None if is_ack else request.idempotency_key
+
         async def _runner(group_id: UUID | None = None) -> CreatePersonaApiResponse:
             return await create_persona_impl(
                 pool,
@@ -58,6 +66,7 @@ async def create_persona(
                 request=request,
                 session_id=session_id,
                 group_id=group_id,
+                soft=request.soft,
             )
 
         response_data = await run_artifact_operation_with_audit(
@@ -73,6 +82,7 @@ async def create_persona(
             runner=_runner,
             upload_folder=get_upload_folder(),
             operation_key=request.idempotency_key,  # one key drives the replay gate (canary)
+            call_id=premint_call_id,  # pre-mint calls_entry with the client key (HTTP soft FK)
         )
 
         response.headers["X-Invalidate-Tags"] = "personas"

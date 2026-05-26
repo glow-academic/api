@@ -66,41 +66,12 @@ async def create_agent_impl(
     if idempotency_key is not None and accept is None:
         accept = request.accept
 
-    items = request.agents
-    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
-        items = [items[0].model_copy(update={"id": idempotency_key})]
-
-    # ── Step 1: Profile context ────────────────────────────────────────
-
-    with timed("profile"):
-        profile = await resolve_profile_identity_context(
-            pool,
-            profile_id,
-            redis,
-            session_id=session_id,
-        )
-
-    if profile is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Profile not found. Please sign in again.",
-        )
-
-    # ── Step 2: Permission check ───────────────────────────────────────
-
-    if not compute_can_create(
-        role_level=profile.role_level, role_permissions=profile.role_permissions,
-        user_department_ids=profile.department_ids,
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="You don't have permission to create agents.",
-        )
-
     # ── Short-circuit: ack path ───────────────────────────────────────
     # ``idempotency_key`` is the originating tool call's ``calls_entry.id``.
     # The ``soft_calls_mv`` ledger holds (artifact, operation, artifact_id)
-    # we need to act on. See project_soft_calls_entry_pattern.
+    # we need to act on. See project_soft_calls_entry_pattern. This runs
+    # before the payload is read so a bare ack ({idempotency_key, accept})
+    # need not carry ``agents``.
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
             entry = await get_soft_call(conn, idempotency_key, redis, artifact=ARTIFACT)
@@ -144,6 +115,45 @@ async def create_agent_impl(
                 )
             ],
             idempotency_key=idempotency_key,
+        )
+
+    # ── First-call requirement ────────────────────────────────────────
+    if request is None or not request.agents:
+        raise HTTPException(
+            status_code=400,
+            detail="`request.agents` is required for first-call creation "
+            "(or pass `idempotency_key` + `accept` for the ack call).",
+        )
+
+    items = request.agents
+    if idempotency_key is not None and len(items) == 1 and items[0].id is None:
+        items = [items[0].model_copy(update={"id": idempotency_key})]
+
+    # ── Step 1: Profile context ────────────────────────────────────────
+
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool,
+            profile_id,
+            redis,
+            session_id=session_id,
+        )
+
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    # ── Step 2: Permission check ───────────────────────────────────────
+
+    if not compute_can_create(
+        role_level=profile.role_level, role_permissions=profile.role_permissions,
+        user_department_ids=profile.department_ids,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to create agents.",
         )
 
     # ── Step 3: Per-item value resolution ──────────────────────────────

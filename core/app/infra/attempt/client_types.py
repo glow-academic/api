@@ -261,6 +261,9 @@ class AttemptResponsePayload(BaseModel):
     chat_id: UUID = Field(..., description="UUID of the chat")
     question_id: UUID = Field(..., description="UUID of the question being answered")
     option_ids: list[UUID] = Field(..., description="List of selected option UUIDs")
+    idempotency_key: UUID | None = Field(None, description="Idempotency key — replays the prior call; on the ack, the server-minted soft key to activate/reject the staged response")
+    soft: bool = Field(False, description="Stage the response dormant (active=False); accept activates it")
+    accept: bool | None = Field(None, description="Ack: True activates the staged response, False rejects. Only meaningful with idempotency_key")
 
 
 class AttemptResponseResultEvent(BaseModel):

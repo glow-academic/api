@@ -55,6 +55,10 @@ operations = [
     dict(id=sid("operation/call_download"), operation="call_download"),
     # Artifact-specific
     dict(id=sid("operation/run"), operation="run"),
+    dict(id=sid("operation/trace"), operation="trace"),
+    dict(id=sid("operation/invocation_complete"), operation="invocation_complete"),
+    dict(id=sid("operation/invocations"), operation="invocations"),
+    dict(id=sid("operation/sessions"), operation="sessions"),
     dict(id=sid("operation/generate"), operation="generate"),
     dict(id=sid("operation/problem"), operation="problem"),
     dict(id=sid("operation/resolve"), operation="resolve"),
