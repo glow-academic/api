@@ -47,6 +47,20 @@ class GetChatDraftsApiResponse(BaseModel):
     entries: list[GetChatDraftResponse] | None = Field(None, description="List of chat draft entries")
 
 
+class ExportChatApiRequest(BaseModel):
+    """Request model for the chat export endpoint.
+
+    The route resolves ``group_id`` from session for audit linking, so the
+    client only supplies the chat-scoping ids. ``attempt_id`` and
+    ``draft_id`` are forwarded as-is to ``export_chat_impl`` when present.
+    """
+
+    chat_entry_id: UUID = Field(..., description="UUID of the chat entry to export")
+    attempt_id: UUID | None = Field(None, description="Optional attempt context for the chat")
+    draft_id: UUID | None = Field(None, description="Optional draft context for the chat")
+    snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
+
+
 class ExportChatApiResponse(BaseModel):
     """Response model for chat export."""
 

@@ -9,6 +9,7 @@ from app.routes.attempt.chat_analyses import router as chat_analyses_router
 from app.routes.attempt.chat_audio import router as chat_audio_router
 from app.routes.attempt.chat_complete import router as chat_complete_router
 from app.routes.attempt.chat_create import router as chat_create_router
+from app.routes.attempt.chat_export import router as chat_export_router
 from app.routes.attempt.chat_feedback import router as chat_feedback_router
 from app.routes.attempt.chat_get import router as chat_get_router
 from app.routes.attempt.chat_grade import router as chat_grade_router
@@ -76,6 +77,7 @@ router.include_router(chat_analyses_router)
 router.include_router(chat_audio_router)
 router.include_router(chat_complete_router)
 router.include_router(chat_create_router)
+router.include_router(chat_export_router)
 router.include_router(chat_feedback_router)
 router.include_router(chat_get_router)
 router.include_router(chat_grade_router)

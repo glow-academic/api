@@ -1,10 +1,11 @@
 <#-- GENERATED FILE: do not edit manually -->
-<#-- Generated at: 2026-05-26T11:33:12.333645 -->
+<#-- Generated at: 2026-05-28T09:04:00.588983 -->
 <#--
   Provider mapping: department_id -> allowed IdP aliases
 
   Enumerated departments:
     - a2b369c1-a81e-5e02-98d5-dd42af15ae4a: University
+    - 019e674d-8733-7607-8406-7ef22a10cadf: Dup department bw3qac
 
   Enumerated IdP aliases:
     - default-idp-profile-102ea140-ca00-5c6a-9133-68e18a675a0e
@@ -17,11 +18,13 @@
 
 <#-- Departments to show in the picker -->
 <#assign departments = [
-  {"id": "a2b369c1-a81e-5e02-98d5-dd42af15ae4a", "title": "University"}
+  {"id": "a2b369c1-a81e-5e02-98d5-dd42af15ae4a", "title": "University"},
+  {"id": "019e674d-8733-7607-8406-7ef22a10cadf", "title": "Dup department bw3qac"}
 ] />
 
 <#-- Map department_id -> allowed IdP aliases -->
 <#assign allowedProvidersByDept = {
+  "019e674d-8733-7607-8406-7ef22a10cadf": [],
   "a2b369c1-a81e-5e02-98d5-dd42af15ae4a": ["default-idp-profile-102ea140-ca00-5c6a-9133-68e18a675a0e", "default-idp-profile-da83dbb1-1693-5e47-a078-e03ab7d1cbf1"]
 } />
 
