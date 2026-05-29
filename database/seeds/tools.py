@@ -2933,7 +2933,7 @@ tools = [
         resource_id=sid("tool-resource/test/invocation_get"),
         name="Test Invocation Get",
         description="Inspect a benchmark invocation template — pass test_id and invocation_entry_id (the benchmark invocation_entry.id) to read its model, rubric, modalities, and bundle config before calling Test_Invocation_Create.",
-        permission_ids=[sid("permission/invocation/get")],
+        permission_ids=[sid("permission/test/invocation_get")],
         args=["test_id", "invocation_entry_id", "draft_id", "descriptions_search"],
         args_outputs=[
             "artifact_test", "operation_invocation_get",
@@ -2946,7 +2946,7 @@ tools = [
         resource_id=sid("tool-resource/invocation/create"),
         name="Test Invocation Create",
         description="Materialize a test_invocation_entry from a benchmark invocation template — pass test_id and invocation_id (the benchmark invocation_entry.id). Override agent/rubric/etc. only when use_custom is set.",
-        permission_ids=[sid("permission/invocation/create")],
+        permission_ids=[sid("permission/test/invocation_create")],
         args=[
             "test_id", "invocation_id",
             "title", "use_custom", "position",
