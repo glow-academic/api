@@ -16,7 +16,7 @@ ARTIFACT_TYPE = "test"
 _TAGS = ["test", "artifacts"]
 
 # Views refreshed by this endpoint
-ALL_TARGETS = ["test_mv", "runs_mv", "messages_mv", "calls_mv"]
+ALL_TARGETS = ["test_mv", "test_invocation_mv", "runs_mv", "messages_mv", "calls_mv"]
 
 
 async def refresh_test_impl(
