@@ -39,6 +39,8 @@ from app.infra.tools.execute_infra_operation import (
 )
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
 from app.infra.websocket.generation_types import GenerateErrorApiRequest, ProducedMedia
+from app.infra.websocket.is_run_cancelled import is_run_cancelled
+from app.infra.websocket.set_active_run import set_active_run
 from app.infra.websocket.socket_event import internal_event, make_emit
 from app.infra.websocket.tool_call_utils import (
     build_tool_output_schemas,
@@ -376,6 +378,17 @@ async def _execute_agent_dispatch(
     session_id = prepared.session_id
     profile_id = prepared.profile_id
 
+    # Register this run so a Stop can target it. ``/attempt/stop`` →
+    # ``_cancel(group_id)`` → ``cancel_active_run(group_id)`` looks up
+    # ``active_run:{group_id}`` to find the run_id and set a ``cancel_run``
+    # marker; the token loop below polls that marker cooperatively. Keyed by
+    # group_id to match what stop passes. (setex TTL self-expires; a new run
+    # on the same group overwrites — no explicit cleanup needed.)
+    try:
+        await set_active_run(str(group_id), str(run_id))
+    except Exception:
+        logger.debug("set_active_run failed for run_id=%s (non-fatal)", run_id)
+
     # Setup
     messages = format_messages_for_litellm(dispatch.messages)
     llm_config = dispatch.llm_config
@@ -507,7 +520,18 @@ async def _execute_agent_dispatch(
         tool_results: list[dict[str, Any]] = []
         output_items: list[dict[str, Any]] = []
 
+        cancel_poll = 0
         async for event in stream_litellm_events(stream):
+            # Cooperative cancellation: poll the Stop marker periodically
+            # (every ~12 events — a redis hit per token would be wasteful).
+            # ``/attempt/stop`` sets ``cancel_run:{run_id}`` via the
+            # ``active_run:{group_id}`` registered above. Raising here
+            # propagates to runner._run's except, which emits
+            # ``{artifact}.generate.failed`` (carrying run_id) → the watcher
+            # sees its terminal frame and the streaming reply truncates cleanly.
+            cancel_poll += 1
+            if cancel_poll % 12 == 0 and await is_run_cancelled(str(run_id)):
+                raise RuntimeError("Generation stopped by user (/attempt/stop)")
             event_type = event.get("type")
 
             if event_type == "text_delta":

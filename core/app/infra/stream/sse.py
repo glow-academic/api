@@ -24,6 +24,30 @@ from app.infra.stream.hub import subscribe, unsubscribe
 
 DEFAULT_KEEPALIVE_SEC = 15.0
 
+# Run-level terminal events that close a *run-scoped* stream. Deliberately
+# STRICTER than infra/_watch.py's ``_is_terminal``: the generation lifecycle
+# emits mid-run ``call.complete`` / ``text.complete`` frames (suffix
+# ``.complete`` — no trailing "d"), and matching those would close the stream
+# after the first tool call. We only close on the run's final frame:
+#   - ``<artifact>.generate.completed`` / ``.failed`` / ``.error`` (the audited
+#     run terminal, see ws/output.py + run_complete_impl), and
+#   - ``…agent_completed`` / ``…media_complete`` / ``…media_error`` — the last
+#     frame agent/media runs emit over the SSE bus. These are matched by
+#     SUFFIX, not equality: the event_type is fully-qualified
+#     (``persona.generate.agent_completed``), not the bare token.
+_RUN_TERMINAL_SUFFIXES = (
+    ".completed",
+    ".failed",
+    ".error",
+    "agent_completed",
+    "media_complete",
+    "media_error",
+)
+
+
+def _is_run_terminal(event_type: str) -> bool:
+    return (event_type or "").endswith(_RUN_TERMINAL_SUFFIXES)
+
 
 async def build_artifact_stream_impl(
     *,
@@ -65,6 +89,14 @@ async def build_artifact_stream_impl(
                 # client multiplexer can dispatch (and wildcard-match) in
                 # JS — the EventSource named-channel mechanism cannot.
                 yield f"data: {event.model_dump_json()}\n\n"
+
+                # Run-scoped watchers (``glow … watch <run_id>``) close on the
+                # run's terminal frame so the client gets a clean EOF and exits
+                # 0 instead of hanging on the open keep-alive loop. Group-wide
+                # streams (run_id is None) stay open — a group feed is
+                # intentionally long-lived.
+                if run_id is not None and _is_run_terminal(event.event_type):
+                    break
         finally:
             unsubscribe(queue)
 

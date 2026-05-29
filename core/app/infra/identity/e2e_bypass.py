@@ -112,3 +112,52 @@ async def try_e2e_bypass(request: Request, token: str | None) -> Identity | None
     request.state.session_id = str(identity.session_id)
     request.state.identity = identity
     return identity
+
+
+async def try_e2e_bypass_socket(
+    token: str | None, header_profile: str = ""
+) -> Identity | None:
+    """Socket.io variant of :func:`try_e2e_bypass` — no FastAPI ``Request``.
+
+    The socket.io connect handshake has no ``Request``/``request.state``; it
+    carries the bearer token in the ``auth`` payload. This resolves the same
+    env-gated bypass Identity from the raw token + an optional profile-id
+    string (falling back to ``E2E_BYPASS_PROFILE_ID``), and returns it for the
+    caller to store via ``store_socket_identity``.
+
+    Returns ``None`` (never raises) when the bypass is disabled, the token
+    doesn't match, or the profile can't be resolved — the caller then falls
+    through to normal JWT auth. The single prod-safety gate is unchanged:
+    unset ``E2E_BYPASS_TOKEN`` → always ``None``.
+    """
+    if not (
+        _E2E_BYPASS_ENABLED
+        and token
+        and hmac.compare_digest(token, _E2E_BYPASS_TOKEN)
+    ):
+        return None
+
+    header_profile = (header_profile or "").strip()
+    if header_profile:
+        try:
+            profile_id = UUID(header_profile)
+        except ValueError:
+            return None
+    elif _E2E_DEFAULT_PROFILE_ID is not None:
+        profile_id = _E2E_DEFAULT_PROFILE_ID
+    else:
+        return None
+
+    pool = get_pool()
+    redis = get_redis_client()
+    profile_ctx = await resolve_profile_identity_context(pool, profile_id, redis)
+    if profile_ctx is None:
+        return None
+    async with pool.acquire() as conn:
+        session_id = await get_or_create_session(conn, profile_id)
+    return Identity(
+        profile_id=profile_id,
+        session_id=session_id,
+        email=profile_ctx.primary_email,
+        role=profile_ctx.role,
+    )

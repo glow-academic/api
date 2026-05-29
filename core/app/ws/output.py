@@ -104,6 +104,16 @@ async def _generic_forward(event: str, data: dict[str, Any]) -> None:
         gid = UUID(str(group_id))
     except (ValueError, TypeError):
         return
+    # Carry run_id onto the envelope so the SSE per-run filter
+    # (sse.py: ``event.run_id != run_id``) matches when a watcher scopes to a
+    # single run (e.g. ``glow personas watch <run_id>``). It lives in the
+    # payload; without copying it up, ``envelope.run_id`` stays None and every
+    # event is dropped for run-scoped watchers.
+    raw_run = data.get("run_id")
+    try:
+        rid = UUID(str(raw_run)) if raw_run else None
+    except (ValueError, TypeError):
+        rid = None
     parts = event.split(".")
     await publish(
         EventEnvelope(
@@ -113,6 +123,7 @@ async def _generic_forward(event: str, data: dict[str, Any]) -> None:
             operation=parts[1] if len(parts) >= 2 else "",
             created_at=datetime.now(UTC),
             group_id=gid,
+            run_id=rid,
             payload=data,
         )
     )

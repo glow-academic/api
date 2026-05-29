@@ -140,12 +140,26 @@ async def attempt_message_internal_impl(
         # Create attempt_content_entry for each content block
         content_ids = []
         for content_text, content_persona_id in content_items:
+            # ``persona_id`` FKs to ``personas_entry(id)`` (NOT NULL). The old
+            # ``or UUID(int=0)`` fallback inserted the all-zero UUID when no
+            # persona was supplied, which has no personas_entry row → an
+            # uncaught ForeignKeyViolationError that crashed the socket task
+            # ("Task exception was never retrieved"). Fail loud and early with
+            # a clear, client-facing message instead. Callers must pass a real
+            # persona entry id (e.g. the attempt's ``user_persona_id`` for the
+            # learner, or an assistant persona for the reply).
+            if not content_persona_id:
+                raise ValueError(
+                    "persona_id is required to post a chat message — pass the "
+                    "attempt's user_persona_id (learner) or an assistant "
+                    "persona_id. None/empty is not allowed."
+                )
             content_result = await create_attempt_content(
                 conn, redis,
                 message_id=message_result.id,
                 session_id=effective_session_id,
                 content=content_text,
-                persona_id=content_persona_id or uuid_mod.UUID(int=0),
+                persona_id=content_persona_id,
             )
             content_ids.append(str(content_result.id))
 
