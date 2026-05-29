@@ -209,6 +209,7 @@ async def get_test_impl(
                 inv_group_ids = list({inv.group_id for inv in invocations if inv.group_id})
                 rows, _total = await _search_runs_for_history(
                     conn,
+                    redis,
                     group_ids=inv_group_ids if inv_group_ids else None,
                     limit=10000,
                 )
