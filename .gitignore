@@ -81,3 +81,6 @@ history/*.sql.gz
 
 # Claude Code runtime state (personal tooling, never ship)
 .claude/
+
+# Generated OpenAPI spec at repo root (canonical tracked copy is core/openapi.json)
+/openapi.json
