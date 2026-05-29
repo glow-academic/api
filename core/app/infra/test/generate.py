@@ -45,6 +45,7 @@ ARTIFACT_TYPE = "test"
 
 async def _build_trace_payload(
     conn: asyncpg.Connection,
+    redis: Redis,
     *,
     instructions: list[str] | None = None,
     modalities: list[str] | None = None,
@@ -81,7 +82,7 @@ async def _build_trace_payload(
     resolved_group_id: UUID | None = None
     if trace_ctx.historical_run_id:
         from app.tools.entries.runs.get import get_run as _get_run
-        run = await _get_run(conn, trace_ctx.historical_run_id)
+        run = await _get_run(conn, trace_ctx.historical_run_id, redis)
         if run:
             resolved_group_id = run.group_id
     if resolved_group_id is None and group_id is not None:
@@ -191,6 +192,7 @@ async def generate_test_impl(
                 historical_run_id,
             ) = await _build_trace_payload(
                 conn,
+                redis,
                 instructions=instructions,
                 modalities=modalities,
                 audios_id=audios_id,
