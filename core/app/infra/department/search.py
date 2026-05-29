@@ -374,6 +374,8 @@ async def _search_department_build(
         ledger = ledger_by_artifact_id.get(a.id)
         departments.append(
             ListDepartmentApiDepartment(
+                id=a.id,
+
                 department_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

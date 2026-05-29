@@ -391,6 +391,8 @@ async def _search_cohort_build(
         ledger = ledger_by_artifact_id.get(a.id)
         api_cohorts.append(
             ListCohortApiCohort(
+                id=a.id,
+
                 cohort_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=None,

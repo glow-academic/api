@@ -505,6 +505,7 @@ class FileDownloadDepartmentApiResult(BaseModel):
 
 
 class ListDepartmentApiDepartment(BaseModel):
+    id: UUID | None = Field(None, description="Department artifact UUID (canonical id; mirrors department_id)")
     department_id: UUID | None = Field(None, description="Unique department identifier")
     name: str | None = Field(None, description="Department display name")
     description: str | None = Field(None, description="Department description text")

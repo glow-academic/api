@@ -314,6 +314,8 @@ async def _search_tool_build(
         ledger = ledger_by_artifact_id.get(a.id)
         tools_list.append(
             ListToolApiTool(
+                id=a.id,
+
                 tool_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

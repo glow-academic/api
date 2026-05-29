@@ -225,6 +225,8 @@ async def hydrate_profile_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListProfilesApiProfile(
+                id=a.id,
+
                 profile_id=a.id,
                 emails=profile_emails if profile_emails else None,
                 primary_email=primary_email,

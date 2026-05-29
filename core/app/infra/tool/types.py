@@ -170,6 +170,7 @@ class GetToolApiResponse(BaseModel):
 
 
 class ListToolApiTool(BaseModel):
+    id: UUID | None = Field(None, description="Tool artifact UUID (canonical id; mirrors tool_id)")
     tool_id: UUID | None = Field(None, description="Tool unique identifier")
     name: str | None = Field(None, description="Display name of the tool")
     description: str | None = Field(None, description="Tool description text")

@@ -204,6 +204,8 @@ async def hydrate_document_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListDocumentApiDocument(
+                id=a.id,
+
                 document_id=a.id,
                 name=name_obj.name if name_obj else None,
                 department_ids=dept_ids_str,

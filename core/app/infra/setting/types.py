@@ -787,6 +787,7 @@ class GetSettingDraftsApiResponse(BaseModel):
 class ListSettingApiSetting(BaseModel):
     """Setting type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Setting artifact UUID (canonical id; mirrors settings_id)")
     settings_id: UUID | None = Field(None, description="Unique setting identifier")
     created_at: datetime | None = Field(None, description="Timestamp when setting was created")
     active: bool | None = Field(None, description="Whether the setting is currently active")

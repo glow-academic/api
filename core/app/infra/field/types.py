@@ -155,6 +155,7 @@ class GetFieldApiResponse(BaseModel):
 
 
 class ListFieldApiField(BaseModel):
+    id: UUID | None = Field(None, description="Field artifact UUID (canonical id; mirrors field_id)")
     field_id: UUID | None = Field(None, description="Unique field identifier")
     name: str | None = Field(None, description="Field display name")
     description: str | None = Field(None, description="Field description text")

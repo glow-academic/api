@@ -157,6 +157,8 @@ async def hydrate_simulation_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListSimulationApiSimulation(
+                id=a.id,
+
                 simulation_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=None,

@@ -406,6 +406,8 @@ async def _search_document_build(
         ledger = ledger_by_artifact_id.get(a.id)
         documents.append(
             ListDocumentApiDocument(
+                id=a.id,
+
                 document_id=a.id,
                 name=name_obj.name if name_obj else None,
                 department_ids=dept_ids_str,

@@ -234,6 +234,7 @@ class GetEvalApiResponse(BaseModel):
 class ListEvalApiEval(BaseModel):
     """Eval type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Eval artifact UUID (canonical id; mirrors eval_id)")
     eval_id: UUID | None = Field(None, description="Eval UUID")
     name: str | None = Field(None, description="Eval name")
     description: str | None = Field(None, description="Eval description")

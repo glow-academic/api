@@ -351,6 +351,8 @@ async def _search_agent_build(
         ledger = ledger_by_artifact_id.get(a.id)
         api_agents.append(
             ListAgentApiAgent(
+                id=a.id,
+
                 agent_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=None,

@@ -144,6 +144,7 @@ class GetProviderApiResponse(BaseModel):
 class ListProviderApiProvider(BaseModel):
     """Provider type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Provider artifact UUID (canonical id; mirrors provider_id)")
     provider_id: UUID | None = Field(None, description="Provider unique identifier")
     name: str | None = Field(None, description="Display name of the provider")
     description: str | None = Field(None, description="Provider description text")

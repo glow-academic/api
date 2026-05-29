@@ -416,6 +416,8 @@ async def _search_simulation_build(
         ledger = ledger_by_artifact_id.get(a.id)
         api_simulations.append(
             ListSimulationApiSimulation(
+                id=a.id,
+
                 simulation_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=None,

@@ -652,6 +652,7 @@ class UnemulateProfileApiResponse(BaseModel):
 class ListProfilesApiProfile(BaseModel):
     """Profile type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Profile artifact UUID (canonical id; mirrors profile_id)")
     profile_id: UUID | None = Field(None, description="Unique profile identifier")
     emails: list[str] | None = Field(None, description="All email addresses for the profile")
     primary_email: str | None = Field(None, description="Primary email address")

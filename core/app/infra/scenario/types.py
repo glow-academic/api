@@ -340,6 +340,7 @@ class GetScenarioApiResponse(BaseModel):
 class ListScenarioApiScenario(BaseModel):
     """Scenario item in list response with Python-computed permissions."""
 
+    id: UUID | None = Field(None, description="Scenario artifact UUID (canonical id; mirrors scenario_id)")
     scenario_id: UUID | None = Field(None, description="UUID of the scenario")
     name: str | None = Field(None, description="Display name")
     problem_statement: str | None = Field(None, description="Problem statement text")

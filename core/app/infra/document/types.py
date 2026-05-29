@@ -285,6 +285,7 @@ class DocumentResources(BaseModel):
 class ListDocumentApiDocument(BaseModel):
     """Document type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Document artifact UUID (canonical id; mirrors document_id)")
     document_id: UUID | None = Field(None, description="Document UUID")
     name: str | None = Field(None, description="Document name")
     description: str | None = Field(None, description="Document description")

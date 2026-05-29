@@ -507,6 +507,7 @@ class GetSimulationDraftsApiResponse(BaseModel):
 class ListSimulationApiSimulation(BaseModel):
     """Simulation item in list response with Python-computed permissions."""
 
+    id: UUID | None = Field(None, description="Simulation artifact UUID (canonical id; mirrors simulation_id)")
     simulation_id: UUID | None = Field(None, description="UUID of the simulation")
     name: str | None = Field(None, description="Display name")
     description: str | None = Field(None, description="Simulation description text")

@@ -147,6 +147,8 @@ async def hydrate_tool_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListToolApiTool(
+                id=a.id,
+
                 tool_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

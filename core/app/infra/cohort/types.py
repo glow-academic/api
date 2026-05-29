@@ -333,6 +333,7 @@ class GetCohortApiResponse(BaseModel):
 class ListCohortApiCohort(BaseModel):
     """Cohort item in list response with Python-computed permissions."""
 
+    id: UUID | None = Field(None, description="Cohort artifact UUID (canonical id; mirrors cohort_id)")
     cohort_id: UUID | None = Field(None, description="Cohort UUID")
     name: str | None = Field(None, description="Cohort name")
     description: str | None = Field(None, description="Cohort description")

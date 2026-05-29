@@ -402,6 +402,8 @@ async def _search_profile_build(
         ledger = ledger_by_artifact_id.get(a.id)
         profiles_list.append(
             ListProfilesApiProfile(
+                id=a.id,
+
                 profile_id=a.id,
                 emails=profile_emails if profile_emails else None,
                 primary_email=primary_email,

@@ -391,6 +391,7 @@ class ImportField(BaseModel):
 class ListPersonaApiPersona(BaseModel):
     """Persona type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Persona artifact UUID (canonical id; mirrors persona_id)")
     persona_id: UUID | None = Field(None, description="UUID of the persona")
     name: str | None = Field(None, description="Display name")
     description: str | None = Field(None, description="Persona description text")

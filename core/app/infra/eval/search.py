@@ -358,6 +358,8 @@ async def _search_eval_build(
         ledger = ledger_by_artifact_id.get(a.id)
         evals_list.append(
             ListEvalApiEval(
+                id=a.id,
+
                 eval_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

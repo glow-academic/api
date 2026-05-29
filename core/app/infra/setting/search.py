@@ -246,6 +246,8 @@ async def _search_setting_build(
         ledger = ledger_by_artifact_id.get(a.id)
         settings_list.append(
             ListSettingApiSetting(
+                id=a.id,
+
                 settings_id=a.id,
                 created_at=a.created_at,
                 active=a.active,

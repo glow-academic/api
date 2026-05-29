@@ -136,6 +136,8 @@ async def hydrate_scenario_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListScenarioApiScenario(
+                id=a.id,
+
                 scenario_id=a.id,
                 name=name_obj.name if name_obj else None,
                 problem_statement=None,

@@ -647,6 +647,7 @@ class FileDownloadRubricApiResult(BaseModel):
 
 
 class ListRubricApiRubric(BaseModel):
+    id: UUID | None = Field(None, description="Rubric artifact UUID (canonical id; mirrors rubric_id)")
     rubric_id: UUID | None = Field(None, description="Rubric UUID")
     name: str | None = Field(None, description="Rubric name")
     description: str | None = Field(None, description="Rubric description")

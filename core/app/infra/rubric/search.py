@@ -412,6 +412,8 @@ async def _search_rubric_build(
         ledger = ledger_by_artifact_id.get(a.id)
         rubrics_list.append(
             ListRubricApiRubric(
+                id=a.id,
+
                 rubric_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

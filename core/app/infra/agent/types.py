@@ -729,6 +729,7 @@ class FileDownloadAgentApiResult(BaseModel):
 class ListAgentApiAgent(BaseModel):
     """Agent type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Agent artifact UUID (canonical id; mirrors agent_id)")
     agent_id: UUID | None = Field(None, description="UUID of the agent")
     name: str | None = Field(None, description="Display name")
     description: str | None = Field(None, description="Agent description text")

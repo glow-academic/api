@@ -215,6 +215,7 @@ class GetModelApiResponse(BaseModel):
 class ListModelApiModel(BaseModel):
     """Model type for list endpoint with computed permissions."""
 
+    id: UUID | None = Field(None, description="Model artifact UUID (canonical id; mirrors model_id)")
     model_id: UUID | None = Field(None, description="Model unique identifier")
     name: str | None = Field(None, description="Display name of the model")
     description: str | None = Field(None, description="Model description text")

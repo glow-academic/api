@@ -358,6 +358,8 @@ async def _search_parameter_build(
         ledger = ledger_by_artifact_id.get(a.id)
         parameters.append(
             ListParameterApiParameter(
+                id=a.id,
+
                 parameter_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

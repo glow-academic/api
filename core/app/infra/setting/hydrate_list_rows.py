@@ -129,6 +129,8 @@ async def hydrate_setting_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListSettingApiSetting(
+                id=a.id,
+
                 settings_id=a.id,
                 created_at=a.created_at,
                 active=a.active,

@@ -246,6 +246,8 @@ async def hydrate_department_list_rows(
         ledger = ledger_by_artifact_id.get(a.id)
         rows.append(
             ListDepartmentApiDepartment(
+                id=a.id,
+
                 department_id=a.id,
                 name=name_obj.name if name_obj else None,
                 description=desc_obj.description if desc_obj else None,

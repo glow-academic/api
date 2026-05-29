@@ -185,6 +185,7 @@ class GetParameterDraftsApiResponse(BaseModel):
 
 
 class ListParameterApiParameter(BaseModel):
+    id: UUID | None = Field(None, description="Parameter artifact UUID (canonical id; mirrors parameter_id)")
     parameter_id: UUID | None = Field(None, description="Parameter unique identifier")
     name: str | None = Field(None, description="Display name of the parameter")
     description: str | None = Field(None, description="Parameter description text")
