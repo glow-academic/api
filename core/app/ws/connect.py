@@ -54,7 +54,6 @@ async def connect(
 
     if auth and auth.get("token"):
         try:
-            from app.infra.identity.e2e_bypass import try_e2e_bypass_socket
             from app.infra.identity.resolve_identity import (
                 extract_bearer_token,
                 resolve_identity,
@@ -65,18 +64,8 @@ async def connect(
             # as a "Bearer <token>" string.
             token = extract_bearer_token(auth["token"]) or auth["token"]
             if token:
-                # E2E bypass first (env-gated — a no-op in prod when
-                # E2E_BYPASS_TOKEN is unset), mirroring the HTTP + MCP auth
-                # paths. The connect handshake has no Request, so the
-                # profile-id (optional) comes from the auth payload; absent
-                # that, the bypass falls back to E2E_BYPASS_PROFILE_ID.
-                header_profile = str(
-                    auth.get("profile_id") or auth.get("X-E2E-Profile-Id") or ""
-                )
-                identity = await try_e2e_bypass_socket(token, header_profile)
-                if not identity:
-                    pool = get_pool()
-                    identity = await resolve_identity(token, pool)
+                pool = get_pool()
+                identity = await resolve_identity(token, pool)
         except Exception:
             logger.warning("Failed to resolve identity from auth token for sid %s", sid)
 

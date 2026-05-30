@@ -11,7 +11,7 @@ Handles:
 import os
 from typing import Any
 
-from fastapi import HTTPException, Request, Response, status
+from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -226,17 +226,6 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                 f"MCP request missing Authorization header: "
                 f"{request.method} {path}"
             )
-            return oauth_401(request)
-
-        # --- E2E bypass (shared with require_auth; env-gated, no-op in prod) ---
-        from app.infra.identity.e2e_bypass import try_e2e_bypass
-
-        try:
-            if await try_e2e_bypass(request, token) is not None:
-                # bypass set request.state.profile_id — skip JWT verification
-                return await call_next(request)
-        except HTTPException as exc:
-            logger.info(f"MCP E2E bypass rejected: {exc.detail}")
             return oauth_401(request)
 
         # --- Keycloak OAuth verification ---

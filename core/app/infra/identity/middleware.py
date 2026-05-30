@@ -29,12 +29,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 
 from app.infra.globals import get_pool, get_redis_client
-from app.infra.identity.e2e_bypass import try_e2e_bypass
 from app.infra.identity.resolve_identity import (
     Identity,
     resolve_identity,
 )
-
 from app.tools.entries.activity.create import create_activity
 from app.utils.logging.db_logger import get_logger
 
@@ -115,15 +113,6 @@ async def require_auth(
         )
 
     pool = get_pool()
-
-    # E2E bypass — short-circuits JWT verification when the env-gated
-    # bypass token matches. Shared with the MCP middleware via
-    # app/infra/identity/e2e_bypass.py (single prod-safety gate).
-    # Returns None when disabled or the token doesn't match, so we fall
-    # through to normal JWT verification below.
-    identity = await try_e2e_bypass(request, credentials.credentials)
-    if identity is not None:
-        return identity
 
     from app.infra.server_timing import timed
     try:
