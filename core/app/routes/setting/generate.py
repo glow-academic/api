@@ -14,6 +14,7 @@ from app.infra.setting.generate import generate_setting_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 

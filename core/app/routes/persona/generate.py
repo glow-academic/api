@@ -17,6 +17,7 @@ from app.infra.persona.group import group_persona_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 
