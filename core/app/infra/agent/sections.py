@@ -288,7 +288,7 @@ def build_agent_get_result(
         group_id=group_id,
         # Draft label sourced from ``entries['draft_name']`` (set by
         # ``resolve_agent_context``). ``None`` when no draft was active.
-        draft_name=agent.entries.get("draft_name") if agent.entries else None,
+        draft_name=agent_ctx.entries.get("draft_name") if agent_ctx.entries else None,
         basic_show_ai_generate=basic_show_ai_generate,
         general_show_ai_generate=general_show_ai_generate,
         names=AgentNameSection(
