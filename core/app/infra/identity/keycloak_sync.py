@@ -2053,8 +2053,12 @@ async def sync_keycloak(
     pool: Any,
     redis: Any,
     config: KeycloakSyncConfig,
-) -> None:
+) -> bool:
     """Sync Keycloak identity providers from database to Keycloak.
+
+    Returns True only if Keycloak was reachable and the sync ran to
+    completion; False if Keycloak was unavailable (skipped) or the sync
+    raised. Callers gate their "completed successfully" reporting on this.
 
     Args:
         department_id: Optional department ID to sync. If None, syncs all active departments.
@@ -2088,7 +2092,7 @@ async def sync_keycloak(
                 "Keycloak is not available. Skipping sync. "
                 "The server will continue to run, but authentication may not work until Keycloak is ready."
             )
-            return
+            return False
 
         # Ensure glow-client exists in master realm before syncing
         await ensure_glow_client_in_master_realm(kc_admin, config)
@@ -2176,8 +2180,10 @@ async def sync_keycloak(
             logger.warning(f"Failed to clean up old realms: {e}", exc_info=True)
 
         logger.info("Keycloak sync completed")
+        return True
     except Exception as e:
         logger.warning(f"Keycloak sync failed (non-blocking): {e}", exc_info=True)
+        return False
 
 
 async def perform_keycloak_sync(
@@ -2231,9 +2237,25 @@ async def perform_keycloak_sync(
         )
 
     try:
-        await sync_keycloak(
+        synced = await sync_keycloak(
             department_id=department_id, pool=pool, redis=redis, config=config
         )
+
+        if not synced:
+            # Keycloak was unavailable (skipped) or the sync raised — do NOT
+            # report success, otherwise the "Skipping sync" warning is
+            # immediately followed by a misleading "completed successfully".
+            scope = f"department {department_id}" if department_id else "all departments"
+            message = (
+                f"Keycloak sync did not complete for {scope} "
+                "(Keycloak unavailable or sync error)"
+            )
+            return KeycloakSyncResult(
+                success=False,
+                message=message,
+                department_id=department_id,
+                error="keycloak_unavailable",
+            )
 
         if department_id:
             message = (
