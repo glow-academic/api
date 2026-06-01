@@ -421,7 +421,7 @@ async def patch_persona_draft_impl(
                             parameter_field_ids=draft.parameter_field_ids,
                             example_ids=draft.example_ids,
                             voice_ids=draft.voice_ids,
-                            profile_ids=draft.profile_ids or [profile.profiles_id],
+                            profile_ids=draft.profile_ids or [profile_id],
                             pending_ids=set(),
                         )
                     else:
@@ -430,7 +430,7 @@ async def patch_persona_draft_impl(
                             redis, session_id=session_id,
                             id=target_id,
                             soft=False,
-                            profile_ids=[profile.profiles_id],
+                            profile_ids=[profile_id],
                         )
         # accept=False: dormant draft connections stay; the 'rejected'
         # ledger row is the canonical record.
