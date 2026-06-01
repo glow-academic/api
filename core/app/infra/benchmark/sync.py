@@ -32,7 +32,6 @@ async def sync_benchmark_entries(
     2. Group sub-resources by model_id; derive eval-level + per-model flag bools
     3. Create entries using black-box entry creation tools
     """
-    redis = get_redis_client()
     from app.infra.globals import get_redis_client
     from app.tools.entries.benchmark.create import create_benchmark
     from app.tools.entries.invocation.create import create_invocation
@@ -44,6 +43,8 @@ async def sync_benchmark_entries(
     from app.tools.resources.model_rubrics.get import (
         get_model_rubrics,
     )
+
+    redis = get_redis_client()
 
     if not model_ids:
         return 0
