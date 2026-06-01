@@ -78,6 +78,7 @@ async def stream_agent_events(
         Returns:
             The real tool_call_id, or None if neither is available
         """
+        nonlocal tool_call_counter
         if call_id:
             return call_id
         if fake_item_id:
