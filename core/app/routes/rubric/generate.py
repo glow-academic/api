@@ -14,6 +14,7 @@ from app.infra.rubric.generate import generate_rubric_impl
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 

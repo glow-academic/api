@@ -15,6 +15,7 @@ from app.infra.globals import get_pool, get_redis_client, get_upload_folder
 from app.infra.websocket.generation_types import (
     ArtifactGenerateRequest,
     ArtifactGenerateResponse,
+    GenerateConfig,
 )
 from app.utils.error.handle_route_error import handle_route_error
 
