@@ -2287,3 +2287,61 @@ async def perform_keycloak_sync(
             department_id=department_id,
             error=error_msg,
         )
+
+
+# ── Background re-sync ────────────────────────────────────────────────
+#
+# The startup sync is best-effort and skips when Keycloak hasn't finished
+# booting yet (common with Keycloak 26's slow cold-start on a loaded host).
+# Historically the sync was startup-only with no later retry, so a slow boot
+# meant ``glow-client`` was never created and OIDC login failed with
+# "Client not found" until someone hand-restarted the api container.
+#
+# These helpers retry the full sync in the background — non-blocking, so
+# startup is never delayed — until it actually connects and provisions, then
+# stop. ``perform_keycloak_sync`` is idempotent (every ``ensure_*`` upserts /
+# skips-if-exists), so re-running it is safe.
+
+_resync_task: "asyncio.Task[None] | None" = None
+
+
+async def _resync_keycloak_until_ready(
+    max_attempts: int = 40,
+    interval_seconds: float = 30.0,
+) -> None:
+    """Retry the realm-wide Keycloak sync until it succeeds (or gives up)."""
+    for attempt in range(1, max_attempts + 1):
+        await asyncio.sleep(interval_seconds)
+        try:
+            result = await perform_keycloak_sync(department_id=None)
+        except Exception as e:  # defensive — perform_* already catches, but be safe
+            logger.warning(
+                f"Background Keycloak re-sync attempt {attempt}/{max_attempts} errored: {e}"
+            )
+            continue
+        if result.success:
+            logger.info(
+                f"✅ Background Keycloak re-sync succeeded on attempt {attempt}"
+            )
+            return
+        logger.warning(
+            f"Background Keycloak re-sync attempt {attempt}/{max_attempts}: "
+            "Keycloak still not ready, will retry"
+        )
+    logger.error(
+        f"Background Keycloak re-sync gave up after {max_attempts} attempts; "
+        "OIDC login will not work until Keycloak is reachable and the api re-syncs"
+    )
+
+
+def schedule_keycloak_resync() -> None:
+    """Start the background re-sync task (idempotent — at most one running).
+
+    Call this when the startup sync reports ``success=False`` (Keycloak was
+    unavailable). Safe to call multiple times; a second call while one is
+    already running is a no-op.
+    """
+    global _resync_task
+    if _resync_task is not None and not _resync_task.done():
+        return
+    _resync_task = asyncio.create_task(_resync_keycloak_until_ready())

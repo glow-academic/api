@@ -307,7 +307,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
             if result.success:
                 logger.info(f"Keycloak sync: {result.message}")
             else:
-                logger.warning(f"Keycloak sync failed: {result.message}")
+                # Keycloak wasn't ready at startup (e.g. slow KC 26 cold boot).
+                # Retry in the background — non-blocking — so glow-client gets
+                # created once Keycloak finishes booting, instead of staying
+                # broken until a manual container restart.
+                logger.warning(
+                    f"Keycloak sync failed: {result.message}; "
+                    "scheduling background re-sync"
+                )
+                from app.infra.identity.keycloak_sync import schedule_keycloak_resync
+
+                schedule_keycloak_resync()
         except Exception as e:
             logger.warning(f"Keycloak sync error (non-blocking): {e}")
 
