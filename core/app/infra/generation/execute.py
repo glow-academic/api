@@ -324,7 +324,7 @@ async def execute_generation(
                 ),
                 artifact_type=prepared.artifact_type,
                 group_id=str(prepared.group_id),
-            ).model_dump(), artifact_type=artifact_type,
+            ).model_dump(), artifact_type=prepared.artifact_type,
         )
         return None
 
