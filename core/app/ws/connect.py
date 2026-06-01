@@ -8,7 +8,7 @@ work without anyone kicking anyone else off.
 
 import uuid
 
-from app.infra.globals import get_pool, sio
+from app.infra.globals import get_pool, get_redis_client, sio
 from app.infra.identity.socket import store_socket_identity
 from app.infra.websocket.set_socket_owner import set_socket_owner
 from app.tools.entries.activity.create import create_activity
@@ -19,8 +19,6 @@ logger = get_logger(__name__)
 
 async def _store_session_id(sid: str, session_id: str) -> None:
     try:
-        from app.infra.globals import get_redis_client
-
         redis_client = get_redis_client()
         if redis_client:
             await redis_client.setex(f"socket_session:{sid}", 86400, session_id)
