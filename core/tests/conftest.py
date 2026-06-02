@@ -403,11 +403,11 @@ async def department_id(conn, redis_client):
 
 
 @pytest_asyncio.fixture
-async def session_id(conn, profile_id):
+async def session_id(conn, profile_id, redis_client):
     """A fresh sessions_entry ID (depends on profile_id)."""
     from app.tools.entries.sessions.create import create_session
 
-    session = await create_session(conn, profile_id=profile_id)
+    session = await create_session(conn, redis_client, profile_id=profile_id)
     return session.id
 
 
