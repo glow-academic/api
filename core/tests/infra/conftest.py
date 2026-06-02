@@ -422,9 +422,10 @@ async def health_route_client(
 
     health_router = _build_artifact_router_for_tests(
         artifact_name="health",
-        prefix="/health",
+        route_package="system",
+        prefix="",
         tags=["health"],
-        module_names=["get", "export", "refresh"],
+        module_names=["health"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -467,16 +468,14 @@ async def attempt_route_client(
             "refresh",
             "export",
             "start",
-            "next",
-            "end",
-            "end_all",
-            "message",
-            "grade",
+            "complete",
             "stop",
-            "response",
-            "use_previous",
-            "audio",
             "search",
+            "chat_create",
+            "chat_message",
+            "chat_response",
+            "chat_grade",
+            "chat_complete",
         ],
     )
 
@@ -519,11 +518,13 @@ async def test_route_client(
             "refresh",
             "export",
             "start",
-            "next",
-            "run",
-            "end",
             "stop",
             "search",
+            "invocation_create",
+            "invocation_run",
+            "invocation_complete",
+            "invocation_get",
+            "invocation_terminate",
         ],
     )
 
@@ -559,12 +560,11 @@ async def session_route_client(
 
     session_router = _build_artifact_router_for_tests(
         artifact_name="session",
-        prefix="/session",
+        route_package="system",
+        prefix="",
         tags=["artifacts", "session"],
         module_names=[
-            "get",
-            "refresh",
-            "export",
+            "session",
         ],
     )
 
@@ -627,9 +627,10 @@ async def benchmark_route_client(
 
     benchmark_router = _build_artifact_router_for_tests(
         artifact_name="benchmark",
-        prefix="/benchmark",
+        route_package="test",
+        prefix="",
         tags=["benchmark"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["benchmark"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -664,10 +665,10 @@ async def pricing_route_client(
 
     pricing_router = _build_artifact_router_for_tests(
         artifact_name="pricing",
-        route_package="system.pricing",
-        prefix="/pricing",
+        route_package="system",
+        prefix="",
         tags=["pricing"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["pricing"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -702,10 +703,10 @@ async def reports_route_client(
 
     reports_router = _build_artifact_router_for_tests(
         artifact_name="reports",
-        route_package="attempt.report",
-        prefix="/report",
+        route_package="attempt",
+        prefix="",
         tags=["report"],
-        module_names=["search", "refresh", "export"],
+        module_names=["report"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -740,9 +741,10 @@ async def leaderboard_route_client(
 
     leaderboard_router = _build_artifact_router_for_tests(
         artifact_name="leaderboard",
-        prefix="/leaderboard",
+        route_package="attempt",
+        prefix="",
         tags=["leaderboard"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["leaderboard"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -777,10 +779,10 @@ async def dashboard_route_client(
 
     dashboard_router = _build_artifact_router_for_tests(
         artifact_name="dashboard",
-        route_package="attempt.dashboard",
-        prefix="/dashboard",
+        route_package="attempt",
+        prefix="",
         tags=["dashboard"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["dashboard"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -815,9 +817,10 @@ async def home_route_client(
 
     home_router = _build_artifact_router_for_tests(
         artifact_name="home",
-        prefix="/home",
+        route_package="attempt",
+        prefix="",
         tags=["artifacts", "home"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["home"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -852,9 +855,10 @@ async def practice_route_client(
 
     practice_router = _build_artifact_router_for_tests(
         artifact_name="practice",
-        prefix="/practice",
+        route_package="attempt",
+        prefix="",
         tags=["artifacts", "practice"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=["practice"],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -887,11 +891,16 @@ async def record_route_client(
     """HTTP client mounted on the real record route stack."""
     import app.infra.globals as globals_mod
 
+    # The `record` view-artifact was removed entirely in the 19->3 route
+    # consolidation (commit 0ffaa32903); no `record` route module exists in the
+    # current layout, so there is nothing to mount. Tests that still exercise
+    # `/record/*` are stale and now fail (not error) on the missing endpoint.
     record_router = _build_artifact_router_for_tests(
         artifact_name="record",
+        route_package="attempt",
         prefix="/record",
         tags=["artifacts", "record"],
-        module_names=["get", "search", "refresh", "export"],
+        module_names=[],
     )
 
     request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
@@ -926,15 +935,12 @@ async def activity_route_client(
 
     activity_router = _build_artifact_router_for_tests(
         artifact_name="activity",
-        route_package="system.activity",
-        prefix="/activity",
+        route_package="system",
+        prefix="",
         tags=["activity"],
         module_names=[
-            "get",
-            "search",
+            "activity",
             "resolve",
-            "refresh",
-            "export",
         ],
     )
 
