@@ -48,6 +48,8 @@ async def test_create_operation_has_params(conn):
 
     create_op = next(op for op in result.operations if op.name == "create_attempt_chat")
     param_names = [p.name for p in create_op.params]
-    assert "call_id" in param_names
-    assert "group_id" in param_names
+    # attempt_chat is now session+chat-linked (no longer call/group-linked).
+    assert "session_id" in param_names
     assert "chat_id" in param_names
+    assert "call_id" not in param_names
+    assert "group_id" not in param_names

@@ -32,7 +32,7 @@ async def _attempt_analysis(conn, redis_client, profile_id, **overrides):
     chat = await create_chat(conn, redis_client, session_id=session.id)
     call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
-        conn, redis_client, call_id=call2.id, chat_id=chat.id
+        conn, redis_client, session_id=session.id, chat_id=chat.id
     )
     grade = await create_attempt_grade(
         conn,
