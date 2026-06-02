@@ -40,7 +40,7 @@ pymupdf==1.24.10
 psutil==5.9.8
 
 # Async testing
-pytest-asyncio==0.23.7
+pytest-asyncio==0.24.0
 
 # Keycloak integration
 python-keycloak>=2.10.0
