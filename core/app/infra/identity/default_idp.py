@@ -153,10 +153,10 @@ def get_openid_configuration() -> dict[str, Any]:
         "userinfo_endpoint": f"{base}/userinfo",
         "end_session_endpoint": f"{base}/logout",
         "response_types_supported": ["code"],
-        "grant_types_supported": ["authorization_code"],
+        "grant_types_supported": ["authorization_code", "refresh_token"],
         "subject_types_supported": ["public"],
         "id_token_signing_alg_values_supported": ["RS256"],
-        "scopes_supported": ["openid", "profile", "email"],
+        "scopes_supported": ["openid", "profile", "email", "offline_access"],
         "token_endpoint_auth_methods_supported": [
             "client_secret_basic",
             "client_secret_post",
@@ -420,6 +420,95 @@ async def resolve_authorization(
 
 # ── Token exchange (both flows) ──────────────────────────────────────────
 
+# Refresh tokens (offline_access) live 30 days. Access/id tokens stay at 1h;
+# the refresh token is what lets clients renew without a full re-login. Tokens
+# rotate on every refresh (the old refresh token is single-use — popped, not
+# read — so a leaked/replayed refresh token is detectable and short-lived).
+_REFRESH_TOKEN_TTL = 30 * 24 * 3600  # 30 days
+
+# Exactly the source fields that flow into the id/access token claims. Stored
+# verbatim in the refresh-token record so a refresh can re-mint identical
+# tokens. `nonce` is intentionally excluded — it's per-authorization-request.
+_CLAIM_SOURCE_KEYS = (
+    "sub",
+    "email",
+    "name",
+    "profile_id",
+    "role",
+    "is_emulation",
+    "actor_profile_id",
+    "identity_provider",
+)
+
+
+def _build_id_and_access_tokens(
+    claims_source: dict[str, Any],
+    client_id: str,
+    *,
+    now: int,
+    include_nonce: bool = True,
+) -> tuple[str, str]:
+    """Mint (id_token, access_token) from a normalized claims-source dict.
+
+    Shared by the authorization_code and refresh_token grant paths so both
+    issue byte-for-byte consistent tokens.
+    """
+    base_url = _get_glow_base_url()
+    key_id = get_key_id()
+    private_key = get_private_key()
+
+    name = claims_source.get("name", "") or ""
+    name_parts = name.split()
+    given_name = name_parts[0] if name_parts else ""
+    family_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
+
+    profile_id = claims_source.get("profile_id")
+    sub = claims_source.get("sub", "")
+    if profile_id and not sub:
+        sub = f"default_{profile_id}"
+
+    common = {
+        "iss": base_url,
+        "aud": client_id,
+        "sub": sub,
+        "exp": now + 3600,
+        "iat": now,
+        "email": claims_source.get("email", ""),
+        "name": name,
+        "given_name": given_name,
+        "family_name": family_name,
+        "profile_id": profile_id,
+        "role": claims_source.get("role"),
+        "is_emulation": claims_source.get("is_emulation", False),
+        "actor_profile_id": claims_source.get("actor_profile_id"),
+        "identity_provider": claims_source.get("identity_provider"),
+    }
+
+    id_token_payload = {**common, "email_verified": True}
+    if include_nonce and claims_source.get("nonce"):
+        id_token_payload["nonce"] = claims_source["nonce"]
+
+    access_token_payload = {**common, "scope": "openid profile email"}
+
+    headers = {"kid": key_id}
+    id_token = jwt.encode(id_token_payload, private_key, algorithm="RS256", headers=headers)
+    access_token = jwt.encode(
+        access_token_payload, private_key, algorithm="RS256", headers=headers
+    )
+    return id_token, access_token
+
+
+async def _issue_refresh_token(claims_source: dict[str, Any], client_id: str) -> str:
+    """Mint + store a single-use refresh token bound to its claims + client."""
+    refresh_token = secrets.token_urlsafe(32)
+    stored = {k: claims_source.get(k) for k in _CLAIM_SOURCE_KEYS}
+    await _redis_set(
+        f"oidc:refresh:{refresh_token}",
+        {"claims": stored, "client_id": client_id},
+        _REFRESH_TOKEN_TTL,
+    )
+    return refresh_token
+
 
 async def exchange_code_for_tokens(
     *,
@@ -459,78 +548,65 @@ async def exchange_code_for_tokens(
     if code_data["redirect_uri"] != redirect_uri:
         raise AuthorizationError(400, "Invalid redirect_uri")
 
-    base_url = _get_glow_base_url()
     now = int(time.time())
-    key_id = get_key_id()
-    private_key = get_private_key()
 
-    name = code_data.get("name", "")
-    name_parts = name.split()
-    given_name = name_parts[0] if name_parts else ""
-    family_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ""
-
-    profile_id = code_data.get("profile_id")
-    sub = code_data.get("sub", "")
-    if profile_id and not sub:
-        sub = f"default_{profile_id}"
-
-    id_token_payload = {
-        "iss": base_url,
-        "aud": client_id,
-        "sub": sub,
-        "exp": now + 3600,
-        "iat": now,
-        "email": code_data.get("email", ""),
-        "email_verified": True,
-        "name": name,
-        "given_name": given_name,
-        "family_name": family_name,
-        "profile_id": profile_id,
-        "role": code_data.get("role"),
-        "is_emulation": code_data.get("is_emulation", False),
-        "actor_profile_id": code_data.get("actor_profile_id"),
-        "identity_provider": code_data.get("identity_provider"),
-    }
-    # Only include nonce if one was provided (browser OIDC may not send one)
+    # Normalized claims source — the single dict that drives both token
+    # minting and the refresh-token record (so a later refresh re-mints
+    # identical tokens). `nonce` is included here only for the id_token.
+    claims_source: dict[str, Any] = {k: code_data.get(k) for k in _CLAIM_SOURCE_KEYS}
     if code_data.get("nonce"):
-        id_token_payload["nonce"] = code_data["nonce"]
+        claims_source["nonce"] = code_data["nonce"]
 
-    id_token = jwt.encode(
-        id_token_payload,
-        private_key,
-        algorithm="RS256",
-        headers={"kid": key_id},
+    id_token, access_token = _build_id_and_access_tokens(
+        claims_source, client_id, now=now
     )
-
-    access_token_payload = {
-        "iss": base_url,
-        "aud": client_id,
-        "sub": sub,
-        "exp": now + 3600,
-        "iat": now,
-        "scope": "openid profile email",
-        "email": code_data.get("email", ""),
-        "name": name,
-        "given_name": given_name,
-        "family_name": family_name,
-        "profile_id": profile_id,
-        "role": code_data.get("role"),
-        "is_emulation": code_data.get("is_emulation", False),
-        "actor_profile_id": code_data.get("actor_profile_id"),
-        "identity_provider": code_data.get("identity_provider"),
-    }
-
-    access_token = jwt.encode(
-        access_token_payload,
-        private_key,
-        algorithm="RS256",
-        headers={"kid": key_id},
-    )
+    refresh_token = await _issue_refresh_token(claims_source, client_id)
 
     return {
         "access_token": access_token,
         "token_type": "Bearer",
         "id_token": id_token,
+        "refresh_token": refresh_token,
+        "expires_in": 3600,
+    }
+
+
+async def refresh_tokens(
+    *,
+    refresh_token: str,
+    client_id: str,
+    client_secret: str | None = None,
+) -> dict[str, Any]:
+    """Exchange a refresh token for a fresh access + id token (with rotation).
+
+    The presented refresh token is single-use: it's popped from Redis, and a
+    brand-new refresh token is issued in the response. Replaying a consumed
+    token fails (it's gone), which surfaces token theft instead of silently
+    extending a stolen session.
+    """
+    expected_secret = os.getenv("AUTH_CLIENT_SECRET", "")
+    if not expected_secret:
+        raise AuthorizationError(500, "AUTH_CLIENT_SECRET not configured — refresh disabled")
+    if client_secret != expected_secret:
+        raise AuthorizationError(401, "Invalid client_secret")
+
+    record = await _redis_pop(f"oidc:refresh:{refresh_token}")
+    if not record:
+        raise AuthorizationError(400, "Invalid or expired refresh_token")
+
+    claims_source = record.get("claims") or {}
+    now = int(time.time())
+    # No nonce on refresh — the original authentication request is long over.
+    id_token, access_token = _build_id_and_access_tokens(
+        claims_source, client_id, now=now, include_nonce=False
+    )
+    new_refresh_token = await _issue_refresh_token(claims_source, client_id)
+
+    return {
+        "access_token": access_token,
+        "token_type": "Bearer",
+        "id_token": id_token,
+        "refresh_token": new_refresh_token,
         "expires_in": 3600,
     }
 
