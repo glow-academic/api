@@ -65,7 +65,7 @@ async def _create_attempt_export_graph(pool, actor, *, practice: bool):
         )
         await create_attempt_chat(
             conn,
-            call_id=call.id,
+            session_id=actor.session_id,
             chat_id=chat.id,
             departments_ids=[actor.department_id],
             text_enabled=True,

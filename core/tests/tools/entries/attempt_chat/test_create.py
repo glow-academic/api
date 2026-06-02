@@ -2,86 +2,37 @@
 
 import pytest
 
-from app.tools.entries.attempt.create import create_attempt
-from app.tools.entries.attempt_chat.create import create_attempt_chat
 from app.tools.entries.attempt_chat.get import get_attempt_chats
 from app.tools.entries.attempt_chat.refresh import refresh_attempt_chat
-from app.tools.entries.attempt_chat_bridge.create import (
-    create_attempt_chat_bridge,
-)
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.chat.create import create_chat
-from app.tools.entries.groups.create import create_group
-from app.tools.entries.persona.create import create_persona
-from app.tools.entries.runs.create import create_run
-from app.tools.entries.sessions.create import create_session
+from tests.helpers import create_attempt_chat_graph
 
 pytestmark = pytest.mark.asyncio
 
 
-async def _attempt_chat(conn, redis_client, profile_id, **overrides):
-    """Create full chain: session → group → run → call → persona → attempt → chat → attempt_chat → bridge."""
-    session = await create_session(conn, redis_client, profile_id=profile_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn, redis_client)
-    attempt = await create_attempt(
-        conn,
-        redis_client, session_id=session.id,
-        user_persona_id=persona.id,
-        profiles_id=profile_id,
-    )
-    chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
-    defaults = dict(call_id=call2.id, chat_id=chat.id)
-    defaults.update(overrides)
-    result = await create_attempt_chat(conn, redis_client, **defaults)
-    # Bridge is required for MV visibility
-    await create_attempt_chat_bridge(
-        conn,
-        redis_client, attempt_id=attempt.id,
-        attempt_chat_id=result.id,
-        session_id=session.id,
-    )
-    return result, attempt
-
-
 async def test_returns_id(conn, redis_client, profile_id):
-    result, _ = await _attempt_chat(conn, redis_client, profile_id)
+    graph = await create_attempt_chat_graph(conn, redis_client, profile_id)
 
-    assert result.id is not None
+    assert graph.attempt_chat_id is not None
 
 
 async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
-    result, attempt = await _attempt_chat(conn, redis_client, profile_id)
+    graph = await create_attempt_chat_graph(conn, redis_client, profile_id)
     await refresh_attempt_chat(conn)
 
-    items = await get_attempt_chats(conn, [result.id], redis_client)
+    # The attempt_chat MV/cache is keyed by the base chat id (chat_id), so
+    # reads look the entry up by graph.chat_id, not the attempt_chat_entry id.
+    items = await get_attempt_chats(conn, [graph.chat_id], redis_client)
 
     assert len(items) == 1
-    assert items[0].chat_id == result.id
-    assert items[0].attempt_id == attempt.id
+    assert items[0].chat_id == graph.chat_id
+    assert items[0].attempt_id == graph.attempt_id
 
 
 async def test_connections_populated(conn, redis_client, profile_id):
-    session = await create_session(conn, redis_client, profile_id=profile_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
-    persona = await create_persona(conn, redis_client)
-    attempt = await create_attempt(
+    graph = await create_attempt_chat_graph(
         conn,
-        redis_client, session_id=session.id,
-        user_persona_id=persona.id,
-        profiles_id=profile_id,
-    )
-    chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
-    result = await create_attempt_chat(
-        conn,
-        redis_client, call_id=call2.id,
-        chat_id=chat.id,
+        redis_client,
+        profile_id,
         title="Test Chat",
         text_enabled=True,
         audio_enabled=True,
@@ -89,7 +40,7 @@ async def test_connections_populated(conn, redis_client, profile_id):
 
     row = await conn.fetchrow(
         "SELECT title, text_enabled, audio_enabled FROM attempt_chat_entry WHERE id = $1",
-        result.id,
+        graph.attempt_chat_id,
     )
     assert row is not None
     assert row["title"] == "Test Chat"
@@ -98,11 +49,13 @@ async def test_connections_populated(conn, redis_client, profile_id):
 
 
 async def test_passes_mcp_flag(conn, redis_client, profile_id):
-    result, _ = await _attempt_chat(conn, redis_client, profile_id, mcp=True)
+    graph = await create_attempt_chat_graph(
+        conn, redis_client, profile_id, mcp=True
+    )
 
     row = await conn.fetchrow(
         "SELECT mcp FROM attempt_chat_entry WHERE id = $1",
-        result.id,
+        graph.attempt_chat_id,
     )
     assert row is not None
     assert row["mcp"] is True

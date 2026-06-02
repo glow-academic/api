@@ -42,7 +42,7 @@ async def _attempt_message_tree(conn, redis_client, profile_id, **overrides):
     real_chat = await create_chat(conn, redis_client, session_id=session.id)
     call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     chat = await create_attempt_chat(
-        conn, redis_client, call_id=call2.id, chat_id=real_chat.id
+        conn, redis_client, session_id=session.id, chat_id=real_chat.id
     )
     msg1 = await create_message(conn, redis_client, run_id=run.id, role="user")
     msg2 = await create_message(conn, redis_client, run_id=run.id, role="assistant")
