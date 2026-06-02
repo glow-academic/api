@@ -27,42 +27,42 @@ def inject_theme_css_variables(html: str, theme_tokens: ThemeTokens) -> str:
     css_variables = f"""
 :root {{
     --primary: {theme_tokens.primary};
-    --primary-foreground: {theme_tokens.primaryForeground};
+    --primary-foreground: {theme_tokens.primary_foreground};
     --background: {theme_tokens.background};
     --foreground: {theme_tokens.foreground};
     --card: {theme_tokens.card};
-    --card-foreground: {theme_tokens.cardForeground};
+    --card-foreground: {theme_tokens.card_foreground};
     --popover: {theme_tokens.popover};
-    --popover-foreground: {theme_tokens.popoverForeground};
+    --popover-foreground: {theme_tokens.popover_foreground};
     --secondary: {theme_tokens.secondary};
-    --secondary-foreground: {theme_tokens.secondaryForeground};
+    --secondary-foreground: {theme_tokens.secondary_foreground};
     --muted: {theme_tokens.muted};
-    --muted-foreground: {theme_tokens.mutedForeground};
+    --muted-foreground: {theme_tokens.muted_foreground};
     --accent: {theme_tokens.accent};
-    --accent-foreground: {theme_tokens.accentForeground};
+    --accent-foreground: {theme_tokens.accent_foreground};
     --destructive: {theme_tokens.destructive};
     --border: {theme_tokens.border};
     --input: {theme_tokens.input};
     --ring: {theme_tokens.ring};
     --success: {theme_tokens.success};
-    --success-foreground: {theme_tokens.successForeground};
+    --success-foreground: {theme_tokens.success_foreground};
     --warning: {theme_tokens.warning};
-    --warning-foreground: {theme_tokens.warningForeground};
+    --warning-foreground: {theme_tokens.warning_foreground};
     --info: {theme_tokens.info};
-    --info-foreground: {theme_tokens.infoForeground};
+    --info-foreground: {theme_tokens.info_foreground};
     --chart1: {theme_tokens.chart1};
     --chart2: {theme_tokens.chart2};
     --chart3: {theme_tokens.chart3};
     --chart4: {theme_tokens.chart4};
     --chart5: {theme_tokens.chart5};
     --sidebar: {theme_tokens.sidebar};
-    --sidebar-foreground: {theme_tokens.sidebarForeground};
-    --sidebar-primary: {theme_tokens.sidebarPrimary};
-    --sidebar-primary-foreground: {theme_tokens.sidebarPrimaryForeground};
-    --sidebar-accent: {theme_tokens.sidebarAccent};
-    --sidebar-accent-foreground: {theme_tokens.sidebarAccentForeground};
-    --sidebar-border: {theme_tokens.sidebarBorder};
-    --sidebar-ring: {theme_tokens.sidebarRing};
+    --sidebar-foreground: {theme_tokens.sidebar_foreground};
+    --sidebar-primary: {theme_tokens.sidebar_primary};
+    --sidebar-primary-foreground: {theme_tokens.sidebar_primary_foreground};
+    --sidebar-accent: {theme_tokens.sidebar_accent};
+    --sidebar-accent-foreground: {theme_tokens.sidebar_accent_foreground};
+    --sidebar-border: {theme_tokens.sidebar_border};
+    --sidebar-ring: {theme_tokens.sidebar_ring};
 }}
 
 /* Default styling using theme variables - templates can override */
