@@ -760,7 +760,35 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
             conn, redis, limit_count=50, bypass_cache=True
         )
         # Available scenario chats — pre-seeded by the simulation seeds.
-        chats = await search_chat_entries_internal(conn, redis, limit_count=1000)
+        #
+        # ``bypass_cache=True`` is REQUIRED here. The home/practice chat
+        # entries are materialized earlier in the same seed run by the
+        # cohort-save hook (``create_cohort_impl`` → ``sync_home_practice_entries``
+        # → ``create_chat`` + ``create_home_chat``/``create_practice_chat``).
+        # ``create_chat`` write-back-caches a row with ``parent_id=None``
+        # (the parent link is established only by the *later* home_chat /
+        # practice_chat junction insert, after the chat row is cached). With
+        # the cache live, ``hedged_search`` lets that stale ``parent_id=None``
+        # cache row shadow the freshly-refreshed chat_mv row (cache wins on
+        # dedup) — so every chat looks parentless, ``eligible_chats=0``, the
+        # discovery logs ``home=0, practice=0`` and no attempts seed (#14).
+        # Bypassing the cache reads the post-refresh MV, which has the
+        # correct ``parent_id``.
+        #
+        # ``search_chat_entries_internal`` reads chat_mv and stringifies its
+        # UUID columns, while the home/practice entry searches below return
+        # real ``UUID`` objects. Coerce the chat dict's id fields back to
+        # ``UUID`` so the ``parent_id in home_ids`` / ``chat_entry_id in
+        # chat_template_map`` membership checks compare like-for-like
+        # (str != UUID would otherwise also make every chat ineligible).
+        chats = await search_chat_entries_internal(
+            conn, redis, limit_count=1000, bypass_cache=True
+        )
+        for _chat in chats:
+            if _chat.get("chat_entry_id") is not None:
+                _chat["chat_entry_id"] = UUID(str(_chat["chat_entry_id"]))
+            if _chat.get("parent_id") is not None:
+                _chat["parent_id"] = UUID(str(_chat["parent_id"]))
         homes = await search_homes(conn, redis, limit=10000, bypass_mv=True)
         practices = await search_practices(conn, redis, limit=10000, bypass_mv=True)
         home_ids = {h.id for h in homes if h.id}
