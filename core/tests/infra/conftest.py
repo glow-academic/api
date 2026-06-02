@@ -1545,9 +1545,9 @@ async def profile_route_client(
 ) -> AsyncGenerator[RouteClient, None]:
     """HTTP client mounted on the real profile route stack."""
     import app.infra.globals as globals_mod
-    from app.routes.context import router as context_router
-    from app.routes.emulate import router as emulate_router
-    from app.routes.unemulate import router as unemulate_router
+    from app.routes.profile.context import router as context_router
+    from app.routes.profile.emulate import router as emulate_router
+    from app.routes.profile.unemulate import router as unemulate_router
 
     profile_router = _build_artifact_router_for_tests(
         artifact_name="profile",

@@ -367,9 +367,51 @@ def start_redis_container() -> None:
     _redis_container = container
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def _install_global_redis() -> AsyncGenerator[None, None]:
+    """Install the process-global Redis singleton for every test.
+
+    The app's lifespan (``_initialize_redis_client``) sets
+    ``app.infra.globals.redis_client`` to a live client at boot, and
+    ``get_redis_client()`` raises if it is ``None``. The test harness has no
+    lifespan, so any code-under-test that reaches for the GLOBAL Redis
+    (e.g. ``middleware.require_auth``, ``default_idp``, keycloak sync, file
+    writers) blew up with "Redis client not initialized" even when the test
+    didn't explicitly request the ``redis_client`` fixture.
+
+    This autouse fixture mirrors the lifespan: it points the global at the
+    session Redis container for the duration of every test and tears it back
+    down afterwards. The ``_batched_redis_client`` wrapper is reset on both
+    ends so the lazily-built ``BatchedRedis`` never binds to a stale client
+    or a closed event loop across tests. Tests that deliberately exercise
+    the "no redis" path still pass ``redis=None`` directly and are
+    unaffected.
+    """
+    if _redis_url is None:
+        raise RuntimeError("Redis container not started.")
+    import app.infra.globals as globals_mod
+
+    client = Redis.from_url(_redis_url)
+    prev_client = globals_mod.redis_client
+    globals_mod.redis_client = client
+    globals_mod._batched_redis_client = None
+    try:
+        yield
+    finally:
+        globals_mod.redis_client = prev_client
+        globals_mod._batched_redis_client = None
+        await client.aclose()
+
+
 @pytest_asyncio.fixture
 async def redis_client() -> AsyncGenerator[Redis, None]:
-    """Provide a clean Redis connection that flushes after each test."""
+    """Provide a clean Redis connection that flushes around each test.
+
+    The process-global Redis singleton is installed separately by the
+    autouse ``_install_global_redis`` fixture; this fixture hands tests a
+    direct client (sharing the same testcontainer / DB) and brackets the
+    test with ``flushdb`` for isolation.
+    """
     if _redis_url is None:
         raise RuntimeError("Redis container not started.")
     client = Redis.from_url(_redis_url)
@@ -412,29 +454,35 @@ async def session_id(conn, profile_id, redis_client):
 
 
 @pytest_asyncio.fixture
-async def group_id(conn, session_id):
+async def group_id(conn, redis_client, session_id):
     """A fresh groups_entry ID (depends on session_id)."""
     from app.tools.entries.groups.create import create_group
 
-    group = await create_group(conn, session_id=session_id, artifact_type="persona")
+    group = await create_group(
+        conn, redis_client, session_id=session_id, artifact_type="persona"
+    )
     return group.id
 
 
 @pytest_asyncio.fixture
-async def run_id(conn, group_id, session_id):
+async def run_id(conn, redis_client, group_id, session_id):
     """A fresh runs_entry ID (depends on group_id, session_id)."""
     from app.tools.entries.runs.create import create_run
 
-    run = await create_run(conn, group_id=group_id, session_id=session_id)
+    run = await create_run(
+        conn, redis_client, group_id=group_id, session_id=session_id
+    )
     return run.id
 
 
 @pytest_asyncio.fixture
-async def call_id(conn, run_id, session_id):
+async def call_id(conn, redis_client, run_id, session_id):
     """A fresh calls_entry ID (depends on run_id, session_id)."""
     from app.tools.entries.calls.create import create_call
 
-    call = await create_call(conn, run_id=run_id, session_id=session_id)
+    call = await create_call(
+        conn, redis_client, run_id=run_id, session_id=session_id
+    )
     return call.id
 
 
