@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_message_completion.types import (
     CreateAttemptMessageCompletionResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_message_completion(
@@ -63,5 +63,10 @@ async def create_attempt_message_completion(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+    # Bust the parent attempt_message write-back row: the MV derives
+    # ``completed`` from the latest attempt_message_completion. The parent's
+    # cached row was written completed=False at create-time; without this a
+    # cached parent GET shadows the hydrated MV until TTL (#98 sibling).
+    await invalidate_row(redis, "attempt_message", attempt_message_id)
 
     return CreateAttemptMessageCompletionResponse(id=entry_id)

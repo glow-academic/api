@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.test_invocation_completion.types import (
     CreateTestInvocationCompletionResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_test_invocation_completion(
@@ -62,5 +62,10 @@ async def create_test_invocation_completion(
         fresh_row,
         score_ms=int(created_at.timestamp() * 1000),
     )
+    # Bust the parent test_invocation write-back row: its cached
+    # ``invocation_completed`` was written False at create-time and this
+    # completion flips the MV-derived value to True. Without this, a cached
+    # parent GET shadows the hydrated MV with stale False until TTL (#98).
+    await invalidate_row(redis, "test_invocation", invocation_id)
 
     return CreateTestInvocationCompletionResponse(id=entry_id)
