@@ -7,6 +7,7 @@ import pytest
 from tests.helpers import nonexistent_id
 
 from app.infra.tool_graph import (
+    ResolvedAgent,
     ResolvedTool,
     SettingsToolGraph,
     resolve_tool_graph,
@@ -115,6 +116,23 @@ def _resolved(
     )
 
 
+def _resolved_agent(
+    *,
+    agent_id,
+    system_id,
+    output_modalities: set[str] | None = None,
+) -> ResolvedAgent:
+    """A graph agent. Output modalities now live on the agent (sourced from
+    the model in ``resolve_tool_graph``), not derived from tool targets."""
+    return ResolvedAgent(
+        agent_id=agent_id,
+        system_id=system_id,
+        model_id=None,
+        input_modalities=frozenset(),
+        output_modalities=frozenset(output_modalities or set()),
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # score_tools — pure unit tests
 # ═══════════════════════════════════════════════════════════════════════════
@@ -156,26 +174,40 @@ class TestScoreToolsSingleAgent:
 
 
 class TestScoreToolsMultiAgent:
-    def test_specialist_wins_over_generalist(self):
-        """Agent covering more artifact resources should win."""
-        specialist_id = uuid4()
-        generalist_id = uuid4()
+    def test_least_privilege_narrowest_scope_wins(self):
+        """Least privilege: for a shared target the narrowest-scope agent wins.
 
-        # Specialist covers names + colors (2 artifact resources)
-        t_spec_names = _resolved(agent_id=specialist_id, target="names")
-        t_spec_colors = _resolved(agent_id=specialist_id, target="colors")
+        ``score_tools`` ranks by ``agent_total_scope`` ascending (then
+        ``-coverage``, then ``agent_id``), so a focused single-target agent
+        beats a broad multi-target one for the target they both cover, while
+        the broad agent still wins targets only it can serve.
+        """
+        broad_id = uuid4()
+        focused_id = uuid4()
 
-        # Generalist covers only names (1 artifact resource)
-        t_gen_names = _resolved(agent_id=generalist_id, target="names")
+        # Broad agent covers names + colors (total scope 2)
+        t_broad_names = _resolved(agent_id=broad_id, target="names")
+        t_broad_colors = _resolved(agent_id=broad_id, target="colors")
 
-        graph = SettingsToolGraph(tools=[t_spec_names, t_spec_colors, t_gen_names])
+        # Focused agent covers only names (total scope 1)
+        t_focused_names = _resolved(agent_id=focused_id, target="names")
+
+        graph = SettingsToolGraph(
+            tools=[t_broad_names, t_broad_colors, t_focused_names]
+        )
         result = score_tools(graph, {"names", "colors"})
 
-        assert result.best["names"] is t_spec_names
-        assert result.best["colors"] is t_spec_colors
+        # names: focused agent (scope 1) beats broad agent (scope 2)
+        assert result.best["names"] is t_focused_names
+        # colors: only the broad agent can serve it
+        assert result.best["colors"] is t_broad_colors
 
     def test_tiebreak_by_agent_id(self):
-        """Equal coverage — deterministic pick by agent_id."""
+        """Equal scope + coverage — deterministic pick by smallest agent_id.
+
+        ``score_tools`` selects via ``min(..., key=(scope, -coverage,
+        agent_id))``, so the lowest ``agent_id`` is the stable tiebreak.
+        """
         id_a = uuid4()
         id_b = uuid4()
 
@@ -185,17 +217,22 @@ class TestScoreToolsMultiAgent:
         graph = SettingsToolGraph(tools=[t_a, t_b])
         result = score_tools(graph, {"names"})
 
-        expected = t_a if id_a > id_b else t_b
+        expected = t_a if id_a < id_b else t_b
         assert result.best["names"] is expected
 
 
 class TestScoreToolsModality:
     def test_available_modalities_computed_from_tools(self):
-        """available_modalities is the union of all agent modalities."""
+        """available_modalities is the union of all agent output modalities.
+
+        Output modalities now come from the agent's model (carried on
+        ``graph.agent_output_modalities``), not derived from tool targets.
+        """
         agent_id = uuid4()
+        system_id = uuid4()
         tool_id = uuid4()
-        # Agent has a tool that creates images (entry)
         t1 = _resolved(
+            system_id=system_id,
             agent_id=agent_id,
             tool_id=tool_id,
             target="images",
@@ -203,25 +240,42 @@ class TestScoreToolsModality:
             operation="create",
         )
         t2 = _resolved(
+            system_id=system_id,
             agent_id=agent_id,
             tool_id=tool_id,
             target="names",
             target_type="resource",
             operation="create",
         )
-        graph = SettingsToolGraph(tools=[t1, t2])
+        graph = SettingsToolGraph(
+            tools=[t1, t2],
+            agent_output_modalities={agent_id: {"image", "call"}},
+            agents=[
+                _resolved_agent(
+                    agent_id=agent_id,
+                    system_id=system_id,
+                    output_modalities={"image", "call"},
+                )
+            ],
+        )
 
         result = score_tools(graph, {"images", "names"})
-        # get_tool_output_modalities for (create, ["names"], ["images"], []) → {"image", "call"}
         assert "image" in result.available_modalities
         assert "call" in result.available_modalities
 
     def test_modality_filter_excludes_non_matching_agents(self):
-        """modality='image' filters out agents that can't produce images."""
-        # Agent A: only creates resources (call modality)
+        """modality='image' filters out systems whose agents can't produce images.
+
+        Filtering is system-level and driven by ``graph.agents`` output
+        modalities (from the model), so each system carries an agent with
+        the modalities it supports.
+        """
+        # System/Agent A: only creates resources (call modality, no image)
+        system_a = uuid4()
         agent_a = uuid4()
         tool_a = uuid4()
         t_a = _resolved(
+            system_id=system_a,
             agent_id=agent_a,
             tool_id=tool_a,
             target="names",
@@ -229,10 +283,12 @@ class TestScoreToolsModality:
             operation="create",
         )
 
-        # Agent B: creates images (image modality)
+        # System/Agent B: creates images (image modality)
+        system_b = uuid4()
         agent_b = uuid4()
         tool_b = uuid4()
         t_b_names = _resolved(
+            system_id=system_b,
             agent_id=agent_b,
             tool_id=tool_b,
             target="names",
@@ -240,6 +296,7 @@ class TestScoreToolsModality:
             operation="create",
         )
         t_b_images = _resolved(
+            system_id=system_b,
             agent_id=agent_b,
             tool_id=tool_b,
             target="images",
@@ -247,10 +304,21 @@ class TestScoreToolsModality:
             operation="create",
         )
 
-        graph = SettingsToolGraph(tools=[t_a, t_b_names, t_b_images])
+        graph = SettingsToolGraph(
+            tools=[t_a, t_b_names, t_b_images],
+            agent_output_modalities={agent_a: {"call"}, agent_b: {"image"}},
+            agents=[
+                _resolved_agent(
+                    agent_id=agent_a, system_id=system_a, output_modalities={"call"}
+                ),
+                _resolved_agent(
+                    agent_id=agent_b, system_id=system_b, output_modalities={"image"}
+                ),
+            ],
+        )
         result = score_tools(graph, {"names", "images"}, modalities=["image"])
 
-        # Agent A filtered out — only agent B can produce images
+        # System A filtered out — only system B can produce images
         assert result.best["names"] is t_b_names
         assert result.best["images"] is t_b_images
 

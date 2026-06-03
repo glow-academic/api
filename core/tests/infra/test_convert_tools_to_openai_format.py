@@ -110,8 +110,8 @@ class TestConvertToolsToResponsesFormat:
                     "description": "Search documents",
                     "active": True,
                     "arguments": {
-                        "query": {"type": "string"},
-                        "count": {"type": "integer"},
+                        "query": {"type": "string", "required": True},
+                        "count": {"type": "integer", "required": True},
                     },
                     "argument_descriptions": {
                         "query": "Search text",

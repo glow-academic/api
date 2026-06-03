@@ -13,9 +13,12 @@ def test_oauth_authorization_server_metadata_uses_environment_defaults(monkeypat
 
     payload = oauth_authorization_server_metadata()
 
-    assert payload["issuer"] == "http://localhost/auth/realms/master"
-    assert payload["authorization_endpoint"].endswith("/protocol/openid-connect/auth")
-    assert "mcp-resource" in payload["scopes_supported"]
+    # Glow API is itself the OIDC provider — endpoints are root-level on the
+    # Glow origin (clients never see Keycloak's /auth/realms/... paths). Bare
+    # local dev resolves the issuer to http://localhost:8000.
+    assert payload["issuer"] == "http://localhost:8000"
+    assert payload["authorization_endpoint"].endswith("/authorize")
+    assert "openid" in payload["scopes_supported"]
 
 
 def test_oauth_authorization_server_metadata_route_returns_current_contract(
@@ -33,6 +36,8 @@ def test_oauth_authorization_server_metadata_route_returns_current_contract(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["issuer"] == "https://glow.example.com/api/auth/realms/glow"
-    assert payload["token_endpoint"].endswith("/protocol/openid-connect/token")
-    assert payload["grant_types_supported"] == ["authorization_code"]
+    # Issuer is the public Glow origin + APP_PREFIX; endpoints hang off it
+    # directly. The realm no longer appears in the issuer path.
+    assert payload["issuer"] == "https://glow.example.com/api"
+    assert payload["token_endpoint"].endswith("/token")
+    assert payload["grant_types_supported"] == ["authorization_code", "refresh_token"]

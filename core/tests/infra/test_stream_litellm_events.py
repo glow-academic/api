@@ -170,6 +170,8 @@ async def test_responses_stream_normalizes_output_items_and_completion() -> None
             "type": "output_item",
             "item": {
                 "type": "message",
+                "id": "text_1",
+                "status": "completed",
                 "role": "assistant",
                 "content": [
                     {
@@ -183,6 +185,7 @@ async def test_responses_stream_normalizes_output_items_and_completion() -> None
             "type": "tool_call_start",
             "tool_call_id": "tool_item_1",
             "tool_name": "lookup_user",
+            "responses_call_id": "call_resp_1",
         },
         {
             "type": "tool_call_delta",
@@ -192,9 +195,9 @@ async def test_responses_stream_normalizes_output_items_and_completion() -> None
         },
         {
             "type": "tool_call_complete",
-            "tool_call_id": "call_resp_1",
+            "tool_call_id": "tool_item_1",
             "name": "lookup_user",
-            "arguments": '{"user_id":"42"}',
+            "arguments": '{"user_id": "42"}',
         },
         {
             "type": "output_item",
@@ -202,7 +205,7 @@ async def test_responses_stream_normalizes_output_items_and_completion() -> None
                 "type": "function_call",
                 "call_id": "call_resp_1",
                 "name": "lookup_user",
-                "arguments": '{"user_id":"42"}',
+                "arguments": '{"user_id": "42"}',
             },
         },
         {
@@ -371,12 +374,13 @@ async def test_responses_stream_function_call_done_falls_back_to_item_id() -> No
             "type": "tool_call_start",
             "tool_call_id": "tool_item_1",
             "tool_name": "lookup_user",
+            "responses_call_id": None,
         },
         {
             "type": "tool_call_complete",
             "tool_call_id": "tool_item_1",
             "name": "lookup_user",
-            "arguments": '{"user_id":"42"}',
+            "arguments": '{"user_id": "42"}',
         },
         {
             "type": "output_item",
@@ -384,7 +388,7 @@ async def test_responses_stream_function_call_done_falls_back_to_item_id() -> No
                 "type": "function_call",
                 "call_id": "tool_item_1",
                 "name": "lookup_user",
-                "arguments": '{"user_id":"42"}',
+                "arguments": '{"user_id": "42"}',
             },
         },
     ]
@@ -415,6 +419,7 @@ async def test_responses_stream_cleanup_falls_back_to_item_id_for_incomplete_too
             "type": "tool_call_start",
             "tool_call_id": "tool_item_1",
             "tool_name": "lookup_user",
+            "responses_call_id": None,
         },
         {
             "type": "tool_call_delta",
@@ -469,6 +474,8 @@ async def test_responses_stream_supports_object_style_chunks() -> None:
             "type": "output_item",
             "item": {
                 "type": "message",
+                "id": "text_1",
+                "status": "completed",
                 "role": "assistant",
                 "content": [
                     {
@@ -671,6 +678,7 @@ async def test_responses_stream_legacy_output_item_done_completes_function_call(
             "type": "tool_call_start",
             "tool_call_id": "tool_legacy",
             "tool_name": "lookup_user",
+            "responses_call_id": None,
         },
         {
             "type": "tool_call_delta",
@@ -717,6 +725,7 @@ async def test_responses_stream_legacy_output_item_done_prefers_call_id() -> Non
             "type": "tool_call_start",
             "tool_call_id": "tool_legacy",
             "tool_name": "lookup_user",
+            "responses_call_id": "call_legacy",
         },
         {
             "type": "tool_call_delta",

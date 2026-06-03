@@ -142,6 +142,7 @@ async def create_setting_graph_fixture(
     from app.tools.resources.agents.create import create_agent
     from app.tools.resources.departments.create import create_department
     from app.tools.resources.names.create import create_name
+    from app.tools.resources.permissions.create import create_permission
     from app.tools.resources.profiles.create import (
         create_profile as create_profile_resource,
     )
@@ -161,10 +162,24 @@ async def create_setting_graph_fixture(
             description="Graph profile resource",
         )
 
+        # Tools carry their (artifact, operation) scope via permissions —
+        # ``resolve_tool_graph`` flattens one ResolvedTool per permission, so
+        # without these the tool resolves to zero edges.
+        permission_ids = []
+        for artifact in artifacts:
+            perm_res = await create_permission(
+                conn,
+                artifact=artifact,
+                operation=tool_operation,
+                redis=redis_client,
+            )
+            permission_ids.append(perm_res.id)
+
         tool_res = await create_tool(
             conn,
             name=f"tool-{tag}",
             description="Graph tool",
+            permission_ids=permission_ids,
             redis=redis_client,
         )
         agent_res = await create_agent(
