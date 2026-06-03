@@ -3,6 +3,7 @@
 from uuid import uuid4
 import pytest
 from app.infra.auth.draft import patch_auth_draft_impl
+from app.infra.auth.types import PatchAuthDraftApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -13,7 +14,10 @@ async def test_draft_raises_401_for_unknown_profile(monkeypatch):
     monkeypatch.setattr("app.infra.auth.draft.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await patch_auth_draft_impl(None, None, profile_id=uuid4(), session_id=uuid4(), request=None)
+        await patch_auth_draft_impl(
+            None, None, profile_id=uuid4(), session_id=uuid4(),
+            request=PatchAuthDraftApiRequest(),
+        )
     assert exc_info.value.status_code == 401
 
 
@@ -33,7 +37,10 @@ async def test_draft_raises_403_for_non_superadmin(monkeypatch):
     monkeypatch.setattr("app.infra.auth.draft.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await patch_auth_draft_impl(None, None, profile_id=uuid4(), session_id=uuid4(), request=None)
+        await patch_auth_draft_impl(
+            None, None, profile_id=uuid4(), session_id=uuid4(),
+            request=PatchAuthDraftApiRequest(),
+        )
     assert exc_info.value.status_code == 403
 
 
@@ -43,5 +50,8 @@ async def test_draft_detail_mentions_sign_in(monkeypatch):
     monkeypatch.setattr("app.infra.auth.draft.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await patch_auth_draft_impl(None, None, profile_id=uuid4(), session_id=uuid4(), request=None)
+        await patch_auth_draft_impl(
+            None, None, profile_id=uuid4(), session_id=uuid4(),
+            request=PatchAuthDraftApiRequest(),
+        )
     assert "sign in" in exc_info.value.detail.lower()
