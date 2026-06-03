@@ -12,13 +12,14 @@ import pytest_asyncio
 from tests.infra.route_helpers import create_admin_route_actor
 
 
-async def _seed_health_metrics(conn) -> None:
+async def _seed_health_metrics(conn, redis) -> None:
     from app.tools.entries.health.create import create_health
     from app.tools.entries.metrics.create import create_metrics_entry_internal
     from app.tools.entries.metrics.refresh import refresh_metrics_internal
 
     await create_health(
         conn,
+        redis,
         service="redis",
         ok=True,
         latency_ms=12.5,
@@ -26,6 +27,7 @@ async def _seed_health_metrics(conn) -> None:
     )
     await create_metrics_entry_internal(
         conn,
+        redis,
         ts=datetime(2031, 1, 1, 10, 0, tzinfo=UTC),
         requests_total=100,
         errors_total=2,
@@ -53,18 +55,19 @@ class TestHealthRoute:
     async def test_get_health_route_returns_health_views(
         self,
         pool,
+        redis_client,
         health_route_client,
         health_route_actor,
     ):
         async with pool.acquire() as conn:
-            await _seed_health_metrics(conn)
+            await _seed_health_metrics(conn, redis_client)
 
         health_route_client.authenticate(
             profile_id=health_route_actor.profile_id,
             session_id=health_route_actor.session_id,
         )
         response = await health_route_client.client.post(
-            "/health/get",
+            "/health",
             json={
                 "service": "redis",
                 "date_from": "2031-01-01T00:00:00Z",
@@ -111,13 +114,14 @@ class TestHealthRoute:
     async def test_health_export_route_creates_zip_upload(
         self,
         pool,
+        redis_client,
         health_route_client,
         health_route_actor,
     ):
         from app.infra.globals import UPLOAD_FOLDER
 
         async with pool.acquire() as conn:
-            await _seed_health_metrics(conn)
+            await _seed_health_metrics(conn, redis_client)
 
         health_route_client.authenticate(
             profile_id=health_route_actor.profile_id,

@@ -31,7 +31,7 @@ class TestLeaderboardRoute:
         )
 
         response = await leaderboard_route_client.client.post(
-            "/leaderboard/get",
+            "/leaderboard",
             json={},
             headers={"X-Bypass-Cache": "1"},
         )

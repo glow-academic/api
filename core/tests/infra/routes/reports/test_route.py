@@ -32,7 +32,7 @@ class TestReportsRoute:
         )
 
         response = await reports_route_client.client.post(
-            "/report/search",
+            "/report",
             json={
                 "target_profile_id": str(reports_route_actor.profiles_id),
                 "actor_profile_id": str(reports_route_actor.profile_id),

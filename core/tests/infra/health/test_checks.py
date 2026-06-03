@@ -99,8 +99,9 @@ async def test_log_metrics_snapshot_writes_aggregated_snapshot(monkeypatch):
 
     captured = {}
 
-    async def _write_metrics_snapshot(pool, **kwargs):
+    async def _write_metrics_snapshot(pool, redis, **kwargs):
         captured["pool"] = pool
+        captured["redis"] = redis
         captured["kwargs"] = kwargs
 
     monkeypatch.setattr(
@@ -111,6 +112,7 @@ async def test_log_metrics_snapshot_writes_aggregated_snapshot(monkeypatch):
     await collector.log_metrics_snapshot()
 
     assert captured["pool"] is collector._db_pool
+    assert captured["redis"] is collector._redis_client
     assert captured["kwargs"]["requests_total"] == 2
     assert captured["kwargs"]["errors_total"] == 1
     assert captured["kwargs"]["avg_latency_ms"] == 15.0
@@ -120,7 +122,7 @@ async def test_log_metrics_snapshot_writes_aggregated_snapshot(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_log_health_checks_writes_service_results(monkeypatch):
-    await collector.initialize_metrics(object(), None)
+    await collector.initialize_metrics(object(), _FakeRedis())
 
     checks = [{"service": "redis", "ok": True}]
     captured = {}
@@ -128,8 +130,9 @@ async def test_log_health_checks_writes_service_results(monkeypatch):
     async def _run_service_checks():
         return checks
 
-    async def _write_health_checks(pool, **kwargs):
+    async def _write_health_checks(pool, redis, **kwargs):
         captured["pool"] = pool
+        captured["redis"] = redis
         captured["kwargs"] = kwargs
 
     monkeypatch.setattr(collector.time, "time", lambda: 180.0)
@@ -145,4 +148,5 @@ async def test_log_health_checks_writes_service_results(monkeypatch):
     await collector.log_health_checks()
 
     assert captured["pool"] is collector._db_pool
+    assert captured["redis"] is collector._redis_client
     assert captured["kwargs"]["checks"] == checks

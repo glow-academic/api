@@ -26,12 +26,15 @@ async def _seed_pricing_route_graph(pool, redis_client, actor):
     from app.tools.resources.pricing.create import create_pricing
 
     async with pool.acquire() as conn:
-        session = await create_session(conn, profile_id=actor.profiles_id)
+        session = await create_session(
+            conn, redis_client, profile_id=actor.profiles_id
+        )
         group = await create_group(
-            conn, session_id=session.id, artifact_type="system"
+            conn, redis_client, session_id=session.id, artifact_type="system"
         )
         await create_group_name(
             conn,
+            redis_client,
             group_id=group.id,
             name="Pricing Route Group",
             session_id=session.id,
@@ -70,12 +73,14 @@ async def _seed_pricing_route_graph(pool, redis_client, actor):
         )
         run = await create_run(
             conn,
+            redis_client,
             group_id=group.id,
             session_id=session.id,
             agent_ids=[agent.id],
         )
         await create_run_pricing_entry_internal(
             conn,
+            redis_client,
             session_id=session.id,
             pricing_type="input",
             run_id=run.id,
@@ -84,6 +89,7 @@ async def _seed_pricing_route_graph(pool, redis_client, actor):
         )
         await create_run_pricing_entry_internal(
             conn,
+            redis_client,
             session_id=session.id,
             pricing_type="output",
             run_id=run.id,
@@ -129,7 +135,7 @@ class TestPricingRoute:
         )
 
         response = await pricing_route_client.client.post(
-            "/pricing/get",
+            "/pricing",
             json={
                 "history_page": 0,
                 "history_page_size": 10,
@@ -147,9 +153,9 @@ class TestPricingRoute:
         assert payload["resources"]["agents"]
         assert payload["resources"]["models"]
         assert payload["analytics"] is not None
-        assert payload["history"]["page"] == 0
-        assert payload["history"]["page_size"] == 10
-        assert isinstance(payload["history"]["items"], list)
+        # Paginated history is no longer inline on the pricing GET bundle
+        # (PricingResponse.history is always null — fetch via /system/groups).
+        assert payload["history"] is None
 
     async def test_search_pricing_route_returns_group_history(
         self,

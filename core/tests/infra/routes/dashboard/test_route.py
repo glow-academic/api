@@ -32,7 +32,7 @@ class TestDashboardRoute:
         )
 
         response = await dashboard_route_client.client.post(
-            "/dashboard/get",
+            "/dashboard",
             json={"role_ids": [str(dashboard_route_actor.role_id)]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -45,7 +45,10 @@ class TestDashboardRoute:
         assert payload["header_metrics"]
         assert payload["primary_metrics"]
         assert payload["secondary_metrics"]
-        assert payload["history"]
+        # Attempt history is no longer inline on the dashboard GET bundle
+        # (DashboardBundleResponse.history is always null — fetch via
+        # /attempt/dashboard/search).
+        assert payload["history"] is None
         assert payload["analytics"] is not None
         role_options = payload["analytics"]["role_options"]
         assert any(
