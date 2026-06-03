@@ -50,9 +50,15 @@ async def test_search_returns_empty_when_no_results(monkeypatch):
         return ([], 0)
     async def mock_depts(conn, redis, **kw):
         return []
+    async def mock_soft_calls(conn, redis, **kw):
+        return []
+    async def mock_flags(conn, redis, **kw):
+        return []
     monkeypatch.setattr("app.infra.auth.search.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr("app.infra.auth.search.search_auth_artifacts", mock_search)
     monkeypatch.setattr("app.infra.auth.search.search_departments", mock_depts)
+    monkeypatch.setattr("app.infra.auth.search.search_flags", mock_flags)
+    monkeypatch.setattr("app.tools.entries.soft_calls.search.search_soft_calls", mock_soft_calls)
     result = await search_auth_impl(_Pool(), None, profile_id=uuid4())
     assert result.total_count == 0
     assert result.auths == []
@@ -65,8 +71,14 @@ async def test_search_passes_actor_name(monkeypatch):
         return ([], 0)
     async def mock_depts(conn, redis, **kw):
         return []
+    async def mock_soft_calls(conn, redis, **kw):
+        return []
+    async def mock_flags(conn, redis, **kw):
+        return []
     monkeypatch.setattr("app.infra.auth.search.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr("app.infra.auth.search.search_auth_artifacts", mock_search)
     monkeypatch.setattr("app.infra.auth.search.search_departments", mock_depts)
+    monkeypatch.setattr("app.infra.auth.search.search_flags", mock_flags)
+    monkeypatch.setattr("app.tools.entries.soft_calls.search.search_soft_calls", mock_soft_calls)
     result = await search_auth_impl(_Pool(), None, profile_id=uuid4())
     assert result.actor_name == "Bob"

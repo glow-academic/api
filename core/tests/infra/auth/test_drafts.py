@@ -44,12 +44,12 @@ async def test_drafts_raises_401_for_unknown_profile(monkeypatch):
 async def test_drafts_returns_context_with_entries(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
         return _P(profiles_id=uuid4(), group_id=uuid4())
-    async def mock_search(conn, profile_ids=None):
+    async def mock_search(conn, redis, *, profile_ids=None, **kwargs):
         return []
     monkeypatch.setattr("app.infra.auth.drafts.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr("app.infra.auth.drafts.search_auth_drafts", mock_search)
     result = await list_auth_drafts_impl(_Pool(), None, profile_id=uuid4())
-    assert "drafts" in result.entries
+    assert result.entries == []
 
 
 async def test_drafts_passes_profile_ownership(monkeypatch):
@@ -57,7 +57,7 @@ async def test_drafts_passes_profile_ownership(monkeypatch):
     captured = []
     async def mock_resolve(pool, profile_id, redis, **kw):
         return _P(profiles_id=pid, group_id=uuid4())
-    async def mock_search(conn, profile_ids=None):
+    async def mock_search(conn, redis, *, profile_ids=None, **kwargs):
         captured.extend(profile_ids or [])
         return []
     monkeypatch.setattr("app.infra.auth.drafts.resolve_profile_identity_context", mock_resolve)

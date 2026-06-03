@@ -65,4 +65,4 @@ async def test_export_response_shape_is_pdf_envelope():
 
     # Just asserts the model has the fields HTTP + WS paths depend on.
     sig = set(ExportRubricApiResponse.model_fields.keys())
-    assert {"content", "file_name", "mime_type", "row_count"}.issubset(sig)
+    assert {"file_id", "file_name", "idempotency_key", "row_count"}.issubset(sig)
