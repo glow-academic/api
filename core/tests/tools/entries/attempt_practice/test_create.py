@@ -48,7 +48,7 @@ async def _attempt_practice(conn, redis_client, profile_id, bundle, **overrides)
 
 async def test_returns_ids(conn, redis_client, profile_id, simulation_bundle):
     result, attempt, practice = await _attempt_practice(
-        conn, profile_id, simulation_bundle
+        conn, redis_client, profile_id, simulation_bundle
     )
 
     assert result.attempt_id == attempt.id
@@ -68,7 +68,7 @@ async def test_row_exists(conn, redis_client, profile_id, simulation_bundle):
 
 async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle):
     result, _, _ = await _attempt_practice(
-        conn, profile_id, simulation_bundle, mcp=True
+        conn, redis_client, profile_id, simulation_bundle, mcp=True
     )
 
     row = await conn.fetchrow(
