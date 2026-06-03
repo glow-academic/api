@@ -11,6 +11,7 @@ from app.infra.scenario.draft import patch_scenario_draft_impl
 pytestmark = pytest.mark.asyncio
 
 _PROFILE_ID = uuid4()
+_SESSION_ID = uuid4()
 
 
 @dataclass
@@ -82,7 +83,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await patch_scenario_draft_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, session_id=_SESSION_ID, items=[],
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +104,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await patch_scenario_draft_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, session_id=_SESSION_ID, items=[],
             )
         except Exception:
             pass  # downstream errors expected

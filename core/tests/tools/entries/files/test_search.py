@@ -15,7 +15,7 @@ from app.tools.resources.files.create import (
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id, redis_client):
+async def _setup(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
     resource = await create_file_resource(conn, redis=redis_client)
     file = await create_file(conn, redis_client, session_id=session.id, files_id=resource.id)
