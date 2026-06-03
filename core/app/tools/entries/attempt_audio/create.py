@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.attempt_audio.types import CreateAttemptAudioResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_audio(
@@ -61,5 +61,14 @@ async def create_attempt_audio(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+
+    # Parent attempt_message's cached row carries ``audios_id``, sourced from
+    # attempt_message_mv's latest_audio LATERAL over attempt_audio_entry
+    # (ORDER BY created_at DESC LIMIT 1 per message_id). Attaching this audio
+    # to ``message_id`` makes it the latest, so the attempt_message cache
+    # (keyed by message_id) is now stale — bust it so the next
+    # get/search_attempt_messages reflects audios_id from the MV. Mirrors how
+    # message_uploads/create invalidates "attempt_message".
+    await invalidate_row(redis, "attempt_message", message_id)
 
     return CreateAttemptAudioResponse(id=entry_id)
