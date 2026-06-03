@@ -23854,7 +23854,7 @@
     "/token": {
       "post": {
         "summary": "Token",
-        "description": "Token endpoint \u2014 exchanges authorization codes for tokens.\n\nSupports client_secret_post (form body) and client_secret_basic (Authorization header).",
+        "description": "Token endpoint \u2014 exchanges authorization codes (or refresh tokens) for tokens.\n\nSupports client_secret_post (form body) and client_secret_basic (Authorization header).",
         "operationId": "token_token_post",
         "responses": {
           "200": {
@@ -80267,6 +80267,19 @@
             "title": "Image Id",
             "description": "UUID of the image"
           },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "UUID of the source upload"
+          },
           "name": {
             "anyOf": [
               {
@@ -135692,6 +135705,19 @@
             ],
             "title": "Video Id",
             "description": "UUID of the video"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "UUID of the source upload"
           },
           "name": {
             "anyOf": [
