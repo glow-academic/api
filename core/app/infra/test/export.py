@@ -41,6 +41,9 @@ from app.tools.entries.test_invocation.search import (
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
 )
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
+)
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.names.get import get_names
 from app.tools.resources.voices.get import get_voices
@@ -276,8 +279,24 @@ async def _export_single_test_bytes(
                     conn, redis, test_invocation_ids=invocation_ids, limit=100000, offset=0
                 )
             )[0]
+        async with pool.acquire() as conn:
+            traces = (
+                await search_test_invocation_traces(
+                    conn, redis, test_invocation_ids=invocation_ids, limit=100000, offset=0
+                )
+            )[0]
     else:
         runs = []
+        traces = []
+
+    # After the test_invocation_runs → test_invocation_traces refactor (#102),
+    # runs are pure binding rows: a run links to its config bundle via
+    # ``test_invocation_traces_id`` and to its agents via the parent
+    # ``test_invocation_id``. Build lookups so the runs.csv writer can source
+    # each column from the correct row (bundle from trace, agents from
+    # invocation) instead of reading removed fields off the run.
+    trace_by_id = {t.id: t for t in traces}
+    invocation_by_id = {inv.invocation_id: inv for inv in invocations}
 
     if not tests and not invocations and not runs:
         empty = io.BytesIO()
@@ -300,12 +319,13 @@ async def _export_single_test_bytes(
         if inv.voice_id:
             all_voice_ids.add(inv.voice_id)
 
-    for r in runs:
-        all_name_ids.update(r.agent_ids or [])
-        all_name_ids.update(r.prompt_ids or [])
-        all_name_ids.update(r.instruction_ids or [])
-        all_name_ids.update(r.tool_ids or [])
-        all_voice_ids.update(r.voice_ids or [])
+    # Bundle ids (prompts/instructions/tools/voices) live on the trace; agent
+    # ids are already collected from invocations above.
+    for trace in traces:
+        all_name_ids.update(trace.prompt_ids or [])
+        all_name_ids.update(trace.instruction_ids or [])
+        all_name_ids.update(trace.tool_ids or [])
+        all_voice_ids.update(trace.voice_ids or [])
 
     async def _fetch_names() -> list:
         if not all_name_ids:
@@ -397,17 +417,30 @@ async def _export_single_test_bytes(
     run_writer = csv.writer(run_output)
     run_writer.writerow(RUN_CSV_COLUMNS)
     for r in runs:
+        # Agents come from the parent invocation; the config bundle comes from
+        # the linked trace (runs themselves carry no config after #102).
+        parent_inv = invocation_by_id.get(r.test_invocation_id)
+        run_trace = (
+            trace_by_id.get(r.test_invocation_traces_id)
+            if r.test_invocation_traces_id is not None
+            else None
+        )
+        agent_ids = parent_inv.agent_ids if parent_inv else []
+        voice_ids = run_trace.voice_ids if run_trace else []
+        prompt_ids = run_trace.prompt_ids if run_trace else []
+        instruction_ids = run_trace.instruction_ids if run_trace else []
+        tool_ids = run_trace.tool_ids if run_trace else []
         run_writer.writerow(
             [
                 str(r.id),
                 str(r.test_invocation_id),
-                PIPE.join(name_map.get(aid, str(aid)) for aid in (r.agent_ids or [])),
-                PIPE.join(voice_map.get(vid, str(vid)) for vid in (r.voice_ids or [])),
-                PIPE.join(name_map.get(pid, str(pid)) for pid in (r.prompt_ids or [])),
+                PIPE.join(name_map.get(aid, str(aid)) for aid in (agent_ids or [])),
+                PIPE.join(voice_map.get(vid, str(vid)) for vid in (voice_ids or [])),
+                PIPE.join(name_map.get(pid, str(pid)) for pid in (prompt_ids or [])),
                 PIPE.join(
-                    name_map.get(iid, str(iid)) for iid in (r.instruction_ids or [])
+                    name_map.get(iid, str(iid)) for iid in (instruction_ids or [])
                 ),
-                PIPE.join(name_map.get(tid, str(tid)) for tid in (r.tool_ids or [])),
+                PIPE.join(name_map.get(tid, str(tid)) for tid in (tool_ids or [])),
                 str(r.created_at),
                 "Yes" if r.active else "No",
             ]
