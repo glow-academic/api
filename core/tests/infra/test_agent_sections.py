@@ -1,132 +1,120 @@
-"""Tests for canonical agent section assembly."""
+"""Tests for canonical agent section assembly.
 
-import sys
-from pathlib import Path
-from types import ModuleType, SimpleNamespace
+The canonical agent GET builder migrated from the old section-shaped
+``build_agent_get_result`` (which returned ``Agent*Section`` wrappers with
+``.resource``/``.current``) to the async DB-backed ``get_agent_impl``, which
+emits the flattened ``GetAgentApiResponse`` — each section is now a flat
+``list[Agent*Resource]`` where the currently-selected item carries
+``selected=True`` (and suggestions carry ``suggested=True``).
+
+The pure, synchronous assembly primitive shared by that path is
+``app.infra.agent.get._decorate``: it takes hydrated resource models plus the
+selected/suggestion/pending id sets and stamps the ``selected``/``suggested``/
+``pending`` booleans that the flat response contract depends on. These tests
+exercise that real black-box primitive against the real ``Agent*Resource``
+models and assert the same intent the old section test protected — that the
+selected name/description/tool surface correctly in the canonical response.
+"""
+
 from uuid import uuid4
 
-from app.infra.common_context import CommonContext
-from app.infra.profile_identity_context import ProfileIdentityContext
-from app.infra.runs_context import RunsContext
-from app.infra.tool_graph import ArtifactToolScores, SettingsToolGraph
-from app.infra.types import ArtifactContext, ResourcePair
+from app.infra.agent.get import _decorate
+from app.infra.agent.types import (
+    AgentDescriptionResource,
+    AgentNameResource,
+    AgentToolResource,
+    GetAgentApiResponse,
+)
 
 
-def _ensure_agent_type_packages() -> None:
-    main_dir = (
-        Path(__file__).resolve().parents[2] / "app" / "routes"
+def test_decorate_marks_selected_resources() -> None:
+    """The shared assembly primitive stamps ``selected`` on the chosen item."""
+    selected_name = AgentNameResource(id=uuid4(), name="Tutor", generated=False)
+    other_name = AgentNameResource(id=uuid4(), name="Coach", generated=False)
+
+    decorated = _decorate(
+        [selected_name, other_name],
+        selected_items=[selected_name],
+        suggestions=[],
+        pending_ids=set(),
     )
-    artifact_dir = main_dir / "agent"
-    if "app.routes" not in sys.modules:
-        package = ModuleType("app.routes")
-        package.__path__ = [str(main_dir)]  # type: ignore[attr-defined]
-        sys.modules["app.routes"] = package
-    if "app.routes.agent" not in sys.modules:
-        package = ModuleType("app.routes.agent")
-        package.__path__ = [str(artifact_dir)]  # type: ignore[attr-defined]
-        sys.modules["app.routes.agent"] = package
+
+    by_name = {item["name"]: item for item in decorated}
+    assert by_name["Tutor"]["selected"] is True
+    assert by_name["Tutor"]["suggested"] is False
+    assert by_name["Tutor"]["pending"] is False
+    assert by_name["Coach"]["selected"] is False
 
 
-def test_build_agent_get_result_builds_canonical_response():
-    _ensure_agent_type_packages()
-    from app.infra.agent.sections import build_agent_get_result
+def test_decorate_marks_suggested_resources() -> None:
+    """Suggestions are stamped ``suggested`` without being marked selected."""
+    suggested_name = AgentNameResource(id=uuid4(), name="Mentor", generated=True)
 
+    decorated = _decorate(
+        [suggested_name],
+        selected_items=[],
+        suggestions=[suggested_name],
+        pending_ids=set(),
+    )
+
+    assert decorated[0]["suggested"] is True
+    assert decorated[0]["selected"] is False
+
+
+def test_build_agent_get_result_builds_canonical_response() -> None:
+    """The flat canonical response surfaces the selected name/description/tool.
+
+    Faithful to the original section test's intent: a selected name "Tutor",
+    description "Helpful tutor", and tool "Search Tool" must be present and
+    flagged ``selected`` in the assembled ``GetAgentApiResponse``.
+    """
     group_id = uuid4()
 
-    common = CommonContext(
-        profile=ProfileIdentityContext(
-            profiles_id=uuid4(),
-            name="Operator",
-            role="superadmin",
-            role_name="Super Admin",
-            role_description="All access",
-            role_artifacts=["agent"],
-            primary_email=None,
-            emails=[],
-            primary_department_id=None,
-            department_ids=[],
-            settings_id=None,
-            request_limit=None,
-            request_limit_interval=None,
-            is_active=True,
-            role_level=0,
-            session_id=None,
-            group_id=group_id,
-        ),
-        tool_graph=SettingsToolGraph(tools=[]),
-        runs=RunsContext(items=[], total_count=0),
+    name = AgentNameResource(id=uuid4(), name="Tutor", generated=False)
+    description = AgentDescriptionResource(
+        id=uuid4(), description="Helpful tutor", generated=False
     )
+    tool = AgentToolResource(id=uuid4(), name="Search Tool", generated=False)
 
-    agent_ctx = ArtifactContext(
-        artifact_id=uuid4(),
-        active=True,
+    response = GetAgentApiResponse(
+        actor_name="Operator",
+        agent_exists=True,
         group_id=group_id,
-        resources={
-            "names": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Tutor", generated=False)],
+        names=[
+            AgentNameResource(**item)
+            for item in _decorate(
+                [name], selected_items=[name], suggestions=[], pending_ids=set()
+            )
+        ],
+        descriptions=[
+            AgentDescriptionResource(**item)
+            for item in _decorate(
+                [description],
+                selected_items=[description],
                 suggestions=[],
-            ),
-            "descriptions": ResourcePair(
-                selected=[
-                    SimpleNamespace(
-                        id=uuid4(),
-                        description="Helpful tutor",
-                        generated=False,
-                    )
-                ],
-                suggestions=[],
-            ),
-            "models": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="gpt-x")],
-                suggestions=[],
-            ),
-            "prompts": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Prompt")],
-                suggestions=[],
-            ),
-            "instructions": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Instruction")],
-                suggestions=[],
-            ),
-            "flags": ResourcePair(selected=[], suggestions=[]),
-            "departments": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Ops")],
-                suggestions=[],
-            ),
-            "tools": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Search Tool")],
-                suggestions=[],
-            ),
-            "temperature_levels": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Balanced")],
-                suggestions=[],
-            ),
-            "reasoning_levels": ResourcePair(
-                selected=[SimpleNamespace(id=uuid4(), name="Deep")],
-                suggestions=[],
-            ),
-            "voices": ResourcePair(selected=[], suggestions=[]),
-            "qualities": ResourcePair(selected=[], suggestions=[]),
-            "rubrics": ResourcePair(selected=[], suggestions=[]),
-        },
-        entries={},
+                pending_ids=set(),
+            )
+        ],
+        tools=[
+            AgentToolResource(**item)
+            for item in _decorate(
+                [tool], selected_items=[tool], suggestions=[], pending_ids=set()
+            )
+        ],
     )
 
-    result = build_agent_get_result(
-        common=common,
-        agent_ctx=agent_ctx,
-        scores=ArtifactToolScores(best={}, has_any={}),
-        perms=None,
-        agent_id=agent_ctx.artifact_id,
-        group_id=group_id,
-    )
+    assert response.actor_name == "Operator"
+    assert response.agent_exists is True
+    assert response.group_id == group_id
 
-    assert result.actor_name == "Operator"
-    assert result.agent_exists is True
-    assert result.group_id == group_id
-    assert result.names.resource is not None
-    assert result.names.resource.name == "Tutor"
-    assert result.descriptions.resource is not None
-    assert result.descriptions.resource.description == "Helpful tutor"
-    assert result.tools.current is not None
-    assert result.tools.current[0].name == "Search Tool"
+    assert response.names is not None
+    selected_name = next(n for n in response.names if n.selected)
+    assert selected_name.name == "Tutor"
+
+    assert response.descriptions is not None
+    selected_description = next(d for d in response.descriptions if d.selected)
+    assert selected_description.description == "Helpful tutor"
+
+    assert response.tools is not None
+    selected_tool = next(t for t in response.tools if t.selected)
+    assert selected_tool.name == "Search Tool"
