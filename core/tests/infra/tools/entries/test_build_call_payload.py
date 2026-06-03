@@ -12,7 +12,13 @@ def test_has_correct_keys():
         arguments={"name": "Dr. Smith"},
         output={"success": True},
     )
-    assert set(payload.keys()) == {"call_id", "tool_id", "arguments", "output"}
+    assert set(payload.keys()) == {
+        "call_id",
+        "tool_id",
+        "arguments",
+        "output",
+        "raw_output",
+    }
 
 
 def test_serializes_uuids():
