@@ -44,7 +44,10 @@ async def test_mcp_oauth_middleware_handles_metadata_and_auth_paths(monkeypatch)
 
         prm = await client.get("/.well-known/oauth-protected-resource")
         assert prm.status_code == 200
-        assert prm.json()["resource"] == oauth.MCP_RESOURCE
+        # The PRM `resource` is derived from the request's base URL (see
+        # oauth._get_base_url), not the static MCP_RESOURCE constant, so under
+        # the TestClient host it is http://testserver{APP_PREFIX}/mcp.
+        assert prm.json()["resource"] == f"http://testserver{oauth.APP_PREFIX}/mcp"
 
         missing = await client.get("/mcp")
         assert missing.status_code == 401
@@ -112,7 +115,11 @@ async def test_mcp_oauth_middleware_attaches_profile_context(monkeypatch):
     app = FastAPI()
     app.add_middleware(oauth.McpOAuthMiddleware)
 
-    @app.get("/mcp")
+    # The middleware normalizes a bare /mcp request to /mcp/ to match the
+    # FastMCP Streamable-HTTP mount (see McpOAuthMiddleware.dispatch), so the
+    # mock endpoint must live at the slashed path the real app mounts at —
+    # otherwise FastAPI 307-redirects /mcp/ back to /mcp in an infinite loop.
+    @app.get("/mcp/")
     async def mcp_endpoint(request: Request):
         return {
             "profile_id": request.state.profile_id,
