@@ -6,10 +6,7 @@ from app.tools.entries.attempt_completion.create import create_attempt_completio
 from app.tools.entries.attempt_completion.refresh import refresh_attempt_completion
 from app.tools.entries.attempt_completion.refresh import MV_NAME
 from app.tools.entries.attempt.create import create_attempt
-from app.tools.entries.calls.create import create_call
-from app.tools.entries.groups.create import create_group
 from app.tools.entries.persona.create import create_persona
-from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
 pytestmark = pytest.mark.asyncio
@@ -17,24 +14,21 @@ pytestmark = pytest.mark.asyncio
 
 async def _setup_entry(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
-    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     persona = await create_persona(conn, redis_client)
     seed = await create_attempt(conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id)
-    return session, call, seed
+    return session, seed
 
 
 async def test_create_returns_id(conn, redis_client, profile_id):
-    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, call_id=call.id)
+    session, seed = await _setup_entry(conn, redis_client, profile_id)
+    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id)
 
     assert result.id is not None
 
 
 async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
-    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, call_id=call.id)
+    session, seed = await _setup_entry(conn, redis_client, profile_id)
+    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id)
 
     row = await conn.fetchrow(f"SELECT id FROM {MV_NAME} WHERE id = $1", result.id)
 
@@ -42,7 +36,7 @@ async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
 
 
 async def test_refresh_exposes_created_row(conn, redis_client, profile_id):
-    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+    session, seed = await _setup_entry(conn, redis_client, profile_id)
     result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id, mcp=True)
     await refresh_attempt_completion(conn)
 
