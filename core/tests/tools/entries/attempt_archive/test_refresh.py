@@ -55,7 +55,7 @@ async def test_new_attempt_archive_is_not_visible_before_refresh(conn, redis_cli
     created = _created(await _attempt_archive(conn, redis_client, profile_id))
     lookup_id = created.id
 
-    items = await get_attempt_archives(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_archives(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

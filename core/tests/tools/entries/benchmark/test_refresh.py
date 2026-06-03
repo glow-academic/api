@@ -37,7 +37,7 @@ async def test_new_benchmark_is_not_visible_before_refresh(conn, redis_client, p
     created = _created(await _benchmark(conn, redis_client, profile_id, department_id))
     lookup_id = created.id
 
-    items = await get_benchmarks(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_benchmarks(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

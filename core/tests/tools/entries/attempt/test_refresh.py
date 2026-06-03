@@ -51,7 +51,7 @@ async def test_new_attempt_is_not_visible_before_refresh(conn, redis_client, pro
     _session, created = await _attempt(conn, redis_client, profile_id)
     lookup_id = created.id
 
-    items = await get_attempts(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempts(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 
