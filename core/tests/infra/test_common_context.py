@@ -117,7 +117,7 @@ class TestResolveCommonContext:
     async def test_profile_with_setting_graph_resolves_real_tool_graph(
         self, pool, redis_client, setting_graph_factory
     ):
-        fixture = await setting_graph_factory()
+        fixture = await setting_graph_factory(with_primary_department=True)
 
         result = await resolve_common_context(
             pool,
