@@ -42,6 +42,7 @@ async def model_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
             model_id=payload.model_id,
         ),
         arguments=payload.model_dump(mode="json"),

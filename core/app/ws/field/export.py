@@ -42,6 +42,7 @@ async def field_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
             field_id=payload.field_id,
         ),
         arguments=payload.model_dump(mode="json"),
