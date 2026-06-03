@@ -41,16 +41,15 @@ async def _attempt_conversation_completion(conn, redis_client, profile_id, **ove
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
     conversation = await create_attempt_conversations(
-        conn, redis_client, chat_id=attempt_chat.id, call_id=call2.id
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id
     )
     defaults = dict(
         conversation_id=conversation.id,
-        call_id=call2.id,
+        session_id=session.id,
         stop=False,
         error=False,
         message="",

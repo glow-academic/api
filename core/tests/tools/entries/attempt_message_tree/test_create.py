@@ -17,7 +17,6 @@ from app.tools.entries.attempt_message_tree.refresh import (
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.create import create_message
 from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -38,21 +37,18 @@ async def _attempt_message_tree(conn, redis_client, profile_id, **overrides):
         profiles_id=profile_id,
     )
     real_chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=real_chat.id
     )
-    msg1 = await create_message(conn, redis_client, run_id=run.id, role="user")
-    msg2 = await create_message(conn, redis_client, run_id=run.id, role="assistant")
-    await create_attempt_message(
-        conn, redis_client, chat_id=chat.id, call_id=call2.id, message_id=msg1.id
+    parent_message = await create_attempt_message(
+        conn, redis_client, chat_id=chat.id, session_id=session.id
     )
-    await create_attempt_message(
-        conn, redis_client, chat_id=chat.id, call_id=call2.id, message_id=msg2.id
+    child_message = await create_attempt_message(
+        conn, redis_client, chat_id=chat.id, session_id=session.id
     )
     defaults = dict(
-        parent_id=msg1.id,
-        child_id=msg2.id,
+        parent_id=parent_message.id,
+        child_id=child_message.id,
         session_id=session.id,
     )
     defaults.update(overrides)

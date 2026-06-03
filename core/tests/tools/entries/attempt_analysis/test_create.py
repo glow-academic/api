@@ -30,19 +30,18 @@ async def _attempt_analysis(conn, redis_client, profile_id, **overrides):
         conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
     grade = await create_attempt_grade(
         conn,
         redis_client, chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,
     )
-    defaults = dict(grade_id=grade.id, call_id=call2.id, content="Test analysis")
+    defaults = dict(grade_id=grade.id, session_id=session.id, content="Test analysis")
     defaults.update(overrides)
     result = await create_attempt_analysis(conn, redis_client, **defaults)
     return result
