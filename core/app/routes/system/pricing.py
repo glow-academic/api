@@ -83,7 +83,7 @@ async def get_pricing(
             profile_id=profile_id,
             session_id=session_id,
             group_id=group_id,
-            operation="pricing",
+            operation="get",
             arguments=request.model_dump(mode="json"),
             bypass_cache=bypass_cache,
             response_model=PricingResponse,

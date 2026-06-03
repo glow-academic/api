@@ -11,8 +11,8 @@ from app.events.types import (
 from app.infra.home.types import GetHomeRequest, GetHomeResponse
 
 HOME_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "home": OperationEventConfig(
-        operation="home",
+    "home_get": OperationEventConfig(
+        operation="home_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

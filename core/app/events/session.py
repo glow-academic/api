@@ -14,8 +14,8 @@ from app.infra.session.types import (
 )
 
 SESSION_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "session": OperationEventConfig(
-        operation="session",
+    "session_get": OperationEventConfig(
+        operation="session_get",
         scope="entity",
         entity_key="session_id",
         can_subscribe=require_authenticated_profile,

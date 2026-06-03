@@ -46,10 +46,14 @@ GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GenerationCompleteEvent,
             "failed": OperationErrorEvent,
         },
+        # Domain event names use the bare verb form (``.start`` / ``.complete``)
+        # to stay distinct from the auto-generated lifecycle event names
+        # (``.started`` / ``.completed`` / ``.failed``), matching the convention
+        # used by attempt generation operations (message/grade/chat_voice).
         domain_events={
-            "system.group_generate.started": GenerationCompleteEvent,
+            "system.group_generate.start": GenerationCompleteEvent,
             "system.group_generate.progress": GenerationProgressEvent,
-            "system.group_generate.completed": GenerationCompleteEvent,
+            "system.group_generate.complete": GenerationCompleteEvent,
         },
         filter_events=default_filter_events,
     ),

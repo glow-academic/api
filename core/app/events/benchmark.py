@@ -11,8 +11,8 @@ from app.events.types import (
 from app.infra.benchmark.types import BenchmarkRequest, BenchmarkResponse
 
 BENCHMARK_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
-    "benchmark": OperationEventConfig(
-        operation="benchmark",
+    "benchmark_get": OperationEventConfig(
+        operation="benchmark_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,
