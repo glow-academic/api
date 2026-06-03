@@ -5,13 +5,11 @@ from uuid import uuid4
 
 from app.infra.common_context import CommonContext
 from app.infra.profile_identity_context import ProfileIdentityContext
-from app.infra.runs_context import RunsContext
 from app.infra.scenario.sections import build_scenario_get_result
-from app.infra.tool_graph import ArtifactToolScores, SettingsToolGraph
 from app.infra.types import ArtifactContext, ResourcePair
 
 
-def test_build_scenario_get_result_builds_canonical_response():
+def test_build_scenario_get_result_builds_canonical_response() -> None:
     parameter_id = uuid4()
     field_id = uuid4()
     group_id = uuid4()
@@ -34,10 +32,7 @@ def test_build_scenario_get_result_builds_canonical_response():
             is_active=True,
             role_level=0,
             session_id=None,
-            group_id=group_id,
         ),
-        tool_graph=SettingsToolGraph(tools=[]),
-        runs=RunsContext(items=[], total_count=0),
     )
 
     scenario = ArtifactContext(
@@ -112,7 +107,6 @@ def test_build_scenario_get_result_builds_canonical_response():
     result = build_scenario_get_result(
         common=common,
         scenario=scenario,
-        scores=ArtifactToolScores(best={}, has_any={}),
         perms=None,
         group_id=group_id,
     )
