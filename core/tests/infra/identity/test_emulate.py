@@ -23,10 +23,12 @@ class TestResolveEmulation:
         requester = await profile_identity_factory(
             name="Super",
             role=("superadmin", "Superadmin", "Superadmin role"),
+            role_name_exact="Super Administrator",
         )
         target = await profile_identity_factory(
             name="Member",
             role=("member", "Member", "Member role"),
+            role_name_exact="GTA",
         )
 
         async with pool.acquire() as conn:
@@ -148,9 +150,11 @@ class TestResolveEmulation:
     ):
         requester = await profile_identity_factory(
             role=("superadmin", "Superadmin", "Superadmin role"),
+            role_name_exact="Super Administrator",
         )
         target = await profile_identity_factory(
             role=("member", "Member", "Member role"),
+            role_name_exact="GTA",
         )
 
         async with pool.acquire() as conn:
@@ -175,9 +179,11 @@ class TestResolveEmulation:
     ):
         requester = await profile_identity_factory(
             role=("superadmin", "Superadmin", "Superadmin role"),
+            role_name_exact="Super Administrator",
         )
         target = await profile_identity_factory(
             role=("member", "Member", "Member role"),
+            role_name_exact="GTA",
         )
 
         async with pool.acquire() as conn:

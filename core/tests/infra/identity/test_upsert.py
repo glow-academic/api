@@ -144,6 +144,7 @@ class TestResolveProfileUpsert:
             "email_ids": [email_id],
             "role_ids": [role_id],
             "department_ids": None,
+            "primary_departments_id": None,
             "flag_ids": [flag_id],
             "profile_ids": [snapshot_id],
             "redis": None,
