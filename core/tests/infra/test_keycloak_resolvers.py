@@ -27,22 +27,33 @@ def _async_result(value):
 
 @pytest.mark.asyncio
 async def test_resolve_departments_for_sync_uses_search_and_resource_fetch(monkeypatch):
-    dept_id = uuid4()
+    # Multi-hop: search_departments (artifact ids) -> get_department_artifacts
+    # (artifact -> resource id via self-link junction) -> get_department_resources.
+    dept_artifact_id = uuid4()
+    dept_resource_id = uuid4()
     monkeypatch.setattr(
         resolvers,
         "search_departments",
-        _async_result(([dept_id], 1)),
+        _async_result(([dept_artifact_id], 1)),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_department_artifacts",
+        _async_result([_ns(id=dept_artifact_id, department_ids=[dept_resource_id])]),
     )
     monkeypatch.setattr(
         resolvers,
         "get_department_resources",
-        _async_result([_ns(id=dept_id, name="Ops")]),
+        _async_result([_ns(id=dept_resource_id, name="Ops")]),
     )
 
     result = await resolvers.resolve_departments_for_sync(object(), object())
 
+    # department_id is mapped back to the artifact id via resource->artifact map.
     assert result == [
-        resolvers.DepartmentForSync(department_id=dept_id, department_name="Ops")
+        resolvers.DepartmentForSync(
+            department_id=dept_artifact_id, department_name="Ops"
+        )
     ]
 
 
@@ -50,18 +61,35 @@ async def test_resolve_departments_for_sync_uses_search_and_resource_fetch(monke
 async def test_resolve_auths_for_department_follows_department_setting_auth_chain(
     monkeypatch,
 ):
-    department_id = uuid4()
-    setting_id = uuid4()
+    # Multi-hop chain: department_artifact -> dept resource id -> search_settings
+    # -> setting artifacts filtered by department_ids -> setting_logins_junction
+    # -> logins_resource (login_type='auth') -> auth resources.
+    department_artifact_id = uuid4()
+    dept_resource_id = uuid4()
+    setting_artifact_id = uuid4()
+    login_id = uuid4()
     auth_id = uuid4()
     monkeypatch.setattr(
         resolvers,
         "get_department_artifacts",
-        _async_result([_ns(settings_ids=[setting_id])]),
+        _async_result([_ns(id=department_artifact_id, department_ids=[dept_resource_id])]),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "search_settings",
+        _async_result(([setting_artifact_id], 1)),
     )
     monkeypatch.setattr(
         resolvers,
         "get_setting_artifacts",
-        _async_result([_ns(auth_ids=[auth_id])]),
+        _async_result(
+            [_ns(department_ids=[dept_resource_id], logins_ids=[login_id])]
+        ),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_logins",
+        _async_result([_ns(id=login_id, auth_id=auth_id, login_type="auth")]),
     )
     monkeypatch.setattr(
         resolvers,
@@ -72,7 +100,7 @@ async def test_resolve_auths_for_department_follows_department_setting_auth_chai
     )
 
     result = await resolvers.resolve_auths_for_department(
-        object(), object(), department_id
+        object(), object(), department_artifact_id
     )
 
     assert result == [
@@ -84,41 +112,61 @@ async def test_resolve_auths_for_department_follows_department_setting_auth_chai
 async def test_resolve_auths_for_realm_filters_out_department_scoped_settings(
     monkeypatch,
 ):
-    dept_id = uuid4()
-    dept_setting_id = uuid4()
-    realm_setting_id = uuid4()
-    setting_artifact_id = uuid4()
-    auth_id = uuid4()
+    # Realm-level resolution keeps only settings with no department_ids, then
+    # follows setting_logins_junction -> logins (login_type='auth') -> auths.
+    # A dept-scoped setting (with department_ids) and its login must be skipped.
+    dept_resource_id = uuid4()
+    dept_setting_artifact_id = uuid4()
+    realm_setting_artifact_id = uuid4()
+    dept_login_id = uuid4()
+    realm_login_id = uuid4()
+    realm_auth_id = uuid4()
 
-    monkeypatch.setattr(resolvers, "search_departments", _async_result(([dept_id], 1)))
-    monkeypatch.setattr(
-        resolvers,
-        "get_department_artifacts",
-        _async_result([_ns(id=dept_id, settings_ids=[dept_setting_id])]),
-    )
     monkeypatch.setattr(
         resolvers,
         "search_settings",
-        _async_result(([setting_artifact_id], 1)),
+        _async_result(([dept_setting_artifact_id, realm_setting_artifact_id], 2)),
     )
     monkeypatch.setattr(
         resolvers,
         "get_setting_artifacts",
         _async_result(
             [
+                # Department-scoped: has department_ids -> excluded from realm.
                 _ns(
-                    id=setting_artifact_id,
-                    setting_ids=[dept_setting_id, realm_setting_id],
-                    auth_ids=[auth_id],
-                )
+                    id=dept_setting_artifact_id,
+                    department_ids=[dept_resource_id],
+                    logins_ids=[dept_login_id],
+                ),
+                # Realm-level: no department_ids -> included.
+                _ns(
+                    id=realm_setting_artifact_id,
+                    department_ids=[],
+                    logins_ids=[realm_login_id],
+                ),
             ]
+        ),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_logins",
+        _async_result(
+            [_ns(id=realm_login_id, auth_id=realm_auth_id, login_type="auth")]
         ),
     )
     monkeypatch.setattr(
         resolvers,
         "get_auth_resources",
         _async_result(
-            [_ns(id=auth_id, slug="realm", protocol="oidc", name="Realm", active=True)]
+            [
+                _ns(
+                    id=realm_auth_id,
+                    slug="realm",
+                    protocol="oidc",
+                    name="Realm",
+                    active=True,
+                )
+            ]
         ),
     )
 
@@ -126,7 +174,7 @@ async def test_resolve_auths_for_realm_filters_out_department_scoped_settings(
 
     assert result == [
         resolvers.AuthForSync(
-            id=auth_id, slug="realm", provider_id="oidc", name="Realm"
+            id=realm_auth_id, slug="realm", provider_id="oidc", name="Realm"
         )
     ]
 
@@ -135,21 +183,47 @@ async def test_resolve_auths_for_realm_filters_out_department_scoped_settings(
 async def test_resolve_setting_profiles_for_idp_builds_department_and_default_scope(
     monkeypatch,
 ):
-    dept_id = uuid4()
-    dept_setting_id = uuid4()
-    profile_id = uuid4()
-    setting_artifact_id = uuid4()
+    # Multi-hop: search_departments -> dept artifacts (resource id) -> dept
+    # resources (setting_ids identify dept-scoped settings) ; then settings ->
+    # setting_logins_junction -> logins (login_type='profile' -> profile resource
+    # id) ; profile resource ids are mapped back to profile artifact ids via the
+    # profile self-link junction. A setting whose setting resource id is in a
+    # department's setting_ids is department-scoped; otherwise it is default.
+    # NOTE: role is no longer carried by profiles_resource, so role is always None.
+    dept_artifact_id = uuid4()
+    dept_resource_id = uuid4()
+    dept_setting_resource_id = uuid4()
+    default_setting_resource_id = uuid4()
+    dept_setting_artifact_id = uuid4()
+    default_setting_artifact_id = uuid4()
+    dept_login_id = uuid4()
+    default_login_id = uuid4()
+    dept_profile_resource_id = uuid4()
+    default_profile_resource_id = uuid4()
+    dept_profile_artifact_id = uuid4()
+    default_profile_artifact_id = uuid4()
 
-    monkeypatch.setattr(resolvers, "search_departments", _async_result(([dept_id], 1)))
+    monkeypatch.setattr(
+        resolvers, "search_departments", _async_result(([dept_artifact_id], 1))
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_department_artifacts",
+        _async_result([_ns(id=dept_artifact_id, department_ids=[dept_resource_id])]),
+    )
     monkeypatch.setattr(
         resolvers,
         "get_department_resources",
-        _async_result([_ns(id=dept_id, setting_ids=[dept_setting_id])]),
+        _async_result(
+            [_ns(id=dept_resource_id, setting_ids=[dept_setting_resource_id])]
+        ),
     )
     monkeypatch.setattr(
         resolvers,
         "search_settings",
-        _async_result(([setting_artifact_id], 1)),
+        _async_result(
+            ([dept_setting_artifact_id, default_setting_artifact_id], 2)
+        ),
     )
     monkeypatch.setattr(
         resolvers,
@@ -157,41 +231,98 @@ async def test_resolve_setting_profiles_for_idp_builds_department_and_default_sc
         _async_result(
             [
                 _ns(
-                    id=setting_artifact_id,
-                    profile_ids=[profile_id],
-                    setting_ids=[dept_setting_id],
-                )
+                    id=dept_setting_artifact_id,
+                    logins_ids=[dept_login_id],
+                    setting_ids=[dept_setting_resource_id],
+                ),
+                _ns(
+                    id=default_setting_artifact_id,
+                    logins_ids=[default_login_id],
+                    setting_ids=[default_setting_resource_id],
+                ),
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_logins",
+        _async_result(
+            [
+                _ns(
+                    id=dept_login_id,
+                    profile_id=dept_profile_resource_id,
+                    login_type="profile",
+                ),
+                _ns(
+                    id=default_login_id,
+                    profile_id=default_profile_resource_id,
+                    login_type="profile",
+                ),
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "search_profiles",
+        _async_result(
+            ([dept_profile_artifact_id, default_profile_artifact_id], 2)
+        ),
+    )
+    monkeypatch.setattr(
+        resolvers,
+        "get_profile_artifacts",
+        _async_result(
+            [
+                _ns(
+                    id=dept_profile_artifact_id,
+                    profile_ids=[dept_profile_resource_id],
+                ),
+                _ns(
+                    id=default_profile_artifact_id,
+                    profile_ids=[default_profile_resource_id],
+                ),
             ]
         ),
     )
     monkeypatch.setattr(
         resolvers,
         "get_profiles",
-        _async_result([_ns(id=profile_id, name="Ada", role="admin", active=True)]),
+        _async_result(
+            [
+                _ns(id=dept_profile_resource_id, name="Ada", active=True),
+                _ns(id=default_profile_resource_id, name="Grace", active=True),
+            ]
+        ),
     )
 
     result = await resolvers.resolve_setting_profiles_for_idp(object(), object())
 
-    assert result == [
-        resolvers.SettingProfileForIdp(
-            profile_id=profile_id,
-            profile_name="Ada",
-            role="admin",
-            setting_id=setting_artifact_id,
-            department_id=dept_id,
-        )
-    ]
+    assert resolvers.SettingProfileForIdp(
+        profile_id=dept_profile_artifact_id,
+        profile_name="Ada",
+        role=None,
+        setting_id=dept_setting_artifact_id,
+        department_id=dept_artifact_id,
+    ) in result
+    assert resolvers.SettingProfileForIdp(
+        profile_id=default_profile_artifact_id,
+        profile_name="Grace",
+        role=None,
+        setting_id=default_setting_artifact_id,
+        department_id=None,
+    ) in result
+    assert len(result) == 2
 
 
 @pytest.mark.asyncio
 async def test_resolve_auth_items_prefers_department_specific_values(monkeypatch):
     auth_id = uuid4()
     department_id = uuid4()
+    dept_resource_id = uuid4()
     item_encrypted_id = uuid4()
     item_plain_id = uuid4()
-    dept_setting_id = uuid4()
-    default_setting_id = uuid4()
-    setting_artifact_id = uuid4()
+    dept_setting_artifact_id = uuid4()
+    default_setting_artifact_id = uuid4()
     key_id = uuid4()
     dept_aik_id = uuid4()
     default_aik_id = uuid4()
@@ -215,20 +346,19 @@ async def test_resolve_auth_items_prefers_department_specific_values(monkeypatch
             ]
         ),
     )
+    # Department artifact -> resource id; settings are categorized dept vs default
+    # by whether their department_ids contains this resource id.
     monkeypatch.setattr(
         resolvers,
-        "get_department_resources",
-        _async_result([_ns(setting_ids=[dept_setting_id])]),
-    )
-    monkeypatch.setattr(
-        resolvers,
-        "search_departments",
-        _async_result(([department_id], 1)),
+        "get_department_artifacts",
+        _async_result([_ns(id=department_id, department_ids=[dept_resource_id])]),
     )
     monkeypatch.setattr(
         resolvers,
         "search_settings",
-        _async_result(([setting_artifact_id], 1)),
+        _async_result(
+            ([dept_setting_artifact_id, default_setting_artifact_id], 2)
+        ),
     )
     monkeypatch.setattr(
         resolvers,
@@ -236,12 +366,14 @@ async def test_resolve_auth_items_prefers_department_specific_values(monkeypatch
         _async_result(
             [
                 _ns(
-                    setting_ids=[dept_setting_id],
+                    id=dept_setting_artifact_id,
+                    department_ids=[dept_resource_id],
                     auth_item_keys_ids=[dept_aik_id],
                     auth_item_value_ids=[dept_aiv_id],
                 ),
                 _ns(
-                    setting_ids=[default_setting_id],
+                    id=default_setting_artifact_id,
+                    department_ids=[],
                     auth_item_keys_ids=[default_aik_id],
                     auth_item_value_ids=[default_aiv_id],
                 ),
