@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.media_types import ImageDownloadAttemptApiResult
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -73,6 +74,11 @@ async def image_download_attempt_impl(
         )
 
     image_record = results[0]
+
+    # -- Step 3b: Per-resource access check (issue #148) -----------------------
+    await enforce_attempt_media_access(
+        pool, redis, upload_id=image_record.upload_id, requester=profile
+    )
 
     # -- Step 4: Verify file on disk -------------------------------------------
     file_path = os.path.join(UPLOAD_FOLDER, image_record.file_path)

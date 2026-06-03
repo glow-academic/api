@@ -7,6 +7,7 @@ Business logic for computing display values and derived fields is centralized he
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, NoReturn
 from uuid import UUID
 
 from app.infra.attempt.types import (
@@ -16,6 +17,12 @@ from app.infra.attempt.types import (
 from app.tools.entries.attempt_chat.types import (
     GetAttemptChatResponse as ChatViewItem,
 )
+
+if TYPE_CHECKING:
+    import asyncpg
+    from redis.asyncio import Redis
+
+    from app.infra.profile_identity_context import ProfileIdentityContext
 
 # Default styling for user messages
 DEFAULT_USER_COLOR = "#6366f1"  # Indigo
@@ -79,6 +86,71 @@ def check_attempt_access(
     if req_level == ROLE_HIERARCHY["superadmin"]:
         return True
     return req_level > att_level
+
+
+async def enforce_attempt_media_access(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    upload_id: UUID | None,
+    requester: ProfileIdentityContext,
+) -> None:
+    """Authorize a media download/preview against its owning session.
+
+    Mirrors ``get_attempt_internal``'s resolve-owner → ``check_attempt_access``
+    gate (issue #148). Every downloadable attempt blob (file / image / audio /
+    text) resolves to an ``uploads_entry``, which carries the ``session_id`` of
+    the student session that produced it. ``sessions_mv.profile_id`` is that
+    student (the resource owner), so the same owner-or-strictly-higher-role
+    rule that protects ``/attempt/get`` applies here.
+
+    Raises ``HTTPException(403)`` (matching the impls' existing has_permission
+    denial shape) when the caller neither owns the upload's session nor holds a
+    strictly-higher role. ``check_attempt_access`` already short-circuits to
+    "own resource → allowed", so legitimate self-downloads are unaffected.
+
+    Args:
+        pool: asyncpg pool (for the session-owner resolution query).
+        redis: cache client.
+        upload_id: the ``uploads_entry`` id the blob resolved to.
+        requester: the caller's resolved identity context.
+    """
+    # Late imports keep this module import-cycle-free (permissions is imported
+    # by get.py which is imported widely).
+    from fastapi import HTTPException
+
+    from app.tools.entries.sessions.get import get_sessions
+    from app.tools.entries.uploads.get import get_upload
+
+    def _deny() -> NoReturn:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have access to this resource.",
+        )
+
+    if upload_id is None:
+        # No upload linkage means we cannot prove ownership — fail closed.
+        _deny()
+
+    async with pool.acquire() as conn:
+        upload = await get_upload(conn, upload_id, redis)
+        if upload is None or upload.session_id is None:
+            _deny()
+        sessions = await get_sessions(conn, [upload.session_id], redis)
+
+    owner_profile_id = sessions[0].profile_id if sessions else None
+    if not check_attempt_access(
+        owner_profile_id,
+        requester.profiles_id,
+        request_role=requester.role,
+        # Attempt-owner role is not surfaced (dropped from profiles_resource,
+        # same as get_attempt_internal which passes attempt_role=None). The
+        # role-hierarchy gate therefore treats the owner as a base-level
+        # student, which is the correct conservative default for these
+        # student-facing media resources.
+        attempt_role=None,
+    ):
+        _deny()
 
 
 def compute_content_display(
