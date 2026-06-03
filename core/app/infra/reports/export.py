@@ -27,11 +27,18 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.test_invocation.search import (
     search_test_invocation_entries_internal,
 )
+from app.tools.entries.test_invocation.types import GetTestInvocationResponse
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
 )
+from app.tools.entries.test_invocation_runs.types import (
+    GetTestInvocationRunsResponse,
+)
 from app.tools.entries.test_invocation_traces.search import (
     search_test_invocation_traces,
+)
+from app.tools.entries.test_invocation_traces.types import (
+    GetTestInvocationTracesResponse,
 )
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.names.get import get_names
@@ -127,7 +134,8 @@ def _build_invocations_csv(
 
 
 def _build_groups_csv(
-    groups: list,
+    groups: list[GetTestInvocationTracesResponse],
+    invocation_by_id: dict[UUID, GetTestInvocationResponse],
     name_map: dict[UUID, str],
     voice_map: dict[UUID, str],
 ) -> str:
@@ -136,11 +144,15 @@ def _build_groups_csv(
     grp_writer.writerow(GROUP_CSV_COLUMNS)
 
     for g in groups:
+        # Traces (groups) carry the config bundle (voices/prompts/instructions/
+        # tools); agents live on the parent invocation, not the trace (#102).
+        parent_inv = invocation_by_id.get(g.test_invocation_id)
+        agent_ids = parent_inv.agent_ids if parent_inv else []
         grp_writer.writerow(
             [
                 str(g.id),
                 str(g.test_invocation_id),
-                PIPE.join(name_map.get(aid, "") for aid in (g.agent_ids or [])),
+                PIPE.join(name_map.get(aid, "") for aid in (agent_ids or [])),
                 PIPE.join(voice_map.get(vid, "") for vid in (g.voice_ids or [])),
                 PIPE.join(name_map.get(pid, "") for pid in (g.prompt_ids or [])),
                 PIPE.join(name_map.get(iid, "") for iid in (g.instruction_ids or [])),
@@ -153,7 +165,9 @@ def _build_groups_csv(
 
 
 def _build_runs_csv(
-    runs: list,
+    runs: list[GetTestInvocationRunsResponse],
+    invocation_by_id: dict[UUID, GetTestInvocationResponse],
+    trace_by_id: dict[UUID, GetTestInvocationTracesResponse],
     name_map: dict[UUID, str],
     voice_map: dict[UUID, str],
 ) -> str:
@@ -162,15 +176,30 @@ def _build_runs_csv(
     run_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:
+        # Runs are pure binding rows after #102: agents come from the parent
+        # invocation (via test_invocation_id); the config bundle (voices/
+        # prompts/instructions/tools) comes from the linked trace (via
+        # test_invocation_traces_id). Runs carry none of these fields.
+        parent_inv = invocation_by_id.get(r.test_invocation_id)
+        run_trace = (
+            trace_by_id.get(r.test_invocation_traces_id)
+            if r.test_invocation_traces_id is not None
+            else None
+        )
+        agent_ids = parent_inv.agent_ids if parent_inv else []
+        voice_ids = run_trace.voice_ids if run_trace else []
+        prompt_ids = run_trace.prompt_ids if run_trace else []
+        instruction_ids = run_trace.instruction_ids if run_trace else []
+        tool_ids = run_trace.tool_ids if run_trace else []
         run_writer.writerow(
             [
                 str(r.id),
                 str(r.test_invocation_id),
-                PIPE.join(name_map.get(aid, "") for aid in (r.agent_ids or [])),
-                PIPE.join(voice_map.get(vid, "") for vid in (r.voice_ids or [])),
-                PIPE.join(name_map.get(pid, "") for pid in (r.prompt_ids or [])),
-                PIPE.join(name_map.get(iid, "") for iid in (r.instruction_ids or [])),
-                PIPE.join(name_map.get(tid, "") for tid in (r.tool_ids or [])),
+                PIPE.join(name_map.get(aid, "") for aid in (agent_ids or [])),
+                PIPE.join(voice_map.get(vid, "") for vid in (voice_ids or [])),
+                PIPE.join(name_map.get(pid, "") for pid in (prompt_ids or [])),
+                PIPE.join(name_map.get(iid, "") for iid in (instruction_ids or [])),
+                PIPE.join(name_map.get(tid, "") for tid in (tool_ids or [])),
                 str(r.created_at),
                 "Yes" if r.active else "No",
             ]
@@ -303,25 +332,24 @@ async def export_reports_impl(
     all_department_ids: set[UUID] = set()
     all_voice_ids: set[UUID] = set()
 
+    # Agent ids live on the parent invocation; voice (single) also on invocation.
     for inv in invocations:
         all_name_ids.update(inv.agent_ids or [])
         all_department_ids.update(inv.department_ids or [])
         if inv.voice_id:
             all_voice_ids.add(inv.voice_id)
 
+    # The config bundle (voices/prompts/instructions/tools) lives on traces
+    # (groups); traces carry no agent_ids (those came from invocations above).
     for g in groups:
-        all_name_ids.update(g.agent_ids or [])
         all_name_ids.update(g.prompt_ids or [])
         all_name_ids.update(g.instruction_ids or [])
         all_name_ids.update(g.tool_ids or [])
         all_voice_ids.update(g.voice_ids or [])
 
-    for r in runs:
-        all_name_ids.update(r.agent_ids or [])
-        all_name_ids.update(r.prompt_ids or [])
-        all_name_ids.update(r.instruction_ids or [])
-        all_name_ids.update(r.tool_ids or [])
-        all_voice_ids.update(r.voice_ids or [])
+    # Runs are pure binding rows after #102 — they carry no name/voice ids of
+    # their own. Their displayed ids are sourced from the parent invocation
+    # (agents) and linked trace (bundle), both already collected above.
 
     async def _get_names() -> list:
         if not all_name_ids:
@@ -348,10 +376,21 @@ async def export_reports_impl(
     department_map: dict[UUID, str] = {d.id: d.name or "" for d in departments_data}
     voice_map: dict[UUID, str] = {v.id: v.voice for v in voices_data}
 
+    # Lookups so trace/run rows can source ids from the model that owns them:
+    # agents from the parent invocation, the config bundle from the linked trace.
+    invocation_by_id: dict[UUID, GetTestInvocationResponse] = {
+        inv.invocation_id: inv for inv in invocations
+    }
+    trace_by_id: dict[UUID, GetTestInvocationTracesResponse] = {
+        g.id: g for g in groups
+    }
+
     # -- Step 5: Generate CSVs via helpers --
     inv_csv = _build_invocations_csv(invocations, name_map, department_map, voice_map)
-    grp_csv = _build_groups_csv(groups, name_map, voice_map)
-    run_csv = _build_runs_csv(runs, name_map, voice_map)
+    grp_csv = _build_groups_csv(groups, invocation_by_id, name_map, voice_map)
+    run_csv = _build_runs_csv(
+        runs, invocation_by_id, trace_by_id, name_map, voice_map
+    )
     bs_csv = _build_brightspace_csv(invocations, name_map)
 
     # -- Step 6: Generate ZIP --
