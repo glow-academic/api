@@ -1,5 +1,7 @@
 """Tests for document_drafts search."""
 
+from uuid import UUID
+
 import pytest
 
 from app.tools.entries.document_drafts.create import create_document_draft
@@ -36,10 +38,8 @@ async def test_search_filters_by_session(conn, redis_client, profile_id):
     assert result.id in ids
 
 
-async def test_search_returns_connections(conn, redis_client, profile_id):
+async def test_search_returns_connections(conn, redis_client, profile_id, name_id: UUID):
     session, group = await _setup(conn, redis_client, profile_id)
-
-    name_id = await conn.fetchval("SELECT id FROM names_resource LIMIT 1")
 
     result = await create_document_draft(
         conn,
