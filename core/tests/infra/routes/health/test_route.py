@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import io
-import base64
-import zipfile
 from datetime import UTC, datetime
 
 import pytest
@@ -88,78 +85,11 @@ class TestHealthRoute:
         assert payload["views"]["metrics_hourly"]
         assert payload["analytics"] is not None
 
-    async def test_health_docs_route_returns_composed_docs(
-        self,
-        health_route_client,
-        health_route_actor,
-    ):
-        health_route_client.authenticate(
-            profile_id=health_route_actor.profile_id,
-            session_id=health_route_actor.session_id,
-        )
-        response = await health_route_client.client.post(
-            "/health/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "health"
-        assert payload["type"] == "analytics"
-        assert payload["entries"]
-        assert payload["page_metadata"]["list"]["title"] == "Health"
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {"get_health", "health_refresh", "export_health"} <= op_names
-
-    async def test_health_export_route_creates_zip_upload(
-        self,
-        pool,
-        redis_client,
-        health_route_client,
-        health_route_actor,
-    ):
-        from app.infra.globals import UPLOAD_FOLDER
-
-        async with pool.acquire() as conn:
-            await _seed_health_metrics(conn, redis_client)
-
-        health_route_client.authenticate(
-            profile_id=health_route_actor.profile_id,
-            session_id=health_route_actor.session_id,
-        )
-        response = await health_route_client.client.post(
-            "/health/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["content"] != ""
-        assert payload["file_name"].endswith(".zip")
-        assert payload["row_count"] >= 2
-
-        assert UPLOAD_FOLDER
-        with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload["content"]))) as archive:
-            assert sorted(archive.namelist()) == ["health.csv", "metrics.csv"]
-
-    async def test_health_refresh_route_returns_invalidated_tags(
-        self,
-        health_route_client,
-        health_route_actor,
-    ):
-        health_route_client.authenticate(
-            profile_id=health_route_actor.profile_id,
-            session_id=health_route_actor.session_id,
-        )
-
-        response = await health_route_client.client.post(
-            "/health/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "health,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == ["health_mv"]
-        assert payload["invalidated_tags"] == ["health", "artifacts"]
+    # NOTE: removed test_health_docs_route_returns_composed_docs,
+    # test_health_export_route_creates_zip_upload, and
+    # test_health_refresh_route_returns_invalidated_tags — the health
+    # docs/export/refresh operations were consolidated into the system parent
+    # (`/system/context`, view-aware `/system/export`, `/system/refresh`). The
+    # health artifact exposes only the root `POST /health` bundle; there are no
+    # `/health/{docs,export,refresh}` routes and the health route client mounts
+    # only the root health module.

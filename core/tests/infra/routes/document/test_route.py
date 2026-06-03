@@ -404,7 +404,14 @@ class TestDocumentRoute:
         assert response.headers["X-Invalidate-Tags"] == "documents,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["document_drafts_mv"]
+        assert payload["refreshed_views"] == [
+            "document_drafts_mv",
+            "runs_mv",
+            "messages_mv",
+            "calls_mv",
+            "groups_mv",
+            "group_names_mv",
+        ]
         assert payload["invalidated_tags"] == ["documents", "artifacts"]
 
     async def _create_document_via_route(

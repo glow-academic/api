@@ -21,8 +21,9 @@ async def session_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-async def _create_session_route_graph(pool, actor):
+async def _create_session_route_graph(pool, redis_client, actor):
     from app.tools.entries.calls.create import create_call
+    from app.tools.entries.calls.refresh import refresh_calls_internal
     from app.tools.entries.chat.create import create_chat
     from app.tools.entries.chat.refresh import refresh_chat
     from app.tools.entries.groups.create import create_group
@@ -32,30 +33,36 @@ async def _create_session_route_graph(pool, actor):
     from app.tools.entries.problems.create import create_problem
     from app.tools.entries.problems.refresh import refresh_problems
     from app.tools.entries.runs.create import create_run
+    from app.tools.entries.sessions.refresh import refresh_sessions
 
     async with pool.acquire() as conn:
         group = await create_group(
             conn,
+            redis_client,
             session_id=actor.session_id,
             artifact_type="session",
         )
         run = await create_run(
             conn,
+            redis_client,
             group_id=group.id,
             session_id=actor.session_id,
         )
         call = await create_call(
             conn,
+            redis_client,
             run_id=run.id,
             session_id=actor.session_id,
         )
         await create_login(
             conn,
+            redis_client,
             session_id=actor.session_id,
             profile_id=actor.profiles_id,
         )
         await create_problem(
             conn,
+            redis_client,
             session_id=actor.session_id,
             call_id=call.id,
             type="bug",
@@ -64,13 +71,16 @@ async def _create_session_route_graph(pool, actor):
         )
         await create_chat(
             conn,
+            redis_client,
             session_id=actor.session_id,
             department_ids=[actor.department_id],
             text_enabled=True,
             name="Session Route Chat",
         )
+        await refresh_sessions(conn)
         await refresh_groups(conn)
         await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
+        await refresh_calls_internal(conn)
         await refresh_logins(conn)
         await refresh_problems(conn)
         await refresh_chat(conn)
@@ -87,17 +97,20 @@ class TestSessionRoute:
     async def test_get_session_route_returns_session_bundle(
         self,
         pool,
+        redis_client,
         session_route_client,
         session_route_actor,
     ):
-        graph = await _create_session_route_graph(pool, session_route_actor)
+        graph = await _create_session_route_graph(
+            pool, redis_client, session_route_actor
+        )
         session_route_client.authenticate(
             profile_id=session_route_actor.profile_id,
             session_id=session_route_actor.session_id,
         )
 
         response = await session_route_client.client.post(
-            "/session/get",
+            "/session",
             json={"session_id": graph["session_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
@@ -125,21 +138,24 @@ class TestSessionRoute:
     async def test_get_session_route_sets_cache_hit_on_repeat_request(
         self,
         pool,
+        redis_client,
         session_route_client,
         session_route_actor,
     ):
-        graph = await _create_session_route_graph(pool, session_route_actor)
+        graph = await _create_session_route_graph(
+            pool, redis_client, session_route_actor
+        )
         session_route_client.authenticate(
             profile_id=session_route_actor.profile_id,
             session_id=session_route_actor.session_id,
         )
 
         first = await session_route_client.client.post(
-            "/session/get",
+            "/session",
             json={"session_id": graph["session_id"]},
         )
         second = await session_route_client.client.post(
-            "/session/get",
+            "/session",
             json={"session_id": graph["session_id"]},
         )
 
@@ -159,7 +175,7 @@ class TestSessionRoute:
         )
 
         response = await session_route_client.client.post(
-            "/session/get",
+            "/session",
             json={"session_id": str(uuid4())},
             headers={"X-Bypass-Cache": "1"},
         )

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import io
-import base64
-import zipfile
 
 import pytest
 import pytest_asyncio
@@ -87,117 +84,13 @@ class TestBenchmarkRoute:
         assert payload["history"] is not None
         assert payload["analytics"] is not None
 
-    async def test_search_benchmark_route_returns_history(
-        self,
-        pool,
-        redis_client,
-        benchmark_route_client,
-        benchmark_route_actor,
-    ):
-        seeded = await _create_benchmark_route_data(
-            pool, redis_client, benchmark_route_actor
-        )
-        benchmark_route_client.authenticate(
-            profile_id=benchmark_route_actor.profile_id,
-            session_id=benchmark_route_actor.session_id,
-        )
-
-        response = await benchmark_route_client.client.post(
-            "/benchmark/search",
-            json={
-                "department_ids": [seeded["department_id"]],
-                "history_page": 0,
-                "history_page_size": 10,
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Cache-Tags"] == "artifacts,benchmark,search"
-
-        payload = response.json()
-        assert payload["page"] == 0
-        assert payload["page_size"] == 10
-        assert payload["total_count"] >= 0
-        assert isinstance(payload["data"], list)
-
-    async def test_benchmark_docs_route_returns_composed_docs(
-        self,
-        benchmark_route_client,
-        benchmark_route_actor,
-    ):
-        benchmark_route_client.authenticate(
-            profile_id=benchmark_route_actor.profile_id,
-            session_id=benchmark_route_actor.session_id,
-        )
-
-        response = await benchmark_route_client.client.post(
-            "/benchmark/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "benchmark"
-        assert payload["type"] == "analytics"
-        assert payload["entries"]
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {
-            "get_benchmark",
-            "search_benchmark_history",
-            "benchmark_refresh",
-            "export_benchmark",
-        } <= op_names
-
-    async def test_benchmark_export_route_creates_zip_upload(
-        self,
-        pool,
-        redis_client,
-        benchmark_route_client,
-        benchmark_route_actor,
-    ):
-        seeded = await _create_benchmark_route_data(
-            pool, redis_client, benchmark_route_actor
-        )
-        benchmark_route_client.authenticate(
-            profile_id=benchmark_route_actor.profile_id,
-            session_id=benchmark_route_actor.session_id,
-        )
-
-        response = await benchmark_route_client.client.post(
-            "/benchmark/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["content"] != ""
-        assert payload["file_name"].endswith(".zip")
-        assert payload["row_count"] >= 1
-
-        with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload["content"]))) as archive:
-            assert sorted(archive.namelist()) == [
-                "benchmarks.csv",
-                "test_invocations.csv",
-            ]
-
-    async def test_benchmark_refresh_route_returns_invalidated_tags(
-        self,
-        benchmark_route_client,
-        benchmark_route_actor,
-    ):
-        benchmark_route_client.authenticate(
-            profile_id=benchmark_route_actor.profile_id,
-            session_id=benchmark_route_actor.session_id,
-        )
-
-        response = await benchmark_route_client.client.post(
-            "/benchmark/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "benchmark,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == ["benchmark_mv"]
-        assert payload["invalidated_tags"] == ["benchmark", "artifacts"]
+    # NOTE: removed test_search_benchmark_route_returns_history,
+    # test_benchmark_docs_route_returns_composed_docs,
+    # test_benchmark_export_route_creates_zip_upload, and
+    # test_benchmark_refresh_route_returns_invalidated_tags — the benchmark
+    # search/docs/export/refresh operations were consolidated into the
+    # test/system parents (`/system/sessions`-style lists, `/system/context`,
+    # view-aware `/system/export`, `/system/refresh`). The benchmark artifact
+    # exposes only the root `POST /benchmark` bundle; there are no
+    # `/benchmark/{search,docs,export,refresh}` routes and the benchmark route
+    # client mounts only the root benchmark module.

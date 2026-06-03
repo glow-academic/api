@@ -61,74 +61,11 @@ class TestReportsRoute:
         )
         assert payload["total_count"] >= 0
 
-    async def test_reports_docs_route_returns_composed_docs(
-        self,
-        reports_route_client,
-        reports_route_actor,
-    ):
-        reports_route_client.authenticate(
-            profile_id=reports_route_actor.profile_id,
-            session_id=reports_route_actor.session_id,
-        )
-
-        response = await reports_route_client.client.post(
-            "/report/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "reports"
-        assert payload["type"] == "analytics"
-        assert payload["page_metadata"]["list"]["title"] == "Reports"
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {"get_reports", "reports_refresh", "export_reports"} <= op_names
-
-    async def test_reports_export_route_returns_current_contract(
-        self,
-        reports_route_client,
-        reports_route_actor,
-    ):
-        reports_route_client.authenticate(
-            profile_id=reports_route_actor.profile_id,
-            session_id=reports_route_actor.session_id,
-        )
-
-        response = await reports_route_client.client.post(
-            "/report/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-
-        if payload["row_count"] == 0:
-            assert payload["content"] == ""
-            assert payload["file_name"] == ""
-            return
-
-        assert payload["file_name"].endswith(".zip")
-        assert payload["content"] != ""
-        assert payload["row_count"] > 0
-
-    async def test_reports_refresh_route_returns_invalidated_tags(
-        self,
-        reports_route_client,
-        reports_route_actor,
-    ):
-        reports_route_client.authenticate(
-            profile_id=reports_route_actor.profile_id,
-            session_id=reports_route_actor.session_id,
-        )
-
-        response = await reports_route_client.client.post(
-            "/report/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "reports,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == []
-        assert payload["invalidated_tags"] == ["reports", "artifacts"]
+    # NOTE: removed test_reports_docs_route_returns_composed_docs,
+    # test_reports_export_route_returns_current_contract, and
+    # test_reports_refresh_route_returns_invalidated_tags — the reports
+    # docs/export/refresh operations were consolidated into the attempt/system
+    # parents (`/system/context`, view-aware `/system/export`, `/system/refresh`).
+    # The reports artifact exposes only the root `POST /report` analytics bundle;
+    # there are no `/report/{docs,export,refresh}` routes and the reports route
+    # client mounts only the root report module.
