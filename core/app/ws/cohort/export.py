@@ -50,6 +50,7 @@ async def cohort_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
             cohort_id=payload.cohort_id,
         ),
         arguments=payload.model_dump(mode="json"),

@@ -50,6 +50,7 @@ async def department_export(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
             department_id=payload.department_id,
         ),
         arguments=payload.model_dump(mode="json"),
