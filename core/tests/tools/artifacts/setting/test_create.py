@@ -68,7 +68,7 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
         departments=True,
         flags=True,
         colors=True,
-        profiles=True,
+        providers=True,
         auth_item_keys=True,
         provider_keys=True,
         thresholds=True,
@@ -82,7 +82,7 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
     assert p.department_ids == []
     assert p.flag_ids == []
     assert p.color_ids == []
-    assert p.profile_ids == []
+    assert p.provider_ids == []
     assert p.auth_item_keys_ids == []
     assert p.provider_key_ids == []
     assert p.threshold_ids == []

@@ -5,6 +5,7 @@ import pytest
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.run_pricing.create import create_run_pricing_entry_internal
 from app.tools.entries.run_pricing.get import get_run_pricing_entries_internal
+from app.tools.entries.run_pricing.refresh import refresh_run_pricing_internal
 from app.tools.entries.run_pricing.search import search_run_pricing_entries_internal
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -28,6 +29,7 @@ async def test_gets_created_run_pricing_entry(conn, redis_client, profile_id):
         run_id=run.id,
         count=7,
     )
+    await refresh_run_pricing_internal(conn)
 
     items = await get_run_pricing_entries_internal(conn, [created.id], redis_client, bypass_cache=True)
 
@@ -51,6 +53,7 @@ async def test_bypass_cache_matches_search_result(conn, redis_client, profile_id
         run_id=run.id,
         count=9,
     )
+    await refresh_run_pricing_internal(conn)
 
     search_items = await search_run_pricing_entries_internal(
         conn, redis_client, run_ids=[run.id], bypass_mv=True
