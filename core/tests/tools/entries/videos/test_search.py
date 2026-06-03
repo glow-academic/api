@@ -15,7 +15,7 @@ from app.tools.resources.videos.create import (
 pytestmark = pytest.mark.asyncio
 
 
-async def _setup(conn, profile_id, redis_client):
+async def _setup(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
     resource = await create_video_resource(
         conn, name="test", description="test", redis=redis_client
