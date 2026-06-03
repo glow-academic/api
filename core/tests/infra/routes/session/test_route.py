@@ -123,8 +123,17 @@ class TestSessionRoute:
         assert payload["session_id"] == graph["session_id"]
         assert payload["profile_id"] == str(session_route_actor.profiles_id)
         assert payload["groups"]
-        assert payload["groups"][0]["group_id"] == graph["group_id"]
-        assert payload["groups"][0]["run_count"] >= 1
+        # The response lists every active group in the session ordered by
+        # ``created_at DESC``. Besides the group the test creates, the audited
+        # ``/session`` request itself mints a fresh time-windowed group (newer,
+        # so it sorts to index 0). Locate the created group by id rather than
+        # assuming it is first.
+        created_group = next(
+            (g for g in payload["groups"] if g["group_id"] == graph["group_id"]),
+            None,
+        )
+        assert created_group is not None
+        assert created_group["run_count"] >= 1
         assert payload["timeline"]
 
         async with pool.acquire() as conn:

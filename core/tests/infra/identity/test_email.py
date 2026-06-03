@@ -30,7 +30,12 @@ class TestResolveProfileByEmail:
         assert result is not None
         assert result.profile_id == fixture.artifact_id
         assert result.name == fixture.name
-        assert result.role == fixture.role
+        # ``ProfileByEmailResult.role`` is populated from
+        # ``resolve_profile_identity_context().role``, which the resolver sets to
+        # ``roles_resource.name`` (the role *name*, "Member <tag>"), not the
+        # caller-supplied role *key* ("member"). The fixture exposes the resolved
+        # name as ``.role_name`` — assert against that real interface.
+        assert result.role == fixture.role_name
         assert result.emails == fixture.emails
         assert result.active is True
         assert result.actor_name is None
