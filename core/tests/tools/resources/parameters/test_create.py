@@ -22,10 +22,12 @@ async def test_creates_new_parameter(conn, redis_client):
 async def test_visible_via_get(conn, redis_client):
     result = await create_parameter(conn, redis_client, name="test-param-visible")
 
-    items = await get_parameters(conn, [result.id], redis_client, bypass_cache=True)
+    items = await get_parameters(
+        conn, [result.parameter_id], redis_client, bypass_cache=True
+    )
 
     assert len(items) == 1
-    assert items[0].id == result.id
+    assert items[0].parameter_id == result.parameter_id
     assert items[0].name == "test-param-visible"
 
 
@@ -33,7 +35,7 @@ async def test_creates_second_row_with_same_name(conn, redis_client):
     first = await create_parameter(conn, redis_client, name="duplicate-param")
     second = await create_parameter(conn, redis_client, name="duplicate-param")
 
-    assert first.id != second.id
+    assert first.parameter_id != second.parameter_id
     assert second.name == "duplicate-param"
 
 

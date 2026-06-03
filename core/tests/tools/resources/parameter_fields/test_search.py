@@ -20,7 +20,7 @@ async def _create_parameter_field_with_deps(conn, redis_client):
         conn, name=f"field-{unique_tag()}", description="", redis=redis_client
     )
     pf = await create_parameter_field(
-        conn, field.id, redis_client, parameter_id=parameter.id
+        conn, field.id, redis_client, parameter_id=parameter.parameter_id
     )
     return pf
 

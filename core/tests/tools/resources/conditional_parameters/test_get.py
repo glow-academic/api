@@ -17,13 +17,13 @@ async def test_gets_created_conditional_parameter(conn, redis_client):
         create_conditional_parameter,
     )
 
-    item = await create_conditional_parameter(conn, param.id, redis_client)
+    item = await create_conditional_parameter(conn, param.parameter_id, redis_client)
 
     items = await get_conditional_parameters(conn, [item.id], redis_client)
 
     assert len(items) == 1
     assert items[0].id == item.id
-    assert items[0].parameter_id == param.id
+    assert items[0].parameter_id == param.parameter_id
     assert items[0].active is True
 
 
@@ -45,7 +45,7 @@ async def test_cache_hit_skips_db(conn, redis_client):
         create_conditional_parameter,
     )
 
-    item = await create_conditional_parameter(conn, param.id, redis_client)
+    item = await create_conditional_parameter(conn, param.parameter_id, redis_client)
 
     # First call populates cache
     items = await get_conditional_parameters(conn, [item.id], redis_client)
@@ -63,7 +63,7 @@ async def test_bypass_cache_skips_read_and_write(conn, redis_client):
         create_conditional_parameter,
     )
 
-    item = await create_conditional_parameter(conn, param.id, redis_client)
+    item = await create_conditional_parameter(conn, param.parameter_id, redis_client)
 
     items = await get_conditional_parameters(
         conn, [item.id], redis_client, bypass_cache=True

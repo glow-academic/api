@@ -17,7 +17,7 @@ pytestmark = pytest.mark.asyncio
 async def _make(conn, redis_client, name: str = ""):
     """Helper: create a parameter then a conditional_parameter referencing it."""
     param = await create_parameter(conn, redis_client, name=name or f"p-{unique_tag()}")
-    return await create_conditional_parameter(conn, param.id, redis_client)
+    return await create_conditional_parameter(conn, param.parameter_id, redis_client)
 
 
 async def test_finds_created_conditional_parameter(conn, redis_client):
