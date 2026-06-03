@@ -159,7 +159,7 @@ class TestPersonaRoute:
 
         response = await persona_route_client.client.post(
             "/persona/get",
-            json={"persona_id": created["persona_id"]},
+            json={"id": created["persona_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -252,11 +252,11 @@ class TestPersonaRoute:
 
         first = await persona_route_client.client.post(
             "/persona/get",
-            json={"persona_id": created["persona_id"]},
+            json={"id": created["persona_id"]},
         )
         second = await persona_route_client.client.post(
             "/persona/get",
-            json={"persona_id": created["persona_id"]},
+            json={"id": created["persona_id"]},
         )
 
         assert first.status_code == 200, first.text
@@ -304,7 +304,7 @@ class TestPersonaRoute:
 
         get_response = await persona_route_client.client.post(
             "/persona/get",
-            json={"persona_id": created["persona_id"]},
+            json={"id": created["persona_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -423,7 +423,7 @@ class TestPersonaRoute:
         get_response = await persona_route_client.client.post(
             "/persona/get",
             json={
-                "persona_id": created["persona_id"],
+                "id": created["persona_id"],
                 "draft_id": payload["draft_id"],
             },
             headers={"X-Bypass-Cache": "1"},

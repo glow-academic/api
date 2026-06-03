@@ -105,7 +105,7 @@ class TestAgentRoute:
                         "name_id": str(resources.name_id),
                         "description_id": str(resources.description_id),
                         "department_ids": [str(agent_route_actor.department_id)],
-                        "model_ids": [str(resources.model_id)],
+                        "model_id": str(resources.model_id),
                         "tool_ids": [str(resources.tool_id)],
                     }
                 ]
@@ -257,7 +257,7 @@ class TestAgentRoute:
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(agent_route_actor.department_id)],
-                        "model_ids": [str(updated.model_id)],
+                        "model_id": str(updated.model_id),
                         "tool_ids": [str(updated.tool_id)],
                     }
                 ]
@@ -374,7 +374,7 @@ class TestAgentRoute:
             json={
                 "name": draft_name,
                 "department_ids": [str(agent_route_actor.department_id)],
-                "model_ids": [created["model_id"]],
+                "model_id": created["model_id"],
                 "tool_ids": [created["tool_id"]],
             },
         )
@@ -532,7 +532,7 @@ class TestAgentRoute:
                         "name_id": str(resources.name_id),
                         "description_id": str(resources.description_id),
                         "department_ids": [str(agent_route_actor.department_id)],
-                        "model_ids": [str(resources.model_id)],
+                        "model_id": str(resources.model_id),
                         "tool_ids": [str(resources.tool_id)],
                     }
                 ]
