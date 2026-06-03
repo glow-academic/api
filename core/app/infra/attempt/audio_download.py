@@ -24,6 +24,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.media_types import AudioDownloadAttemptApiResult
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.globals import AUDIO_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -99,6 +100,11 @@ async def audio_download_attempt_impl(
             status_code=404,
             detail="No upload found for this audio.",
         )
+
+    # -- Step 4b: Per-resource access check (issue #148) -----------------------
+    await enforce_attempt_media_access(
+        pool, redis, upload_id=upload.id, requester=profile
+    )
 
     # -- Step 5: Verify file on disk -------------------------------------------
     file_path = os.path.join(AUDIO_FOLDER, os.path.basename(upload.file_path))

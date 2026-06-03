@@ -20,6 +20,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.media_types import TextDownloadAttemptApiResult
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -81,6 +82,11 @@ async def text_download_attempt_impl(
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")
+
+    # -- Step 4b: Per-resource access check (issue #148) -----------------------
+    await enforce_attempt_media_access(
+        pool, redis, upload_id=upload.id, requester=profile
+    )
 
     # -- Step 5: Verify file on disk -------------------------------------------
     file_path = os.path.join(UPLOAD_FOLDER, upload.file_path)
