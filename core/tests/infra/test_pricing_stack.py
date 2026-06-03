@@ -14,6 +14,7 @@ from app.infra.pricing.context import (
 )
 from app.infra.pricing.export import export_pricing_impl
 from app.infra.pricing.refresh import refresh_pricing_impl
+from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.run_pricing.create import (
     create_run_pricing_entry_internal,
@@ -29,7 +30,8 @@ pytestmark = pytest.mark.asyncio
 
 async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
     session = await create_session(conn, redis_client, profile_id=profile_resource_id)
-    group = await create_group(conn, redis_client, session_id=session.id, name="Pricing Group", artifact_type="persona")
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    await create_group_name(conn, redis_client, group.id, "Pricing Group", session.id)
     model = await create_model(
         conn,
         value="gpt-test-pricing",
@@ -64,7 +66,6 @@ async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
         conn,
         redis_client, group_id=group.id,
         session_id=session.id,
-        profiles_id=profile_resource_id,
         agent_ids=[agent.id],
     )
     await create_run_pricing_entry_internal(
@@ -83,6 +84,7 @@ async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
         pricing_id=output_pricing.id,
         count=2000,
     )
+    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY group_names_mv")
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY groups_mv")
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY run_pricing_mv")
     await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")

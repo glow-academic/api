@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from tests.helpers import nonexistent_id
 
+from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.groups.refresh import refresh_groups
 from app.tools.entries.groups.search import search_groups
@@ -40,7 +41,8 @@ async def test_filters_by_session(conn, redis_client, profile_id):
 
 async def test_filters_by_name(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
-    result = await create_group(conn, redis_client, session_id=session.id, name="unique-test-name", artifact_type="persona")
+    result = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    await create_group_name(conn, redis_client, result.id, "unique-test-name", session.id)
     await refresh_groups(conn)
 
     items = await search_groups(conn, redis_client, name="unique-test-name")

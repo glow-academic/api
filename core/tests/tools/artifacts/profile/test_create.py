@@ -65,8 +65,8 @@ async def test_links_email_junctions_via_resource_get(conn, redis_client):
 
 
 async def test_links_flags_with_value(conn, redis_client):
-    f1 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
-    f2 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
+    f1 = await create_flag(conn, f"f-{_u()}", "desc", redis=redis_client)
+    f2 = await create_flag(conn, f"f-{_u()}", "desc", redis=redis_client)
 
     result = await create_profile(conn, flag_ids=[f1.id, f2.id])
 

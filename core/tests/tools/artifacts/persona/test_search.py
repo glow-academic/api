@@ -74,7 +74,7 @@ async def test_department_filter(conn, redis_client):
 
 async def test_flag_filter(conn, redis_client):
     """Filter by flag_ids returns only personas with that flag."""
-    f1 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
+    f1 = await create_flag(conn, f"f-{_u()}", "desc", redis=redis_client)
 
     p1 = await create_persona(conn, flag_ids=[f1.id])
     p2 = await create_persona(conn)

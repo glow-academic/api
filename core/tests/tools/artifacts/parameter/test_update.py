@@ -92,8 +92,8 @@ async def test_clears_all_multi_ids(conn, redis_client):
 
 
 async def test_updates_flags(conn, redis_client):
-    f1 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
-    f2 = await create_flag(conn, f"f-{_u()}", "desc", "icon", redis_client)
+    f1 = await create_flag(conn, f"f-{_u()}", "desc", redis=redis_client)
+    f2 = await create_flag(conn, f"f-{_u()}", "desc", redis=redis_client)
     result = await create_parameter(conn, flag_ids=[f1.id])
 
     await update_parameter(conn, result.id, flag_ids=[f2.id])

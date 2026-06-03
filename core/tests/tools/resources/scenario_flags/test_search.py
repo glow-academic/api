@@ -17,7 +17,7 @@ async def _create_scenario_flag_with_deps(conn, redis_client, flag_name: str):
         conn, redis_client, name=f"scenario-{unique_tag()}"
     )
     flag = await create_flag(
-        conn, name=flag_name, description="", icon="", redis=redis_client
+        conn, name=flag_name, description="", redis=redis_client
     )
     sf = await create_scenario_flag(conn, scenario.id, flag.id, redis_client)
     return sf
