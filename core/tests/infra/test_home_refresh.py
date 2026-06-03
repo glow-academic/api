@@ -17,12 +17,8 @@ async def test_refresh_returns_success_response(monkeypatch):
     mock_redis = AsyncMock()
 
     monkeypatch.setattr(
-        "app.infra.home_refresh.resolve_profile_identity_context",
+        "app.infra.refresh.queue.resolve_profile_identity_context",
         AsyncMock(return_value=object()),
-    )
-    monkeypatch.setattr(
-        "app.infra.home_refresh.refresh_home",
-        AsyncMock(),
     )
     monkeypatch.setattr(
         "app.utils.cache.invalidate_tags.invalidate_tags",
@@ -46,7 +42,7 @@ async def test_refresh_raises_401_when_no_profile(monkeypatch):
     mock_redis = AsyncMock()
 
     monkeypatch.setattr(
-        "app.infra.home_refresh.resolve_profile_identity_context",
+        "app.infra.refresh.queue.resolve_profile_identity_context",
         AsyncMock(return_value=None),
     )
 
@@ -60,12 +56,8 @@ async def test_refresh_skips_invalidation_when_no_redis(monkeypatch):
     mock_pool = AsyncMock()
 
     monkeypatch.setattr(
-        "app.infra.home_refresh.resolve_profile_identity_context",
+        "app.infra.refresh.queue.resolve_profile_identity_context",
         AsyncMock(return_value=object()),
-    )
-    monkeypatch.setattr(
-        "app.infra.home_refresh.refresh_home",
-        AsyncMock(),
     )
 
     conn_mock = AsyncMock()

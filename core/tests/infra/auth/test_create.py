@@ -80,17 +80,24 @@ async def test_create_returns_results_for_empty_items(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
         return _FakeProfile(profiles_id=uuid4(), role="superadmin", role_level=0, role_permissions=[("auth", "create"), ("auth", "update"), ("auth", "delete"), ("auth", "duplicate"), ("auth", "draft")])
 
-    async def mock_invalidate(tags, redis=None):
-        pass
-
     async def mock_keycloak(**kw):
         pass
 
     monkeypatch.setattr(
         "app.infra.auth.create.resolve_profile_identity_context", mock_resolve
     )
-    monkeypatch.setattr("app.infra.auth.create.invalidate_tags", mock_invalidate)
-    monkeypatch.setattr("app.infra.auth.create.perform_keycloak_sync", mock_keycloak)
+    # The empty-items path still calls refresh_auth_impl, which delegates to
+    # enqueue_refreshes → its own permission check via the queue module's
+    # resolve_profile_identity_context. Patch that too so the inner refresh
+    # passes (cache invalidation now lives in enqueue_refreshes, not here).
+    monkeypatch.setattr(
+        "app.infra.refresh.queue.resolve_profile_identity_context", mock_resolve
+    )
+    # perform_keycloak_sync is imported lazily inside create_auth_impl, so it is
+    # not a module attribute of app.infra.auth.create — patch it at its source.
+    monkeypatch.setattr(
+        "app.infra.identity.keycloak_sync.perform_keycloak_sync", mock_keycloak
+    )
 
     result = await create_auth_impl(_FakePool(), None, profile_id=uuid4(), request=CreateAuthApiRequest(auths=[]))
     assert hasattr(result, "results")
