@@ -69,6 +69,7 @@ async def get_session_impl(
             redis,
             session_id=session_id,
             profile_id=session_profile_id,
+            actor_profile=common.profile if common is not None else None,
             bypass_cache=bypass_cache,
         )
 
@@ -249,9 +250,15 @@ async def get_session_detail_impl_cached(
 ) -> tuple[GetSessionDetailResponse, bool]:
     """Build the cached client-facing session detail response."""
     tags = ["artifacts", "session"]
+    # Scope the cache entry to the actor: the response is gated by the actor's
+    # visible-profile set (issue #144), so a key shared across actors would let
+    # a privileged actor's full-detail response be served to an unauthorized one
+    # on a cache hit, bypassing the gate. Keying on profile_id keeps the gate
+    # authoritative per actor.
     cache_key_val = cache_key(
         cache_key_path,
         {"session_id": str(session_id)},
+        user_ctx=str(profile_id),
     )
 
     if not bypass_cache:
