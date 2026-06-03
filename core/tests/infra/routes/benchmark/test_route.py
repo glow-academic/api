@@ -38,6 +38,7 @@ async def _create_benchmark_route_data(pool, redis_client, actor):
         )
         benchmark = await create_benchmark(
             conn,
+            redis_client,
             profiles_ids=[actor.profiles_id],
             departments_ids=[department.id],
         )
@@ -69,7 +70,7 @@ class TestBenchmarkRoute:
         )
 
         response = await benchmark_route_client.client.post(
-            "/benchmark/get",
+            "/benchmark",
             json={"department_ids": [seeded["department_id"]]},
             headers={"X-Bypass-Cache": "1"},
         )

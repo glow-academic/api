@@ -16,6 +16,9 @@ async def activity_route_actor(pool, redis_client, setting_graph_factory):
         pool,
         redis_client,
         setting_graph_factory,
+        # /problem (system-scope) gates on the ("system", "problem") permission,
+        # which is not in the default CRUD set granted by the helper.
+        extra_permissions=[("system", "problem")],
         group_name="activity-route",
         role_name_prefix="Activity Route Admin",
     )
@@ -34,7 +37,7 @@ class TestActivityRoute:
         )
 
         response = await activity_route_client.client.post(
-            "/activity/get",
+            "/activity",
             json={
                 "role_ids": [str(activity_route_actor.role_id)],
                 "history_page": 0,
@@ -53,9 +56,9 @@ class TestActivityRoute:
         assert payload["profile_summary"] is not None
         assert payload["resources"]["profiles"] is not None
         assert payload["analytics"] is not None
-        assert payload["history"]["page"] == 0
-        assert payload["history"]["page_size"] == 10
-        assert isinstance(payload["history"]["items"], list)
+        # Paginated history is no longer inline on the activity GET bundle
+        # (ActivityResponse.history is always null — fetch via /system/sessions).
+        assert payload["history"] is None
 
     async def test_search_activity_route_returns_sessions(
         self,
@@ -119,14 +122,14 @@ class TestActivityRoute:
         )
 
         create_response = await activity_route_client.client.post(
-            "/activity/problem",
+            "/problem",
             json={"type": "feature", "message": "Resolve me"},
         )
         assert create_response.status_code == 200, create_response.text
         problem_id = create_response.json()["problem_id"]
 
         resolve_response = await activity_route_client.client.post(
-            "/activity/resolve",
+            "/resolve",
             json={"problem_id": problem_id, "resolved": True},
         )
 

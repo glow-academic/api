@@ -32,7 +32,9 @@ async def test_dashboard_search_context_does_not_default_to_general_only(
 ) -> None:
     calls: list[dict[str, object]] = []
 
-    async def fake_search_attempts(**kwargs: object) -> tuple[list[object], int]:
+    async def fake_search_attempts(
+        conn: object, redis: object, **kwargs: object
+    ) -> tuple[list[object], int]:
         calls.append(kwargs)
         return [], 0
 
@@ -54,7 +56,9 @@ async def test_dashboard_search_context_archived_filter_is_independent_of_practi
 ) -> None:
     calls: list[dict[str, object]] = []
 
-    async def fake_search_attempts(**kwargs: object) -> tuple[list[object], int]:
+    async def fake_search_attempts(
+        conn: object, redis: object, **kwargs: object
+    ) -> tuple[list[object], int]:
         calls.append(kwargs)
         return [], 0
 
@@ -89,26 +93,34 @@ async def test_dashboard_search_context_returns_general_and_practice_by_default(
             redis_client,
             name=f"dashboard-history-{unique_tag()}",
         )
-        persona = await create_persona(conn)
+        persona = await create_persona(conn, redis_client)
 
-        general_session = await create_session(conn, profile_id=profile.id)
+        general_session = await create_session(
+            conn, redis_client, profile_id=profile.id
+        )
         await create_group(
-            conn, session_id=general_session.id, artifact_type="persona"
+            conn, redis_client, session_id=general_session.id,
+            artifact_type="persona",
         )
         general_attempt = await create_attempt(
             conn,
+            redis_client,
             session_id=general_session.id,
             user_persona_id=persona.id,
             profiles_id=profile.id,
             practice=False,
         )
 
-        practice_session = await create_session(conn, profile_id=profile.id)
+        practice_session = await create_session(
+            conn, redis_client, profile_id=profile.id
+        )
         await create_group(
-            conn, session_id=practice_session.id, artifact_type="persona"
+            conn, redis_client, session_id=practice_session.id,
+            artifact_type="persona",
         )
         practice_attempt = await create_attempt(
             conn,
+            redis_client,
             session_id=practice_session.id,
             user_persona_id=persona.id,
             profiles_id=profile.id,

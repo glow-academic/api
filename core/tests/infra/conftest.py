@@ -944,6 +944,7 @@ async def activity_route_client(
         tags=["activity"],
         module_names=[
             "activity",
+            "problem",
             "resolve",
         ],
     )
