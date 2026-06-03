@@ -1,7 +1,6 @@
 """Input: persona.get"""
 
 from typing import Any
-from uuid import UUID
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
@@ -32,6 +31,18 @@ async def persona_get(sid: str, data: dict[str, Any]) -> None:
     pool = get_pool()
     redis = get_redis_client()
 
+    # Build per-section filters from the nested SectionFilter objects, mirroring
+    # the HTTP adapter in app/routes/persona/get.py. GetPersonaApiRequest no
+    # longer carries flat persona_id/*_search/*_show_selected fields.
+    filters = {
+        s: getattr(payload, s)
+        for s in [
+            "names", "descriptions", "colors", "icons", "instructions",
+            "departments", "examples", "parameter_fields", "voices",
+        ]
+        if getattr(payload, s) is not None
+    }
+
     await run_artifact_operation_with_audit(
         pool,
         redis,
@@ -46,17 +57,9 @@ async def persona_get(sid: str, data: dict[str, Any]) -> None:
             redis,
             profile_id=identity.profile_id,
             session_id=identity.session_id,
-            id=payload.persona_id,
+            id=payload.id,
             draft_id=payload.draft_id,
-            parameter_ids=[UUID(pid) for pid in payload.parameter_ids]
-            if payload.parameter_ids
-            else None,
-            color_search=payload.color_search,
-            icon_search=payload.icon_search,
-            descriptions_search=payload.descriptions_search,
-            instructions_search=payload.instructions_search,
-            color_show_selected=payload.color_show_selected,
-            icon_show_selected=payload.icon_show_selected,
+            filters=filters,
         ),
         arguments=payload.model_dump(mode="json"),
     )

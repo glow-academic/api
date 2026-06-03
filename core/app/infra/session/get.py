@@ -8,7 +8,6 @@ Uses composable context resolver with black-box MV search tools.
 Zero inline SQL — all data from context resolver + resource fetchers.
 """
 
-import asyncio
 from decimal import Decimal
 from uuid import UUID
 
@@ -27,11 +26,6 @@ from app.infra.session.types import (
     SessionInternalData,
     SessionTimelineItem,
 )
-from app.tools.resources.agents.get import get_agents
-from app.tools.resources.models.get import get_models
-from app.tools.resources.providers.get import get_providers
-from app.tools.resources.systems.get import get_systems
-from app.tools.resources.tools.get import get_tools
 from app.utils.cache.cache_key import cache_key
 from app.utils.cache.get_cached import get_cached
 from app.utils.cache.set_cached import set_cached
@@ -116,58 +110,12 @@ async def get_session_impl(
     resource_system_ids: dict[str, UUID | None] = {}
 
     if common:
-        # Tool-graph scoring decoration is dead weight — the client
-        # always shows "AI generate" regardless and the actual agent
-        # dispatch happens server-side in ``prepare_generation``.
-        # Keep empty maps to preserve the response shape.
-        pass
-
-        # Hydrate config chain from tool_graph
-        all_system_ids = list(
-            dict.fromkeys(t.system_id for t in common.tool_graph.tools)
-        )
-        all_agent_ids = list(dict.fromkeys(t.agent_id for t in common.tool_graph.tools))
-        all_tool_ids = list(dict.fromkeys(t.tool_id for t in common.tool_graph.tools))
-
-        async def _fetch_systems() -> list:
-            if not all_system_ids:
-                return []
-            async with pool.acquire() as c:
-                return await get_systems(c, all_system_ids, redis, bypass_cache)
-
-        async def _fetch_agents() -> list:
-            if not all_agent_ids:
-                return []
-            async with pool.acquire() as c:
-                return await get_agents(c, all_agent_ids, redis, bypass_cache)
-
-        async def _fetch_tools_config() -> list:
-            if not all_tool_ids:
-                return []
-            async with pool.acquire() as c:
-                return await get_tools(c, all_tool_ids, redis, bypass_cache)
-
-        with timed("hydrate"):
-            config_systems, config_agents, config_tools = await asyncio.gather(
-                _fetch_systems(),
-                _fetch_agents(),
-                _fetch_tools_config(),
-            )
-
-        # Walk agent → model → provider chain
-        model_ids = list(dict.fromkeys(a.model_id for a in config_agents if a.model_id))
-        if model_ids:
-            async with pool.acquire() as c:
-                config_models = await get_models(c, model_ids, redis, bypass_cache)
-
-        provider_ids = list(
-            dict.fromkeys(m.provider_id for m in config_models if m.provider_id)
-        )
-        if provider_ids:
-            async with pool.acquire() as c:
-                config_providers = await get_providers(
-                    c, provider_ids, redis, bypass_cache
-                )
+        # Tool-graph scoring/config-chain decoration is dead weight — the
+        # client always shows "AI generate" regardless and the actual agent
+        # dispatch happens server-side in ``prepare_generation``. The config_*
+        # and resource_*_ids maps below are no longer consumed by any caller,
+        # so they stay empty (the tool_graph that fed them was removed from
+        # CommonContext in the slim-down).
 
         # Config profile
         if common.profile:

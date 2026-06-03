@@ -310,9 +310,9 @@ async def _resolve_creatable_values(
             limit_count=1000,
         )
         department_name_map = {
-            item.name.lower(): item.department_id
+            item.name.lower(): item.id
             for item in all_departments
-            if item.name and item.department_id
+            if item.name and item.id
         }
         resolved_ids: list[UUID] = []
         for department_name in request.departments:
