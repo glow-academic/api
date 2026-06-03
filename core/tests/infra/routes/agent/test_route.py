@@ -7,8 +7,13 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import RouteActor, create_admin_route_actor
+from tests.infra.route_helpers import (
+    RouteActor,
+    create_admin_route_actor,
+    selected_resource,
+)
 
 
 @dataclass(frozen=True)
@@ -145,12 +150,13 @@ class TestAgentRoute:
         assert payload["can_edit"] is True
         assert payload["disabled_reason"] is None
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
-        assert payload["models"]["resource"]["id"] == created["model_id"]
-        assert payload["models"]["resource"]["name"] == created["model_name"]
+        assert selected_resource(payload["models"])["id"] == created["model_id"]
+        assert selected_resource(payload["models"])["name"] == created["model_name"]
 
     async def test_search_agent_route_returns_created_agent(
         self,
@@ -272,13 +278,13 @@ class TestAgentRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
-        assert get_payload["models"]["resource"]["id"] == str(updated.model_id)
-        assert get_payload["models"]["resource"]["name"] == updated.model_name
+        assert selected_resource(get_payload["models"])["id"] == str(updated.model_id)
+        assert selected_resource(get_payload["models"])["name"] == updated.model_name
 
     async def test_duplicate_agent_route_returns_new_agent(
         self,
@@ -363,7 +369,7 @@ class TestAgentRoute:
         )
         draft_name = f"Draft Agent {unique_tag()}"
 
-        response = await agent_route_client.client.patch(
+        response = await agent_route_client.client.post(
             "/agent/draft",
             json={
                 "name": draft_name,
@@ -391,7 +397,7 @@ class TestAgentRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == draft_name
+        assert selected_resource(get_payload["names"])["name"] == draft_name
 
     async def test_agent_drafts_route_lists_owned_drafts(
         self,
@@ -445,8 +451,8 @@ class TestAgentRoute:
         )
 
         response = await agent_route_client.client.post(
-            "/agent/docs",
-            json={"entity_id": created["agent_id"]},
+            "/agent/context",
+            json={"entity_id": created["agent_id"], "schema": True},
         )
 
         assert response.status_code == 200, response.text

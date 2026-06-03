@@ -7,10 +7,10 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
-from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
 
 from app.utils.auth.encrypt_api_key import encrypt_api_key
+from tests.helpers import unique_tag
+from tests.infra.route_helpers import create_admin_route_actor, selected_resource
 
 
 @dataclass(frozen=True)
@@ -151,9 +151,10 @@ class TestProviderRoute:
         assert payload["actor_name"] == provider_route_actor.name
         assert payload["provider_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
 
     async def test_search_provider_route_returns_created_provider(
@@ -289,7 +290,7 @@ class TestProviderRoute:
             session_id=provider_route_actor.session_id,
         )
 
-        response = await provider_route_client.client.patch(
+        response = await provider_route_client.client.post(
             "/provider/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -321,7 +322,7 @@ class TestProviderRoute:
             session_id=provider_route_actor.session_id,
         )
 
-        draft_response = await provider_route_client.client.patch(
+        draft_response = await provider_route_client.client.post(
             "/provider/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -354,8 +355,8 @@ class TestProviderRoute:
         )
 
         response = await provider_route_client.client.post(
-            "/provider/docs",
-            json={},
+            "/provider/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

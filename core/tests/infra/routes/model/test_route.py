@@ -7,8 +7,9 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
+from tests.infra.route_helpers import create_admin_route_actor, selected_resource
 
 
 @dataclass(frozen=True)
@@ -112,9 +113,10 @@ class TestModelRoute:
         assert payload["actor_name"] == model_route_actor.name
         assert payload["model_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
 
     async def test_search_model_route_returns_created_model(
@@ -246,7 +248,7 @@ class TestModelRoute:
             session_id=model_route_actor.session_id,
         )
 
-        response = await model_route_client.client.patch(
+        response = await model_route_client.client.post(
             "/model/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -272,7 +274,7 @@ class TestModelRoute:
             profile_id=model_route_actor.profile_id,
             session_id=model_route_actor.session_id,
         )
-        draft_response = await model_route_client.client.patch(
+        draft_response = await model_route_client.client.post(
             "/model/draft",
             json={"name_id": str(resources.name_id)},
         )
@@ -300,8 +302,8 @@ class TestModelRoute:
         )
 
         response = await model_route_client.client.post(
-            "/model/docs",
-            json={},
+            "/model/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

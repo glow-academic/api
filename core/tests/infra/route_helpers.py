@@ -12,6 +12,48 @@ from app.tools.entries.sessions.refresh import refresh_sessions
 from tests.helpers import unique_tag
 
 
+def selected_resource(section: list[dict] | dict | None) -> dict:
+    """Return the selected item from a route-response resource section.
+
+    The canonical artifact responses moved each resource section from the old
+    ``{"resource": {...}, "resources": [...]}`` envelope to a flat list of
+    items where the currently selected item carries ``selected: true``. This
+    helper preserves the original test intent ("the selected resource") across
+    that shape change: it accepts the new flat list and returns the selected
+    item (falling back to the sole/first item when no flag is set), and stays
+    backward-compatible with the legacy envelope by unwrapping ``resource``.
+    """
+    if section is None:
+        raise AssertionError("Expected a resource section, got None")
+    if isinstance(section, dict):
+        # Legacy envelope shape: {"resource": {...}, "resources": [...]}.
+        return section["resource"]
+    if not section:
+        raise AssertionError("Expected a non-empty resource section")
+    for item in section:
+        if item.get("selected"):
+            return item
+    return section[0]
+
+
+def selected_resources(section: list[dict] | dict | None) -> list[dict]:
+    """Return the currently selected items from a route-response section.
+
+    Counterpart to :func:`selected_resource` for multi-select association
+    sections (departments, profiles, scenarios, ...). These moved from the old
+    ``{"current": [...], "resources": [...]}`` envelope to a flat list where
+    each selected item carries ``selected: true``. This helper preserves the
+    original ``section["current"]`` intent across that change and stays
+    backward-compatible with the legacy envelope.
+    """
+    if section is None:
+        raise AssertionError("Expected a resource section, got None")
+    if isinstance(section, dict):
+        # Legacy envelope shape: {"current": [...], "resources": [...]}.
+        return section["current"] or []
+    return [item for item in section if item.get("selected")]
+
+
 @dataclass(frozen=True)
 class RouteActor:
     """Minimal authenticated actor for route-level tests."""

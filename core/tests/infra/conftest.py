@@ -206,6 +206,7 @@ async def persona_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -254,6 +255,7 @@ async def scenario_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -302,6 +304,7 @@ async def agent_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -387,6 +390,7 @@ async def cohort_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -989,6 +993,7 @@ async def document_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1037,6 +1042,7 @@ async def department_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1085,6 +1091,7 @@ async def tool_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1133,6 +1140,7 @@ async def setting_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
             "decrypt",
         ],
     )
@@ -1182,6 +1190,7 @@ async def simulation_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1230,6 +1239,7 @@ async def model_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1278,6 +1288,7 @@ async def field_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1326,6 +1337,7 @@ async def parameter_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1374,6 +1386,7 @@ async def provider_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
             "decrypt",
         ],
     )
@@ -1423,6 +1436,7 @@ async def rubric_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1471,6 +1485,7 @@ async def eval_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1519,6 +1534,7 @@ async def auth_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 
@@ -1570,6 +1586,7 @@ async def profile_route_client(
             "drafts",
             "export",
             "refresh",
+            "context",
         ],
     )
 

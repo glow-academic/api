@@ -7,8 +7,13 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import RouteActor, create_admin_route_actor
+from tests.infra.route_helpers import (
+    RouteActor,
+    create_admin_route_actor,
+    selected_resource,
+)
 
 
 @dataclass(frozen=True)
@@ -136,12 +141,13 @@ class TestScenarioRoute:
         assert payload["scenario_exists"] is True
         assert payload["can_edit"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
         assert (
-            payload["problem_statements"]["resource"]["problem_statement"]
+            selected_resource(payload["problem_statements"])["problem_statement"]
             == created["problem_statement"]
         )
 
@@ -265,13 +271,13 @@ class TestScenarioRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
         assert (
-            get_payload["problem_statements"]["resource"]["problem_statement"]
+            selected_resource(get_payload["problem_statements"])["problem_statement"]
             == updated.problem_statement
         )
 
@@ -358,7 +364,7 @@ class TestScenarioRoute:
         )
         draft_name = f"Draft Scenario {unique_tag()}"
 
-        response = await scenario_route_client.client.patch(
+        response = await scenario_route_client.client.post(
             "/scenario/draft",
             json={
                 "name": draft_name,
@@ -384,7 +390,7 @@ class TestScenarioRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == draft_name
+        assert selected_resource(get_payload["names"])["name"] == draft_name
 
     async def test_scenario_drafts_route_lists_owned_drafts(
         self,
@@ -440,8 +446,8 @@ class TestScenarioRoute:
         )
 
         response = await scenario_route_client.client.post(
-            "/scenario/docs",
-            json={"entity_id": created["scenario_id"]},
+            "/scenario/context",
+            json={"entity_id": created["scenario_id"], "schema": True},
         )
 
         assert response.status_code == 200, response.text

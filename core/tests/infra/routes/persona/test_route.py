@@ -8,8 +8,14 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import RouteActor, create_admin_route_actor
+from tests.infra.route_helpers import (
+    RouteActor,
+    create_admin_route_actor,
+    selected_resource,
+    selected_resources,
+)
 
 
 @dataclass(frozen=True)
@@ -166,19 +172,20 @@ class TestPersonaRoute:
         assert payload["persona_exists"] is True
         assert payload["can_edit"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
-        assert payload["colors"]["resource"]["name"] == created["color_name"]
-        assert payload["icons"]["resource"]["name"] == created["icon_name"]
+        assert selected_resource(payload["colors"])["name"] == created["color_name"]
+        assert selected_resource(payload["icons"])["name"] == created["icon_name"]
         assert (
-            payload["instructions"]["resource"]["template"]
+            selected_resource(payload["instructions"])["template"]
             == created["instruction_template"]
         )
         assert {
             department["department_id"]
-            for department in payload["departments"]["current"]
+            for department in selected_resources(payload["departments"])
         } == {str(persona_route_actor.department_id)}
 
     async def test_search_persona_route_returns_created_persona(
@@ -303,15 +310,15 @@ class TestPersonaRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
-        assert get_payload["colors"]["resource"]["name"] == updated.color_name
-        assert get_payload["icons"]["resource"]["name"] == updated.icon_name
+        assert selected_resource(get_payload["colors"])["name"] == updated.color_name
+        assert selected_resource(get_payload["icons"])["name"] == updated.icon_name
         assert (
-            get_payload["instructions"]["resource"]["template"]
+            selected_resource(get_payload["instructions"])["template"]
             == updated.instruction_template
         )
 
@@ -398,7 +405,7 @@ class TestPersonaRoute:
         )
         draft_name = f"Draft Persona {unique_tag()}"
 
-        response = await persona_route_client.client.patch(
+        response = await persona_route_client.client.post(
             "/persona/draft",
             json={
                 "name": draft_name,
@@ -424,7 +431,7 @@ class TestPersonaRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == draft_name
+        assert selected_resource(get_payload["names"])["name"] == draft_name
 
     async def test_persona_drafts_route_lists_owned_drafts(
         self,
@@ -480,8 +487,8 @@ class TestPersonaRoute:
         )
 
         response = await persona_route_client.client.post(
-            "/persona/docs",
-            json={"entity_id": created["persona_id"]},
+            "/persona/context",
+            json={"entity_id": created["persona_id"], "schema": True},
         )
 
         assert response.status_code == 200, response.text
