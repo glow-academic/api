@@ -5,10 +5,14 @@ from app.infra.api_types import BaseResourceSection, ListFilterOption, ListFilte
 pytestmark = pytest.mark.asyncio
 
 async def test_base_resource_section_defaults():
+    # BaseResourceSection is intentionally a data-only model: display logic
+    # (show/required/show_ai_generate) was moved to the client, so the base
+    # carries no display fields. It must still instantiate with no args.
     s = BaseResourceSection()
-    assert s.show is False
-    assert s.required is False
-    assert s.show_ai_generate is False
+    assert isinstance(s, BaseResourceSection)
+    assert not hasattr(s, "show")
+    assert not hasattr(s, "required")
+    assert not hasattr(s, "show_ai_generate")
 
 async def test_list_filter_option_creation():
     o = ListFilterOption(id="1", name="Test", count=5)
