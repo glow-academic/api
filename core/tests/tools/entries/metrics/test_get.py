@@ -25,7 +25,15 @@ async def test_gets_created_metric_hour(conn, redis_client):
     )
     await refresh_metrics_internal(conn)
 
-    summary = (await search_metrics(conn, redis_client))[0]
+    # Scope the search to the created row's hour. search_metrics filters
+    # date_hour >= date_from AND <= date_to; the MV truncates ts to the hour,
+    # so bound to that exact hour. Without this, an unscoped search returns
+    # other tests' metric rows too (the DB persists across tests in a run) and
+    # [0] can be a foreign hour, making the max_requests_total assertion flake.
+    hour = ts.replace(minute=0, second=0, microsecond=0)
+    summary = (
+        await search_metrics(conn, redis_client, date_from=hour, date_to=hour)
+    )[0]
     items = await get_metrics(conn, [summary.date_hour], redis_client)
 
     assert len(items) == 1
