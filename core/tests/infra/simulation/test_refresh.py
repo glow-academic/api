@@ -1,6 +1,7 @@
 """Tests for simulation refresh — MV refresh + cache invalidation."""
 
 from dataclasses import dataclass
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -37,34 +38,27 @@ async def test_refresh_returns_success_with_tags(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
         return _FakeProfile(profiles_id=uuid4())
 
-    refresh_called = []
-
-    async def mock_refresh_drafts(conn):
-        refresh_called.append(True)
-
     invalidated_tags = []
 
     async def mock_invalidate(tags, redis=None):
         invalidated_tags.extend(tags)
 
-    monkeypatch.setattr("app.infra.simulation.refresh.resolve_profile_identity_context", mock_resolve)
-    monkeypatch.setattr("app.infra.simulation.refresh.refresh_simulation_drafts", mock_refresh_drafts)
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr("app.utils.cache.invalidate_tags.invalidate_tags", mock_invalidate)
 
-    result = await refresh_simulation_impl(_FakePool(), "fake-redis", profile_id=uuid4())
+    result = await refresh_simulation_impl(_FakePool(), AsyncMock(), profile_id=uuid4())
 
     assert result.success is True
     assert "simulations" in result.invalidated_tags
     assert "artifacts" in result.invalidated_tags
     assert "simulation_drafts_mv" in result.refreshed_views
-    assert len(refresh_called) == 1
 
 
 async def test_refresh_raises_401_for_unknown_profile(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
         return None
 
-    monkeypatch.setattr("app.infra.simulation.refresh.resolve_profile_identity_context", mock_resolve)
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", mock_resolve)
 
     from fastapi import HTTPException
 
@@ -77,11 +71,7 @@ async def test_refresh_skips_cache_when_redis_is_none(monkeypatch):
     async def mock_resolve(pool, pid, redis, **kw):
         return _FakeProfile(profiles_id=uuid4())
 
-    async def mock_refresh_drafts(conn):
-        pass
-
-    monkeypatch.setattr("app.infra.simulation.refresh.resolve_profile_identity_context", mock_resolve)
-    monkeypatch.setattr("app.infra.simulation.refresh.refresh_simulation_drafts", mock_refresh_drafts)
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", mock_resolve)
 
     result = await refresh_simulation_impl(_FakePool(), None, profile_id=uuid4())
     assert result.success is True

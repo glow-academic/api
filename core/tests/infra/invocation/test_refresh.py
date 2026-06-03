@@ -8,7 +8,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_refresh_returns_success(monkeypatch):
     pool, redis = AsyncMock(), AsyncMock()
-    monkeypatch.setattr("app.infra.invocation.refresh.resolve_profile_identity_context", AsyncMock(return_value=object()))
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", AsyncMock(return_value=object()))
     monkeypatch.setattr("app.utils.cache.invalidate_tags.invalidate_tags", AsyncMock())
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -17,13 +17,13 @@ async def test_refresh_returns_success(monkeypatch):
     assert "invocation_mv" in result.refreshed_views
 
 async def test_refresh_raises_401(monkeypatch):
-    monkeypatch.setattr("app.infra.invocation.refresh.resolve_profile_identity_context", AsyncMock(return_value=None))
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", AsyncMock(return_value=None))
     with pytest.raises(HTTPException) as exc:
         await refresh_invocation_impl(AsyncMock(), AsyncMock(), profile_id=uuid4())
     assert exc.value.status_code == 401
 
 async def test_refresh_no_redis(monkeypatch):
-    monkeypatch.setattr("app.infra.invocation.refresh.resolve_profile_identity_context", AsyncMock(return_value=object()))
+    monkeypatch.setattr("app.infra.refresh.queue.resolve_profile_identity_context", AsyncMock(return_value=object()))
     pool = AsyncMock()
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
