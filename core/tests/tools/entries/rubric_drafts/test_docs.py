@@ -47,7 +47,6 @@ async def test_create_operation_has_params(conn):
 
     create_op = next(op for op in result.operations if op.name == "create_rubric_draft")
     param_names = [p.name for p in create_op.params]
-    assert "group_id" in param_names
     assert "session_id" in param_names
 
 
@@ -58,7 +57,6 @@ async def test_search_operation_has_filters(conn):
         op for op in result.operations if op.name == "search_rubric_drafts"
     )
     param_names = [p.name for p in search_op.params]
-    assert "group_ids" in param_names
     assert "session_ids" in param_names
     assert "date_from" in param_names
     assert "date_to" in param_names
