@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -8,29 +9,39 @@ from jose import jwt
 from app.infra.identity.default_idp import exchange_code_for_tokens, resolve_authorization
 
 
-def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(monkeypatch):
+@pytest.mark.asyncio
+async def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(
+    monkeypatch, redis_client
+):
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
     from app.utils.auth.derive_key import derive_from_secret_key
+
     test_secret = derive_from_secret_key("test-secret-key", "keycloak-client")
     monkeypatch.setenv("AUTH_CLIENT_SECRET", test_secret)
     code = "code-access-token-contract"
 
     from app.infra.identity import default_idp
 
-    default_idp._authorization_codes[code] = {
-        "profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
-        "email": "alice@example.com",
-        "name": "Alice Example",
-        "role": "admin",
-        "nonce": "nonce-123",
-        "expires_at": 4102444800,
-        "client_id": "test-client",
-        "redirect_uri": "http://localhost/callback",
-        "is_emulation": True,
-        "actor_profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b030",
-    }
+    # Authorization codes live in Redis under ``oidc:authz:{code}`` (migrated
+    # from the old in-memory ``_authorization_codes`` dict). Seed the code the
+    # same way the real /authorize flow does, via the module's redis helper.
+    await default_idp._redis_set(
+        f"oidc:authz:{code}",
+        {
+            "profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
+            "email": "alice@example.com",
+            "name": "Alice Example",
+            "role": "admin",
+            "nonce": "nonce-123",
+            "client_id": "test-client",
+            "redirect_uri": "http://localhost/callback",
+            "is_emulation": True,
+            "actor_profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b030",
+        },
+        default_idp._CODE_TTL,
+    )
 
-    tokens = exchange_code_for_tokens(
+    tokens = await exchange_code_for_tokens(
         grant_type="authorization_code",
         code=code,
         redirect_uri="http://localhost/callback",
@@ -93,7 +104,9 @@ async def test_resolve_authorization_uses_profile_identity_context_for_email(mon
 
 
 @pytest.mark.asyncio
-async def test_resolve_authorization_falls_back_to_first_linked_email(monkeypatch):
+async def test_resolve_authorization_falls_back_to_first_linked_email(
+    monkeypatch, redis_client
+):
     from app.infra.identity import default_idp
 
     async def fake_resolve_profile_identity_context(
@@ -129,4 +142,7 @@ async def test_resolve_authorization_falls_back_to_first_linked_email(monkeypatc
     )
 
     code = redirect.split("code=")[1].split("&", 1)[0]
-    assert default_idp._authorization_codes[code]["email"] == "fallback@example.com"
+    # Read back the code record from Redis (where resolve_authorization stored
+    # it) instead of the removed in-memory dict.
+    stored = json.loads(await redis_client.get(f"oidc:authz:{code}"))
+    assert stored["email"] == "fallback@example.com"
