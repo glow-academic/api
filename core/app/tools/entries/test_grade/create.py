@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.test_grade.types import CreateTestGradeResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_test_grade(
@@ -67,5 +67,11 @@ async def create_test_grade(
         fresh_row,
         score_ms=int(created_at.timestamp() * 1000),
     )
+    # Bust the parent test_invocation write-back row: the MV derives
+    # ``grade_id``/``grade_score``/``grade_passed``/``grade_time_taken`` and
+    # ``invocation_completed`` from the latest test_grade. The parent's cached
+    # row was written grade=None / completed=False at create-time; without this
+    # a cached parent GET shadows the hydrated MV until TTL (#98 sibling).
+    await invalidate_row(redis, "test_invocation", invocation_id)
 
     return CreateTestGradeResponse(id=entry_id)

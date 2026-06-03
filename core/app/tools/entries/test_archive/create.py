@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.tools.entries.test_archive.types import (
     CreateTestArchiveResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_test_archive(
@@ -56,5 +56,10 @@ async def create_test_archive(
         fresh_row,
         score_ms=int(created_at.timestamp() * 1000),
     )
+    # Bust the parent test write-back row: the MV derives ``archived`` from the
+    # latest test_archive. The parent's cached row was written archived=False at
+    # create-time; without this a cached parent GET shadows the hydrated MV with
+    # stale archived state until TTL (#98 sibling). Mirrors attempt_archive.
+    await invalidate_row(redis, "test", test_id)
 
     return CreateTestArchiveResponse(id=entry_id)
