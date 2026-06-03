@@ -21,6 +21,7 @@ from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.test.create import create_test
 from app.tools.entries.test.refresh import refresh_test
+from app.utils.cache.hedged_row import invalidate_row
 from app.tools.resources.cohorts.create import create_cohort
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.profiles.create import create_profile
@@ -187,6 +188,15 @@ class TestBenchmarkFilters:
                 late_test.id,
                 datetime(2025, 11, 1, tzinfo=UTC),
             )
+            # create_test wrote a hedged-cache row stamped with each test's
+            # original (≈now) created_at. Rewriting created_at above changes
+            # what the row's GET/search returns, so the write-back cache must
+            # be invalidated per the hedged_row contract — otherwise the stale
+            # ~now cache row wins the DESC (latest) merge while the ASC
+            # (earliest) read goes straight to the MV. A real mutation path
+            # would invalidate; the raw UPDATE here must do the same.
+            await invalidate_row(redis_client, "test", early_test.id)
+            await invalidate_row(redis_client, "test", late_test.id)
             await refresh_test(conn)
 
         result = await resolve_benchmark_filters(
