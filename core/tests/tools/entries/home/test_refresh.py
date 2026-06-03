@@ -44,7 +44,7 @@ async def test_new_home_is_not_visible_before_refresh(conn, redis_client, profil
     created = await _home(conn, redis_client, profile_id, simulation_bundle)
     lookup_id = created.id
 
-    items = await get_homes(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_homes(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

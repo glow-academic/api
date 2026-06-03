@@ -32,7 +32,7 @@ async def test_new_grants_is_not_visible_before_refresh(conn, redis_client, sess
     created = _created(await create_grant(conn, redis_client, session_id=session_id))
     lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
 
-    items = await get_grants(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_grants(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

@@ -54,7 +54,7 @@ async def test_new_home_chat_is_not_visible_before_refresh(conn, redis_client, p
     _, _, _, created = await _home_chat(conn, redis_client, profile_id, simulation_bundle)
     lookup_id = created.id
 
-    items = await get_home_chats(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_home_chats(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 
