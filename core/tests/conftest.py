@@ -445,6 +445,24 @@ async def department_id(conn, redis_client):
 
 
 @pytest_asyncio.fixture
+async def name_id(conn: asyncpg.Connection, redis_client: Redis) -> UUID:
+    """A fresh names_resource ID."""
+    from app.tools.resources.names.create import create_name
+
+    name = await create_name(conn, "test-name", redis_client)
+    return name.id
+
+
+@pytest_asyncio.fixture
+async def description_id(conn: asyncpg.Connection, redis_client: Redis) -> UUID:
+    """A fresh descriptions_resource ID."""
+    from app.tools.resources.descriptions.create import create_description
+
+    description = await create_description(conn, "test-description", redis_client)
+    return description.id
+
+
+@pytest_asyncio.fixture
 async def session_id(conn, profile_id, redis_client):
     """A fresh sessions_entry ID (depends on profile_id)."""
     from app.tools.entries.sessions.create import create_session

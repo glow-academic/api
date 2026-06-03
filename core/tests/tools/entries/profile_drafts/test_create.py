@@ -1,5 +1,7 @@
 """Tests for profile_drafts create."""
 
+from uuid import UUID
+
 import pytest
 
 from app.tools.entries.groups.create import create_group
@@ -53,19 +55,15 @@ async def test_create_without_connections_returns_empty_lists(conn, redis_client
     assert items[0].role_ids == []
 
 
-async def test_create_with_connections(conn, redis_client, profile_id):
+async def test_create_with_connections(conn, redis_client, profile_id, name_id: UUID, description_id: UUID, department_id: UUID):
     session, group = await _setup(conn, redis_client, profile_id)
-
-    name_id = await conn.fetchval("SELECT id FROM names_resource LIMIT 1")
-    desc_id = await conn.fetchval("SELECT id FROM descriptions_resource LIMIT 1")
-    dept_id = await conn.fetchval("SELECT id FROM departments_resource LIMIT 1")
 
     result = await create_profile_draft(
         conn,
         redis_client, session_id=session.id,
         profile_ids=[profile_id],
         name_ids=[name_id],
-        department_ids=[dept_id],
+        department_ids=[department_id],
     )
 
     items = await get_profile_drafts(conn, [result.id], redis_client)
@@ -73,7 +71,7 @@ async def test_create_with_connections(conn, redis_client, profile_id):
     assert len(items) == 1
     assert profile_id in items[0].profile_ids
     assert name_id in items[0].name_ids
-    assert dept_id in items[0].department_ids
+    assert department_id in items[0].department_ids
     assert items[0].flag_ids == []
 
 
@@ -92,10 +90,13 @@ async def test_create_with_owner_profile(conn, redis_client, profile_id):
 
 
 async def test_create_with_multiple_connections(conn, redis_client, profile_id):
+    from app.tools.resources.names.create import create_name
+
     session, group = await _setup(conn, redis_client, profile_id)
 
     name_ids = [
-        r["id"] for r in await conn.fetch("SELECT id FROM names_resource LIMIT 2")
+        (await create_name(conn, "multi-name-1", redis_client)).id,
+        (await create_name(conn, "multi-name-2", redis_client)).id,
     ]
 
     result = await create_profile_draft(
