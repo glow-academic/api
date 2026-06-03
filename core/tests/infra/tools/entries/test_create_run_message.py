@@ -1,6 +1,7 @@
 """Tests for create_run_message — integration tests with real DB."""
 
 import pytest
+from redis.asyncio import Redis
 
 from app.infra.tools.entries.create_run_message import create_run_message
 from app.tools.entries.groups.create import create_group
@@ -32,11 +33,12 @@ async def _deps(conn, redis_client, profile_id):
     return session, run, upload
 
 
-async def test_returns_all_ids(conn, profile_id):
-    session, run, upload = await _deps(conn, profile_id)
+async def test_returns_all_ids(conn, redis_client: Redis, profile_id):
+    session, run, upload = await _deps(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="system",
@@ -54,6 +56,7 @@ async def test_creates_message_with_correct_role(conn, redis_client, profile_id)
 
     result = await create_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="developer",
@@ -71,6 +74,7 @@ async def test_creates_text_entry(conn, redis_client, profile_id):
 
     result = await create_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="system",
@@ -87,6 +91,7 @@ async def test_links_text_to_upload(conn, redis_client, profile_id):
 
     result = await create_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="system",
@@ -104,6 +109,7 @@ async def test_links_message_to_upload(conn, redis_client, profile_id):
 
     result = await create_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="user",
@@ -131,6 +137,7 @@ async def test_multiple_messages_on_same_run(conn, redis_client, profile_id):
         )
         result = await create_run_message(
             conn,
+            redis_client,
             run_id=run.id,
             session_id=session.id,
             role=role,

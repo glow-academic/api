@@ -30,6 +30,7 @@ async def test_persist_run_message_writes_file_and_rows(conn, redis_client, prof
 
     result = await persist_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="developer",
@@ -60,6 +61,7 @@ async def test_persist_run_message_links_agent_ids(
 
     result = await persist_run_message(
         conn,
+        redis_client,
         run_id=run.id,
         session_id=session.id,
         role="system",
