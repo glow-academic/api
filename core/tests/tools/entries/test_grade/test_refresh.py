@@ -57,7 +57,7 @@ async def test_new_test_grade_is_not_visible_before_refresh(conn, redis_client, 
     created = _created(await _test_grade(conn, redis_client, profile_id))
     lookup_id = created.id
 
-    items = await get_test_grades(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_test_grades(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

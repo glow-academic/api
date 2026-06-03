@@ -46,7 +46,7 @@ async def test_new_test_is_not_visible_before_refresh(conn, redis_client, profil
     created = _created(await _test(conn, redis_client, profile_id))
     lookup_id = created.id
 
-    items = await get_tests(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_tests(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 

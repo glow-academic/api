@@ -53,7 +53,7 @@ async def test_new_test_invocation_is_not_visible_before_refresh(conn, redis_cli
     created = _created(await _test_invocation(conn, redis_client, profile_id))
     lookup_id = created.id
 
-    items = await get_test_invocations(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_test_invocations(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 
