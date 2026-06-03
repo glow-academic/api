@@ -33,20 +33,19 @@ async def _setup(conn, redis_client, profile_id):
         conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
     grade = await create_attempt_grade(
         conn,
         redis_client, chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,
     )
     result = await create_attempt_feedback(
-        conn, redis_client, grade_id=grade.id, call_id=call2.id, total=10, feedback="Good job"
+        conn, redis_client, grade_id=grade.id, session_id=session.id, total=10, feedback="Good job"
     )
     return result, grade
 

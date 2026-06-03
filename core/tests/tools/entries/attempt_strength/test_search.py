@@ -18,7 +18,6 @@ from app.tools.entries.attempt_strength.search import search_attempt_strengths
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.create import create_message
 from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -36,7 +35,6 @@ async def _setup(conn, redis_client, profile_id):
         conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -46,14 +44,13 @@ async def _setup(conn, redis_client, profile_id):
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    msg = await create_message(conn, redis_client, run_id=run.id, role="user")
-    await create_attempt_message(
-        conn, redis_client, chat_id=attempt_chat.id, call_id=call2.id, message_id=msg.id
+    attempt_message = await create_attempt_message(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id
     )
     grade = await create_attempt_grade(
         conn,
         redis_client, chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,
@@ -61,19 +58,19 @@ async def _setup(conn, redis_client, profile_id):
     result = await create_attempt_strength(
         conn,
         redis_client, grade_id=grade.id,
-        message_id=msg.id,
-        call_id=call2.id,
+        message_id=attempt_message.id,
+        session_id=session.id,
         name="Good greeting",
         description="Student greeted well",
     )
-    return result, msg, grade
+    return result, attempt_message, grade
 
 
 async def test_finds_created_entry(conn, redis_client, profile_id):
-    result, msg, grade = await _setup(conn, redis_client, profile_id)
+    result, attempt_message, grade = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_strength(conn)
 
-    items = await search_attempt_strengths(conn, redis_client, message_ids=[msg.id])
+    items = await search_attempt_strengths(conn, redis_client, message_ids=[attempt_message.id])
 
     ids = [item.strength_id for item in items]
     assert result.id in ids
@@ -89,7 +86,7 @@ async def test_filters_by_message_id(conn, redis_client, profile_id):
 
 
 async def test_filters_by_grade_id(conn, redis_client, profile_id):
-    result, msg, grade = await _setup(conn, redis_client, profile_id)
+    result, attempt_message, grade = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_strength(conn)
 
     items = await search_attempt_strengths(conn, redis_client, grade_ids=[grade.id])
@@ -108,10 +105,10 @@ async def test_filters_by_grade_id_nonexistent(conn, redis_client, profile_id):
 
 
 async def test_pagination_limit(conn, redis_client, profile_id):
-    result, msg, grade = await _setup(conn, redis_client, profile_id)
+    result, attempt_message, grade = await _setup(conn, redis_client, profile_id)
     await refresh_attempt_strength(conn)
 
-    items = await search_attempt_strengths(conn, redis_client, message_ids=[msg.id], limit=1)
+    items = await search_attempt_strengths(conn, redis_client, message_ids=[attempt_message.id], limit=1)
 
     assert len(items) <= 1
 
@@ -126,9 +123,9 @@ async def test_returns_all_without_filter(conn, redis_client, profile_id):
 
 
 async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
-    result, msg, grade = await _setup(conn, redis_client, profile_id)
+    result, attempt_message, grade = await _setup(conn, redis_client, profile_id)
 
-    items = await search_attempt_strengths(conn, redis_client, message_ids=[msg.id], bypass_mv=True)
+    items = await search_attempt_strengths(conn, redis_client, message_ids=[attempt_message.id], bypass_mv=True)
 
     ids = [item.strength_id for item in items]
     assert result.id in ids

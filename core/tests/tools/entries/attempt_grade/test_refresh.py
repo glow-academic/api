@@ -34,7 +34,6 @@ async def _attempt_grade(conn, redis_client, profile_id, **overrides):
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -46,7 +45,7 @@ async def _attempt_grade(conn, redis_client, profile_id, **overrides):
     )
     defaults = dict(
         chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,
@@ -61,21 +60,23 @@ def _created(result):
 
 
 async def test_new_attempt_grade_appears_after_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_grade(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_grade(conn, redis_client, profile_id))
+    lookup_id = created.id
 
     await refresh_attempt_grade(conn)
     items = await get_attempt_grades(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].grade_id == lookup_id
 
 
 async def test_new_attempt_grade_is_not_visible_before_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_grade(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_grade(conn, redis_client, profile_id))
+    lookup_id = created.id
 
-    items = await get_attempt_grades(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_grades(
+        conn, ids=[lookup_id], redis=redis_client, bypass_cache=True
+    )
 
     assert items == []
 

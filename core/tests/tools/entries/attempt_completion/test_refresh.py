@@ -27,7 +27,7 @@ async def _setup_entry(conn, redis_client, profile_id):
 
 async def test_refresh_is_idempotent(conn, redis_client, profile_id):
     session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, call_id=call.id)
+    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id)
 
     await refresh_attempt_completion(conn)
 
@@ -36,7 +36,7 @@ async def test_refresh_is_idempotent(conn, redis_client, profile_id):
 
 async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
     session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, call_id=call.id)
+    result = await create_attempt_completion(conn, redis_client, attempt_id=seed.id, session_id=session.id)
 
     row = await conn.fetchrow(f"SELECT id FROM {MV_NAME} WHERE id = $1", result.id)
 
