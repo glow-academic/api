@@ -46,7 +46,7 @@ async def test_create_without_connections_returns_empty_lists(conn, redis_client
 
     items = await get_setting_drafts(conn, [result.id], redis_client)
 
-    assert items[0].agent_ids == []
+    assert items[0].system_ids == []
     assert items[0].auth_item_key_ids == []
     assert items[0].auth_ids == []
     assert items[0].color_ids == []
@@ -55,7 +55,7 @@ async def test_create_without_connections_returns_empty_lists(conn, redis_client
     assert items[0].flag_ids == []
     assert items[0].item_ids == []
     assert items[0].name_ids == []
-    assert items[0].profile_ids == []
+    assert items[0].provider_ids == []
     assert items[0].provider_key_ids == []
     assert items[0].threshold_ids == []
 

@@ -85,7 +85,7 @@ async def test_no_junctions_when_all_false(conn, redis_client):
         "department_ids",
         "flag_ids",
         "color_ids",
-        "profile_ids",
+        "provider_ids",
         "auth_item_keys_ids",
         "provider_key_ids",
         "threshold_ids",
