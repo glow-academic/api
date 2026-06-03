@@ -11,8 +11,12 @@ async def test_export_raises_401_when_no_profile(monkeypatch):
     pool, redis = AsyncMock(), AsyncMock()
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+    # view='single' needs an attempt_id to reach the profile-resolution
+    # auth check; without it the impl validation-rejects with 400 first.
     with pytest.raises(HTTPException) as exc:
-        await mod.export_attempt_impl(pool, redis, profile_id=uuid4())
+        await mod.export_attempt_impl(
+            pool, redis, profile_id=uuid4(), attempt_id=uuid4()
+        )
     assert exc.value.status_code == 401
 
 async def test_export_function_exists():
