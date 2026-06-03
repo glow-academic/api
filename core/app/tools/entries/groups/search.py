@@ -45,7 +45,11 @@ async def search_groups(
     rows = await conn.fetch(
         f"""
         SELECT group_id, session_id, created_at, name, active, mcp, generated, artifact_type
-        FROM {source} g
+        -- Wrap so the ``g`` alias (used by the has_runs EXISTS correlation
+        -- below) is valid whether resolve_mv_source returns a bare MV name
+        -- or an already-aliased "(<definition>) mv" subquery (bypass_mv=True);
+        -- "(<def>) mv g" is a double-alias syntax error otherwise.
+        FROM (SELECT * FROM {source}) g
         WHERE ($1::uuid[] IS NULL OR session_id = ANY($1))
           AND ($2::text IS NULL OR name ILIKE '%' || $2 || '%')
           AND ($3::timestamptz IS NULL OR created_at >= $3)
