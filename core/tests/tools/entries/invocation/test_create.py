@@ -16,14 +16,14 @@ async def _invocation(conn, redis_client, **overrides):
     return result, benchmark
 
 
-async def test_returns_id(conn):
-    result, _ = await _invocation(conn)
+async def test_returns_id(conn, redis_client):
+    result, _ = await _invocation(conn, redis_client)
 
     assert result.id is not None
 
 
-async def test_row_exists(conn):
-    result, benchmark = await _invocation(conn)
+async def test_row_exists(conn, redis_client):
+    result, benchmark = await _invocation(conn, redis_client)
 
     row = await conn.fetchrow(
         "SELECT benchmark_id FROM invocation_entry WHERE id = $1",
@@ -33,8 +33,8 @@ async def test_row_exists(conn):
     assert row["benchmark_id"] == benchmark.id
 
 
-async def test_passes_mcp_flag(conn):
-    result, _ = await _invocation(conn, mcp=True)
+async def test_passes_mcp_flag(conn, redis_client):
+    result, _ = await _invocation(conn, redis_client, mcp=True)
 
     row = await conn.fetchrow(
         "SELECT mcp FROM invocation_entry WHERE id = $1",

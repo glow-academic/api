@@ -5,6 +5,7 @@ import pytest
 from app.tools.entries.personas.create import create_personas
 from app.tools.entries.personas.get import get_personas
 from app.tools.entries.sessions.create import create_session
+from app.tools.resources.personas.create import create_persona
 
 pytestmark = pytest.mark.asyncio
 
@@ -46,10 +47,8 @@ async def test_create_without_connections_returns_empty_list(conn, redis_client,
 
 async def test_create_with_connections(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
-    persona_id = await conn.fetchval("SELECT id FROM personas_resource LIMIT 1")
-    assert persona_id is not None, (
-        "Need at least one personas_resource row as seed data"
-    )
+    persona = await create_persona(conn, redis_client, name="test-persona")
+    persona_id = persona.id
 
     result = await create_personas(
         conn, redis_client, session_id=session.id, persona_ids=[persona_id]
@@ -63,9 +62,9 @@ async def test_create_with_connections(conn, redis_client, profile_id):
 
 async def test_create_with_multiple_connections(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
-    rows = await conn.fetch("SELECT id FROM personas_resource LIMIT 2")
-    assert len(rows) >= 2, "Need at least two personas_resource rows as seed data"
-    persona_ids = [r["id"] for r in rows]
+    p1 = await create_persona(conn, redis_client, name="test-persona-1")
+    p2 = await create_persona(conn, redis_client, name="test-persona-2")
+    persona_ids = [p1.id, p2.id]
 
     result = await create_personas(conn, redis_client, session_id=session.id, persona_ids=persona_ids)
 

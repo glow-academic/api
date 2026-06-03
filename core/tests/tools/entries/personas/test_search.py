@@ -6,6 +6,7 @@ from tests.helpers import nonexistent_id
 from app.tools.entries.personas.create import create_personas
 from app.tools.entries.personas.search import search_personas
 from app.tools.entries.sessions.create import create_session
+from app.tools.resources.personas.create import create_persona
 
 pytestmark = pytest.mark.asyncio
 
@@ -35,10 +36,8 @@ async def test_search_filters_by_session(conn, redis_client, profile_id):
 
 async def test_search_returns_connections(conn, redis_client, profile_id):
     session = await _session(conn, redis_client, profile_id)
-    persona_id = await conn.fetchval("SELECT id FROM personas_resource LIMIT 1")
-    assert persona_id is not None, (
-        "Need at least one personas_resource row as seed data"
-    )
+    persona = await create_persona(conn, redis_client, name="test-persona")
+    persona_id = persona.id
 
     result = await create_personas(
         conn, redis_client, session_id=session.id, persona_ids=[persona_id]

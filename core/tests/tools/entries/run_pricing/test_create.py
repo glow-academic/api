@@ -20,17 +20,17 @@ async def _run(conn, redis_client, profile_id):
     return session, run
 
 
-async def _pricing_type(conn):
-    return await conn.fetchval("SELECT unnest(enum_range(NULL::pricing_type)) LIMIT 1")
+# pricing_type is a plain text column ('input' | 'output' | 'cached'); the
+# legacy enum type was dropped.
+PRICING_TYPE = "input"
 
 
 async def test_create_returns_id(conn, redis_client, profile_id):
     session, run = await _run(conn, redis_client, profile_id)
-    pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
-        "INSERT INTO run_pricing_entry (pricing_type, count, run_id, session_id) VALUES ($1::pricing_type, $2, $3, $4) RETURNING id",
-        pricing_type,
+        "INSERT INTO run_pricing_entry (pricing_type, count, run_id, session_id) VALUES ($1, $2, $3, $4) RETURNING id",
+        PRICING_TYPE,
         5,
         run.id,
         session.id,
@@ -41,11 +41,10 @@ async def test_create_returns_id(conn, redis_client, profile_id):
 
 async def test_roundtrip_via_db(conn, redis_client, profile_id):
     session, run = await _run(conn, redis_client, profile_id)
-    pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
-        "INSERT INTO run_pricing_entry (pricing_type, count, run_id, session_id) VALUES ($1::pricing_type, $2, $3, $4) RETURNING id",
-        pricing_type,
+        "INSERT INTO run_pricing_entry (pricing_type, count, run_id, session_id) VALUES ($1, $2, $3, $4) RETURNING id",
+        PRICING_TYPE,
         5,
         run.id,
         session.id,
@@ -55,7 +54,7 @@ async def test_roundtrip_via_db(conn, redis_client, profile_id):
 
     assert row is not None
     assert row["id"] == entry_id
-    assert row["pricing_type"] == pricing_type
+    assert row["pricing_type"] == PRICING_TYPE
     assert row["count"] == 5
     assert row["run_id"] == run.id
     assert row["session_id"] == session.id
