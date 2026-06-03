@@ -19,7 +19,7 @@ async def learning_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
-async def _create_attempt_export_graph(pool, actor, *, practice: bool):
+async def _create_attempt_export_graph(pool, redis, actor, *, practice: bool):
     from app.tools.entries.attempt.create import create_attempt
     from app.tools.entries.attempt.refresh import refresh_attempt
     from app.tools.entries.attempt_chat.create import create_attempt_chat
@@ -34,30 +34,34 @@ async def _create_attempt_export_graph(pool, actor, *, practice: bool):
     async with pool.acquire() as conn:
         group = await create_group(
             conn,
+            redis,
             session_id=actor.session_id,
-            name=f"export-{'practice' if practice else 'home'}",
+            artifact_type="persona",
         )
         run = await create_run(
             conn,
+            redis,
             group_id=group.id,
             session_id=actor.session_id,
-            profiles_id=actor.profiles_id,
         )
-        call = await create_call(
+        await create_call(
             conn,
+            redis,
             run_id=run.id,
             session_id=actor.session_id,
         )
-        persona = await create_persona(conn)
+        persona = await create_persona(conn, redis)
         attempt = await create_attempt(
             conn,
-            call_id=call.id,
+            redis,
+            session_id=actor.session_id,
             user_persona_id=persona.id,
             profiles_id=actor.profiles_id,
             practice=practice,
         )
         chat = await create_chat(
             conn,
+            redis,
             session_id=actor.session_id,
             department_ids=[actor.department_id],
             name=f"export-chat-{'practice' if practice else 'record'}",
@@ -65,9 +69,9 @@ async def _create_attempt_export_graph(pool, actor, *, practice: bool):
         )
         await create_attempt_chat(
             conn,
+            redis,
             session_id=actor.session_id,
             chat_id=chat.id,
-            departments_ids=[actor.department_id],
             text_enabled=True,
         )
         await refresh_attempt(conn)
@@ -202,11 +206,13 @@ class TestHomePracticeRecordRoutes:
     async def test_export_home_route_creates_zip_upload(
         self,
         pool,
+        redis_client,
         home_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
             pool,
+            redis_client,
             learning_route_actor,
             practice=False,
         )
@@ -229,11 +235,13 @@ class TestHomePracticeRecordRoutes:
     async def test_export_practice_route_creates_zip_upload(
         self,
         pool,
+        redis_client,
         practice_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
             pool,
+            redis_client,
             learning_route_actor,
             practice=True,
         )
@@ -256,11 +264,13 @@ class TestHomePracticeRecordRoutes:
     async def test_export_record_route_creates_zip_upload(
         self,
         pool,
+        redis_client,
         record_route_client,
         learning_route_actor,
     ):
         await _create_attempt_export_graph(
             pool,
+            redis_client,
             learning_route_actor,
             practice=False,
         )
