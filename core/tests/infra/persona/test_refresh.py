@@ -1,6 +1,7 @@
 """Tests for persona refresh — monkeypatch collaborators."""
 
 from dataclasses import dataclass
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -48,33 +49,23 @@ class TestRefreshSuccess:
         async def fake_resolve(pool, pid, redis, **kw):
             return _FakeProfile()
 
-        async def fake_refresh(conn):
-            pass
-
         async def fake_invalidate(tags, *, redis):
             invalidated.extend(tags)
 
         monkeypatch.setattr(
-            "app.infra.persona.refresh.resolve_profile_identity_context",
+            "app.infra.refresh.queue.resolve_profile_identity_context",
             fake_resolve,
-        )
-        monkeypatch.setattr(
-            "app.infra.persona.refresh.refresh_persona_internal",
-            fake_refresh,
-        )
-        monkeypatch.setattr(
-            "app.infra.persona.refresh.refresh_persona_drafts",
-            fake_refresh,
         )
         monkeypatch.setattr(
             "app.utils.cache.invalidate_tags.invalidate_tags",
             fake_invalidate,
         )
 
-        result = await refresh_persona_impl(_FakePool(), object(), profile_id=_PROFILE_ID)
+        result = await refresh_persona_impl(_FakePool(), AsyncMock(), profile_id=_PROFILE_ID)
 
         assert result.success is True
-        assert result.refreshed_views == ["personas_mv", "persona_drafts_mv"]
+        assert "personas_mv" in result.refreshed_views
+        assert "persona_drafts_mv" in result.refreshed_views
         assert result.invalidated_tags == ["personas", "artifacts"]
 
 
@@ -84,7 +75,7 @@ class TestRefreshAuth:
             return None
 
         monkeypatch.setattr(
-            "app.infra.persona.refresh.resolve_profile_identity_context",
+            "app.infra.refresh.queue.resolve_profile_identity_context",
             fake_resolve,
         )
 
@@ -98,20 +89,9 @@ class TestRefreshRedisNone:
         async def fake_resolve(pool, pid, redis, **kw):
             return _FakeProfile()
 
-        async def fake_refresh(conn):
-            pass
-
         monkeypatch.setattr(
-            "app.infra.persona.refresh.resolve_profile_identity_context",
+            "app.infra.refresh.queue.resolve_profile_identity_context",
             fake_resolve,
-        )
-        monkeypatch.setattr(
-            "app.infra.persona.refresh.refresh_persona_internal",
-            fake_refresh,
-        )
-        monkeypatch.setattr(
-            "app.infra.persona.refresh.refresh_persona_drafts",
-            fake_refresh,
         )
 
         result = await refresh_persona_impl(_FakePool(), None, profile_id=_PROFILE_ID)
