@@ -371,7 +371,6 @@ async def create_persona_context_fixture(
             conn,
             name=f"persona-flag-{tag}",
             description="Persona flag",
-            icon="user",
             flag_type="persona_active",
             redis=redis_client,
         )
@@ -379,7 +378,6 @@ async def create_persona_context_fixture(
             conn,
             name=f"scenario-flag-{tag}",
             description="Scenario flag",
-            icon="alert",
             flag_type="scenario_active",
             redis=redis_client,
         )

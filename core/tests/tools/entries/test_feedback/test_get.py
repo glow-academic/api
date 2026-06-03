@@ -37,6 +37,7 @@ async def _test_feedback(conn, redis_client, profile_id, **overrides):
     defaults = dict(
         grade_id=test_grade.id,
         call_id=call2.id,
+        tool_call_id=call.id,
         total=10,
         feedback="Good job",
         total_points=100,

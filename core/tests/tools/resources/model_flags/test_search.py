@@ -15,7 +15,7 @@ async def _create_model_flag_with_deps(conn, redis_client, flag_name: str):
     """Helper: create a model + flag + model_flag."""
     model = await create_model(conn, value=f"model-{unique_tag()}", redis=redis_client)
     flag = await create_flag(
-        conn, name=flag_name, description="", icon="", redis=redis_client
+        conn, name=flag_name, description="", redis=redis_client
     )
     mf = await create_model_flag(conn, model.id, flag.id, redis_client)
     return mf
