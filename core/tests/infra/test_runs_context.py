@@ -33,7 +33,6 @@ async def test_returns_runs_for_profile(pool, redis_client):
             conn,
             redis_client, group_id=group.id,
             session_id=session.id,
-            profiles_id=profile.id,
         )
         await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
 
@@ -53,7 +52,6 @@ async def test_filters_by_group_and_date_range(pool, redis_client):
             conn,
             redis_client, group_id=group.id,
             session_id=session.id,
-            profiles_id=profile.id,
         )
         await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
 

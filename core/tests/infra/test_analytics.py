@@ -33,7 +33,7 @@ async def _profile_session_run_call(conn, redis_client):
     session = await create_session(conn, redis_client, profile_id=profile.id)
     group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(
-        conn, redis_client, group_id=group.id, session_id=session.id, profiles_id=profile.id
+        conn, redis_client, group_id=group.id, session_id=session.id
     )
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     return profile, session, group, run, call
@@ -110,7 +110,6 @@ class TestPricingFilters:
                 conn,
                 redis_client, group_id=later_group.id,
                 session_id=session.id,
-                profiles_id=profile.id,
             )
             await conn.execute(
                 "UPDATE runs_entry SET created_at = $2 WHERE id = $1",
@@ -171,7 +170,6 @@ class TestBenchmarkFilters:
                 conn,
                 redis_client, group_id=later_group.id,
                 session_id=_session.id,
-                profiles_id=profile.id,
             )
             late_call = await create_call(
                 conn, redis_client, run_id=later_run.id, session_id=_session.id
