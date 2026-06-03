@@ -59,5 +59,9 @@ async def test_appears_after_refresh(conn, redis_client, profile_id):
 async def test_not_visible_before_refresh(conn, redis_client, profile_id):
     result = await _setup(conn, redis_client, profile_id)
 
-    items = await get_attempt_chat_bridge(conn, attempt_ids=[result.attempt_id], redis=redis_client)
+    # bypass_cache returns only attempt_chat_bridge_mv rows (skipping the write-back
+    # cache hedge); create does not refresh the MV, so the row is hidden until refresh.
+    items = await get_attempt_chat_bridge(
+        conn, attempt_ids=[result.attempt_id], redis=redis_client, bypass_cache=True
+    )
     assert len(items) == 0

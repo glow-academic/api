@@ -40,6 +40,8 @@ async def test_new_problem_not_visible_before_refresh(conn, redis_client, profil
         conn, redis_client, session_id=session.id, call_id=call.id, type="bug", artifact_type="activity"
     )
 
-    items = await get_problems(conn, [result.id], redis_client)
+    # bypass_cache reads the genuine problems_mv (via resolve_mv_source), which
+    # create does not write to — so the new row is hidden until refresh.
+    items = await get_problems(conn, [result.id], redis_client, bypass_cache=True)
 
     assert items == []

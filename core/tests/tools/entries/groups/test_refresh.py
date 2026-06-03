@@ -29,6 +29,8 @@ async def test_new_group_not_visible_before_refresh(conn, redis_client, profile_
     session = await _session(conn, redis_client, profile_id)
     result = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
 
-    items = await get_groups(conn, [result.id], redis_client)
+    # bypass_cache reads the genuine groups_mv (via resolve_mv_source), which
+    # create does not write to — so the new row is hidden until refresh.
+    items = await get_groups(conn, [result.id], redis_client, bypass_cache=True)
 
     assert items == []
