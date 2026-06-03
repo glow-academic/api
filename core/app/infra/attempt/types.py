@@ -66,6 +66,7 @@ class ImageEntry(BaseModel):
     """Image entry with resource metadata."""
 
     image_id: UUID | None = Field(None, description="UUID of the image")
+    upload_id: UUID | None = Field(None, description="UUID of the source upload")
     name: str | None = Field(None, description="Name of the image")
     description: str | None = Field(None, description="Description of the image")
 
@@ -74,6 +75,7 @@ class VideoEntry(BaseModel):
     """Video entry with resource metadata."""
 
     video_id: UUID | None = Field(None, description="UUID of the video")
+    upload_id: UUID | None = Field(None, description="UUID of the source upload")
     name: str | None = Field(None, description="Name of the video")
     description: str | None = Field(None, description="Description of the video")
     length_seconds: int | None = Field(None, description="Duration of the video in seconds")

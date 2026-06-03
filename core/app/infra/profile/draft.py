@@ -459,7 +459,6 @@ async def patch_profile_draft_impl(
                     redis,
                     departments_id=request.primary_department_id,
                     soft=soft,
-                    name=request.name or "",
                 )
 
             result = await create_profile_draft(
