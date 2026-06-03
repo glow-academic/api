@@ -49,8 +49,7 @@ async def test_create_operation_has_params(conn):
     )
     param_names = [p.name for p in create_op.params]
     assert "chat_id" in param_names
-    assert "call_id" in param_names
-    assert "run_id" in param_names
+    assert "session_id" in param_names
     assert "time_taken" in param_names
     assert "passed" in param_names
     assert "score" in param_names

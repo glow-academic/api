@@ -31,7 +31,6 @@ async def test_includes_source_tables(conn):
 
     table_names = [t.name for t in result.tables]
     assert "test_invocation_runs_entry" in table_names
-    assert "test_invocation_runs_agents_connection" in table_names
 
 
 async def test_includes_all_operations(conn):
@@ -51,5 +50,6 @@ async def test_create_operation_has_params(conn):
     )
     param_names = [p.name for p in create_op.params]
     assert "test_invocation_id" in param_names
-    assert "agent_ids" in param_names
+    assert "run_id" in param_names
+    assert "test_invocation_traces_id" in param_names
     assert "mcp" in param_names
