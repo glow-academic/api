@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.parameter.update import update_parameter_impl
+from app.infra.parameter.types import UpdateParameterApiRequest, UpdateParameterItem
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,7 +83,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await update_parameter_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateParameterApiRequest(parameters=[UpdateParameterItem(id=uuid4())]),
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +104,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await update_parameter_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateParameterApiRequest(parameters=[UpdateParameterItem(id=uuid4())]),
             )
         except Exception:
             pass  # downstream errors expected
