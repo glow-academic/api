@@ -7,11 +7,11 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
-from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
 
 from app.tools.entries.sessions.create import create_session
 from app.tools.entries.sessions.refresh import refresh_sessions
+from tests.helpers import unique_tag
+from tests.infra.route_helpers import create_admin_route_actor, selected_resource
 
 
 @dataclass(frozen=True)
@@ -128,7 +128,7 @@ class TestProfileRoute:
         assert payload["actor_name"] == profile_route_actor.name
         assert payload["profile_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
 
     async def test_search_profile_route_returns_created_profile(
         self,
@@ -261,7 +261,7 @@ class TestProfileRoute:
             session_id=profile_route_actor.session_id,
         )
 
-        response = await profile_route_client.client.patch(
+        response = await profile_route_client.client.post(
             "/profile/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -291,7 +291,7 @@ class TestProfileRoute:
             session_id=profile_route_actor.session_id,
         )
 
-        draft_response = await profile_route_client.client.patch(
+        draft_response = await profile_route_client.client.post(
             "/profile/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -325,8 +325,8 @@ class TestProfileRoute:
         )
 
         response = await profile_route_client.client.post(
-            "/profile/docs",
-            json={},
+            "/profile/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

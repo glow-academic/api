@@ -7,8 +7,13 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
+from tests.infra.route_helpers import (
+    create_admin_route_actor,
+    selected_resource,
+    selected_resources,
+)
 
 
 @dataclass(frozen=True)
@@ -128,12 +133,14 @@ class TestDocumentRoute:
         assert payload["actor_name"] == document_route_actor.name
         assert payload["document_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
         assert {
-            department["id"] for department in payload["departments"]["current"]
+            department["department_id"]
+            for department in selected_resources(payload["departments"])
         } == {str(document_route_actor.department_id)}
 
     async def test_search_document_route_returns_created_document(
@@ -212,9 +219,9 @@ class TestDocumentRoute:
             headers={"X-Bypass-Cache": "1"},
         )
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
 
@@ -281,7 +288,7 @@ class TestDocumentRoute:
             session_id=document_route_actor.session_id,
         )
 
-        response = await document_route_client.client.patch(
+        response = await document_route_client.client.post(
             "/document/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -309,7 +316,7 @@ class TestDocumentRoute:
             profile_id=document_route_actor.profile_id,
             session_id=document_route_actor.session_id,
         )
-        draft_response = await document_route_client.client.patch(
+        draft_response = await document_route_client.client.post(
             "/document/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -343,8 +350,8 @@ class TestDocumentRoute:
         )
 
         response = await document_route_client.client.post(
-            "/document/docs",
-            json={"entity_id": None},
+            "/document/context",
+            json={"entity_id": None, "schema": True},
         )
 
         assert response.status_code == 200, response.text

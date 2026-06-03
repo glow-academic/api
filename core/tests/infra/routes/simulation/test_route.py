@@ -7,8 +7,13 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
+from tests.infra.route_helpers import (
+    create_admin_route_actor,
+    selected_resource,
+    selected_resources,
+)
 
 
 @dataclass(frozen=True)
@@ -128,13 +133,14 @@ class TestSimulationRoute:
         assert payload["actor_name"] == simulation_route_actor.name
         assert payload["simulation_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
         assert any(
             scenario["scenario_id"] == created["scenario_id"]
-            for scenario in payload["scenarios"]["current"]
+            for scenario in selected_resources(payload["scenarios"])
         )
 
     async def test_search_simulation_route_returns_created_simulation(
@@ -268,7 +274,7 @@ class TestSimulationRoute:
             session_id=simulation_route_actor.session_id,
         )
 
-        response = await simulation_route_client.client.patch(
+        response = await simulation_route_client.client.post(
             "/simulation/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -295,7 +301,7 @@ class TestSimulationRoute:
             profile_id=simulation_route_actor.profile_id,
             session_id=simulation_route_actor.session_id,
         )
-        draft_response = await simulation_route_client.client.patch(
+        draft_response = await simulation_route_client.client.post(
             "/simulation/draft",
             json={"name_id": str(resources.name_id)},
         )
@@ -323,8 +329,8 @@ class TestSimulationRoute:
         )
 
         response = await simulation_route_client.client.post(
-            "/simulation/docs",
-            json={},
+            "/simulation/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

@@ -7,8 +7,9 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
+from tests.infra.route_helpers import create_admin_route_actor, selected_resource
 
 
 @dataclass(frozen=True)
@@ -115,9 +116,10 @@ class TestToolRoute:
         assert payload["actor_name"] == tool_route_actor.name
         assert payload["tool_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
         assert payload["can_edit"] is True
         assert payload["disabled_reason"] is None
@@ -223,9 +225,9 @@ class TestToolRoute:
             headers={"X-Bypass-Cache": "1"},
         )
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
 
@@ -301,7 +303,7 @@ class TestToolRoute:
             session_id=tool_route_actor.session_id,
         )
 
-        response = await tool_route_client.client.patch(
+        response = await tool_route_client.client.post(
             "/tool/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -331,7 +333,7 @@ class TestToolRoute:
             profile_id=tool_route_actor.profile_id,
             session_id=tool_route_actor.session_id,
         )
-        draft_response = await tool_route_client.client.patch(
+        draft_response = await tool_route_client.client.post(
             "/tool/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -361,8 +363,8 @@ class TestToolRoute:
         )
 
         response = await tool_route_client.client.post(
-            "/tool/docs",
-            json={},
+            "/tool/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

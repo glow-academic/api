@@ -7,8 +7,13 @@ from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import create_admin_route_actor
+from tests.infra.route_helpers import (
+    create_admin_route_actor,
+    selected_resource,
+    selected_resources,
+)
 
 
 @dataclass(frozen=True)
@@ -113,13 +118,15 @@ class TestSettingRoute:
         assert payload["actor_name"] == setting_route_actor.name
         assert payload["setting_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
-        assert {item["id"] for item in payload["departments"]["current"]} == {
-            str(setting_route_actor.department_id)
-        }
+        assert {
+            item["department_id"]
+            for item in selected_resources(payload["departments"])
+        } == {str(setting_route_actor.department_id)}
 
     async def test_search_setting_route_returns_created_setting(
         self,
@@ -189,9 +196,9 @@ class TestSettingRoute:
             headers={"X-Bypass-Cache": "1"},
         )
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
 
@@ -257,7 +264,7 @@ class TestSettingRoute:
             session_id=setting_route_actor.session_id,
         )
 
-        response = await setting_route_client.client.patch(
+        response = await setting_route_client.client.post(
             "/setting/draft",
             json={
                 "name_id": str(resources.name_id),
@@ -284,7 +291,7 @@ class TestSettingRoute:
             profile_id=setting_route_actor.profile_id,
             session_id=setting_route_actor.session_id,
         )
-        draft_response = await setting_route_client.client.patch(
+        draft_response = await setting_route_client.client.post(
             "/setting/draft",
             json={"name_id": str(resources.name_id)},
         )
@@ -312,8 +319,8 @@ class TestSettingRoute:
         )
 
         response = await setting_route_client.client.post(
-            "/setting/docs",
-            json={},
+            "/setting/context",
+            json={"schema": True},
         )
 
         assert response.status_code == 200, response.text

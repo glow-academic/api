@@ -7,8 +7,14 @@ from uuid import UUID
 
 import pytest
 import pytest_asyncio
+
 from tests.helpers import unique_tag
-from tests.infra.route_helpers import RouteActor, create_admin_route_actor
+from tests.infra.route_helpers import (
+    RouteActor,
+    create_admin_route_actor,
+    selected_resource,
+    selected_resources,
+)
 
 
 @dataclass(frozen=True)
@@ -129,17 +135,21 @@ class TestCohortRoute:
         assert payload["actor_name"] == cohort_route_actor.name
         assert payload["cohort_exists"] is True
         assert payload["group_id"] is not None
-        assert payload["names"]["resource"]["name"] == created["name"]
+        assert selected_resource(payload["names"])["name"] == created["name"]
         assert (
-            payload["descriptions"]["resource"]["description"] == created["description"]
+            selected_resource(payload["descriptions"])["description"]
+            == created["description"]
         )
-        assert payload["simulations"]["current"]
+        assert selected_resources(payload["simulations"])
         assert (
-            payload["simulations"]["current"][0]["simulation_id"]
+            selected_resources(payload["simulations"])[0]["simulation_id"]
             == created["simulation_id"]
         )
-        assert payload["profiles"]["current"]
-        assert payload["profiles"]["current"][0]["profile_id"] == created["profile_id"]
+        assert selected_resources(payload["profiles"])
+        assert (
+            selected_resources(payload["profiles"])[0]["profile_id"]
+            == created["profile_id"]
+        )
 
     async def test_search_cohort_route_returns_created_cohort(
         self,
@@ -260,14 +270,14 @@ class TestCohortRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == updated.name
+        assert selected_resource(get_payload["names"])["name"] == updated.name
         assert (
-            get_payload["descriptions"]["resource"]["description"]
+            selected_resource(get_payload["descriptions"])["description"]
             == updated.description
         )
-        assert get_payload["simulations"]["current"][0]["simulation_id"] == str(
-            updated.simulation_id
-        )
+        assert selected_resources(get_payload["simulations"])[0][
+            "simulation_id"
+        ] == str(updated.simulation_id)
 
     async def test_duplicate_cohort_route_returns_new_cohort(
         self,
@@ -352,7 +362,7 @@ class TestCohortRoute:
         )
         draft_name = f"Draft Cohort {unique_tag()}"
 
-        response = await cohort_route_client.client.patch(
+        response = await cohort_route_client.client.post(
             "/cohort/draft",
             json={
                 "name": draft_name,
@@ -380,7 +390,7 @@ class TestCohortRoute:
 
         assert get_response.status_code == 200, get_response.text
         get_payload = get_response.json()
-        assert get_payload["names"]["resource"]["name"] == draft_name
+        assert selected_resource(get_payload["names"])["name"] == draft_name
 
     async def test_cohort_drafts_route_lists_owned_drafts(
         self,
@@ -434,8 +444,8 @@ class TestCohortRoute:
         )
 
         response = await cohort_route_client.client.post(
-            "/cohort/docs",
-            json={"entity_id": created["cohort_id"]},
+            "/cohort/context",
+            json={"entity_id": created["cohort_id"], "schema": True},
         )
 
         assert response.status_code == 200, response.text
