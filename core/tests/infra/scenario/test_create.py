@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.scenario.create import create_scenario_impl
+from app.infra.scenario.types import CreateScenarioApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,7 +83,8 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_scenario_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreateScenarioApiRequest(scenarios=[]),
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +105,8 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await create_scenario_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreateScenarioApiRequest(scenarios=[]),
             )
         except Exception:
             pass  # downstream errors expected

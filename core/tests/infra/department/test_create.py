@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.department.create import create_department_impl
+from app.infra.department.types import CreateDepartmentApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,7 +83,8 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await create_department_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreateDepartmentApiRequest(departments=[]),
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +105,8 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await create_department_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID,
+                request=CreateDepartmentApiRequest(departments=[]),
             )
         except Exception:
             pass  # downstream errors expected
