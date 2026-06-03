@@ -49,9 +49,9 @@ def _created(result):
 
 
 async def test_gets_created_test_invocation_completion(conn, redis_client, profile_id):
-    _created(await _test_invocation_completion(conn, redis_client, profile_id))
+    created = await _test_invocation_completion(conn, redis_client, profile_id)
     await refresh_test_invocation_completion(conn)
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
     items = await get_test_invocation_completions(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
