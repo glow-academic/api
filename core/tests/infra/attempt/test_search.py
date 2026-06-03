@@ -7,7 +7,7 @@ pytestmark = pytest.mark.asyncio
 
 async def test_search_raises_401_when_no_profile(monkeypatch):
     import app.infra.attempt.search as m
-    monkeypatch.setattr(m, "resolve_profile_identity_context", AsyncMock(return_value=None))
+    monkeypatch.setattr(m, "resolve_common_context", AsyncMock(return_value=None))
     pool, redis = AsyncMock(), AsyncMock()
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -22,4 +22,4 @@ async def test_search_function_is_async():
 async def test_search_module_composes_tools():
     import app.infra.attempt.search as m
     source = open(m.__file__).read()
-    assert "resolve_profile_identity_context" in source or "pool" in source
+    assert "resolve_common_context" in source or "pool" in source

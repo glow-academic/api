@@ -1,6 +1,7 @@
 """Tests for provider export — profile check, empty export."""
 
 from dataclasses import dataclass
+from types import SimpleNamespace
 from uuid import uuid4
 import pytest
 from app.infra.provider.export import export_provider_impl
@@ -46,8 +47,17 @@ async def test_export_returns_empty_for_no_artifacts(monkeypatch):
         return _P(profiles_id=uuid4())
     async def mock_search(conn, **kw):
         return ([], 0)
+    async def mock_create_upload(conn, redis, **kw):
+        return SimpleNamespace(id=uuid4())
+    async def mock_create_file_resource(conn, redis, **kw):
+        return SimpleNamespace(id=uuid4())
+    async def mock_enqueue(pool, redis, **kw):
+        return None
     monkeypatch.setattr("app.infra.provider.export.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr("app.infra.provider.export.search_providers", mock_search)
+    monkeypatch.setattr("app.infra.provider.export.create_upload", mock_create_upload)
+    monkeypatch.setattr("app.infra.provider.export.create_file_resource", mock_create_file_resource)
+    monkeypatch.setattr("app.infra.provider.export.enqueue_refreshes", mock_enqueue)
     result = await export_provider_impl(_Pool(), None, profile_id=uuid4())
     assert result.row_count == 0
 

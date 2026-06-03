@@ -1,4 +1,4 @@
-"""Tests for drafts_invocation_impl."""
+"""Tests for list_invocation_drafts_impl."""
 from unittest.mock import AsyncMock
 from uuid import uuid4
 import pytest
@@ -12,12 +12,12 @@ async def test_drafts_raises_401_when_no_profile(monkeypatch):
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
     with pytest.raises((HTTPException, Exception)):
-        await m.drafts_invocation_impl(pool, redis, profile_id=uuid4())
+        await m.list_invocation_drafts_impl(pool, redis, profile_id=uuid4())
 
 async def test_drafts_function_is_async():
     import app.infra.invocation.drafts as m
     import asyncio
-    assert asyncio.iscoroutinefunction(m.drafts_invocation_impl)
+    assert asyncio.iscoroutinefunction(m.list_invocation_drafts_impl)
 
 async def test_drafts_module_composes_tools():
     import app.infra.invocation.drafts as m
