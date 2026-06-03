@@ -755,6 +755,7 @@ async def get_test_impl(
                 async with pool.acquire() as conn:
                     extra_messages, _ = await _search_messages_for_preview(
                         conn,
+                        effective_redis,
                         run_ids=extra_run_ids,
                         sort_order="asc",
                         limit=10000,

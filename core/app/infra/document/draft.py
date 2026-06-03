@@ -181,6 +181,7 @@ async def _resolve_creatable_values(
             file_resource = await create_file_resource(conn, redis)
             file_entry = await create_file_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 files_id=file_resource.id,
             )
@@ -278,6 +279,7 @@ async def _resolve_creatable_values(
             )
             image_entry = await create_image_entry(
                 conn,
+                redis,
                 session_id=session_id,
                 images_id=image_resource.id,
             )
