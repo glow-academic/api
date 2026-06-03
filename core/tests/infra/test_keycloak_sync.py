@@ -14,11 +14,10 @@ def make_config(**overrides) -> KeycloakSyncConfig:
     """Create a test config with sensible defaults."""
     defaults = {
         "auth_keycloak_id": "glow-client",
-        "auth_keycloak_secret": "secret",
+        "auth_client_secret": "secret",
         "client_port": "3000",
         "app_prefix": "",
         "origin": "http://localhost:3000",
-        "auth_secret": "test-secret",
         "auth_url": None,
         "keycloak_internal_url": None,
         "keycloak_admin": "admin",
@@ -425,7 +424,7 @@ def test_get_idp_urls_cover_local_and_docker_variants():
 @pytest.mark.asyncio
 async def test_sync_default_idp_for_profile_creates_profile_specific_idp():
     admin = FakeKCAdmin()
-    config = make_config(auth_secret="broker-secret", app_prefix="auth")
+    config = make_config(auth_client_secret="broker-secret", app_prefix="auth")
 
     alias = await keycloak_sync.sync_default_idp_for_profile(
         "123e4567-e89b-12d3-a456-426614174000",
@@ -468,7 +467,7 @@ async def test_sync_emulation_default_idp_creates_idp_and_claim_mappers():
     admin = FakeKCAdmin()
     admin.auth_flows = [{"alias": "emulation-first-login"}]
     admin.flow_executions["emulation-first-login"] = []
-    config = make_config(auth_secret="broker-secret")
+    config = make_config(auth_client_secret="broker-secret")
 
     alias = await keycloak_sync.sync_emulation_default_idp(admin, config)
 
