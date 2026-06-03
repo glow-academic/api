@@ -333,9 +333,9 @@ async def resolve_scenario_values(
                 limit_count=1000,
             )
             q_name_map = {
-                q.question_text.lower(): q.question_id
+                q.question_text.lower(): q.id
                 for q in all_questions
-                if q.question_text and q.question_id
+                if q.question_text and q.id
             }
             resolved_ids = []
             for q_name in item.questions:

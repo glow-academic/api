@@ -212,7 +212,7 @@ async def export_field_impl(
         params_data = await get_parameters(pool, all_param_ids, redis)
     else:
         params_data = []
-    param_name_map = {p.id: p.name for p in params_data}
+    param_name_map = {p.parameter_id: p.name for p in params_data}
     cp_name_map = {
         cp_id: param_name_map.get(param_id, "")
         for cp_id, param_id in cp_param_id_map.items()
