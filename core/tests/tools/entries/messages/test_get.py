@@ -20,7 +20,7 @@ async def _run_deps(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
     group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(
-        conn, redis_client, group_id=group.id, session_id=session.id, profiles_id=profile_id
+        conn, redis_client, group_id=group.id, session_id=session.id
     )
     return session, run
 
