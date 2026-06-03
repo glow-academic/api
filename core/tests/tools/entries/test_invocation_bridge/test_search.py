@@ -51,9 +51,9 @@ def _created(result):
 
 
 async def test_finds_created_test_invocation_bridge(conn, redis_client, profile_id):
-    _created(await _test_invocation_bridge(conn, redis_client, profile_id))
+    created = _created(await _test_invocation_bridge(conn, redis_client, profile_id))
     await refresh_test_invocation_bridge(conn)
-    lookup_id = getattr(created, 'test_invocation_id', None) or getattr(created, 'id', None) or getattr(created, 'test_invocation', None)
+    lookup_id = created.test_invocation_id
     fetched = await get_test_invocation_bridge(conn, test_invocation_ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'test_invocation_id', None)
@@ -72,9 +72,9 @@ async def test_returns_empty_for_unmatched_filter(conn, redis_client, profile_id
 
 
 async def test_respects_limit(conn, redis_client, profile_id):
-    _created(await _test_invocation_bridge(conn, redis_client, profile_id))
+    created = _created(await _test_invocation_bridge(conn, redis_client, profile_id))
     await refresh_test_invocation_bridge(conn)
-    lookup_id = getattr(created, 'test_invocation_id', None) or getattr(created, 'id', None) or getattr(created, 'test_invocation', None)
+    lookup_id = created.test_invocation_id
     fetched = await get_test_invocation_bridge(conn, test_invocation_ids=[lookup_id], redis=redis_client)
     row = fetched[0]
     filter_value = getattr(row, 'test_invocation_id', None)

@@ -34,8 +34,8 @@ def _created(result):
 
 
 async def test_new_test_archive_appears_after_refresh(conn, redis_client, profile_id):
-    _created(await _test_archive(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _test_archive(conn, redis_client, profile_id))
+    lookup_id = created.id
 
     await refresh_test_archive(conn)
     items = await get_test_archives(conn, ids=[lookup_id], redis=redis_client)
@@ -45,8 +45,8 @@ async def test_new_test_archive_appears_after_refresh(conn, redis_client, profil
 
 
 async def test_new_test_archive_is_not_visible_before_refresh(conn, redis_client, profile_id):
-    _created(await _test_archive(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _test_archive(conn, redis_client, profile_id))
+    lookup_id = created.id
 
     items = await get_test_archives(conn, ids=[lookup_id], redis=redis_client)
 

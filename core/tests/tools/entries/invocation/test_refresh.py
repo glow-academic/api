@@ -23,8 +23,8 @@ def _created(result):
 
 
 async def test_new_invocation_appears_after_refresh(conn, redis_client):
-    _created(await _invocation(conn, redis_client))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _invocation(conn, redis_client))
+    lookup_id = created.id
 
     await refresh_invocations(conn)
     items = await get_invocations(conn, ids=[lookup_id], redis=redis_client)
@@ -34,8 +34,8 @@ async def test_new_invocation_appears_after_refresh(conn, redis_client):
 
 
 async def test_new_invocation_is_not_visible_before_refresh(conn, redis_client):
-    _created(await _invocation(conn, redis_client))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _invocation(conn, redis_client))
+    lookup_id = created.id
 
     items = await get_invocations(conn, ids=[lookup_id], redis=redis_client)
 
