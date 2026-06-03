@@ -27,14 +27,15 @@ async def test_socket_owner_round_trip_with_real_redis(redis_client):
     assert await redis_client.get("socket_to_profile:sid-1") is None
 
 
-async def test_socket_owner_falls_back_to_supplied_in_memory_store():
-    owners: dict[str, str] = {}
+async def test_socket_owner_uses_supplied_redis_client(redis_client):
+    """The store is injected as the ``redis_client`` dependency (the former
+    in-memory ``socket_owner`` fallback was dropped — helpers are Redis-only).
+    A supplied client is honored end-to-end without touching the global."""
+    await set_socket_owner("profile-2", "sid-2", redis_client=redis_client)
+    assert await get_socket_owner("profile-2", redis_client=redis_client) == "sid-2"
 
-    await set_socket_owner("profile-2", "sid-2", socket_owner=owners)
-    assert await get_socket_owner("profile-2", socket_owner=owners) == "sid-2"
-
-    await remove_socket_owner("profile-2", socket_owner=owners)
-    assert owners == {}
+    await remove_socket_owner("profile-2", redis_client=redis_client)
+    assert await get_socket_owner("profile-2", redis_client=redis_client) is None
 
 
 async def test_active_run_round_trip_with_real_redis(redis_client):

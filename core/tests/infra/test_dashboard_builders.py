@@ -18,7 +18,7 @@ class TestBuildSimulationMeta:
         result = build_simulation_meta(
             [
                 SimpleNamespace(
-                    simulation_id=simulation_id,
+                    id=simulation_id,
                     name="Simulation One",
                     description="Desc",
                     department_ids=[uuid4()],
@@ -41,7 +41,7 @@ class TestBuildScenarioMeta:
     def test_builds_scenario_metadata(self):
         scenario_id = uuid4()
         assert build_scenario_meta(
-            [SimpleNamespace(scenario_id=scenario_id, name="Scenario", description="D")]
+            [SimpleNamespace(id=scenario_id, name="Scenario", description="D")]
         ) == [{"scenario_id": str(scenario_id), "name": "Scenario", "description": "D"}]
 
 
@@ -49,7 +49,7 @@ class TestBuildRubricMeta:
     def test_builds_rubric_metadata(self):
         rubric_id = uuid4()
         assert build_rubric_meta(
-            [SimpleNamespace(rubric_id=rubric_id, name="Rubric", description="D")]
+            [SimpleNamespace(id=rubric_id, name="Rubric", description="D")]
         ) == [{"rubric_id": str(rubric_id), "name": "Rubric", "description": "D"}]
 
 
@@ -86,7 +86,7 @@ class TestBuildFieldMeta:
         result = build_field_meta(
             [
                 SimpleNamespace(
-                    field_id=field_id,
+                    id=field_id,
                     name="Field",
                     description="D",
                 )
@@ -109,7 +109,7 @@ class TestBuildFieldMeta:
         field_id = uuid4()
 
         assert build_field_meta(
-            [SimpleNamespace(field_id=field_id, name="Field", description="D")],
+            [SimpleNamespace(id=field_id, name="Field", description="D")],
             {},
             [],
         ) == [
