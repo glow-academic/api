@@ -12,7 +12,11 @@ class CreateAttemptChatResponse(BaseModel):
 
 class GetAttemptChatResponse(BaseModel):
     chat_id: UUID
-    attempt_id: UUID
+    # MV-derived, like the fields below it: None in the write-back cache row
+    # until the next attempt_chat_mv refresh hydrates it. Was required (UUID),
+    # which made get/search 500 (ValidationError) on a just-created chat read
+    # before MV hydration — issue #39. Optional matches its MV-derived siblings.
+    attempt_id: UUID | None
     chat_entry_id: UUID | None
     group_id: UUID | None = None
     profile_id: UUID | None
