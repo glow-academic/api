@@ -331,43 +331,6 @@ async def agent_route_client(
 
 
 @pytest_asyncio.fixture
-async def group_route_client(
-    pool,
-    redis_client,
-) -> AsyncGenerator[RouteClient, None]:
-    """HTTP client mounted on the real group route stack."""
-    import app.infra.globals as globals_mod
-
-    group_router = _build_artifact_router_for_tests(
-        artifact_name="group",
-        prefix="/group",
-        tags=["artifacts", "group"],
-        module_names=["get", "export"],
-    )
-
-    request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_artifact_test_app(
-        artifact_router=group_router,
-        request_state=request_state,
-    )
-
-    prior_pool = globals_mod._db_pool
-    prior_redis = globals_mod.redis_client
-    globals_mod._db_pool = pool
-    globals_mod.redis_client = redis_client
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://testserver",
-    ) as client:
-        yield RouteClient(client=client, _request_state=request_state)
-
-    globals_mod._db_pool = prior_pool
-    globals_mod.redis_client = prior_redis
-
-
-@pytest_asyncio.fixture
 async def cohort_route_client(
     pool,
     redis_client,
