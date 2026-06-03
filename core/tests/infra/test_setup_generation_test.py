@@ -22,6 +22,12 @@ from app.tools.entries.test_invocation_runs.refresh import (
 from app.tools.entries.test_invocation_runs.search import (
     search_test_invocation_runs,
 )
+from app.tools.entries.test_invocation_traces.refresh import (
+    refresh_test_invocation_traces,
+)
+from app.tools.entries.test_invocation_traces.search import (
+    search_test_invocation_traces,
+)
 from app.tools.resources.agents.create import create_agent
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.instructions.create import create_instruction
@@ -93,8 +99,6 @@ async def _ensure_agent_option_resources(conn, redis_client) -> dict[str, UUID]:
                 conn,
                 name="generation-test-tool",
                 redis=redis_client,
-                operation="generate",
-                artifacts=["test"],
             )
         ).id,
     }
@@ -138,6 +142,7 @@ async def _create_agent_config(
 async def _refresh_generation_test_views(conn) -> None:
     await refresh_test(conn)
     await refresh_test_invocation(conn)
+    await refresh_test_invocation_traces(conn)
     await refresh_test_invocation_runs(conn)
 
 
@@ -188,7 +193,19 @@ class TestSetupGenerationTest:
         assert total_count == 1
         assert len(invocation_runs) == 1
         assert invocation_runs[0].test_invocation_id == invocation_id
-        assert invocation_runs[0].agent_ids == [agent.agent_id]
+        assert invocation_runs[0].run_id == run_id
+
+        # agent identity moved off the run binding onto the invocation
+        # (asserted above); the bundle moved onto the trace.
+        traces, traces_total = await search_test_invocation_traces(
+            conn,
+            redis_client,
+            test_invocation_ids=[invocation_id],
+        )
+        assert traces_total == 1
+        assert len(traces) == 1
+        assert traces[0].test_invocation_id == invocation_id
+        assert invocation_runs[0].test_invocation_traces_id == traces[0].id
 
     async def test_multiple_agents_creates_invocation_per_agent(
         self, conn, profile_id, redis_client
@@ -269,20 +286,22 @@ class TestSetupGenerationTest:
         assert invocations[0].quality_id == agent.quality_ids[0]
         assert invocations[0].modality_ids == agent.modality_ids
 
-        invocation_runs, total_count = await search_test_invocation_runs(
+        # The config bundle moved off the run binding onto the trace.
+        traces, traces_total = await search_test_invocation_traces(
             conn,
-            redis_client, test_invocation_ids=[invocation_id],
+            redis_client,
+            test_invocation_ids=[invocation_id],
         )
-        assert total_count == 1
-        assert len(invocation_runs) == 1
-        assert invocation_runs[0].prompt_ids == agent.prompt_ids
-        assert invocation_runs[0].instruction_ids == agent.instruction_ids
-        assert invocation_runs[0].tool_ids == agent.tool_ids
-        assert invocation_runs[0].voice_ids == agent.voice_ids
-        assert invocation_runs[0].quality_ids == agent.quality_ids
-        assert invocation_runs[0].reasoning_level_ids == agent.reasoning_level_ids
-        assert invocation_runs[0].temperature_level_ids == agent.temperature_level_ids
-        assert invocation_runs[0].modality_ids == agent.modality_ids
+        assert traces_total == 1
+        assert len(traces) == 1
+        assert traces[0].prompt_ids == agent.prompt_ids
+        assert traces[0].instruction_ids == agent.instruction_ids
+        assert traces[0].tool_ids == agent.tool_ids
+        assert traces[0].voice_ids == agent.voice_ids
+        assert traces[0].quality_ids == agent.quality_ids
+        assert traces[0].reasoning_level_ids == agent.reasoning_level_ids
+        assert traces[0].temperature_level_ids == agent.temperature_level_ids
+        assert traces[0].modality_ids == agent.modality_ids
 
     async def test_none_config_fields_round_trip_as_empty_lists(
         self, conn, profile_id, redis_client
@@ -308,14 +327,16 @@ class TestSetupGenerationTest:
         assert invocations[0].voice_id is None
         assert invocations[0].modality_ids == []
 
-        invocation_runs, total_count = await search_test_invocation_runs(
+        # Empty bundle round-trips on the trace (the bundle's new home).
+        traces, traces_total = await search_test_invocation_traces(
             conn,
-            redis_client, test_invocation_ids=[invocation_id],
+            redis_client,
+            test_invocation_ids=[invocation_id],
         )
-        assert total_count == 1
-        assert len(invocation_runs) == 1
-        assert invocation_runs[0].prompt_ids == []
-        assert invocation_runs[0].instruction_ids == []
-        assert invocation_runs[0].tool_ids == []
-        assert invocation_runs[0].voice_ids == []
-        assert invocation_runs[0].modality_ids == []
+        assert traces_total == 1
+        assert len(traces) == 1
+        assert traces[0].prompt_ids == []
+        assert traces[0].instruction_ids == []
+        assert traces[0].tool_ids == []
+        assert traces[0].voice_ids == []
+        assert traces[0].modality_ids == []
