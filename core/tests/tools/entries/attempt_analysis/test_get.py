@@ -55,11 +55,11 @@ def _created(result):
 async def test_gets_created_attempt_analysis(conn, redis_client, profile_id):
     created = _created(await _attempt_analysis(conn, redis_client, profile_id))
     await refresh_attempt_analysis(conn)
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
     items = await get_attempt_analyses(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].analysis_id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
