@@ -16,6 +16,7 @@ from app.infra.analytics_facets import (
 from app.infra.api_types import FilterOption
 from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.common_context import resolve_common_context
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.reports.context import resolve_reports_context
 from app.infra.reports.permissions import build_reports_sections_v2
 from app.infra.reports.types import (
@@ -68,6 +69,46 @@ async def get_reports_impl(
     if not common:
         raise HTTPException(status_code=401, detail="Profile not found")
 
+    # Authorization: reports has no scoping of its own, so apply the canonical
+    # visibility policy here. ``resolve_visible_profile_ids`` returns exactly
+    # the profiles this actor may see (self + same-department lower-privilege
+    # profiles, or the entire org for role_level 0). A caller-supplied
+    # ``target_profile_id`` is allowed only if it is in that set; otherwise the
+    # caller could read any profile's analytics by supplying its id (IDOR,
+    # #145). ``department_ids`` are likewise constrained to the actor's own
+    # departments (superadmin/role_level 0 is unconstrained).
+    visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
+    if (
+        request.target_profile_id is not None
+        and request.target_profile_id not in visible_profile_ids
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view analytics for this profile.",
+        )
+
+    if request.department_ids and common.profile.role_level != 0:
+        allowed_departments = set(common.profile.department_ids or [])
+        scoped_department_ids = [
+            dept_id
+            for dept_id in request.department_ids
+            if dept_id in allowed_departments
+        ]
+        if not scoped_department_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view analytics for these departments.",
+            )
+    else:
+        scoped_department_ids = request.department_ids
+
+    # When no explicit target/department scope is supplied, restrict the search
+    # to the actor's visible set so reports defaults to a scoped org view rather
+    # than every profile in the system.
+    effective_profile_ids: list | None = None
+    if request.target_profile_id is None and not scoped_department_ids:
+        effective_profile_ids = visible_profile_ids
+
     parsed_start_date = (
         datetime.fromisoformat(request.start_date.replace("Z", "+00:00"))
         if request.start_date
@@ -96,9 +137,10 @@ async def get_reports_impl(
             pool,
             redis,
             target_profile_id=request.target_profile_id,
+            visible_profile_ids=effective_profile_ids,
             actor_profile_id=request.actor_profile_id,
             cohort_ids=request.cohort_ids,
-            department_ids=request.department_ids,
+            department_ids=scoped_department_ids,
             simulation_ids=request.simulation_ids,
             role_ids=request.role_ids,
             attempt_type=attempt_type,
