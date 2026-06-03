@@ -12,6 +12,29 @@ from app.infra.scenario.permissions_context import (
 pytestmark = pytest.mark.asyncio
 
 
+class _AcquireCtx:
+    """Async CM yielding the connection the resolver passes to its tools."""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    async def __aenter__(self):
+        return self._conn
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakePool:
+    """Minimal asyncpg.Pool stub: ``pool.acquire()`` → async CM yielding conn."""
+
+    def __init__(self, conn=None):
+        self._conn = conn
+
+    def acquire(self):
+        return _AcquireCtx(self._conn)
+
+
 class TestPermissionsContextNotFound:
     async def test_returns_not_exists_when_artifact_missing(self, monkeypatch):
         async def fake_get(conn, ids, **kw):
@@ -22,7 +45,7 @@ class TestPermissionsContextNotFound:
             fake_get,
         )
 
-        result = await resolve_scenario_permissions_context(object(), uuid4())
+        result = await resolve_scenario_permissions_context(_FakePool(), uuid4())
         assert result.exists is False
         assert result.department_ids == []
         assert result.active_simulation_count == 0
