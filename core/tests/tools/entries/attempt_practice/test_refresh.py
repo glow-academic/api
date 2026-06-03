@@ -61,5 +61,9 @@ async def test_appears_after_refresh(conn, redis_client, profile_id, simulation_
 async def test_not_visible_before_refresh(conn, redis_client, profile_id, simulation_bundle):
     result = await _setup(conn, redis_client, profile_id, simulation_bundle)
 
-    items = await get_attempt_practice(conn, attempt_ids=[result.attempt_id], redis=redis_client)
+    # bypass_cache returns only attempt_practice_mv rows (skipping the write-back
+    # cache hedge); create does not refresh the MV, so the row is hidden until refresh.
+    items = await get_attempt_practice(
+        conn, attempt_ids=[result.attempt_id], redis=redis_client, bypass_cache=True
+    )
     assert len(items) == 0

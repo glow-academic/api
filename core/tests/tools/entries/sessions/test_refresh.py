@@ -22,5 +22,7 @@ async def test_new_session_appears_after_refresh(conn, redis_client, profile_id)
 async def test_new_session_not_visible_before_refresh(conn, redis_client, profile_id):
     result = await create_session(conn, redis_client, profile_id=profile_id)
 
-    items = await get_sessions(conn, [result.id], redis_client)
+    # bypass_cache reads the genuine sessions_mv (via resolve_mv_source), which
+    # create does not write to — so the new row is hidden until refresh.
+    items = await get_sessions(conn, [result.id], redis_client, bypass_cache=True)
     assert items == []

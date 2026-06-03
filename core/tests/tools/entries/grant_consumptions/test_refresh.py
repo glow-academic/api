@@ -34,5 +34,9 @@ async def test_appears_after_refresh(conn, redis_client, profile_id):
 async def test_not_visible_before_refresh(conn, redis_client, profile_id):
     result = await _setup(conn, redis_client, profile_id)
 
-    items = await get_grant_consumptions(conn, ids=[result.id], redis=redis_client)
+    # bypass_cache reads the genuine grant_consumptions_mv (via resolve_mv_source),
+    # which create does not write to — so the new row is hidden until refresh.
+    items = await get_grant_consumptions(
+        conn, ids=[result.id], redis=redis_client, bypass_cache=True
+    )
     assert len(items) == 0

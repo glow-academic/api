@@ -32,13 +32,36 @@ async def test_new_runs_appears_after_refresh(conn, redis_client, group_id, sess
     assert item.id == lookup_id
 
 
-async def test_new_runs_is_not_visible_before_refresh(conn, redis_client, group_id, session_id):
+async def test_new_runs_is_visible_before_refresh(conn, redis_client, group_id, session_id):
+    # get_run's bypass_cache path reads the base runs_entry table (not the MV),
+    # so a freshly created row is immediately visible without any refresh.
+    # Refresh only repopulates runs_mv (see the MV-population test below).
     created = _created(await create_run(conn, redis_client, group_id=group_id, session_id=session_id))
     lookup_id = getattr(created, 'run_id', None) or getattr(created, 'id', None) or getattr(created, 'run', None)
 
-    item = await get_run(conn, lookup_id, redis_client)
+    item = await get_run(conn, lookup_id, redis_client, bypass_cache=True)
 
-    assert item is None
+    assert item is not None
+    assert item.id == lookup_id
+
+
+async def test_runs_mv_populated_only_after_refresh(conn, redis_client, group_id, session_id):
+    # The materialized view runs_mv is NOT updated by create; it only reflects
+    # the new row after refresh_runs_internal.
+    created = _created(await create_run(conn, redis_client, group_id=group_id, session_id=session_id))
+    lookup_id = getattr(created, 'run_id', None) or getattr(created, 'id', None) or getattr(created, 'run', None)
+
+    in_mv_before = await conn.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM runs_mv WHERE run_id = $1)", lookup_id
+    )
+    assert in_mv_before is False
+
+    await refresh_runs_internal(conn)
+
+    in_mv_after = await conn.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM runs_mv WHERE run_id = $1)", lookup_id
+    )
+    assert in_mv_after is True
 
 
 async def test_refresh_is_idempotent(conn):
