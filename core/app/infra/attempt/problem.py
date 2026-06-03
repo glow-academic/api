@@ -55,6 +55,7 @@ async def problem_attempt_impl(
      async with pool.acquire() as conn:
         problem_result = await create_problem_entry(
             conn,
+            redis,
             session_id=session_id,
             type=type,
             artifact_type=ARTIFACT_TYPE,

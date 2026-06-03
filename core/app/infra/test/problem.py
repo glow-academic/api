@@ -101,6 +101,7 @@ async def problem_test_impl(
         )
         problem_result = await create_problem_entry(
             conn,
+            redis,
             session_id=session_id,
             call_id=call_result.id,
             type=type,
