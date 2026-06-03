@@ -34,6 +34,7 @@ from app.infra.exports.file_modality import (
     stage_export_soft_call,
     wrap_bytes_as_file,
 )
+from app.infra.attempt.permissions import check_attempt_access
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
@@ -298,6 +299,24 @@ async def _export_single_attempt_bytes(
         with zipfile.ZipFile(empty, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.writestr("attempts.csv", "")
         return empty.getvalue(), 0
+
+    # Authorization: gate the target attempt the same way the on-screen sibling
+    # ``get_attempt_internal`` does (``app/infra/attempt/get.py``). Access is
+    # own-attempt OR strictly-higher role (guests/members see only their own;
+    # superadmin sees all). Without this, any holder of ``attempt:export`` could
+    # export any student's attempt/grade/PII by ``attempt_id`` (IDOR, #150).
+    # ``attempt_role`` is None because role was dropped from profiles_resource
+    # (mirrors get.py — owner role is no longer available on the attempt MV).
+    if not check_attempt_access(
+        attempts[0].profile_id,
+        profile.profiles_id,
+        request_role=profile.role,
+        attempt_role=None,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to export this attempt.",
+        )
 
     all_profile_ids: set[UUID] = set()
     all_simulation_ids: set[UUID] = set()

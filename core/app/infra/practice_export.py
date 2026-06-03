@@ -21,6 +21,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.chat.search import search_chat_entries_internal
@@ -89,12 +90,19 @@ async def export_practice_client(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Search all practice attempts (full dump) --
+    # Authorization: scope the attempt dump to the profiles the actor may see,
+    # mirroring the on-screen sibling ``dashboard/get.py`` (~101-125). Without
+    # this, any holder of ``attempt:export`` could dump every (practice)
+    # attempt+grade+profile across all departments (IDOR / mass exposure, #152).
+    visible_profile_ids = await resolve_visible_profile_ids(pool, profile)
+
+    # -- Step 2: Search practice attempts (scoped to visible profiles) --
 
     async with pool.acquire() as conn:
         attempts, _total_count = await search_attempts(
             conn,
-            redis, practice=True,
+            redis, profile_ids=visible_profile_ids,
+            practice=True,
             limit=100000,
             offset=0,
         )
