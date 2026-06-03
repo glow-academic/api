@@ -148,15 +148,23 @@ async def test_store_with_emulation_identity():
     assert result.emulation_depth == 2
 
 
-async def test_store_noop_when_no_redis():
-    """store_socket_identity does nothing when Redis is unavailable."""
-    with patch("app.infra.identity.socket.get_redis_client", return_value=None):
-        # Should not raise
-        await store_socket_identity("sid", _make_identity())
+async def test_store_propagates_when_redis_unavailable():
+    """Redis is REQUIRED: when it is uninitialized, get_redis_client() raises
+    RuntimeError and store_socket_identity surfaces it (no silent no-op)."""
+    with patch(
+        "app.infra.identity.socket.get_redis_client",
+        side_effect=RuntimeError("Redis client not initialized"),
+    ):
+        with pytest.raises(RuntimeError, match="Redis client not initialized"):
+            await store_socket_identity("sid", _make_identity())
 
 
-async def test_resolve_returns_none_when_no_redis():
-    """resolve_socket_identity returns None when Redis is unavailable."""
-    with patch("app.infra.identity.socket.get_redis_client", return_value=None):
-        result = await resolve_socket_identity("sid")
-    assert result is None
+async def test_resolve_propagates_when_redis_unavailable():
+    """resolve_socket_identity surfaces the RuntimeError raised by
+    get_redis_client when Redis is uninitialized (no silent None)."""
+    with patch(
+        "app.infra.identity.socket.get_redis_client",
+        side_effect=RuntimeError("Redis client not initialized"),
+    ):
+        with pytest.raises(RuntimeError, match="Redis client not initialized"):
+            await resolve_socket_identity("sid")
