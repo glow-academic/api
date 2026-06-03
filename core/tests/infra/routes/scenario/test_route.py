@@ -247,7 +247,7 @@ class TestScenarioRoute:
             json={
                 "scenarios": [
                     {
-                        "scenario_id": created["scenario_id"],
+                        "id": created["scenario_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "problem_statement_id": str(updated.problem_statement_id),

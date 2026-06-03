@@ -198,7 +198,7 @@ class TestDocumentRoute:
             json={
                 "documents": [
                     {
-                        "document_id": created["document_id"],
+                        "id": created["document_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(document_route_actor.department_id)],

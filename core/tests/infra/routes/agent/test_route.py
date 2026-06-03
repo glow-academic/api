@@ -253,7 +253,7 @@ class TestAgentRoute:
             json={
                 "agents": [
                     {
-                        "agent_id": created["agent_id"],
+                        "id": created["agent_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(agent_route_actor.department_id)],

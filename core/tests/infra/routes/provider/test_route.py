@@ -211,7 +211,7 @@ class TestProviderRoute:
             json={
                 "providers": [
                     {
-                        "provider_id": created["provider_id"],
+                        "id": created["provider_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(provider_route_actor.department_id)],

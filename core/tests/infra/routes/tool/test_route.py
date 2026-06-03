@@ -204,7 +204,7 @@ class TestToolRoute:
             json={
                 "tools": [
                     {
-                        "tool_id": created["tool_id"],
+                        "id": created["tool_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(tool_route_actor.department_id)],

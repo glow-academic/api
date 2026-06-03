@@ -194,7 +194,7 @@ class TestAuthRoute:
             json={
                 "auths": [
                     {
-                        "auth_id": created["auth_id"],
+                        "id": created["auth_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(auth_route_actor.department_id)],

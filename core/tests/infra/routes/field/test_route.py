@@ -195,7 +195,7 @@ class TestFieldRoute:
             json={
                 "fields": [
                     {
-                        "field_id": created["field_id"],
+                        "id": created["field_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(field_route_actor.department_id)],

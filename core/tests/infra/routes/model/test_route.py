@@ -172,7 +172,7 @@ class TestModelRoute:
             json={
                 "models": [
                     {
-                        "model_id": created["model_id"],
+                        "id": created["model_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(model_route_actor.department_id)],

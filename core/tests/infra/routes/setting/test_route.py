@@ -176,7 +176,7 @@ class TestSettingRoute:
             json={
                 "settings": [
                     {
-                        "setting_id": created["setting_id"],
+                        "id": created["setting_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(setting_route_actor.department_id)],
