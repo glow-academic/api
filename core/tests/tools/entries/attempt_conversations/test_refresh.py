@@ -37,13 +37,12 @@ async def _attempt_conversations(conn, redis_client, profile_id, **overrides):
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
     defaults = dict(
         chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
     )
     defaults.update(overrides)
     return await create_attempt_conversations(conn, redis_client, **defaults)
@@ -55,7 +54,7 @@ def _created(result):
 
 async def test_new_attempt_conversations_appears_after_refresh(conn, redis_client, profile_id):
     created = _created(await _attempt_conversations(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
 
     await refresh_attempt_conversations(conn)
     items = await get_attempt_conversations(conn, ids=[lookup_id], redis=redis_client)
@@ -66,9 +65,11 @@ async def test_new_attempt_conversations_appears_after_refresh(conn, redis_clien
 
 async def test_new_attempt_conversations_is_not_visible_before_refresh(conn, redis_client, profile_id):
     created = _created(await _attempt_conversations(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
 
-    items = await get_attempt_conversations(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_conversations(
+        conn, ids=[lookup_id], redis=redis_client, bypass_cache=True
+    )
 
     assert items == []
 

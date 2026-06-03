@@ -13,7 +13,6 @@ from app.tools.entries.attempt_message.create import create_attempt_message
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.create import create_message
 from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -36,7 +35,6 @@ async def _attempt_hint(conn, redis_client, profile_id, **overrides):
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -46,12 +44,10 @@ async def _attempt_hint(conn, redis_client, profile_id, **overrides):
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    msg = await create_message(conn, redis_client, run_id=run.id, role="user")
-    call3 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
-    await create_attempt_message(
-        conn, redis_client, chat_id=attempt_chat.id, message_id=msg.id, call_id=call3.id
+    attempt_message = await create_attempt_message(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id
     )
-    defaults = dict(message_id=msg.id, call_id=call3.id, hint="Test hint")
+    defaults = dict(message_id=attempt_message.id, session_id=session.id, hint="Test hint")
     defaults.update(overrides)
     result = await create_attempt_hint(conn, redis_client, **defaults)
     return result
@@ -62,21 +58,23 @@ def _created(result):
 
 
 async def test_new_attempt_hint_appears_after_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_hint(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_hint(conn, redis_client, profile_id))
+    lookup_id = created.id
 
     await refresh_attempt_hint(conn)
     items = await get_attempt_hints(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].hint_id == lookup_id
 
 
 async def test_new_attempt_hint_is_not_visible_before_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_hint(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_hint(conn, redis_client, profile_id))
+    lookup_id = created.id
 
-    items = await get_attempt_hints(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_hints(
+        conn, ids=[lookup_id], redis=redis_client, bypass_cache=True
+    )
 
     assert items == []
 

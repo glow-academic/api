@@ -34,7 +34,6 @@ async def _setup(conn, redis_client, profile_id):
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -47,7 +46,7 @@ async def _setup(conn, redis_client, profile_id):
     result = await create_attempt_grade(
         conn,
         redis_client, chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,

@@ -10,7 +10,6 @@ from app.tools.entries.attempt_message_completion.refresh import MV_NAME
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.create import create_message
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
 
@@ -24,14 +23,13 @@ async def _setup_entry(conn, redis_client, profile_id):
     call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     chat = await create_chat(conn, redis_client, session_id=session.id)
     attempt_chat = await create_attempt_chat(conn, redis_client, session_id=session.id, chat_id=chat.id)
-    message = await create_message(conn, redis_client, run_id=run.id, role="user")
-    seed = await create_attempt_message(conn, redis_client, chat_id=attempt_chat.id, message_id=message.id, call_id=call.id)
+    seed = await create_attempt_message(conn, redis_client, chat_id=attempt_chat.id, session_id=session.id)
     return session, call, seed
 
 
 async def test_refresh_is_idempotent(conn, redis_client, profile_id):
     session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_message_completion(conn, redis_client, attempt_message_id=seed.id, call_id=call.id)
+    result = await create_attempt_message_completion(conn, redis_client, attempt_message_id=seed.id, session_id=session.id)
 
     await refresh_attempt_message_completion(conn)
 
@@ -40,7 +38,7 @@ async def test_refresh_is_idempotent(conn, redis_client, profile_id):
 
 async def test_row_not_visible_before_refresh(conn, redis_client, profile_id):
     session, call, seed = await _setup_entry(conn, redis_client, profile_id)
-    result = await create_attempt_message_completion(conn, redis_client, attempt_message_id=seed.id, call_id=call.id)
+    result = await create_attempt_message_completion(conn, redis_client, attempt_message_id=seed.id, session_id=session.id)
 
     row = await conn.fetchrow(f"SELECT id FROM {MV_NAME} WHERE id = $1", result.id)
 

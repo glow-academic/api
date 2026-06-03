@@ -38,7 +38,6 @@ async def _attempt_responses(conn, redis_client, profile_id, **overrides):
         profiles_id=profile_id,
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -48,7 +47,7 @@ async def _attempt_responses(conn, redis_client, profile_id, **overrides):
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    defaults = dict(chat_id=attempt_chat.id, call_id=call2.id)
+    defaults = dict(chat_id=attempt_chat.id, session_id=session.id)
     defaults.update(overrides)
     result = await create_attempt_responses(conn, redis_client, **defaults)
     return result
@@ -60,20 +59,22 @@ def _created(result):
 
 async def test_new_attempt_responses_appears_after_refresh(conn, redis_client, profile_id):
     created = _created(await _attempt_responses(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
 
     await refresh_attempt_responses(conn)
     items = await get_attempt_responses(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].response_id == lookup_id
 
 
 async def test_new_attempt_responses_is_not_visible_before_refresh(conn, redis_client, profile_id):
     created = _created(await _attempt_responses(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
 
-    items = await get_attempt_responses(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_responses(
+        conn, ids=[lookup_id], redis=redis_client, bypass_cache=True
+    )
 
     assert items == []
 

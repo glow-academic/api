@@ -21,7 +21,6 @@ from app.tools.entries.attempt_replacement.refresh import (
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.create import create_message
 from app.tools.entries.persona.create import create_persona
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
@@ -41,7 +40,6 @@ async def _attempt_replacement(conn, redis_client, profile_id, **overrides):
         conn, redis_client, session_id=session.id, user_persona_id=persona.id, profiles_id=profile_id
     )
     chat = await create_chat(conn, redis_client, session_id=session.id)
-    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
     attempt_chat = await create_attempt_chat(
         conn, redis_client, session_id=session.id, chat_id=chat.id
     )
@@ -51,14 +49,13 @@ async def _attempt_replacement(conn, redis_client, profile_id, **overrides):
         attempt_chat_id=attempt_chat.id,
         session_id=session.id,
     )
-    msg = await create_message(conn, redis_client, run_id=run.id, role="user")
-    await create_attempt_message(
-        conn, redis_client, chat_id=attempt_chat.id, call_id=call2.id, message_id=msg.id
+    attempt_message = await create_attempt_message(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id
     )
     grade = await create_attempt_grade(
         conn,
         redis_client, chat_id=attempt_chat.id,
-        call_id=call2.id,
+        session_id=session.id,
         time_taken=120,
         passed=True,
         score=85,
@@ -66,14 +63,14 @@ async def _attempt_replacement(conn, redis_client, profile_id, **overrides):
     improvement = await create_attempt_improvement(
         conn,
         redis_client, grade_id=grade.id,
-        message_id=msg.id,
-        call_id=call2.id,
+        message_id=attempt_message.id,
+        session_id=session.id,
         name="Needs work",
         description="Should improve",
     )
     defaults = dict(
         improvement_id=improvement.id,
-        call_id=call2.id,
+        session_id=session.id,
         section="Old text",
         replace="New text",
     )
@@ -87,21 +84,23 @@ def _created(result):
 
 
 async def test_new_attempt_replacement_appears_after_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_replacement(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_replacement(conn, redis_client, profile_id))
+    lookup_id = created.id
 
     await refresh_attempt_replacement(conn)
     items = await get_attempt_replacements(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].replacement_id == lookup_id
 
 
 async def test_new_attempt_replacement_is_not_visible_before_refresh(conn, redis_client, profile_id):
-    _created(await _attempt_replacement(conn, redis_client, profile_id))
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    created = _created(await _attempt_replacement(conn, redis_client, profile_id))
+    lookup_id = created.id
 
-    items = await get_attempt_replacements(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_attempt_replacements(
+        conn, ids=[lookup_id], redis=redis_client, bypass_cache=True
+    )
 
     assert items == []
 
