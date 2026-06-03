@@ -29,12 +29,20 @@ class _FakeDeptResource:
 
 @dataclass
 class _FakeDeptArtifact:
-    settings_ids: list | None = None
+    id: object
+    department_ids: list | None = None
 
 
 @dataclass
 class _FakeSettingArtifact:
-    auth_ids: list | None = None
+    department_ids: list | None = None
+    logins_ids: list | None = None
+
+
+@dataclass
+class _FakeLoginResource:
+    auth_id: object
+    login_type: str = "auth"
 
 
 @dataclass
@@ -65,23 +73,36 @@ async def test_resolve_departments_for_sync_returns_mapped_departments():
     """Returns DepartmentForSync entries from active departments."""
     conn = AsyncMock()
     redis = AsyncMock()
-    dept_id = uuid4()
+    dept_artifact_id = uuid4()
+    dept_resource_id = uuid4()
 
     with patch(
         "app.infra.identity.keycloak_resolvers.search_departments",
         new_callable=AsyncMock,
-        return_value=([dept_id], 1),
+        return_value=([dept_artifact_id], 1),
     ):
         with patch(
-            "app.infra.identity.keycloak_resolvers.get_department_resources",
+            "app.infra.identity.keycloak_resolvers.get_department_artifacts",
             new_callable=AsyncMock,
-            return_value=[_FakeDeptResource(id=dept_id, name="Sales")],
+            return_value=[
+                _FakeDeptArtifact(
+                    id=dept_artifact_id, department_ids=[dept_resource_id]
+                )
+            ],
         ):
-            result = await resolve_departments_for_sync(conn, redis)
+            with patch(
+                "app.infra.identity.keycloak_resolvers.get_department_resources",
+                new_callable=AsyncMock,
+                return_value=[
+                    _FakeDeptResource(id=dept_resource_id, name="Sales")
+                ],
+            ):
+                result = await resolve_departments_for_sync(conn, redis)
 
     assert len(result) == 1
     assert isinstance(result[0], DepartmentForSync)
-    assert result[0].department_id == dept_id
+    # result maps resource → artifact id for a stable department_id
+    assert result[0].department_id == dept_artifact_id
     assert result[0].department_name == "Sales"
 
 
@@ -105,11 +126,18 @@ async def test_resolve_auths_for_department_returns_active_auths():
     conn = AsyncMock()
     redis = AsyncMock()
     dept_id = uuid4()
-    setting_id = uuid4()
+    dept_resource_id = uuid4()
+    setting_artifact_id = uuid4()
+    login_id = uuid4()
     auth_id = uuid4()
 
-    dept_artifact = _FakeDeptArtifact(settings_ids=[setting_id])
-    setting_artifact = _FakeSettingArtifact(auth_ids=[auth_id])
+    dept_artifact = _FakeDeptArtifact(
+        id=dept_id, department_ids=[dept_resource_id]
+    )
+    setting_artifact = _FakeSettingArtifact(
+        department_ids=[dept_resource_id], logins_ids=[login_id]
+    )
+    login_resource = _FakeLoginResource(auth_id=auth_id, login_type="auth")
     auth_resource = _FakeAuthResource(
         id=auth_id, slug="google", protocol="oidc", name="Google SSO"
     )
@@ -120,16 +148,28 @@ async def test_resolve_auths_for_department_returns_active_auths():
         return_value=[dept_artifact],
     ):
         with patch(
-            "app.infra.identity.keycloak_resolvers.get_setting_artifacts",
+            "app.infra.identity.keycloak_resolvers.search_settings",
             new_callable=AsyncMock,
-            return_value=[setting_artifact],
+            return_value=([setting_artifact_id], 1),
         ):
             with patch(
-                "app.infra.identity.keycloak_resolvers.get_auth_resources",
+                "app.infra.identity.keycloak_resolvers.get_setting_artifacts",
                 new_callable=AsyncMock,
-                return_value=[auth_resource],
+                return_value=[setting_artifact],
             ):
-                result = await resolve_auths_for_department(conn, redis, dept_id)
+                with patch(
+                    "app.infra.identity.keycloak_resolvers.get_logins",
+                    new_callable=AsyncMock,
+                    return_value=[login_resource],
+                ):
+                    with patch(
+                        "app.infra.identity.keycloak_resolvers.get_auth_resources",
+                        new_callable=AsyncMock,
+                        return_value=[auth_resource],
+                    ):
+                        result = await resolve_auths_for_department(
+                            conn, redis, dept_id
+                        )
 
     assert len(result) == 1
     assert isinstance(result[0], AuthForSync)
@@ -143,11 +183,18 @@ async def test_resolve_auths_for_department_skips_inactive_auths():
     conn = AsyncMock()
     redis = AsyncMock()
     dept_id = uuid4()
-    setting_id = uuid4()
+    dept_resource_id = uuid4()
+    setting_artifact_id = uuid4()
+    login_id = uuid4()
     auth_id = uuid4()
 
-    dept_artifact = _FakeDeptArtifact(settings_ids=[setting_id])
-    setting_artifact = _FakeSettingArtifact(auth_ids=[auth_id])
+    dept_artifact = _FakeDeptArtifact(
+        id=dept_id, department_ids=[dept_resource_id]
+    )
+    setting_artifact = _FakeSettingArtifact(
+        department_ids=[dept_resource_id], logins_ids=[login_id]
+    )
+    login_resource = _FakeLoginResource(auth_id=auth_id, login_type="auth")
     inactive_auth = _FakeAuthResource(
         id=auth_id,
         slug="old-provider",
@@ -162,16 +209,28 @@ async def test_resolve_auths_for_department_skips_inactive_auths():
         return_value=[dept_artifact],
     ):
         with patch(
-            "app.infra.identity.keycloak_resolvers.get_setting_artifacts",
+            "app.infra.identity.keycloak_resolvers.search_settings",
             new_callable=AsyncMock,
-            return_value=[setting_artifact],
+            return_value=([setting_artifact_id], 1),
         ):
             with patch(
-                "app.infra.identity.keycloak_resolvers.get_auth_resources",
+                "app.infra.identity.keycloak_resolvers.get_setting_artifacts",
                 new_callable=AsyncMock,
-                return_value=[inactive_auth],
+                return_value=[setting_artifact],
             ):
-                result = await resolve_auths_for_department(conn, redis, dept_id)
+                with patch(
+                    "app.infra.identity.keycloak_resolvers.get_logins",
+                    new_callable=AsyncMock,
+                    return_value=[login_resource],
+                ):
+                    with patch(
+                        "app.infra.identity.keycloak_resolvers.get_auth_resources",
+                        new_callable=AsyncMock,
+                        return_value=[inactive_auth],
+                    ):
+                        result = await resolve_auths_for_department(
+                            conn, redis, dept_id
+                        )
 
     assert result == []
 

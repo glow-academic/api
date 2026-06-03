@@ -54,14 +54,14 @@ def _mock_pool():
 
 
 async def test_resolve_settings_theme_returns_none_when_no_artifacts():
-    """Returns None when the setting artifact is not found."""
+    """Returns None when the resource id maps to no setting artifact."""
     pool, conn = _mock_pool()
     redis = AsyncMock()
 
     with patch(
-        "app.infra.identity.settings.get_setting_artifacts",
+        "app.infra.identity.settings.search_settings",
         new_callable=AsyncMock,
-        return_value=[],
+        return_value=([], 0),
     ):
         result = await resolve_settings_theme(pool, redis, uuid4())
 
@@ -80,21 +80,26 @@ async def test_resolve_settings_theme_inactive_when_no_active_flag():
     )
 
     with patch(
-        "app.infra.identity.settings.get_setting_artifacts",
+        "app.infra.identity.settings.search_settings",
         new_callable=AsyncMock,
-        return_value=[artifact],
+        return_value=([uuid4()], 1),
     ):
         with patch(
-            "app.infra.identity.settings.get_colors",
+            "app.infra.identity.settings.get_setting_artifacts",
             new_callable=AsyncMock,
-            return_value=[_FakeColor(type="primary", hex_code="#ff0000")],
+            return_value=[artifact],
         ):
             with patch(
-                "app.infra.identity.settings.get_flags",
+                "app.infra.identity.settings.get_colors",
                 new_callable=AsyncMock,
-                return_value=[_FakeFlag(name="setting_active", value=False)],
+                return_value=[_FakeColor(type="primary", hex_code="#ff0000")],
             ):
-                result = await resolve_settings_theme(pool, redis, uuid4())
+                with patch(
+                    "app.infra.identity.settings.get_flags",
+                    new_callable=AsyncMock,
+                    return_value=[_FakeFlag(name="setting_active", value=False)],
+                ):
+                    result = await resolve_settings_theme(pool, redis, uuid4())
 
     assert result is not None
     assert result.is_active is False
@@ -125,28 +130,33 @@ async def test_resolve_settings_theme_active_with_colors_and_thresholds():
     flags = [_FakeFlag(name="setting_active", value=True)]
 
     with patch(
-        "app.infra.identity.settings.get_setting_artifacts",
+        "app.infra.identity.settings.search_settings",
         new_callable=AsyncMock,
-        return_value=[artifact],
+        return_value=([uuid4()], 1),
     ):
         with patch(
-            "app.infra.identity.settings.get_colors",
+            "app.infra.identity.settings.get_setting_artifacts",
             new_callable=AsyncMock,
-            return_value=colors,
+            return_value=[artifact],
         ):
             with patch(
-                "app.infra.identity.settings.get_thresholds",
+                "app.infra.identity.settings.get_colors",
                 new_callable=AsyncMock,
-                return_value=thresholds,
+                return_value=colors,
             ):
                 with patch(
-                    "app.infra.identity.settings.get_flags",
+                    "app.infra.identity.settings.get_thresholds",
                     new_callable=AsyncMock,
-                    return_value=flags,
+                    return_value=thresholds,
                 ):
-                    result = await resolve_settings_theme(
-                        pool, redis, settings_id
-                    )
+                    with patch(
+                        "app.infra.identity.settings.get_flags",
+                        new_callable=AsyncMock,
+                        return_value=flags,
+                    ):
+                        result = await resolve_settings_theme(
+                            pool, redis, settings_id
+                        )
 
     assert result is not None
     assert result.is_active is True
