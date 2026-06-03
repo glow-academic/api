@@ -72,23 +72,14 @@ async def test_get_without_connections_returns_empty_lists(conn, redis_client):
     assert item.voice_ids == []
 
 
-async def test_get_with_connections(conn, redis_client):
+async def test_get_with_connections(conn, redis_client, name_id, department_id):
     benchmark = await _setup(conn, redis_client)
-
-    # Use seed data for names_resource
-    name_id = await conn.fetchval("SELECT id FROM names_resource LIMIT 1")
-    assert name_id is not None, "Seed data must have at least one names_resource row"
-
-    dept_id = await conn.fetchval("SELECT id FROM departments_resource LIMIT 1")
-    assert dept_id is not None, (
-        "Seed data must have at least one departments_resource row"
-    )
 
     created = await create_invocation(
         conn,
         redis_client, benchmark_id=benchmark.id,
         name_ids=[name_id],
-        department_ids=[dept_id],
+        department_ids=[department_id],
     )
 
     results = await get_invocations(conn, [created.id], redis_client)
@@ -96,7 +87,7 @@ async def test_get_with_connections(conn, redis_client):
     assert len(results) == 1
     item = results[0]
     assert name_id in item.name_ids
-    assert dept_id in item.department_ids
+    assert department_id in item.department_ids
 
 
 async def test_returns_empty_for_nonexistent_id(conn, redis_client):

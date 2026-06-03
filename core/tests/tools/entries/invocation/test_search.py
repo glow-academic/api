@@ -39,11 +39,8 @@ async def test_search_filters_by_benchmark(conn, redis_client):
         assert r.benchmark_id == b1.id
 
 
-async def test_search_returns_connections(conn, redis_client):
+async def test_search_returns_connections(conn, redis_client, name_id):
     benchmark = await _setup(conn, redis_client)
-
-    name_id = await conn.fetchval("SELECT id FROM names_resource LIMIT 1")
-    assert name_id is not None, "Seed data must have at least one names_resource row"
 
     created = await create_invocation(
         conn,

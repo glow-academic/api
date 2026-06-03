@@ -13,20 +13,20 @@ from app.tools.entries.sessions.create import create_session
 pytestmark = pytest.mark.asyncio
 
 
-async def _pricing_type(conn):
-    return await conn.fetchval("SELECT unnest(enum_range(NULL::pricing_type)) LIMIT 1")
+# pricing_type is a plain text column ('input' | 'output' | 'cached'); the
+# legacy enum type was dropped.
+PRICING_TYPE = "input"
 
 
 async def _setup(conn, redis_client, profile_id):
     session = await create_session(conn, redis_client, profile_id=profile_id)
     group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
     run = await create_run(conn, redis_client, session_id=session.id, group_id=group.id)
-    pricing_type = await _pricing_type(conn)
 
     entry_id = await conn.fetchval(
         "INSERT INTO run_pricing_entry (pricing_type, count, run_id, session_id) "
-        "VALUES ($1::pricing_type, $2, $3, $4) RETURNING id",
-        pricing_type,
+        "VALUES ($1, $2, $3, $4) RETURNING id",
+        PRICING_TYPE,
         5,
         run.id,
         session.id,
