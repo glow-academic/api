@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.scenario.update import update_scenario_impl
+from app.infra.scenario.types import UpdateScenarioApiRequest, UpdateScenarioItem
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,7 +83,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await update_scenario_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateScenarioApiRequest(scenarios=[UpdateScenarioItem(id=uuid4())]),
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +104,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await update_scenario_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateScenarioApiRequest(scenarios=[UpdateScenarioItem(id=uuid4())]),
             )
         except Exception:
             pass  # downstream errors expected

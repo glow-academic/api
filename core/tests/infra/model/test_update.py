@@ -7,6 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.model.update import update_model_impl
+from app.infra.model.types import UpdateModelApiRequest, UpdateModelItem
 
 pytestmark = pytest.mark.asyncio
 
@@ -82,7 +83,7 @@ class TestAuth:
 
         with pytest.raises(HTTPException) as exc_info:
             await update_model_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateModelApiRequest(models=[UpdateModelItem(id=uuid4())]),
             )
         assert exc_info.value.status_code == 401
 
@@ -103,7 +104,7 @@ class TestProfileResolved:
         # but verify profile resolution was actually called
         try:
             await update_model_impl(
-                _FakePool(), object(), profile_id=_PROFILE_ID, items=[],
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=UpdateModelApiRequest(models=[UpdateModelItem(id=uuid4())]),
             )
         except Exception:
             pass  # downstream errors expected

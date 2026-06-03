@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.infra.persona.update import update_persona_impl
-from app.infra.persona.types import UpdatePersonaApiRequest
+from app.infra.persona.types import UpdatePersonaApiRequest, UpdatePersonaItem
 
 pytestmark = pytest.mark.asyncio
 
@@ -84,7 +84,7 @@ class TestAuth:
         with pytest.raises(HTTPException) as exc_info:
             await update_persona_impl(
                 _FakePool(), object(), profile_id=_PROFILE_ID,
-                request=UpdatePersonaApiRequest(personas=[]),
+                request=UpdatePersonaApiRequest(personas=[UpdatePersonaItem(id=uuid4())]),
             )
         assert exc_info.value.status_code == 401
 
@@ -106,7 +106,7 @@ class TestProfileResolved:
         try:
             await update_persona_impl(
                 _FakePool(), object(), profile_id=_PROFILE_ID,
-                request=UpdatePersonaApiRequest(personas=[]),
+                request=UpdatePersonaApiRequest(personas=[UpdatePersonaItem(id=uuid4())]),
             )
         except Exception:
             pass  # downstream errors expected
