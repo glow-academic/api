@@ -68,7 +68,7 @@ async def test_links_multi_select_junctions(conn, redis_client):
     param = await create_parameter(
         conn, redis_client, name=f"p-{_u()}", description="desc"
     )
-    cp1 = await create_conditional_parameter(conn, param.id, redis_client)
+    cp1 = await create_conditional_parameter(conn, param.parameter_id, redis_client)
 
     result = await create_field(
         conn, department_ids=[d1.id, d2.id], conditional_parameter_ids=[cp1.id]

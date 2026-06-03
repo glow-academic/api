@@ -67,12 +67,12 @@ async def test_excludes_ids(conn, redis_client):
         conn,
         redis_client,
         search="exclude-",
-        exclude_ids=[a.id],
+        exclude_ids=[a.parameter_id],
     )
 
-    ids = [i.id for i in items]
-    assert a.id not in ids
-    assert b.id in ids
+    ids = [i.parameter_id for i in items]
+    assert a.parameter_id not in ids
+    assert b.parameter_id in ids
 
 
 async def test_returns_empty_for_zero_limit(conn, redis_client):
