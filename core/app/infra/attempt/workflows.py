@@ -341,6 +341,7 @@ async def user_complete_impl(
 
             await create_attempt_content_entry_internal(
                 conn,
+                redis,
                 message_id=message_id,
                 session_id=session_id_uuid or uuid.UUID(int=0),
                 content=content,

@@ -197,7 +197,7 @@ async def attempt_start_impl(
         from app.tools.entries.chat.get import get_chats as get_chat_entries_fn
 
         async with pool.acquire() as conn:
-            chat_templates = await get_chat_entries_fn(conn, [first_chat_id])
+            chat_templates = await get_chat_entries_fn(conn, [first_chat_id], redis)
         if chat_templates:
             resolved_department_id = resolve_attempt_department(
                 user_department_ids=identity.department_ids,

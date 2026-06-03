@@ -57,6 +57,7 @@ async def problem_attempt_impl(
             conn,
             redis,
             session_id=session_id,
+            call_id=UUID(int=0),
             type=type,
             artifact_type=ARTIFACT_TYPE,
             message=message,
