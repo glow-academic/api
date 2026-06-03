@@ -23,8 +23,16 @@ async def create_profile_identity_fixture(
     departments: list[str] | None = None,
     emails: list[str] | None = None,
     artifact_active: bool = True,
+    role_name_exact: str | None = None,
 ) -> ProfileIdentityFixture:
-    """Create a real profile artifact plus linked resources for context tests."""
+    """Create a real profile artifact plus linked resources for context tests.
+
+    ``role_name_exact`` assigns the role's literal name (no unique-tag
+    suffix) — required when a test needs a canonical role name that the
+    emulation gate recognizes via ``SIMULATABLE_ROLES`` (e.g.
+    ``"Administrator"``). When ``None`` the role name is tag-suffixed as
+    usual to keep fixtures isolated.
+    """
     from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
@@ -60,7 +68,7 @@ async def create_profile_identity_fixture(
         if role is not None:
             role_key, role_name, role_description = role
             expected_role = role_key
-            expected_role_name = f"{role_name} {tag}"
+            expected_role_name = role_name_exact or f"{role_name} {tag}"
             expected_role_description = role_description
             role_res = await create_role(
                 conn,

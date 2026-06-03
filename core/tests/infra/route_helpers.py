@@ -76,6 +76,7 @@ async def create_admin_route_actor(
     group_name: str,
     role_name_prefix: str,
     role: str = "admin",
+    canonical_role_name: str | None = None,
 ) -> RouteActor:
     """Create a route actor with a requested role, session, and group.
 
@@ -83,6 +84,12 @@ async def create_admin_route_actor(
     beyond the standard CRUD set — e.g. the ``("attempt", "start")``
     permission the attempt lifecycle endpoints gate on, which is not one
     of the default operations.
+
+    ``canonical_role_name`` assigns an exact, un-suffixed role name (e.g.
+    ``"Super Administrator"``) instead of the default unique-tagged name.
+    Emulation gates key ``SIMULATABLE_ROLES`` on the literal role name, so
+    callers exercising ``/emulate`` must pass a canonical simulatable key
+    here; the default tagged names are intentionally outside that set.
     """
     from app.tools.artifacts.profile.update import update_profile
     from app.tools.resources.permissions.create import create_permission
@@ -124,7 +131,7 @@ async def create_admin_route_actor(
         admin_role = await create_role(
             conn,
             redis_client,
-            name=f"{role_name_prefix} {unique_tag()}",
+            name=canonical_role_name or f"{role_name_prefix} {unique_tag()}",
             description=f"{group_name} {role} role",
             level=0 if role == "superadmin" else 1,
             permission_ids=permission_ids,
