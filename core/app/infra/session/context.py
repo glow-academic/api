@@ -14,6 +14,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
+from app.infra.profile_identity_context import ProfileIdentityContext
 from app.infra.types import ArtifactContext, ResourcePair
 from app.tools.entries.attempt_home.search import search_attempt_homes
 from app.tools.entries.chat.search import search_chat_entries_internal
@@ -32,6 +34,7 @@ async def resolve_session_context(
     *,
     session_id: UUID,
     profile_id: UUID,
+    actor_profile: ProfileIdentityContext | None = None,
     bypass_cache: bool = False,
 ) -> ArtifactContext:
     """Resolve session context for get.py.
@@ -53,14 +56,17 @@ async def resolve_session_context(
 
     # ── Phase 1: Fetch session + groups + actor name in parallel ───
     # Look up the session by id directly (not via profile-scoped search) so
-    # cross-profile views work — e.g. a superadmin clicking into another
-    # user's session from /analytics/activity. The previous
+    # legitimate cross-profile views work — e.g. a superadmin clicking into
+    # another user's session from /analytics/activity. The previous
     # ``search_sessions(profile_ids=[profile_id])`` filter caused 404s any
     # time the viewer wasn't the session owner.
-    # TODO: gate cross-profile reads by role/permission once activity-view
-    # is a first-class permission. Today any authenticated caller who knows
-    # a session id can resolve its detail — fine for admin tooling, less so
-    # for general users. Mirrors the unscoped behavior of the activity list.
+    #
+    # Cross-profile reads are gated below by the dashboard visibility policy
+    # (``resolve_visible_profile_ids``): the read is allowed only if the
+    # session's owner is in the actor's visible set. This is self for everyone,
+    # an instructor's same-department students for instructional roles, and the
+    # whole org for role_level 0 (superadmin) — preserving admin tooling while
+    # closing the IDOR (issue #144).
     async def _fetch_sessions() -> list:
         async with pool.acquire() as c:
             return await get_sessions(c, [session_id], redis)
@@ -81,6 +87,15 @@ async def resolve_session_context(
     session = sessions[0] if sessions else None
     if not session:
         return _empty_context(actor_name_items)
+
+    # ── Phase 1b: Authorization gate (IDOR fix, issue #144) ────────
+    # Only allow the read if the session's owner is within the actor's
+    # visible-profile set. Mirrors the not-found denial shape (empty
+    # context) so the response never leaks another profile's timeline.
+    if actor_profile is not None:
+        visible_profile_ids = await resolve_visible_profile_ids(pool, actor_profile)
+        if session.profile_id not in set(visible_profile_ids):
+            return _empty_context(actor_name_items)
 
     # ── Phase 2: Fetch runs + timeline entries in parallel ─────────
     group_ids = [g.id for g in groups]

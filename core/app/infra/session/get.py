@@ -59,9 +59,19 @@ async def get_session_impl(
             bypass_cache=bypass_cache,
         )
 
-    session_profile_id = (
-        common.profile.profiles_id if common is not None else profile_id
-    )
+    # Fail closed: if the actor's identity context can't be resolved we cannot
+    # authorize the (potentially cross-profile) session read, so deny rather
+    # than fall through to an ungated lookup. Mirrors the common-is-None guard
+    # every sibling get impl uses (agent/provider/invocation/auth/...). Without
+    # this, actor_profile would be None and resolve_session_context's
+    # visibility gate (issue #144) would be skipped — a fail-open IDOR.
+    if common is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+
+    session_profile_id = common.profile.profiles_id
 
     with timed("resolve_session"):
         ctx = await resolve_session_context(
@@ -69,6 +79,7 @@ async def get_session_impl(
             redis,
             session_id=session_id,
             profile_id=session_profile_id,
+            actor_profile=common.profile,
             bypass_cache=bypass_cache,
         )
 
@@ -249,9 +260,15 @@ async def get_session_detail_impl_cached(
 ) -> tuple[GetSessionDetailResponse, bool]:
     """Build the cached client-facing session detail response."""
     tags = ["artifacts", "session"]
+    # Scope the cache entry to the actor: the response is gated by the actor's
+    # visible-profile set (issue #144), so a key shared across actors would let
+    # a privileged actor's full-detail response be served to an unauthorized one
+    # on a cache hit, bypassing the gate. Keying on profile_id keeps the gate
+    # authoritative per actor.
     cache_key_val = cache_key(
         cache_key_path,
         {"session_id": str(session_id)},
+        user_ctx=str(profile_id),
     )
 
     if not bypass_cache:
