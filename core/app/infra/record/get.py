@@ -31,6 +31,7 @@ from app.infra.dashboard.permissions import (
     compute_secondary_metrics_v2,
 )
 from app.infra.dashboard.types import DashboardBundleResponse
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.globals import get_redis_client
 from app.infra.record.types import RecordRequest
 from app.tools.resources.roles.get import get_roles
@@ -70,6 +71,21 @@ async def get_record_impl_cached(
     )
     if not common:
         raise HTTPException(status_code=401, detail="Profile not found")
+
+    # Authorization: a caller-supplied target_profile_id may only scope to a
+    # profile the actor is permitted to see. ``resolve_visible_profile_ids``
+    # encodes the full policy (self + same-department lower-privilege profiles,
+    # or the entire org for role_level 0). Membership in that set is the
+    # authoritative allow check, preventing cross-profile reads (IDOR, #145).
+    # ``get_record_impl`` is not currently mounted on an HTTP route, but the
+    # check is applied here so a future wiring cannot reintroduce the gap.
+    if request.target_profile_id is not None:
+        visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
+        if request.target_profile_id not in visible_profile_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to view analytics for this profile.",
+            )
 
     # --- Phase 1: Parse filters ---
     parsed_start_date = (

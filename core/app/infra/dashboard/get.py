@@ -109,6 +109,21 @@ async def get_dashboard_impl_cached(
         )
     visible_simulation_ids, visible_scenario_ids = visible_simulation_scope
 
+    # Authorization: a caller-supplied target_profile_id may only scope to a
+    # profile the actor is permitted to see. ``resolve_visible_profile_ids``
+    # already encodes the full policy (self + same-department lower-privilege
+    # profiles, or the entire org for role_level 0), so membership in that set
+    # is the authoritative allow check. Without this, any authenticated caller
+    # could read any profile's analytics by supplying its id (IDOR, #145).
+    if (
+        request.target_profile_id is not None
+        and request.target_profile_id not in visible_profile_ids
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view analytics for this profile.",
+        )
+
     parsed_start_date = (
         datetime.fromisoformat(request.start_date.replace("Z", "+00:00"))
         if request.start_date

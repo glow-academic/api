@@ -64,6 +64,7 @@ async def resolve_reports_context(
     redis: Redis,
     *,
     target_profile_id: UUID | None = None,
+    visible_profile_ids: list[UUID] | None = None,
     actor_profile_id: UUID | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
@@ -87,10 +88,15 @@ async def resolve_reports_context(
 
     # ── Phase 1: Fetch chats + thresholds in parallel ────────────────
     async def _fetch_chats() -> list[ChatItem]:
+        profile_filter_ids = (
+            [target_profile_id]
+            if target_profile_id
+            else (visible_profile_ids or None)
+        )
         async with pool.acquire() as c:
             raw, _total_count = await search_attempt_chats(
                 c,
-                redis, profile_ids=[target_profile_id] if target_profile_id else None,
+                redis, profile_ids=profile_filter_ids,
                 cohort_ids=cohort_ids,
                 department_ids=list(department_ids) if department_ids else None,
                 simulation_ids=simulation_ids,
