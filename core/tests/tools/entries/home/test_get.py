@@ -29,10 +29,10 @@ def _created(result):
     return result[0] if isinstance(result, tuple) else result
 
 
-async def test_gets_created_home(conn, redis_client, profile_id):
-    _created(await _home(conn, redis_client, profile_id))
+async def test_gets_created_home(conn, redis_client, profile_id, simulation_bundle):
+    created = await _home(conn, redis_client, profile_id, simulation_bundle)
     await refresh_home(conn)
-    lookup_id = getattr(created, 'id', None) or getattr(created, 'id', None)
+    lookup_id = created.id
     items = await get_homes(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1

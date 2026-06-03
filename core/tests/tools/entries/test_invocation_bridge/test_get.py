@@ -50,13 +50,13 @@ def _created(result):
 
 
 async def test_gets_created_test_invocation_bridge(conn, redis_client, profile_id):
-    _created(await _test_invocation_bridge(conn, redis_client, profile_id))
+    created, _, _ = await _test_invocation_bridge(conn, redis_client, profile_id)
     await refresh_test_invocation_bridge(conn)
-    lookup_id = getattr(created, 'test_invocation_id', None) or getattr(created, 'id', None) or getattr(created, 'test_invocation', None)
+    lookup_id = created.test_invocation_id
     items = await get_test_invocation_bridge(conn, test_invocation_ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].test_invocation_id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
