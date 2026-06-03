@@ -11,8 +11,13 @@ async def test_export_raises_401_when_no_profile(monkeypatch):
     pool, redis = AsyncMock(), AsyncMock()
     pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+    # chat_entry_id + group_id are now required kwargs; the profile-resolution
+    # auth check is still Step 1, so it fires before they are used.
     with pytest.raises(HTTPException) as exc:
-        await mod.export_chat_impl(pool, redis, profile_id=uuid4())
+        await mod.export_chat_impl(
+            pool, redis, profile_id=uuid4(),
+            chat_entry_id=uuid4(), group_id=uuid4(),
+        )
     assert exc.value.status_code == 401
 
 async def test_export_function_exists():
