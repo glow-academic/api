@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.infra.auth.create import create_auth_impl
+from app.infra.auth.types import CreateAuthApiRequest
 
 pytestmark = pytest.mark.asyncio
 
@@ -56,7 +57,7 @@ async def test_create_raises_401_for_unknown_profile(monkeypatch):
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
-        await create_auth_impl(_FakePool(), None, profile_id=uuid4(), items=[])
+        await create_auth_impl(_FakePool(), None, profile_id=uuid4(), request=CreateAuthApiRequest(auths=[]))
     assert exc_info.value.status_code == 401
 
 
@@ -71,7 +72,7 @@ async def test_create_raises_403_for_non_superadmin(monkeypatch):
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
-        await create_auth_impl(_FakePool(), None, profile_id=uuid4(), items=[])
+        await create_auth_impl(_FakePool(), None, profile_id=uuid4(), request=CreateAuthApiRequest(auths=[]))
     assert exc_info.value.status_code == 403
 
 
@@ -91,6 +92,6 @@ async def test_create_returns_results_for_empty_items(monkeypatch):
     monkeypatch.setattr("app.infra.auth.create.invalidate_tags", mock_invalidate)
     monkeypatch.setattr("app.infra.auth.create.perform_keycloak_sync", mock_keycloak)
 
-    result = await create_auth_impl(_FakePool(), None, profile_id=uuid4(), items=[])
+    result = await create_auth_impl(_FakePool(), None, profile_id=uuid4(), request=CreateAuthApiRequest(auths=[]))
     assert hasattr(result, "results")
     assert len(result.results) == 0

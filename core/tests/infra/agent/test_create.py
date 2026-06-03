@@ -3,6 +3,7 @@
 from uuid import uuid4
 import pytest
 from app.infra.agent.create import create_agent_impl
+from app.infra.agent.types import CreateAgentApiRequest, CreateAgentItem
 
 pytestmark = pytest.mark.asyncio
 
@@ -13,7 +14,10 @@ async def test_create_raises_401_for_unknown_profile(monkeypatch):
     monkeypatch.setattr("app.infra.agent.create.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await create_agent_impl(None, None, profile_id=uuid4(), items=[])
+        await create_agent_impl(
+            None, None, profile_id=uuid4(),
+            request=CreateAgentApiRequest(agents=[CreateAgentItem()]),
+        )
     assert exc_info.value.status_code == 401
 
 
@@ -33,7 +37,10 @@ async def test_create_raises_403_for_unauthorized_role(monkeypatch):
     monkeypatch.setattr("app.infra.agent.create.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await create_agent_impl(None, None, profile_id=uuid4(), items=[])
+        await create_agent_impl(
+            None, None, profile_id=uuid4(),
+            request=CreateAgentApiRequest(agents=[CreateAgentItem()]),
+        )
     assert exc_info.value.status_code == 403
 
 
@@ -43,5 +50,8 @@ async def test_create_detail_mentions_sign_in(monkeypatch):
     monkeypatch.setattr("app.infra.agent.create.resolve_profile_identity_context", mock_resolve)
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as exc_info:
-        await create_agent_impl(None, None, profile_id=uuid4(), items=[])
+        await create_agent_impl(
+            None, None, profile_id=uuid4(),
+            request=CreateAgentApiRequest(agents=[CreateAgentItem()]),
+        )
     assert "sign in" in exc_info.value.detail.lower()
