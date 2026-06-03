@@ -39,14 +39,13 @@ async def get_persona_entries_internal(
     sql = """
         SELECT COALESCE(jsonb_agg(jsonb_build_object(
             'id', m.id,
-            'chat_id', m.chat_id,
             'created_at', m.created_at,
-            'updated_at', m.updated_at,
             'active', m.active,
             'generated', m.generated,
-            'mcp', m.mcp
+            'mcp', m.mcp,
+            'session_id', m.session_id
         )), '[]'::jsonb)
-        FROM persona_mv m
+        FROM personas_mv m
         WHERE m.id = ANY($1)
         """
     if isinstance(pool_or_conn, asyncpg.Pool):

@@ -26,7 +26,7 @@ async def test_new_persona_appears_after_refresh(conn, redis_client):
     items = await get_persona_entries_internal(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0]["id"] == str(lookup_id)
 
 
 async def test_new_persona_is_not_visible_before_refresh(conn, redis_client):
