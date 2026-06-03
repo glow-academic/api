@@ -37,7 +37,7 @@ async def test_new_calls_is_not_visible_before_refresh(conn, redis_client, sessi
     created = _created(await create_call(conn, redis_client, run_id=run_id, session_id=session_id))
     lookup_id = getattr(created, 'call_id', None) or getattr(created, 'id', None) or getattr(created, 'call', None)
 
-    items = await get_calls(conn, [lookup_id], redis_client)
+    items = await get_calls(conn, [lookup_id], redis_client, bypass_cache=True)
 
     assert items == []
 

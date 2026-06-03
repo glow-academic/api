@@ -54,7 +54,7 @@ async def test_new_practice_chat_is_not_visible_before_refresh(conn, redis_clien
     _, _, _, created = await _practice_chat(conn, redis_client, profile_id, simulation_bundle)
     lookup_id = created.id
 
-    items = await get_practice_chats(conn, ids=[lookup_id], redis=redis_client)
+    items = await get_practice_chats(conn, ids=[lookup_id], redis=redis_client, bypass_cache=True)
 
     assert items == []
 
