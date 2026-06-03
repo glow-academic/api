@@ -46,10 +46,13 @@ async def test_search_returns_empty_when_no_results(monkeypatch):
         return _P(profiles_id=uuid4())
     async def mock_search(conn, **kw):
         return ([], 0)
+    async def mock_soft_calls(conn: object, redis: object, **kw: object) -> list:
+        return []
     async def mock_depts(conn, redis, **kw):
         return []
     monkeypatch.setattr("app.infra.simulation.search.resolve_profile_identity_context", mock_resolve)
-    monkeypatch.setattr("app.infra.simulation.search.search_simulation_artifacts", mock_search)
+    monkeypatch.setattr("app.infra.simulation.search.search_simulations", mock_search)
+    monkeypatch.setattr("app.tools.entries.soft_calls.search.search_soft_calls", mock_soft_calls)
     monkeypatch.setattr("app.infra.simulation.search.search_departments", mock_depts)
     result = await search_simulation_impl(_Pool(), None, profile_id=uuid4())
     assert result.total_count == 0
@@ -61,10 +64,13 @@ async def test_search_passes_actor_name(monkeypatch):
         return _P(profiles_id=uuid4(), name="Bob")
     async def mock_search(conn, **kw):
         return ([], 0)
+    async def mock_soft_calls(conn: object, redis: object, **kw: object) -> list:
+        return []
     async def mock_depts(conn, redis, **kw):
         return []
     monkeypatch.setattr("app.infra.simulation.search.resolve_profile_identity_context", mock_resolve)
-    monkeypatch.setattr("app.infra.simulation.search.search_simulation_artifacts", mock_search)
+    monkeypatch.setattr("app.infra.simulation.search.search_simulations", mock_search)
+    monkeypatch.setattr("app.tools.entries.soft_calls.search.search_soft_calls", mock_soft_calls)
     monkeypatch.setattr("app.infra.simulation.search.search_departments", mock_depts)
     result = await search_simulation_impl(_Pool(), None, profile_id=uuid4())
     assert result.actor_name == "Bob"
