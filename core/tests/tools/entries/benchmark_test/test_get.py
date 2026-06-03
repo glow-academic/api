@@ -37,13 +37,13 @@ def _created(result):
 
 
 async def test_gets_created_benchmark_test(conn, redis_client, profile_id):
-    _created(await _benchmark_test(conn, redis_client, profile_id))
+    created = _created(await _benchmark_test(conn, redis_client, profile_id))
     await refresh_benchmark_test(conn)
-    lookup_id = getattr(created, 'benchmark_id', None) or getattr(created, 'id', None) or getattr(created, 'benchmark', None)
+    lookup_id = created.benchmark_id
     items = await get_benchmark_tests(conn, benchmark_ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1
-    assert items[0].id == lookup_id
+    assert items[0].benchmark_id == lookup_id
 
 
 async def test_returns_empty_for_missing_id(conn, redis_client):
