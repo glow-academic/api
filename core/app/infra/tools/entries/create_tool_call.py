@@ -42,6 +42,8 @@ async def create_tool_call(
     on_call_created: Callable[[UUID | None], Any] | None = None,
     pre_minted_call_id: UUID | None = None,
     started_at: "datetime | None" = None,
+    audit_pool: "asyncpg.Pool | None" = None,
+    audit_redis: "Redis | None" = None,
 ) -> CreateToolSetupResponse:
     """Execute a tool and persist the full entry chain + files.
 
@@ -158,6 +160,11 @@ async def create_tool_call(
             arguments=arguments,
             text_upload_id=text_upload_id,
             call_upload_id=call_upload_id,
+            # Default None → background task reads the app-level globals
+            # (production). Tests pass an on-loop pool/redis so the
+            # fire-and-forget path runs against a loop-bound pool.
+            pool=audit_pool,
+            redis=audit_redis,
         ),
         label=f"audit_persist:tool={tool_id}",
     )
@@ -198,6 +205,8 @@ async def _persist_audit_writes(
     arguments: dict[str, Any],
     text_upload_id: UUID,
     call_upload_id: UUID | None,
+    pool: "asyncpg.Pool | None" = None,
+    redis: "Redis | None" = None,
 ) -> None:
     """Background-task body: serialize + render + persist audit metadata.
 
@@ -211,10 +220,18 @@ async def _persist_audit_writes(
       • ``save_text_upload`` + ``save_call_upload`` — disk IO
       • 5 INSERTs: text upload, call upload, msg, call_upload junction,
         message_upload junction
+
+    ``pool`` / ``redis`` default to the app-level globals (production path —
+    the ``schedule_background`` call site passes neither). They are accepted
+    as explicit deps so tests can drive this on their own event loop with a
+    pool bound to that loop; the process-global pool is bound to the
+    session-init loop and would corrupt under asyncpg cross-loop use.
     """
     from app.infra.globals import get_pool, get_redis_client
-    pool = get_pool()
-    redis = get_redis_client()
+    if pool is None:
+        pool = get_pool()
+    if redis is None:
+        redis = get_redis_client()
 
     # Serialize the raw_result for audit artifacts (was blocking before
     # v1.0.51). The response object carries ``raw_result`` directly;
