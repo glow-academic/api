@@ -17,8 +17,9 @@ async def get_runs_docs(conn: asyncpg.Connection) -> DocsResponse:
     mv_info = await get_mv_info(conn, "runs_mv")
     entry_table = await get_table_info(conn, "runs_entry")
     connection_tables = [
-        await get_table_info(conn, "profiles_runs_connection"),
         await get_table_info(conn, "runs_agents_connection"),
+        await get_table_info(conn, "runs_keys_connection"),
+        await get_table_info(conn, "runs_tools_connection"),
     ]
 
     tables = [t for t in [entry_table] + connection_tables if t is not None]

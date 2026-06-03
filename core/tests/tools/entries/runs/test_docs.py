@@ -29,8 +29,9 @@ async def test_includes_source_tables(conn):
 
     table_names = [t.name for t in result.tables]
     assert "runs_entry" in table_names
-    assert "profiles_runs_connection" in table_names
     assert "runs_agents_connection" in table_names
+    assert "runs_keys_connection" in table_names
+    assert "runs_tools_connection" in table_names
 
 
 async def test_includes_all_operations(conn):
