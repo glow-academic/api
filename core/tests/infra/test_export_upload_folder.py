@@ -29,11 +29,16 @@ def _ensure_export_type_packages(artifact_name: str) -> None:
         sys.modules[package_name] = package
 
 
-async def test_export_persona_impl_returns_inline_csv_content(
+async def test_export_persona_impl_returns_file_modality_envelope(
     pool,
     redis_client,
     setting_graph_factory,
 ):
+    # Persona export is file-modality: it writes the CSV to disk, registers
+    # an ``uploads_entry`` + ``files_resource`` chain, and returns the
+    # ``file_id`` (no inline ``content``). The upload row's ``session_id``
+    # column is NOT NULL, so the caller must supply the session in scope —
+    # the HTTP route always does (``request.state.session_id``).
     _ensure_export_type_packages("persona")
     from app.infra.persona.export import export_persona_impl
     from app.tools.artifacts.persona.create import create_persona
@@ -60,13 +65,13 @@ async def test_export_persona_impl_returns_inline_csv_content(
         pool,
         redis_client,
         profile_id=actor.profile_id,
+        session_id=actor.session_id,
         persona_id=persona.id,
     )
 
     assert result.file_name.endswith(".csv")
-    assert result.mime_type == "text/csv"
     assert result.row_count == 1
-    assert result.content
+    assert result.file_id is not None
 
 
 async def test_export_scenario_impl_returns_inline_csv_content(
