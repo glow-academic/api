@@ -55,19 +55,38 @@ def test_configure_named_loggers_sets_formatter_on_existing_and_new_handlers():
 
 
 @pytest.mark.asyncio
-async def test_initialize_redis_client_sets_none_when_missing_config():
+async def test_initialize_redis_client_raises_when_redis_library_missing():
+    """Redis is REQUIRED: a missing redis library is a loud RuntimeError, not a None no-op."""
     globals_module = SimpleNamespace(redis_client="sentinel")
     test_logger = logging.getLogger("test.server.redis.none")
 
-    result = await _initialize_redis_client(
-        redis_module=None,
-        redis_url=None,
-        globals_module=globals_module,
-        logger_obj=test_logger,
-    )
+    with pytest.raises(RuntimeError, match="Redis library is not available"):
+        await _initialize_redis_client(
+            redis_module=None,
+            redis_url=None,
+            globals_module=globals_module,
+            logger_obj=test_logger,
+        )
 
-    assert result is None
-    assert globals_module.redis_client is None
+    # The existing client is left untouched; nothing is silently nulled out.
+    assert globals_module.redis_client == "sentinel"
+
+
+@pytest.mark.asyncio
+async def test_initialize_redis_client_raises_when_redis_url_missing():
+    """A present redis library but absent REDIS_URL also refuses to start."""
+    globals_module = SimpleNamespace(redis_client="sentinel")
+    test_logger = logging.getLogger("test.server.redis.no_url")
+
+    with pytest.raises(RuntimeError, match="REDIS_URL is not set"):
+        await _initialize_redis_client(
+            redis_module=object(),
+            redis_url=None,
+            globals_module=globals_module,
+            logger_obj=test_logger,
+        )
+
+    assert globals_module.redis_client == "sentinel"
 
 
 @pytest.mark.asyncio
