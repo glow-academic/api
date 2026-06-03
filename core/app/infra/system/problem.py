@@ -65,6 +65,7 @@ async def problem_system_impl(
         call_result = await create_call(conn, redis, run_id=run_result.id, session_id=session_id)
         problem_result = await create_problem_entry(
             conn,
+            redis,
             session_id=session_id,
             call_id=call_result.id,
             type=type,

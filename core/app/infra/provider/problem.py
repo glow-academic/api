@@ -68,6 +68,7 @@ async def problem_provider_impl(
             async with pool.acquire() as conn:
                 await create_problem_entry(
                     conn,
+                    redis,
                     session_id=session_id,
                     call_id=call_id or UUID(int=0),
                     type=type,
@@ -97,6 +98,7 @@ async def problem_provider_impl(
      async with pool.acquire() as conn:
         problem_result = await create_problem_entry(
             conn,
+            redis,
             session_id=session_id,
             call_id=call_id or UUID(int=0),
             type=type,
