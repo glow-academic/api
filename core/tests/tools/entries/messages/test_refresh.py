@@ -17,23 +17,19 @@ class _Conn:
 
 async def test_executes_refresh_statement(monkeypatch):
     conn = _Conn()
+    redis = object()
     invalidated = []
 
     async def _invalidate(tags, redis=None):
         invalidated.append((tags, redis))
 
-    monkeypatch.setattr(
-        "app.tools.entries.messages.refresh.get_redis_client",
-        lambda: "redis",
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.messages.refresh.invalidate_tags", _invalidate)
     monkeypatch.setattr("app.tools.entries.messages.refresh.time.time", lambda: 100.0)
 
-    result = await refresh_messages_internal(conn)
+    result = await refresh_messages_internal(conn, redis)
 
     assert conn.calls == ["REFRESH MATERIALIZED VIEW CONCURRENTLY messages_mv"]
-    assert invalidated == [(["entries", "messages"], "redis")]
+    assert invalidated == [(["entries", "messages"], redis)]
     assert result["success"] is True
 
 
@@ -44,11 +40,6 @@ async def test_returns_duration_and_message(monkeypatch):
     async def _invalidate(tags, redis=None):
         return None
 
-    monkeypatch.setattr(
-        "app.tools.entries.messages.refresh.get_redis_client",
-        lambda: None,
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.messages.refresh.invalidate_tags", _invalidate)
     monkeypatch.setattr("app.tools.entries.messages.refresh.time.time", lambda: next(values))
 
@@ -66,11 +57,6 @@ async def test_propagates_execute_errors(monkeypatch):
     async def _invalidate(tags, redis=None):
         return None
 
-    monkeypatch.setattr(
-        "app.tools.entries.messages.refresh.get_redis_client",
-        lambda: None,
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.messages.refresh.invalidate_tags", _invalidate)
 
     with pytest.raises(RuntimeError, match="boom"):

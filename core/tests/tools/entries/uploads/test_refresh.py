@@ -17,23 +17,19 @@ class _Conn:
 
 async def test_executes_refresh_and_invalidates_tags(monkeypatch):
     conn = _Conn()
+    redis = object()
     invalidated = []
 
     async def _invalidate(tags, redis=None):
         invalidated.append((tags, redis))
 
-    monkeypatch.setattr(
-        "app.tools.entries.uploads.refresh.get_redis_client",
-        lambda: "redis",
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.uploads.refresh.invalidate_tags", _invalidate)
     monkeypatch.setattr("app.tools.entries.uploads.refresh.time.time", lambda: 10.0)
 
-    result = await refresh_uploads_internal(conn)
+    result = await refresh_uploads_internal(conn, redis)
 
     assert conn.calls == ["REFRESH MATERIALIZED VIEW CONCURRENTLY uploads_mv"]
-    assert invalidated == [(["entries", "uploads"], "redis")]
+    assert invalidated == [(["entries", "uploads"], redis)]
     assert result["success"] is True
 
 
@@ -44,11 +40,6 @@ async def test_returns_duration_metadata(monkeypatch):
     async def _invalidate(tags, redis=None):
         return None
 
-    monkeypatch.setattr(
-        "app.tools.entries.uploads.refresh.get_redis_client",
-        lambda: None,
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.uploads.refresh.invalidate_tags", _invalidate)
     monkeypatch.setattr("app.tools.entries.uploads.refresh.time.time", lambda: next(values))
 
@@ -66,11 +57,6 @@ async def test_propagates_execute_errors(monkeypatch):
     async def _invalidate(tags, redis=None):
         return None
 
-    monkeypatch.setattr(
-        "app.tools.entries.uploads.refresh.get_redis_client",
-        lambda: None,
-        raising=False,
-    )
     monkeypatch.setattr("app.tools.entries.uploads.refresh.invalidate_tags", _invalidate)
 
     with pytest.raises(RuntimeError, match="boom"):
