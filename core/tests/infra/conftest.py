@@ -851,48 +851,6 @@ async def practice_route_client(
 
 
 @pytest_asyncio.fixture
-async def record_route_client(
-    pool,
-    redis_client,
-) -> AsyncGenerator[RouteClient, None]:
-    """HTTP client mounted on the real record route stack."""
-    import app.infra.globals as globals_mod
-
-    # The `record` view-artifact was removed entirely in the 19->3 route
-    # consolidation (commit 0ffaa32903); no `record` route module exists in the
-    # current layout, so there is nothing to mount. Tests that still exercise
-    # `/record/*` are stale and now fail (not error) on the missing endpoint.
-    record_router = _build_artifact_router_for_tests(
-        artifact_name="record",
-        route_package="attempt",
-        prefix="/record",
-        tags=["artifacts", "record"],
-        module_names=[],
-    )
-
-    request_state: dict[str, str | None] = {"profile_id": None, "session_id": None}
-    app = _build_artifact_test_app(
-        artifact_router=record_router,
-        request_state=request_state,
-    )
-
-    prior_pool = globals_mod._db_pool
-    prior_redis = globals_mod.redis_client
-    globals_mod._db_pool = pool
-    globals_mod.redis_client = redis_client
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://testserver",
-    ) as client:
-        yield RouteClient(client=client, _request_state=request_state)
-
-    globals_mod._db_pool = prior_pool
-    globals_mod.redis_client = prior_redis
-
-
-@pytest_asyncio.fixture
 async def activity_route_client(
     pool,
     redis_client,
