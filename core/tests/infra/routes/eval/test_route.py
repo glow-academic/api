@@ -172,7 +172,7 @@ class TestEvalRoute:
             json={
                 "evals": [
                     {
-                        "eval_id": created["eval_id"],
+                        "id": created["eval_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(eval_route_actor.department_id)],

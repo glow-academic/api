@@ -180,7 +180,7 @@ class TestDepartmentRoute:
             json={
                 "departments": [
                     {
-                        "department_id": created["department_id"],
+                        "id": created["department_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "settings_ids": [str(updated.setting_id)],

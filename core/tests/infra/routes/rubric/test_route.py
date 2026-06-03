@@ -172,7 +172,7 @@ class TestRubricRoute:
             json={
                 "rubrics": [
                     {
-                        "rubric_id": created["rubric_id"],
+                        "id": created["rubric_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(rubric_route_actor.department_id)],

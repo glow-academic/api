@@ -197,7 +197,7 @@ class TestSimulationRoute:
             json={
                 "simulations": [
                     {
-                        "simulation_id": created["simulation_id"],
+                        "id": created["simulation_id"],
                         "name_id": str(updated.name_id),
                         "description_id": str(updated.description_id),
                         "department_ids": [str(simulation_route_actor.department_id)],
