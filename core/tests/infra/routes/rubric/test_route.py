@@ -321,29 +321,66 @@ class TestRubricRoute:
         assert payload["artifact"] is not None
         assert payload["api_operations"]
 
-    async def test_rubric_export_route_returns_csv_upload(
+    async def test_rubric_export_route_returns_pdf_upload(
         self,
         pool,
         redis_client,
         rubric_route_client,
         rubric_route_actor,
     ):
-        created = await self._create_rubric_via_route(
-            pool,
-            redis_client,
-            rubric_route_client,
-            rubric_route_actor,
+        # Rubric export renders a PDF keyed on a rubrics_resource id (the
+        # snapshot an attempt chat carries), NOT the rubric artifact id. The
+        # PDF row_count == number of rubric standards, so seed a resource with
+        # one standard group holding a single standard.
+        from app.tools.resources.rubrics.create import create_rubric
+        from app.tools.resources.standard_groups.create import (
+            create_standard_group,
+        )
+        from app.tools.resources.standards.create import create_standard
+
+        tag = unique_tag()
+        async with pool.acquire() as conn:
+            group = await create_standard_group(
+                conn,
+                name=f"Route Rubric Group {tag}",
+                short_name=f"RG{tag}"[:16],
+                description=f"Route rubric group {tag}",
+                points=10,
+                pass_points=5,
+                redis=redis_client,
+            )
+            await create_standard(
+                conn,
+                name=f"Route Rubric Standard {tag}",
+                description=f"Route rubric standard {tag}",
+                points=10,
+                standard_group_id=group.id,
+                redis=redis_client,
+            )
+            rubric_resource = await create_rubric(
+                conn,
+                redis_client,
+                name=f"Route Rubric Resource {tag}",
+                department_ids=[rubric_route_actor.department_id],
+                standard_group_ids=[group.id],
+                total_points=10,
+                pass_points=5,
+            )
+
+        rubric_route_client.authenticate(
+            profile_id=rubric_route_actor.profile_id,
+            session_id=rubric_route_actor.session_id,
         )
 
         response = await rubric_route_client.client.post(
             "/rubric/export",
-            json={"rubric_id": created["rubric_id"]},
+            json={"rubric_id": str(rubric_resource.id)},
         )
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["content"] != ""
-        assert payload["file_name"].endswith(".csv")
+        assert payload["file_id"] is not None
+        assert payload["file_name"].endswith(".pdf")
         assert payload["row_count"] == 1
 
     async def test_rubric_refresh_route_returns_invalidated_tags(

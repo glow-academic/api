@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -213,7 +212,7 @@ class TestPersonaRoute:
         )
 
         assert response.status_code == 200
-        assert response.headers["X-Invalidate-Tags"] == "personas"
+        assert response.headers["X-Cache-Tags"] == "personas"
 
         payload = response.json()
         assert payload["actor_name"] == persona_route_actor.name
@@ -440,21 +439,14 @@ class TestPersonaRoute:
         persona_route_client,
         persona_route_actor,
     ):
-        from app.tools.entries.groups.create import create_group
         from app.tools.entries.persona_drafts.create import (
             create_persona_draft,
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(
-                conn,
-                redis_client,
-                session_id=persona_route_actor.session_id,
-                artifact_type="persona",
-            )
             draft = await create_persona_draft(
                 conn,
-                group_id=group.id,
+                redis_client,
                 session_id=persona_route_actor.session_id,
                 profile_ids=[persona_route_actor.profiles_id],
             )
@@ -465,6 +457,8 @@ class TestPersonaRoute:
         )
         drafts_response = await persona_route_client.client.post(
             "/persona/drafts",
+            json={},
+            headers={"X-Bypass-Cache": "1"},
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -522,11 +516,9 @@ class TestPersonaRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
+        assert payload["file_id"] is not None
         assert payload["file_name"].endswith(".csv")
         assert payload["row_count"] >= 1
-        assert payload["mime_type"] == "text/csv"
-        decoded_csv = base64.b64decode(payload["content"]).decode("utf-8")
-        assert created["name"] in decoded_csv
 
     async def test_persona_refresh_route_returns_invalidated_tags(
         self,
@@ -540,13 +532,22 @@ class TestPersonaRoute:
 
         response = await persona_route_client.client.post(
             "/persona/refresh",
+            json={},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "personas,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["personas_mv", "persona_drafts_mv"]
+        assert payload["refreshed_views"] == [
+            "personas_mv",
+            "persona_drafts_mv",
+            "runs_mv",
+            "messages_mv",
+            "calls_mv",
+            "groups_mv",
+            "group_names_mv",
+        ]
         assert payload["invalidated_tags"] == ["personas", "artifacts"]
 
     async def _create_persona_via_route(

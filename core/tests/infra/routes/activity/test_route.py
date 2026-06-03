@@ -60,35 +60,11 @@ class TestActivityRoute:
         # (ActivityResponse.history is always null — fetch via /system/sessions).
         assert payload["history"] is None
 
-    async def test_search_activity_route_returns_sessions(
-        self,
-        activity_route_client,
-        activity_route_actor,
-    ):
-        activity_route_client.authenticate(
-            profile_id=activity_route_actor.profile_id,
-            session_id=activity_route_actor.session_id,
-        )
-
-        response = await activity_route_client.client.post(
-            "/activity/search",
-            json={
-                "role_ids": [str(activity_route_actor.role_id)],
-                "page": 0,
-                "page_size": 50,
-            },
-            headers={"X-Bypass-Cache": "1"},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Cache-Tags"] == "artifacts,activity,list"
-        assert response.headers["X-Cache-Hit"] == "0"
-
-        payload = response.json()
-        assert isinstance(payload["data"], list)
-        assert payload["total_count"] >= 0
-        assert payload["page"] == 0
-        assert payload["page_size"] == 50
+    # NOTE: removed test_search_activity_route_returns_sessions — the activity
+    # session list was consolidated into the system parent (`/system/sessions`).
+    # Activity itself now exposes only the root `POST /activity` summary; there
+    # is no `/activity/search` route, and the activity route client does not
+    # mount the system list module.
 
     async def test_activity_problem_route_creates_problem(
         self,
@@ -101,12 +77,12 @@ class TestActivityRoute:
         )
 
         response = await activity_route_client.client.post(
-            "/activity/problem",
+            "/problem",
             json={"type": "bug", "message": "Route-level problem report"},
         )
 
         assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "problems,views,activity"
+        assert response.headers["X-Invalidate-Tags"] == "system,problems"
         payload = response.json()
         assert payload["success"] is True
         UUID(payload["problem_id"])
@@ -143,92 +119,11 @@ class TestActivityRoute:
         assert payload["resolved"] is True
         assert payload["updated_at"] is not None
 
-    async def test_activity_docs_route_returns_composed_docs(
-        self,
-        activity_route_client,
-        activity_route_actor,
-    ):
-        activity_route_client.authenticate(
-            profile_id=activity_route_actor.profile_id,
-            session_id=activity_route_actor.session_id,
-        )
-
-        response = await activity_route_client.client.post(
-            "/activity/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "activity"
-        assert payload["type"] == "analytics"
-        assert payload["page_metadata"]["list"]["title"] == "Activity"
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {
-            "get_activity",
-            "search_activity",
-            "create_problem",
-            "resolve_problem",
-            "activity_refresh",
-            "export_activity",
-        } <= op_names
-
-    async def test_activity_export_route_returns_current_contract(
-        self,
-        activity_route_client,
-        activity_route_actor,
-    ):
-        activity_route_client.authenticate(
-            profile_id=activity_route_actor.profile_id,
-            session_id=activity_route_actor.session_id,
-        )
-
-        response = await activity_route_client.client.post(
-            "/activity/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-
-        if payload["row_count"] == 0:
-            assert payload["content"] == ""
-            assert payload["file_name"] == ""
-            return
-
-        assert payload["file_name"].endswith(".zip")
-        assert payload["content"] != ""
-        assert payload["row_count"] > 0
-
-    async def test_activity_refresh_route_returns_invalidated_tags(
-        self,
-        activity_route_client,
-        activity_route_actor,
-    ):
-        activity_route_client.authenticate(
-            profile_id=activity_route_actor.profile_id,
-            session_id=activity_route_actor.session_id,
-        )
-
-        response = await activity_route_client.client.post(
-            "/activity/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "activity,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == [
-            "sessions_mv",
-            "activity_mv",
-            "logins_mv",
-            "problems_mv",
-            "grants_mv",
-            "emulations_mv",
-            "groups_mv",
-            "runs_mv",
-            "tokens_mv",
-            "run_pricing_mv",
-        ]
-        assert payload["invalidated_tags"] == ["activity", "artifacts"]
+    # NOTE: removed test_activity_docs_route_returns_composed_docs,
+    # test_activity_export_route_returns_current_contract, and
+    # test_activity_refresh_route_returns_invalidated_tags — the activity
+    # docs/export/refresh operations were consolidated into the system parent
+    # (`/system/context`, view-aware `/system/export`, `/system/refresh`).
+    # Activity exposes only the root `POST /activity` summary plus `/problem`
+    # and `/resolve`; there are no `/activity/{docs,export,refresh}` routes and
+    # the activity route client does not mount the consolidated system modules.

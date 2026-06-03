@@ -28,10 +28,11 @@ class TestTestWorkflowRoutes:
     async def test_get_test_route_returns_test_bundle(
         self,
         pool,
+        redis_client,
         test_route_client,
         test_route_actor,
     ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
+        graph = await self._create_test_run_graph(pool, redis_client, test_route_actor)
 
         test_route_client.authenticate(
             profile_id=test_route_actor.profile_id,
@@ -61,10 +62,11 @@ class TestTestWorkflowRoutes:
     async def test_get_test_route_sets_cache_hit_on_repeat_request(
         self,
         pool,
+        redis_client,
         test_route_client,
         test_route_actor,
     ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
+        graph = await self._create_test_run_graph(pool, redis_client, test_route_actor)
 
         test_route_client.authenticate(
             profile_id=test_route_actor.profile_id,
@@ -101,7 +103,7 @@ class TestTestWorkflowRoutes:
 
         assert response.status_code == 404, response.text
 
-    async def _create_test_run_graph(self, pool, actor):
+    async def _create_test_run_graph(self, pool, redis, actor):
         from app.tools.entries.calls.create import create_call
         from app.tools.entries.groups.create import create_group
         from app.tools.entries.messages.create import create_message
@@ -124,38 +126,42 @@ class TestTestWorkflowRoutes:
         async with pool.acquire() as conn:
             source_group = await create_group(
                 conn,
+                redis,
                 session_id=actor.session_id,
-                name="test-route-source",
+                artifact_type="test",
             )
             source_run = await create_run(
                 conn,
+                redis,
                 group_id=source_group.id,
                 session_id=actor.session_id,
-                profiles_id=actor.profiles_id,
             )
-            await create_message(conn, run_id=source_run.id, role="user")
-            await create_message(conn, run_id=source_run.id, role="assistant")
+            await create_message(conn, redis, run_id=source_run.id, role="user")
+            await create_message(conn, redis, run_id=source_run.id, role="assistant")
 
             test_group = await create_group(
                 conn,
+                redis,
                 session_id=actor.session_id,
-                name="test-route-invocation",
+                artifact_type="test",
             )
             test_run = await create_run(
                 conn,
+                redis,
                 group_id=test_group.id,
                 session_id=actor.session_id,
-                profiles_id=actor.profiles_id,
             )
-            await create_message(conn, run_id=test_run.id, role="user")
-            await create_message(conn, run_id=test_run.id, role="assistant")
+            await create_message(conn, redis, run_id=test_run.id, role="user")
+            await create_message(conn, redis, run_id=test_run.id, role="assistant")
             test_call = await create_call(
                 conn,
+                redis,
                 run_id=test_run.id,
                 session_id=actor.session_id,
             )
             test = await create_test(
                 conn,
+                redis,
                 call_id=test_call.id,
                 profiles_id=actor.profiles_id,
                 infinite_mode=False,
@@ -163,11 +169,13 @@ class TestTestWorkflowRoutes:
             )
             invocation_call = await create_call(
                 conn,
+                redis,
                 run_id=test_run.id,
                 session_id=actor.session_id,
             )
             invocation = await create_test_invocation(
                 conn,
+                redis,
                 test_id=test.id,
                 call_id=invocation_call.id,
                 use_custom=False,
@@ -176,6 +184,7 @@ class TestTestWorkflowRoutes:
             await refresh_test_invocation(conn)
             await create_test_invocation_runs(
                 conn,
+                redis,
                 test_invocation_id=invocation.id,
             )
             await refresh_test_invocation_runs(conn)
@@ -193,13 +202,29 @@ class TestTestWorkflowRoutes:
         test_route_client,
         test_route_actor,
     ):
+        # /test/start now takes an `eval_id` (not a benchmark_id) and resolves
+        # the parent benchmark server-side via search_benchmarks(eval_ids=[...])
+        # against benchmark_mv. The benchmark's evals_ids point at the eval
+        # *resource* (benchmark_evals_connection FK -> evals_resource), so seed
+        # an eval resource, a benchmark linked to it, then refresh benchmark_mv.
+        from app.tools.entries.benchmark.refresh import refresh_benchmark
+        from app.tools.resources.evals.create import create_eval
+
         async with pool.acquire() as conn:
-            benchmark = await create_benchmark(
+            created_eval = await create_eval(
                 conn,
-                redis_client, session_id=test_route_actor.session_id,
+                redis_client,
+                name=f"Test Start Eval {uuid4()}",
+            )
+            await create_benchmark(
+                conn,
+                redis_client,
+                session_id=test_route_actor.session_id,
+                evals_ids=[created_eval.id],
                 profiles_ids=[test_route_actor.profiles_id],
                 departments_ids=[test_route_actor.department_id],
             )
+            await refresh_benchmark(conn)
 
         test_route_client.authenticate(
             profile_id=test_route_actor.profile_id,
@@ -207,7 +232,7 @@ class TestTestWorkflowRoutes:
         )
         response = await test_route_client.client.post(
             "/test/start",
-            json={"benchmark_id": str(benchmark.id), "infinite_mode": False},
+            json={"eval_id": str(created_eval.id), "infinite_mode": False},
         )
 
         assert response.status_code == 200, response.text
@@ -217,17 +242,18 @@ class TestTestWorkflowRoutes:
     async def test_run_test_route_uses_real_http_stack(
         self,
         pool,
+        redis_client,
         test_route_client,
         test_route_actor,
     ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
+        graph = await self._create_test_run_graph(pool, redis_client, test_route_actor)
 
         test_route_client.authenticate(
             profile_id=test_route_actor.profile_id,
             session_id=test_route_actor.session_id,
         )
         response = await test_route_client.client.post(
-            "/test/run",
+            "/test/invocation_run",
             json={
                 "test_id": graph["test_id"],
                 "test_invocation_id": graph["test_invocation_id"],
@@ -235,94 +261,41 @@ class TestTestWorkflowRoutes:
             },
         )
 
+        # /test/invocation_run binds a runs_entry to a test invocation and
+        # returns the test_invocation_run binding id (TestRunInternalResult).
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["test_id"] == graph["test_id"]
-        assert payload["invocation_id"] == graph["test_invocation_id"]
-        assert payload["run_id"]
+        assert payload["success"] is True
+        assert payload["test_invocation_run_id"]
 
         async with pool.acquire() as conn:
-            stored_run_id = await conn.fetchval(
-                "SELECT id FROM runs_entry WHERE id = $1",
-                UUID(payload["run_id"]),
+            stored_binding_id = await conn.fetchval(
+                "SELECT id FROM test_invocation_runs_entry WHERE id = $1",
+                UUID(payload["test_invocation_run_id"]),
             )
 
-        assert stored_run_id == UUID(payload["run_id"])
+        assert stored_binding_id == UUID(payload["test_invocation_run_id"])
 
-    async def test_next_test_route_uses_real_http_stack(
-        self,
-        pool,
-        test_route_client,
-        test_route_actor,
-    ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
-
-        test_route_client.authenticate(
-            profile_id=test_route_actor.profile_id,
-            session_id=test_route_actor.session_id,
-        )
-        response = await test_route_client.client.post(
-            "/test/next",
-            json={"test_id": graph["test_id"]},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["invocation_id"] == graph["test_invocation_id"]
-        assert payload["run_id"]
-        assert payload["current_run"] == 1
-        assert payload["total_runs"] == 1
-
-        async with pool.acquire() as conn:
-            stored_run_id = await conn.fetchval(
-                "SELECT id FROM runs_entry WHERE id = $1",
-                UUID(payload["run_id"]),
-            )
-
-        assert stored_run_id == UUID(payload["run_id"])
-
-    async def test_end_test_route_creates_grade_via_real_http_stack(
-        self,
-        pool,
-        test_route_client,
-        test_route_actor,
-    ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
-
-        test_route_client.authenticate(
-            profile_id=test_route_actor.profile_id,
-            session_id=test_route_actor.session_id,
-        )
-        response = await test_route_client.client.post(
-            "/test/end",
-            json={
-                "test_id": graph["test_id"],
-                "test_invocation_id": graph["test_invocation_id"],
-                "run_id": graph["run_id"],
-                "grade": True,
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["invocation_id"] == graph["test_invocation_id"]
-        assert payload["grade_id"]
-
-        async with pool.acquire() as conn:
-            stored_grade_id = await conn.fetchval(
-                "SELECT id FROM test_grade_entry WHERE id = $1",
-                UUID(payload["grade_id"]),
-            )
-
-        assert stored_grade_id == UUID(payload["grade_id"])
+    # NOTE: removed test_next_test_route_uses_real_http_stack and
+    # test_end_test_route_creates_grade_via_real_http_stack — the orchestration
+    # endpoints `/test/next` (advance-to-next-run) and `/test/end` (run + grade)
+    # were restructured into the invocation-scoped routes
+    # (`/test/invocation_create`, `/test/invocation_complete`,
+    # `/test/invocation_terminate`, `/test/grade`) with different request and
+    # response contracts. Neither `/test/next` nor `/test/end` exists anymore,
+    # and the test route client does not mount the `grade`/`complete` modules,
+    # so there is no reachable equivalent for these two tests within this
+    # artifact's route surface. The run-binding (`/test/invocation_run`) and
+    # stop (`/test/stop`) lifecycle steps remain covered above.
 
     async def test_stop_test_route_uses_real_http_stack(
         self,
         pool,
+        redis_client,
         test_route_client,
         test_route_actor,
     ):
-        graph = await self._create_test_run_graph(pool, test_route_actor)
+        graph = await self._create_test_run_graph(pool, redis_client, test_route_actor)
 
         test_route_client.authenticate(
             profile_id=test_route_actor.profile_id,
@@ -334,8 +307,7 @@ class TestTestWorkflowRoutes:
         )
 
         assert response.status_code == 200, response.text
-        assert response.json() == {
-            "invocation_id": graph["test_invocation_id"],
-            "success": True,
-            "message": "Test execution stopped",
-        }
+        payload = response.json()
+        assert payload["invocation_id"] == graph["test_invocation_id"]
+        assert payload["success"] is True
+        assert payload["message"] == "Test execution stopped"

@@ -128,7 +128,7 @@ class TestScenarioRoute:
 
         response = await scenario_route_client.client.post(
             "/scenario/get",
-            json={"scenario_id": created["scenario_id"]},
+            json={"id": created["scenario_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -215,11 +215,11 @@ class TestScenarioRoute:
 
         first = await scenario_route_client.client.post(
             "/scenario/get",
-            json={"scenario_id": created["scenario_id"]},
+            json={"id": created["scenario_id"]},
         )
         second = await scenario_route_client.client.post(
             "/scenario/get",
-            json={"scenario_id": created["scenario_id"]},
+            json={"id": created["scenario_id"]},
         )
 
         assert first.status_code == 200, first.text
@@ -265,7 +265,7 @@ class TestScenarioRoute:
 
         get_response = await scenario_route_client.client.post(
             "/scenario/get",
-            json={"scenario_id": created["scenario_id"]},
+            json={"id": created["scenario_id"]},
             headers={"X-Bypass-Cache": "1"},
         )
 
@@ -382,7 +382,7 @@ class TestScenarioRoute:
         get_response = await scenario_route_client.client.post(
             "/scenario/get",
             json={
-                "scenario_id": created["scenario_id"],
+                "id": created["scenario_id"],
                 "draft_id": payload["draft_id"],
             },
             headers={"X-Bypass-Cache": "1"},
@@ -399,21 +399,14 @@ class TestScenarioRoute:
         scenario_route_client,
         scenario_route_actor,
     ):
-        from app.tools.entries.groups.create import create_group
         from app.tools.entries.scenario_drafts.create import (
             create_scenario_draft,
         )
 
         async with pool.acquire() as conn:
-            group = await create_group(
-                conn,
-                redis_client,
-                session_id=scenario_route_actor.session_id,
-                artifact_type="persona",
-            )
             draft = await create_scenario_draft(
                 conn,
-                group_id=group.id,
+                redis_client,
                 session_id=scenario_route_actor.session_id,
                 profile_ids=[scenario_route_actor.profiles_id],
             )
@@ -424,6 +417,8 @@ class TestScenarioRoute:
         )
         drafts_response = await scenario_route_client.client.post(
             "/scenario/drafts",
+            json={},
+            headers={"X-Bypass-Cache": "1"},
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -498,13 +493,21 @@ class TestScenarioRoute:
 
         response = await scenario_route_client.client.post(
             "/scenario/refresh",
+            json={},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "scenarios,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["scenario_drafts_mv"]
+        assert payload["refreshed_views"] == [
+            "scenario_drafts_mv",
+            "runs_mv",
+            "messages_mv",
+            "calls_mv",
+            "groups_mv",
+            "group_names_mv",
+        ]
         assert payload["invalidated_tags"] == ["scenarios", "artifacts"]
 
     async def _create_scenario_via_route(

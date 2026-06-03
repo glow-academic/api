@@ -399,10 +399,15 @@ class TestProfileRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["id"] == str(profile_route_actor.profile_id)
-        assert payload["name"] == profile_route_actor.name
-        assert payload["role"] is not None
-        assert payload["role_artifacts"] is not None
+        # The /context endpoint now returns a ComposedContextResponse whose
+        # caller identity lives under "profile" (a ProfileSummary). The
+        # old top-level identity fields moved there; role_artifacts became
+        # artifact_access.
+        profile = payload["profile"]
+        assert profile["id"] == str(profile_route_actor.profiles_id)
+        assert profile["name"] == profile_route_actor.name
+        assert profile["role"] is not None
+        assert profile["artifact_access"] is not None
 
     async def test_profile_emulate_route_creates_grant(
         self,
