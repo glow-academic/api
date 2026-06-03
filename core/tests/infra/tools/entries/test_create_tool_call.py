@@ -1,19 +1,45 @@
-"""Tests for create_tool_call."""
+"""Tests for create_tool_call.
+
+CONTRACT (v1.0.46-beta+): ``create_tool_call`` returns SYNCHRONOUSLY with
+``message_id`` / ``text_id`` / all ``*_junction_id`` fields left ``None`` —
+the audit-persistence chain (.txt + .json receipts, upload rows, run_message,
+junction INSERTs) is fired off the response critical path via
+``schedule_background(_persist_audit_writes(...))``. The synchronous response
+still carries ``run_id``, ``call_id``, ``call_upload_id``, ``result`` and
+``error``.
+
+These tests therefore split into two parts:
+  • the synchronous return shape (asserted right off the call), and
+  • the background-persisted artifacts (files + DB rows), asserted after
+    draining the fire-and-forget task with ``wait_for_pending()``.
+
+Setup runs on COMMITTED pool connections (not the rolled-back ``conn``
+fixture): the background task acquires its own connection, so it can only see
+data that has actually been committed — exactly mirroring production, where
+``create_tool_call`` is handed a pool-acquired (auto-committing) connection.
+The background task's pool/redis are passed in explicitly (``audit_pool`` /
+``audit_redis``) so the fire-and-forget path runs on the test's own event loop;
+the process-global pool is bound to the session-init loop and would corrupt
+under asyncpg cross-loop use. Production callers pass neither and fall back to
+the app-level globals.
+"""
 
 import json
 
 import pytest
 
 from app.infra.tools.entries.create_tool_call import create_tool_call
+from app.tools.entries.call_uploads.search import search_call_uploads
 from app.tools.entries.calls.get import get_calls
 from app.tools.entries.groups.create import create_group
-from app.tools.entries.messages.get import get_message
+from app.tools.entries.messages.search import search_messages
 from app.tools.entries.runs.get import get_run
 from app.tools.entries.sessions.create import create_session
-from app.tools.entries.texts.get import get_text
+from app.tools.resources.profiles.create import create_profile
 from app.tools.resources.tools.create import (
     create_tool as create_tool_resource,
 )
+from app.utils.async_tasks import wait_for_pending
 
 pytestmark = pytest.mark.asyncio
 
@@ -29,52 +55,84 @@ async def _failing_tool(conn, **kwargs):
     raise ValueError("something broke")
 
 
-async def _deps(conn, redis_client, profile_id):
-    session = await create_session(conn, redis_client, profile_id=profile_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    return session, group
+async def _committed_deps(pool, redis_client, *, with_tool=False):
+    """Create profile + session + group (and optionally a tool) on COMMITTED
+    connections.
+
+    The background audit task reads through its own connection, so anything
+    it FK-references (run/call/session) must be committed first — the
+    rolled-back ``conn`` fixture would be invisible to it.
+    """
+    async with pool.acquire() as conn:
+        profile = await create_profile(conn, redis_client)
+        session = await create_session(
+            conn, redis_client, profile_id=profile.id
+        )
+        group = await create_group(
+            conn, redis_client, session_id=session.id, artifact_type="persona"
+        )
+        tool = await create_tool_resource(conn) if with_tool else None
+    return profile, session, group, tool
+
+
+async def _call(pool, redis_client, *, group, session, profile, tmp_path,
+                tool_fn, arguments, tool_id=None, raise_on_error=False):
+    """Invoke create_tool_call on a committed pool conn, routing the
+    background audit task at the test's on-loop pool/redis."""
+    async with pool.acquire() as conn:
+        return await create_tool_call(
+            conn,
+            redis_client,
+            group_id=group.id,
+            session_id=session.id,
+            profile_id=profile.id,
+            upload_folder=tmp_path,
+            tool_fn=tool_fn,
+            arguments=arguments,
+            tool_id=tool_id,
+            raise_on_error=raise_on_error,
+            audit_pool=pool,
+            audit_redis=redis_client,
+        )
 
 
 # -- with tool_id --------------------------------------------------------------
 
 
-async def test_with_tool_returns_all_ids(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
-
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_with_tool_sync_contract(pool, redis_client, tmp_path):
+    """Synchronous return: run_id/call_id present, audit ids deferred (None)."""
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
 
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+
+    # Present synchronously.
     assert result.run_id is not None
     assert result.call_id is not None
-    assert result.message_id is not None
-    assert result.text_id is not None
-    assert result.call_upload_junction_id is not None
+    assert result.call_upload_id is not None
     assert json.loads(result.result)["success"] is True
+    # Deferred to the background audit task — None on the sync response.
+    assert result.message_id is None
+    assert result.text_id is None
+    assert result.call_upload_junction_id is None
 
 
-async def test_with_tool_writes_both_files(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
-
-    await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_with_tool_writes_both_files(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
+
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    await wait_for_pending()
 
     assert (tmp_path / "text").is_dir()
     assert (tmp_path / "call").is_dir()
@@ -85,20 +143,17 @@ async def test_with_tool_writes_both_files(conn, profile_id, tmp_path):
     assert len(json_files) == 1
 
 
-async def test_with_tool_json_has_correct_shape(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
-
-    await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_with_tool_json_has_correct_shape(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
+
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    await wait_for_pending()
 
     json_file = list((tmp_path / "call").glob("*.json"))[0]
     data = json.loads(json_file.read_text())
@@ -107,134 +162,123 @@ async def test_with_tool_json_has_correct_shape(conn, profile_id, tmp_path):
     assert data["tool_id"] == str(tool.id)
 
 
-async def test_with_tool_txt_has_output(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
-
-    await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_with_tool_txt_has_output(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
+
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    await wait_for_pending()
 
     txt_file = list((tmp_path / "text").glob("*.txt"))[0]
     data = json.loads(txt_file.read_text())
     assert data["success"] is True
 
 
-async def test_with_tool_creates_db_entries(conn, redis_client, profile_id, tmp_path):
-    session, group = await _deps(conn, redis_client, profile_id)
-    tool = await create_tool_resource(conn)
-
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_with_tool_creates_db_entries(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
 
-    run = await get_run(conn, result.run_id, redis_client)
-    assert run is not None
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    await wait_for_pending()
 
-    calls = await get_calls(conn, [result.call_id], redis_client, bypass_mv=True)
-    assert len(calls) == 1
+    async with pool.acquire() as conn:
+        run = await get_run(conn, result.run_id, redis_client)
+        assert run is not None
 
-    message = await get_message(conn, result.message_id, redis_client)
-    assert message is not None
+        calls = await get_calls(conn, [result.call_id], redis_client, bypass_mv=True)
+        assert len(calls) == 1
 
-    text = await get_text(conn, result.text_id, redis_client)
-    assert text is not None
+        # Background audit task persisted the run_message + call_upload junction.
+        messages, total = await search_messages(
+            conn, redis_client, run_ids=[result.run_id], bypass_mv=True
+        )
+        assert total >= 1
+
+        call_uploads = await search_call_uploads(
+            conn, redis_client, call_ids=[result.call_id]
+        )
+        assert len(call_uploads) == 1
 
 
 # -- without tool_id -----------------------------------------------------------
 
 
-async def test_without_tool_returns_ids(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
+async def test_without_tool_sync_contract(pool, redis_client, tmp_path):
+    profile, session, group, _ = await _committed_deps(pool, redis_client)
 
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
         arguments={"prompt": "Summarize"},
     )
 
     assert result.run_id is not None
     assert result.call_id is None
-    assert result.message_id is not None
-    assert result.text_id is not None
+    # Deferred to background audit task.
+    assert result.message_id is None
+    assert result.text_id is None
     assert result.call_upload_junction_id is None
 
 
-async def test_without_tool_writes_txt_only(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
+async def test_without_tool_writes_txt_only(pool, redis_client, tmp_path):
+    profile, session, group, _ = await _committed_deps(pool, redis_client)
 
-    await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
         arguments={"prompt": "Summarize"},
     )
+    await wait_for_pending()
 
     assert (tmp_path / "text").is_dir()
     assert not (tmp_path / "call").exists()
 
 
-async def test_without_tool_creates_db_entries(conn, redis_client, profile_id, tmp_path):
-    session, group = await _deps(conn, redis_client, profile_id)
+async def test_without_tool_creates_db_entries(pool, redis_client, tmp_path):
+    profile, session, group, _ = await _committed_deps(pool, redis_client)
 
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
         arguments={"prompt": "Summarize"},
     )
+    await wait_for_pending()
 
-    run = await get_run(conn, result.run_id, redis_client)
-    assert run is not None
+    async with pool.acquire() as conn:
+        run = await get_run(conn, result.run_id, redis_client)
+        assert run is not None
 
-    message = await get_message(conn, result.message_id, redis_client)
-    assert message is not None
-
-    text = await get_text(conn, result.text_id, redis_client)
-    assert text is not None
+        # Background audit task persisted the run_message even without a tool.
+        messages, total = await search_messages(
+            conn, redis_client, run_ids=[result.run_id], bypass_mv=True
+        )
+        assert total >= 1
 
 
 # -- error handling ------------------------------------------------------------
 
 
-async def test_failing_tool_still_persists(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
-
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_failing_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+async def test_failing_tool_still_persists(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
     )
+
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_failing_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    await wait_for_pending()
 
     assert result.run_id is not None
 
@@ -244,41 +288,34 @@ async def test_failing_tool_still_persists(conn, profile_id, tmp_path):
     assert "something broke" in data["message"]
 
 
-async def test_returns_raw_result_payload(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
+async def test_returns_raw_result_payload(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
 
-    result = await create_tool_call(
-        conn,
-        group_id=group.id,
-        session_id=session.id,
-        profile_id=profile_id,
-        upload_folder=tmp_path,
-        tool_fn=_success_tool,
-        arguments={"name": "Dr. Smith"},
-        tool_id=tool.id,
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
     )
 
     assert result.result is not None
     assert json.loads(result.result)["message"] == "Created"
 
 
-async def test_raise_on_error_persists_then_reraises(conn, profile_id, tmp_path):
-    session, group = await _deps(conn, profile_id)
-    tool = await create_tool_resource(conn)
+async def test_raise_on_error_persists_then_reraises(pool, redis_client, tmp_path):
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
 
     with pytest.raises(ValueError, match="something broke"):
-        await create_tool_call(
-            conn,
-            group_id=group.id,
-            session_id=session.id,
-            profile_id=profile_id,
-            upload_folder=tmp_path,
-            tool_fn=_failing_tool,
-            arguments={"name": "Dr. Smith"},
-            tool_id=tool.id,
+        await _call(
+            pool, redis_client, group=group, session=session, profile=profile,
+            tmp_path=tmp_path, tool_fn=_failing_tool,
+            arguments={"name": "Dr. Smith"}, tool_id=tool.id,
             raise_on_error=True,
         )
+    await wait_for_pending()
 
     txt_file = list((tmp_path / "text").glob("*.txt"))[0]
     data = json.loads(txt_file.read_text())
