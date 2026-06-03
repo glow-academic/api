@@ -118,7 +118,9 @@ class TestResolvePersonaContext:
 
         assert result.artifact_id is None
         assert result.group_id == group_id
-        assert result.entries == {}
+        # entries always carries the draft-label slots; with no artifact and
+        # no active draft these are empty (draft_name=None, pending_ids=set()).
+        assert result.entries == {"draft_name": None, "pending_ids": set()}
         for pair in result.resources.values():
             assert isinstance(pair, ResourcePair)
             assert isinstance(pair.selected, list)
