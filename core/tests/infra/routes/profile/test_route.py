@@ -67,6 +67,28 @@ async def profile_route_actor(pool, redis_client, setting_graph_factory):
     )
 
 
+@pytest_asyncio.fixture
+async def profile_emulate_actor(pool, redis_client, setting_graph_factory):
+    """Superadmin route actor whose role name is the canonical
+    ``"Super Administrator"`` simulatable key.
+
+    The emulation gate (``app/infra/identity/emulate.py``) keys
+    ``SIMULATABLE_ROLES`` on the literal actor role name, so the default
+    unique-tagged ``profile_route_actor`` role is (correctly) not
+    simulatable. Emulate/unemulate tests need a canonical-named actor.
+    """
+    return await create_admin_route_actor(
+        pool,
+        redis_client,
+        setting_graph_factory,
+        tool_artifacts=["profile", "agent", "persona"],
+        group_name="profile-route",
+        role_name_prefix="Profile Route Admin",
+        role="superadmin",
+        canonical_role_name="Super Administrator",
+    )
+
+
 @pytest.mark.asyncio
 class TestProfileRoute:
     async def test_create_profile_route_uses_real_http_stack(
@@ -90,7 +112,7 @@ class TestProfileRoute:
                         "name_id": str(resources.name_id),
                         "department_ids": [str(profile_route_actor.department_id)],
                         "email_ids": [str(resources.email_id)],
-                        "role_ids": [str(resources.role_id)],
+                        "role_id": str(resources.role_id),
                     }
                 ]
             },
@@ -399,10 +421,15 @@ class TestProfileRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["id"] == str(profile_route_actor.profile_id)
-        assert payload["name"] == profile_route_actor.name
-        assert payload["role"] is not None
-        assert payload["role_artifacts"] is not None
+        # The /context endpoint now returns a ComposedContextResponse whose
+        # caller identity lives under "profile" (a ProfileSummary). The
+        # old top-level identity fields moved there; role_artifacts became
+        # artifact_access.
+        profile = payload["profile"]
+        assert profile["id"] == str(profile_route_actor.profiles_id)
+        assert profile["name"] == profile_route_actor.name
+        assert profile["role"] is not None
+        assert profile["artifact_access"] is not None
 
     async def test_profile_emulate_route_creates_grant(
         self,
@@ -410,11 +437,12 @@ class TestProfileRoute:
         redis_client,
         profile_identity_factory,
         profile_route_client,
-        profile_route_actor,
+        profile_emulate_actor,
     ):
         target = await profile_identity_factory(
             name=f"Emulate Target {unique_tag()}",
-            role=("member", "Member", "Member role"),
+            role=("administrator", "Administrator", "Administrator role"),
+            role_name_exact="Administrator",
         )
 
         async with pool.acquire() as conn:
@@ -422,8 +450,8 @@ class TestProfileRoute:
             await refresh_sessions(conn)
 
         profile_route_client.authenticate(
-            profile_id=profile_route_actor.profile_id,
-            session_id=profile_route_actor.session_id,
+            profile_id=profile_emulate_actor.profile_id,
+            session_id=profile_emulate_actor.session_id,
         )
 
         response = await profile_route_client.client.post(
@@ -444,11 +472,12 @@ class TestProfileRoute:
         redis_client,
         profile_identity_factory,
         profile_route_client,
-        profile_route_actor,
+        profile_emulate_actor,
     ):
         target = await profile_identity_factory(
             name=f"Unemulate Target {unique_tag()}",
-            role=("member", "Member", "Member role"),
+            role=("administrator", "Administrator", "Administrator role"),
+            role_name_exact="Administrator",
         )
 
         async with pool.acquire() as conn:
@@ -456,8 +485,8 @@ class TestProfileRoute:
             await refresh_sessions(conn)
 
         profile_route_client.authenticate(
-            profile_id=profile_route_actor.profile_id,
-            session_id=profile_route_actor.session_id,
+            profile_id=profile_emulate_actor.profile_id,
+            session_id=profile_emulate_actor.session_id,
         )
 
         emulate_response = await profile_route_client.client.post(
@@ -465,6 +494,19 @@ class TestProfileRoute:
             json={"target_profile_id": str(target.artifact_id), "ttl_minutes": 30},
         )
         assert emulate_response.status_code == 200, emulate_response.text
+
+        # The /emulate route only *enqueues* an async refresh of grants_mv /
+        # emulations_mv; the unemulate chain resolver reads those MVs. In-process
+        # the worker hasn't run yet, so materialize the new grant/emulation rows
+        # and bust the cached (empty) emulation chain before exiting emulation.
+        from app.infra.identity.resolve_identity import invalidate_emulation_cache
+        from app.tools.entries.emulations.refresh import refresh_emulations
+        from app.tools.entries.grants.refresh import refresh_grants_internal
+
+        async with pool.acquire() as conn:
+            await refresh_grants_internal(conn, redis_client)
+            await refresh_emulations(conn)
+        await invalidate_emulation_cache(profile_emulate_actor.profile_id)
 
         response = await profile_route_client.client.post(
             "/unemulate",
@@ -497,7 +539,7 @@ class TestProfileRoute:
                         "name_id": str(resources.name_id),
                         "department_ids": [str(profile_route_actor.department_id)],
                         "email_ids": [str(resources.email_id)],
-                        "role_ids": [str(resources.role_id)],
+                        "role_id": str(resources.role_id),
                     }
                 ]
             },

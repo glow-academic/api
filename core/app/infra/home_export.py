@@ -28,6 +28,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.home.types import ExportHomeApiResponse
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.attempt.search import search_attempts
@@ -559,9 +560,18 @@ async def export_home_client(
             status_code=401, detail="Profile not found. Please sign in again."
         )
 
-    # -- Step 2: Search all attempts (full dump) --
+    # Authorization: scope the attempt dump to the profiles the actor may see,
+    # mirroring the on-screen sibling ``dashboard/get.py`` (~101-125). Without
+    # this, the attempts/full modes would dump every attempt+profile across all
+    # departments (IDOR / mass exposure, #152). The certificate mode benefits
+    # too — it is computed only from in-scope attempts.
+    visible_profile_ids = await resolve_visible_profile_ids(pool, profile)
+
+    # -- Step 2: Search attempts (scoped to visible profiles) --
     async with pool.acquire() as conn:
-        attempts, _total_count = await search_attempts(conn, redis, limit=100000, offset=0)
+        attempts, _total_count = await search_attempts(
+            conn, redis, profile_ids=visible_profile_ids, limit=100000, offset=0
+        )
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
 

@@ -5,8 +5,23 @@ from tests.helpers import nonexistent_id
 
 from app.infra.common_context import CommonContext, resolve_common_context
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.runs_context import resolve_runs_context
+from app.infra.tool_graph import SettingsToolGraph, resolve_tool_graph
 
 pytestmark = pytest.mark.asyncio
+
+
+async def _resolve_tool_graph_for(pool, redis, common):
+    """Mirror the direct-caller pattern: tool_graph + runs no longer live on
+    CommonContext (moved to callers in v1.0.48), so resolve them here the same
+    way generation/prepare, websocket_context, health/get and session/get do."""
+    tool_graph = (
+        await resolve_tool_graph(pool, common.profile.settings_id, redis)
+        if common.profile.settings_id
+        else SettingsToolGraph()
+    )
+    runs = await resolve_runs_context(pool, profile_id=common.profile.profiles_id)
+    return tool_graph, runs
 
 
 class TestResolveCommonContext:
@@ -35,10 +50,27 @@ class TestResolveCommonContext:
 
         assert result is not None
         assert isinstance(result, CommonContext)
-        assert result.profile.settings_id is None
-        assert result.tool_graph.tools == []
-        assert result.runs.total_count == 0
-        assert result.runs.items == []
+        # This profile has no primary department / no department-scoped
+        # setting. ``resolve_profile_identity_context`` therefore falls back to
+        # the platform-default setting (active, empty ``department_ids``) via
+        # ``resolve_platform_default_settings_resource_id``, so ``settings_id``
+        # is that platform-default resource id (``None`` only when no such
+        # default exists in the DB) rather than unconditionally ``None``. The
+        # real point of this test is the empty tool_graph below: a profile with
+        # no tool-bearing setting graph yields no tools.
+        from app.infra.identity.settings import (
+            resolve_platform_default_settings_resource_id,
+        )
+
+        expected_settings_id = await resolve_platform_default_settings_resource_id(
+            pool
+        )
+        assert result.profile.settings_id == expected_settings_id
+
+        tool_graph, runs = await _resolve_tool_graph_for(pool, redis_client, result)
+        assert tool_graph.tools == []
+        assert runs.total_count == 0
+        assert runs.items == []
 
     async def test_resolves_context_for_ground_up_profile(
         self, pool, redis_client, profile_identity_factory
@@ -64,8 +96,10 @@ class TestResolveCommonContext:
         assert result is not None
         assert isinstance(result, CommonContext)
         assert result.profile == expected_profile
-        assert result.tool_graph.tools == []
-        assert result.runs.total_count >= 0
+
+        tool_graph, runs = await _resolve_tool_graph_for(pool, redis_client, result)
+        assert tool_graph.tools == []
+        assert runs.total_count >= 0
 
     async def test_uses_pre_resolved_profile_when_provided(
         self, pool, redis_client, profile_identity_factory
@@ -90,13 +124,15 @@ class TestResolveCommonContext:
         assert profile is not None
         assert result is not None
         assert result.profile is profile
-        assert isinstance(result.tool_graph.tools, list)
-        assert result.runs.total_count >= 0
+
+        tool_graph, runs = await _resolve_tool_graph_for(pool, redis_client, result)
+        assert isinstance(tool_graph.tools, list)
+        assert runs.total_count >= 0
 
     async def test_profile_with_setting_graph_resolves_real_tool_graph(
         self, pool, redis_client, setting_graph_factory
     ):
-        fixture = await setting_graph_factory()
+        fixture = await setting_graph_factory(with_primary_department=True)
 
         result = await resolve_common_context(
             pool,
@@ -108,12 +144,12 @@ class TestResolveCommonContext:
         assert result.profile.profiles_id == fixture.profile_resource_id
         assert result.profile.primary_department_id == fixture.department_id
         assert result.profile.settings_id == fixture.setting_id
-        assert {tool.system_id for tool in result.tool_graph.tools} == {
-            fixture.system_id
-        }
-        assert {tool.agent_id for tool in result.tool_graph.tools} == {fixture.agent_id}
-        assert {tool.tool_id for tool in result.tool_graph.tools} == {fixture.tool_id}
+
+        tool_graph, _ = await _resolve_tool_graph_for(pool, redis_client, result)
+        assert {tool.system_id for tool in tool_graph.tools} == {fixture.system_id}
+        assert {tool.agent_id for tool in tool_graph.tools} == {fixture.agent_id}
+        assert {tool.tool_id for tool in tool_graph.tools} == {fixture.tool_id}
         assert {
             (tool.target_type, tool.target, tool.operation)
-            for tool in result.tool_graph.tools
+            for tool in tool_graph.tools
         } == {("artifact", target, fixture.operation) for target in fixture.artifacts}

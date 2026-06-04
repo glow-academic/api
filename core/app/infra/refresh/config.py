@@ -46,7 +46,6 @@ MV_REGISTRY: dict[str, tuple[str, str, float]] = {
     "attempt_message_completion_mv": ("attempt_message_completion", "refresh_attempt_message_completion", _WARM_S),
     "attempt_message_mv": ("attempt_message", "refresh_attempt_message", _WARM_S),
     "attempt_message_tree_mv": ("attempt_message_tree", "refresh_attempt_message_tree", _COOL_S),
-    "attempt_mutes_mv": ("attempt_mutes", "refresh_attempt_mutes", _COOL_S),
     "attempt_mv": ("attempt", "refresh_attempt", _COOL_S),
     "attempt_practice_mv": ("attempt_practice", "refresh_attempt_practice", _COOL_S),
     "attempt_replacement_mv": ("attempt_replacement", "refresh_attempt_replacement", _COOL_S),

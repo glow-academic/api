@@ -407,18 +407,11 @@ class TestAgentRoute:
         agent_route_actor,
     ):
         from app.tools.entries.agent_drafts.create import create_agent_draft
-        from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(
-                conn,
-                redis_client,
-                session_id=agent_route_actor.session_id,
-                artifact_type="persona",
-            )
             draft = await create_agent_draft(
                 conn,
-                group_id=group.id,
+                redis_client,
                 session_id=agent_route_actor.session_id,
                 profile_ids=[agent_route_actor.profiles_id],
             )
@@ -429,6 +422,8 @@ class TestAgentRoute:
         )
         drafts_response = await agent_route_client.client.post(
             "/agent/drafts",
+            json={},
+            headers={"X-Bypass-Cache": "1"},
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -486,7 +481,7 @@ class TestAgentRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["content"] != ""
+        assert payload["file_id"] is not None
         assert payload["file_name"].endswith(".csv")
         assert payload["row_count"] >= 1
 
@@ -502,13 +497,21 @@ class TestAgentRoute:
 
         response = await agent_route_client.client.post(
             "/agent/refresh",
+            json={},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "agents,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["agent_drafts_mv"]
+        assert payload["refreshed_views"] == [
+            "agent_drafts_mv",
+            "runs_mv",
+            "messages_mv",
+            "calls_mv",
+            "groups_mv",
+            "group_names_mv",
+        ]
         assert payload["invalidated_tags"] == ["agents", "artifacts"]
 
     async def _create_agent_via_route(

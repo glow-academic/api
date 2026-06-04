@@ -61,12 +61,18 @@ async def test_export_persona_impl_returns_file_modality_envelope(
             department_ids=[actor.department_id],
         )
 
+    # Scope the export to the persona this test created. The impl's public
+    # kwarg is ``id`` (internally aliased to ``persona_id``); passing
+    # ``persona_id=`` lands in ``**_kwargs`` and is silently ignored, which
+    # makes the export a full dump and lets sibling personas in the shared
+    # template DB inflate ``row_count`` past 1. Use ``id=`` so the export is
+    # scoped to exactly this persona regardless of what else lives in the DB.
     result = await export_persona_impl(
         pool,
         redis_client,
         profile_id=actor.profile_id,
         session_id=actor.session_id,
-        persona_id=persona.id,
+        id=persona.id,
     )
 
     assert result.file_name.endswith(".csv")

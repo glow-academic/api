@@ -12,8 +12,9 @@ pytestmark = pytest.mark.asyncio
 async def test_gets_created_attempt_chat(conn, redis_client, profile_id):
     graph = await create_attempt_chat_graph(conn, redis_client, profile_id)
     await refresh_attempt_chat(conn)
-    # attempt_chat_mv is keyed by the base chat id (chat_id).
-    lookup_id = graph.chat_id
+    # attempt_chat_mv keys by ``c.id AS chat_id`` where c = attempt_chat_entry,
+    # so look up by the attempt_chat_entry id (matching MV / search / prod).
+    lookup_id = graph.attempt_chat_id
     items = await get_attempt_chats(conn, ids=[lookup_id], redis=redis_client)
 
     assert len(items) >= 1

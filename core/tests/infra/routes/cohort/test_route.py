@@ -400,18 +400,11 @@ class TestCohortRoute:
         cohort_route_actor,
     ):
         from app.tools.entries.cohort_drafts.create import create_cohort_draft
-        from app.tools.entries.groups.create import create_group
 
         async with pool.acquire() as conn:
-            group = await create_group(
-                conn,
-                redis_client,
-                session_id=cohort_route_actor.session_id,
-                artifact_type="persona",
-            )
             draft = await create_cohort_draft(
                 conn,
-                group_id=group.id,
+                redis_client,
                 session_id=cohort_route_actor.session_id,
                 profile_ids=[cohort_route_actor.profiles_id],
             )
@@ -422,6 +415,8 @@ class TestCohortRoute:
         )
         drafts_response = await cohort_route_client.client.post(
             "/cohort/drafts",
+            json={},
+            headers={"X-Bypass-Cache": "1"},
         )
 
         assert drafts_response.status_code == 200, drafts_response.text
@@ -479,7 +474,7 @@ class TestCohortRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["content"] != ""
+        assert payload["file_id"] is not None
         assert payload["file_name"].endswith(".csv")
         assert payload["row_count"] >= 1
 
@@ -496,13 +491,21 @@ class TestCohortRoute:
 
         response = await cohort_route_client.client.post(
             "/cohort/refresh",
+            json={},
         )
 
         assert response.status_code == 200, response.text
         assert response.headers["X-Invalidate-Tags"] == "cohorts,artifacts"
         payload = response.json()
         assert payload["success"] is True
-        assert payload["refreshed_views"] == ["cohort_drafts_mv"]
+        assert payload["refreshed_views"] == [
+            "cohort_drafts_mv",
+            "runs_mv",
+            "messages_mv",
+            "calls_mv",
+            "groups_mv",
+            "group_names_mv",
+        ]
         assert payload["invalidated_tags"] == ["cohorts", "artifacts"]
 
     async def _create_cohort_via_route(

@@ -36,7 +36,9 @@ async def test_finds_created_chat(conn, redis_client, profile_id, simulation_bun
     items = await search_chat_entries_internal(conn, redis_client, parent_ids=[filter_value], limit_count=20, offset_count=0)
 
     assert len(items) >= 1
-    assert any(item['id'] == lookup_id for item in items)
+    # search_chat_entries_internal returns dict rows keyed by the scoped
+    # primary key ``chat_entry_id`` (str), not a generic ``id``.
+    assert any(item['chat_entry_id'] == str(lookup_id) for item in items)
 
 
 async def test_returns_empty_for_unmatched_filter(conn, redis_client, profile_id, simulation_bundle):

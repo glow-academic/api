@@ -21,7 +21,11 @@ async def test_test_start_internal_impl_returns_terminal_result(monkeypatch) -> 
         return SimpleNamespace(profiles_id=uuid4())
 
     async def _start_impl(data, *, emit, pool, redis) -> None:
-        del data, pool, redis
+        # test_start_impl is now the single setup-only workflow: it emits the
+        # lifecycle events AND writes its handoff into data["_result"], which
+        # test_start_internal_impl reads back (the old separate
+        # test_proceed_internal_impl was folded in here).
+        del pool, redis
         await emit(
             [
                 internal_event(
@@ -29,23 +33,20 @@ async def test_test_start_internal_impl_returns_terminal_result(monkeypatch) -> 
                     {
                         "test_id": "test-1",
                     },
-                )
-            ]
-        )
-
-    async def _proceed_impl(data, *, emit) -> None:
-        del data
-        await emit(
-            [
+                ),
                 internal_event(
                     "test_invocation_started",
                     {
                         "test_id": "test-1",
                         "test_invocation_id": "invocation-1",
                     },
-                )
+                ),
             ]
         )
+        data["_result"] = {
+            "test_id": "test-1",
+            "invocation_id": "invocation-1",
+        }
 
     monkeypatch.setattr(
         "app.infra.test.start.resolve_profile_identity_context",
@@ -54,10 +55,6 @@ async def test_test_start_internal_impl_returns_terminal_result(monkeypatch) -> 
     monkeypatch.setattr(
         "app.infra.test.start.test_start_impl",
         _start_impl,
-    )
-    monkeypatch.setattr(
-        "app.infra.test.start.test_proceed_internal_impl",
-        _proceed_impl,
     )
     monkeypatch.setattr(
         "app.infra.test.start.get_pool",
@@ -74,7 +71,7 @@ async def test_test_start_internal_impl_returns_terminal_result(monkeypatch) -> 
             "sid": "socket-1",
             "profile_id": str(uuid4()),
             "session_id": str(uuid4()),
-            "benchmark_id": str(uuid4()),
+            "eval_id": str(uuid4()),
             "infinite_mode": False,
         },
         emit=emit,

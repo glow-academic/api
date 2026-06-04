@@ -6,6 +6,7 @@ import pytest
 
 from app.tools.entries.health.create import create_health
 from app.tools.entries.health.get import get_health
+from app.tools.entries.health.refresh import refresh_health_internal
 from app.tools.entries.health.search import search_health
 from app.tools.entries.sessions.create import create_session
 
@@ -17,19 +18,20 @@ async def test_gets_created_health_hour(conn, redis_client, profile_id):
     ts = datetime(2031, 2, 3, 4, 5, tzinfo=UTC)
     await create_health(
         conn,
-        redis_client, service="api",
+        redis_client, service="redis",
         ok=True,
         latency_ms=11.5,
         ts=ts,
         session_id=session.id,
     )
+    await refresh_health_internal(conn)
 
-    summary = (await search_health(conn, redis_client, service="api", bypass_mv=True))[0]
+    summary = (await search_health(conn, redis_client, service="redis"))[0]
     items = await get_health(conn, [summary.date_hour], redis_client)
 
     assert len(items) == 1
     assert items[0].date_hour == summary.date_hour
-    assert items[0].service == "api"
+    assert items[0].service == "redis"
 
 
 async def test_returns_empty_for_missing_hour(conn, redis_client):

@@ -334,7 +334,7 @@ class TestModelRoute:
 
         assert response.status_code == 200, response.text
         payload = response.json()
-        assert payload["content"] != ""
+        assert payload["file_id"] is not None
         assert payload["file_name"].endswith(".csv")
         assert payload["row_count"] >= 1
 

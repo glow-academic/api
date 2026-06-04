@@ -23,8 +23,16 @@ async def create_profile_identity_fixture(
     departments: list[str] | None = None,
     emails: list[str] | None = None,
     artifact_active: bool = True,
+    role_name_exact: str | None = None,
 ) -> ProfileIdentityFixture:
-    """Create a real profile artifact plus linked resources for context tests."""
+    """Create a real profile artifact plus linked resources for context tests.
+
+    ``role_name_exact`` assigns the role's literal name (no unique-tag
+    suffix) — required when a test needs a canonical role name that the
+    emulation gate recognizes via ``SIMULATABLE_ROLES`` (e.g.
+    ``"Administrator"``). When ``None`` the role name is tag-suffixed as
+    usual to keep fixtures isolated.
+    """
     from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
@@ -60,7 +68,7 @@ async def create_profile_identity_fixture(
         if role is not None:
             role_key, role_name, role_description = role
             expected_role = role_key
-            expected_role_name = f"{role_name} {tag}"
+            expected_role_name = role_name_exact or f"{role_name} {tag}"
             expected_role_description = role_description
             role_res = await create_role(
                 conn,
@@ -134,14 +142,31 @@ async def create_setting_graph_fixture(
     *,
     tool_operation: str = "create",
     tool_artifacts: list[str] | None = None,
+    with_primary_department: bool = False,
 ) -> SettingGraphFixture:
-    """Create a full profile -> setting -> system -> agent -> tool graph."""
+    """Create a full profile -> setting -> system -> agent -> tool graph.
+
+    ``with_primary_department`` is opt-in (default off): when set, the profile
+    artifact is additionally linked to a ``primary_departments_resource`` wrapping
+    the *same* graph department via the ``profile_primary_departments_junction``.
+    ``resolve_profile_identity_context`` resolves ``primary_department_id`` /
+    ``settings_id`` ONLY from that junction, so context tests asserting those
+    fields must opt in. It is left off by default so the department-scoped
+    export tests (``test_export_upload_folder``) keep their existing graph
+    untouched — the junction wraps the existing department (no new department,
+    no change to any artifact's department membership), so row counts there are
+    unaffected either way; opt-in just keeps the shared fixture minimal.
+    """
     from app.tools.artifacts.profile.create import (
         create_profile as create_profile_artifact,
     )
     from app.tools.resources.agents.create import create_agent
     from app.tools.resources.departments.create import create_department
     from app.tools.resources.names.create import create_name
+    from app.tools.resources.permissions.create import create_permission
+    from app.tools.resources.primary_departments.create import (
+        create_primary_department,
+    )
     from app.tools.resources.profiles.create import (
         create_profile as create_profile_resource,
     )
@@ -161,10 +186,24 @@ async def create_setting_graph_fixture(
             description="Graph profile resource",
         )
 
+        # Tools carry their (artifact, operation) scope via permissions —
+        # ``resolve_tool_graph`` flattens one ResolvedTool per permission, so
+        # without these the tool resolves to zero edges.
+        permission_ids = []
+        for artifact in artifacts:
+            perm_res = await create_permission(
+                conn,
+                artifact=artifact,
+                operation=tool_operation,
+                redis=redis_client,
+            )
+            permission_ids.append(perm_res.id)
+
         tool_res = await create_tool(
             conn,
             name=f"tool-{tag}",
             description="Graph tool",
+            permission_ids=permission_ids,
             redis=redis_client,
         )
         agent_res = await create_agent(
@@ -195,10 +234,21 @@ async def create_setting_graph_fixture(
             setting_ids=[setting_res.id],
             redis=redis_client,
         )
+
+        primary_departments_id = None
+        if with_primary_department:
+            primary_dept_res = await create_primary_department(
+                conn,
+                departments_id=department_res.id,
+                redis=redis_client,
+            )
+            primary_departments_id = primary_dept_res.id
+
         profile_artifact_res = await create_profile_artifact(
             conn,
             name_id=name_res.id,
             department_ids=[department_res.id],
+            primary_departments_id=primary_departments_id,
             profile_ids=[profile_res.id],
             redis=redis_client,
         )

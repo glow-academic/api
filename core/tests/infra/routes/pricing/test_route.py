@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import io
-import zipfile
 
 import pytest
 import pytest_asyncio
@@ -157,114 +154,13 @@ class TestPricingRoute:
         # (PricingResponse.history is always null — fetch via /system/groups).
         assert payload["history"] is None
 
-    async def test_search_pricing_route_returns_group_history(
-        self,
-        pool,
-        redis_client,
-        pricing_route_client,
-        pricing_route_actor,
-    ):
-        seeded = await _seed_pricing_route_graph(
-            pool, redis_client, pricing_route_actor
-        )
-        pricing_route_client.authenticate(
-            profile_id=pricing_route_actor.profile_id,
-            session_id=seeded["session_id"],
-        )
-
-        response = await pricing_route_client.client.post(
-            "/pricing/search",
-            json={
-                "page": 0,
-                "page_size": 10,
-            },
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Cache-Tags"] == "artifacts,pricing,list"
-        assert response.headers["X-Cache-Hit"] == "0"
-
-        payload = response.json()
-        assert payload["page"] == 0
-        assert payload["page_size"] == 10
-        assert payload["total_count"] >= 1
-        assert any(item["group_id"] == seeded["group_id"] for item in payload["data"])
-
-    async def test_pricing_docs_route_returns_composed_docs(
-        self,
-        pricing_route_client,
-        pricing_route_actor,
-    ):
-        pricing_route_client.authenticate(
-            profile_id=pricing_route_actor.profile_id,
-            session_id=pricing_route_actor.session_id,
-        )
-
-        response = await pricing_route_client.client.post(
-            "/pricing/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "pricing"
-        assert payload["type"] == "analytics"
-        assert payload["entries"]
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {
-            "get_pricing",
-            "search_pricing",
-            "pricing_refresh",
-            "export_pricing",
-        } <= op_names
-
-    async def test_pricing_export_route_creates_zip_upload(
-        self,
-        pool,
-        redis_client,
-        pricing_route_client,
-        pricing_route_actor,
-    ):
-        seeded = await _seed_pricing_route_graph(
-            pool, redis_client, pricing_route_actor
-        )
-        pricing_route_client.authenticate(
-            profile_id=pricing_route_actor.profile_id,
-            session_id=seeded["session_id"],
-        )
-
-        response = await pricing_route_client.client.post(
-            "/pricing/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["content"] != ""
-        assert payload["file_name"].endswith(".zip")
-        assert payload["row_count"] >= 1
-
-        with zipfile.ZipFile(io.BytesIO(base64.b64decode(payload["content"]))) as archive:
-            assert archive.namelist() == ["runs.csv"]
-
-    async def test_pricing_refresh_route_returns_invalidated_tags(
-        self,
-        pricing_route_client,
-        pricing_route_actor,
-    ):
-        pricing_route_client.authenticate(
-            profile_id=pricing_route_actor.profile_id,
-            session_id=pricing_route_actor.session_id,
-        )
-
-        response = await pricing_route_client.client.post(
-            "/pricing/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "pricing,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == ["run_pricing_mv"]
-        assert payload["invalidated_tags"] == ["pricing", "artifacts"]
+    # NOTE: removed test_search_pricing_route_returns_group_history,
+    # test_pricing_docs_route_returns_composed_docs,
+    # test_pricing_export_route_creates_zip_upload, and
+    # test_pricing_refresh_route_returns_invalidated_tags — the pricing
+    # search/docs/export/refresh operations were consolidated into the system
+    # parent (`/system/groups`-style lists, `/system/context`, view-aware
+    # `/system/export`, `/system/refresh`). The pricing artifact exposes only
+    # the root `POST /pricing` bundle; there are no
+    # `/pricing/{search,docs,export,refresh}` routes and the pricing route
+    # client mounts only the root pricing module.

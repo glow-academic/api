@@ -9,7 +9,7 @@ from redis.asyncio import Redis
 from app.tools.entries.attempt_content.types import (
     CreateAttemptContentResponse,
 )
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_content(
@@ -67,5 +67,14 @@ async def create_attempt_content(
             fresh_row,
             score_ms=int(actual_created_at.timestamp() * 1000),
         )
+
+    # Parent attempt_message's cached row carries ``type``, derived in
+    # attempt_message_mv from the message's first attempt_content_entry
+    # (first_content.persona_id vs user_persona_id). Attaching this content
+    # row to ``message_id`` changes that derived type, so the attempt_message
+    # cache (keyed by message_id) is now stale — bust it so the next
+    # get/search_attempt_messages reflects the type from the MV. Mirrors how
+    # message_uploads/create invalidates "attempt_message".
+    await invalidate_row(redis, "attempt_message", message_id)
 
     return CreateAttemptContentResponse(id=entry_id)

@@ -162,16 +162,23 @@ async def create_attempt_chat(
                 resource_id,
             )
 
-    # Write-back cache row matching get/search MV shape. The MV is keyed by
-    # ``chat_id`` (the chat_entry id this attempt_chat points at), so the
-    # cache slot is keyed by chat_id too. Heavy MV-derived fields (attempt_id,
-    # profile_id, grade_*, resource arrays from chat_mv joins) aren't known at
-    # create-time; default to None/[]. The MV row will hydrate them once the
-    # next concurrent refresh picks up the insert. Personas come from connection
-    # rows that we just wrote; surface those into persona_ids so the cache row
-    # is at least directionally useful for filters.
+    # Write-back cache row matching get/search MV shape. ``attempt_chat_mv``
+    # keys by ``c.id AS chat_id`` where c = attempt_chat_entry (and exposes the
+    # *base* chat id as ``chat_entry_id``); get/search query the MV by the
+    # attempt_chat_entry id and dedupe the cache row by ``chat_id``/``id``. So
+    # the cache slot and the row's ``chat_id``/``id`` must be the
+    # attempt_chat_entry id (``attempt_chat_id``, from row["id"] above), NOT the
+    # base chat id — otherwise the cache row is keyed/deduped under the wrong id
+    # and a stale row shadows the hydrated MV (see #62). Heavy MV-derived fields
+    # (attempt_id, profile_id, grade_*, resource arrays from chat_mv joins)
+    # aren't known at create-time — in particular ``attempt_id`` is only linked
+    # later by the attempt_chat_bridge — so they default to None/[]. The bridge
+    # create invalidates this cache slot so the next read falls through to the
+    # MV, which hydrates them. Personas come from connection rows that we just
+    # wrote; surface those into persona_ids so the cache row is at least
+    # directionally useful for filters.
     fresh_row = {
-        "chat_id": str(chat_id),
+        "chat_id": str(attempt_chat_id),
         "attempt_id": None,
         "chat_entry_id": str(chat_id),
         "group_id": None,
@@ -224,15 +231,16 @@ async def create_attempt_chat(
         "video_ids": [str(v) for v in (videos_ids or [])] or None,
         "standard_group_ids": [str(s) for s in (standard_groups_ids or [])] or None,
         "standard_ids": [str(s) for s in (standards_ids or [])] or None,
-        # Synthetic alias so hedged_search id_key can dedupe by chat_id.
-        "id": str(chat_id),
+        # Synthetic alias so hedged_search id_key can dedupe by chat_id
+        # (the MV's chat_id == attempt_chat_entry id).
+        "id": str(attempt_chat_id),
         "created_at": actual_created_at.isoformat() if actual_created_at else None,
     }
     if actual_created_at is not None:
         await write_back_row(
             redis,
             "attempt_chat",
-            chat_id,
+            attempt_chat_id,
             fresh_row,
             score_ms=int(actual_created_at.timestamp() * 1000),
         )

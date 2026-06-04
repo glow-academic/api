@@ -60,7 +60,12 @@ class TestResolveProfileIdentityContext:
         assert result is not None
         assert result.profiles_id == profile.profile_resource_id
         assert result.name == profile.name
-        assert result.role == profile.role
+        # ``ProfileIdentityContext.role`` is the role *name* (resolver sets
+        # ``role = roles_resource.name``); roles_resource has no separate "key"
+        # column, so it equals ``role_name``. The fixture's ``.role`` holds the
+        # caller-supplied key ("admin"), which is not DB-backed — assert against
+        # the real, resolved name instead.
+        assert result.role == profile.role_name
         assert result.role_name == profile.role_name
         assert result.role_description == profile.role_description
         assert result.role_artifacts == profile.role_artifacts
@@ -68,11 +73,30 @@ class TestResolveProfileIdentityContext:
         assert result.emails == profile.emails
         assert result.primary_department_id is None
         assert len(result.department_ids) == len(profile.departments)
-        assert result.settings_id is None
+        # This profile has no primary department, so ``settings_id`` is not
+        # sourced from a dept's ``setting_ids``. The resolver instead falls
+        # back to the platform-default setting (the active setting whose
+        # ``department_ids`` is empty) via
+        # ``resolve_platform_default_settings_resource_id`` — see
+        # ``profile_identity_context`` lines ~234-245. So the hydrated value
+        # equals that platform-default resource id (which is ``None`` only
+        # when no platform-default setting exists in the DB). Assert against
+        # the canonical resolver rather than a hard-coded ``None``.
+        from app.infra.identity.settings import (
+            resolve_platform_default_settings_resource_id,
+        )
+
+        expected_settings_id = await resolve_platform_default_settings_resource_id(
+            pool
+        )
+        assert result.settings_id == expected_settings_id
         assert result.request_limit is None
         assert result.is_active is True
         assert result.session_id is None
-        assert result.group_id is None
+        # No ``group_id``: ``resolve_profile_identity_context`` is pure identity
+        # and deliberately does NOT resolve a group (see its docstring) — callers
+        # resolve group themselves — so the field is absent from the context.
+        assert not hasattr(result, "group_id")
 
     async def test_no_role_returns_empty_role_fields(
         self, pool, redis_client, profile_identity_factory
@@ -117,7 +141,7 @@ class TestResolveProfileIdentityContext:
     async def test_primary_department_setting_is_resolved(
         self, pool, redis_client, setting_graph_factory
     ):
-        fixture = await setting_graph_factory()
+        fixture = await setting_graph_factory(with_primary_department=True)
 
         result = await resolve_profile_identity_context(
             pool,

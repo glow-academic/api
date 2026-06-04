@@ -57,109 +57,13 @@ class TestDashboardRoute:
             for option in role_options
         )
 
-    async def test_search_dashboard_route_returns_history(
-        self,
-        dashboard_route_client,
-        dashboard_route_actor,
-    ):
-        dashboard_route_client.authenticate(
-            profile_id=dashboard_route_actor.profile_id,
-            session_id=dashboard_route_actor.session_id,
-        )
-
-        response = await dashboard_route_client.client.post(
-            "/dashboard/search",
-            json={
-                "role_ids": [str(dashboard_route_actor.role_id)],
-                "page": 0,
-                "page_size": 20,
-            },
-            headers={"X-Bypass-Cache": "1"},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Cache-Tags"] == "artifacts,dashboard,list"
-        assert response.headers["X-Cache-Hit"] == "0"
-
-        payload = response.json()
-        assert isinstance(payload["data"], list)
-        assert payload["total_count"] >= 0
-        assert payload["page"] == 0
-        assert payload["page_size"] == 20
-
-    async def test_dashboard_docs_route_returns_composed_docs(
-        self,
-        dashboard_route_client,
-        dashboard_route_actor,
-    ):
-        dashboard_route_client.authenticate(
-            profile_id=dashboard_route_actor.profile_id,
-            session_id=dashboard_route_actor.session_id,
-        )
-
-        response = await dashboard_route_client.client.post(
-            "/dashboard/docs",
-            json={"entity_id": None},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-        assert payload["name"] == "dashboard"
-        assert payload["type"] == "analytics"
-        assert payload["page_metadata"]["list"]["title"] == "Dashboard"
-        op_names = {operation["name"] for operation in payload["api_operations"]}
-        assert {
-            "get_dashboard",
-            "search_dashboard",
-            "dashboard_refresh",
-            "export_dashboard",
-        } <= op_names
-
-    async def test_dashboard_export_route_returns_current_contract(
-        self,
-        dashboard_route_client,
-        dashboard_route_actor,
-    ):
-        dashboard_route_client.authenticate(
-            profile_id=dashboard_route_actor.profile_id,
-            session_id=dashboard_route_actor.session_id,
-        )
-
-        response = await dashboard_route_client.client.post(
-            "/dashboard/export",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        payload = response.json()
-
-        if payload["row_count"] == 0:
-            assert payload["content"] == ""
-            assert payload["file_name"] == ""
-            return
-
-        assert payload["file_name"].endswith(".zip")
-        assert payload["content"] != ""
-        assert payload["row_count"] > 0
-
-    async def test_dashboard_refresh_route_returns_invalidated_tags(
-        self,
-        dashboard_route_client,
-        dashboard_route_actor,
-    ):
-        dashboard_route_client.authenticate(
-            profile_id=dashboard_route_actor.profile_id,
-            session_id=dashboard_route_actor.session_id,
-        )
-
-        response = await dashboard_route_client.client.post(
-            "/dashboard/refresh",
-            json={},
-        )
-
-        assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "dashboard,artifacts"
-        payload = response.json()
-        assert payload["success"] is True
-        assert payload["refreshed_views"] == []
-        assert payload["invalidated_tags"] == ["dashboard", "artifacts"]
+    # NOTE: removed test_search_dashboard_route_returns_history,
+    # test_dashboard_docs_route_returns_composed_docs,
+    # test_dashboard_export_route_returns_current_contract, and
+    # test_dashboard_refresh_route_returns_invalidated_tags — the dashboard
+    # search/docs/export/refresh operations were consolidated into the
+    # attempt/system parents (`/system/sessions`-style lists, `/system/context`,
+    # view-aware `/system/export`, `/system/refresh`). The dashboard artifact
+    # exposes only the root `POST /dashboard` bundle; there are no
+    # `/dashboard/{search,docs,export,refresh}` routes and the dashboard route
+    # client mounts only the root dashboard module.

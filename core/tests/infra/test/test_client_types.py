@@ -12,8 +12,8 @@ async def test_join_payload():
     assert p.invocation_id is not None
 
 async def test_start_payload():
-    p = TestStartPayload(benchmark_id=uuid4())
-    assert p.benchmark_id is not None
+    p = TestStartPayload(eval_id=uuid4())
+    assert p.eval_id is not None
     assert p.infinite_mode is False
 
 async def test_grade_entry_types():

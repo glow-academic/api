@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import datetime as dt
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.infra.api_types import BaseResourceSection, ListFilterSection
+from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
 from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
@@ -171,71 +171,6 @@ class SectionFilter(BaseModel):
     selected: bool | None = Field(None, description="Only return selected items")
     suggested: bool | None = Field(None, description="Only return suggested items")
     include: bool | None = Field(None, description="Include this section in response (default true)")
-
-
-class AgentNameSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected name resource")
-    resources: list[Any] | None = Field(None, description="Available name resources")
-
-
-class AgentDescriptionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected description resource")
-    resources: list[Any] | None = Field(None, description="Available description resources")
-
-
-class AgentModelSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected model resource")
-    resources: list[Any] | None = Field(None, description="Available model resources")
-
-
-class AgentPromptSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected prompt resource")
-    resources: list[Any] | None = Field(None, description="Available prompt resources")
-
-
-class AgentInstructionSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected instruction resource")
-    resources: list[Any] | None = Field(None, description="Available instruction resources")
-
-
-class AgentFlagSection(BaseResourceSection):
-    current: list[AgentFlagResource] | None = Field(None, description="Currently selected flags")
-    resources: list[AgentFlagResource] | None = Field(None, description="Available flag resources")
-
-
-class AgentDepartmentSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected departments")
-    resources: list[Any] | None = Field(None, description="Available department resources")
-
-
-class AgentToolSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected tools")
-    resources: list[Any] | None = Field(None, description="Available tool resources")
-
-
-class AgentTemperatureLevelSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected temperature level")
-    resources: list[Any] | None = Field(None, description="Available temperature levels")
-
-
-class AgentReasoningLevelSection(BaseResourceSection):
-    resource: Any | None = Field(None, description="Currently selected reasoning level")
-    resources: list[Any] | None = Field(None, description="Available reasoning levels")
-
-
-class AgentVoiceSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected voices")
-    resources: list[Any] | None = Field(None, description="Available voice resources")
-
-
-class AgentQualitySection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected qualities")
-    resources: list[Any] | None = Field(None, description="Available quality resources")
-
-
-class AgentRubricSection(BaseResourceSection):
-    current: list[Any] | None = Field(None, description="Currently selected rubrics")
-    resources: list[Any] | None = Field(None, description="Available rubric resources")
 
 
 class GetAgentApiRequest(BaseModel):
