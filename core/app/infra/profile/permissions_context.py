@@ -160,6 +160,46 @@ async def resolve_profile_values(
     return errors
 
 
+async def assert_role_assignable(
+    conn: asyncpg.Connection,
+    redis: Redis,
+    *,
+    role_id: UUID | None,
+    actor_role_level: int,
+) -> None:
+    """Reject assigning a role whose privilege level outranks the actor.
+
+    The body-supplied ``role_id`` on profile create/update sets the
+    profile's role — a privilege-bearing attribute. The read surface
+    (``profile/get.py`` via ``compute_role_options``) only offers roles at
+    or below the actor's level (``role.level >= actor.role_level``; higher
+    number = lower privilege), but the write path historically trusted the
+    request value directly. This mirrors that gate server-side so a
+    lower-privileged actor cannot mass-assign a higher-privilege role
+    (e.g. level-0 admin) to a profile.
+
+    Level-0 actors (top privilege) may assign any role. A ``role_id`` that
+    doesn't resolve, or a role with no level, is rejected as un-assignable
+    rather than silently allowed.
+    """
+    if role_id is None:
+        return
+    if actor_role_level == 0:
+        return
+
+    from fastapi import HTTPException
+
+    from app.tools.resources.roles.get import get_roles
+
+    roles = await get_roles(conn, [role_id], redis)
+    target_level = roles[0].level if roles else None
+    if target_level is None or target_level < actor_role_level:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to assign this role.",
+        )
+
+
 async def create_denormalized_snapshot(
     conn: asyncpg.Connection,
     redis: Redis,
