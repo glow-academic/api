@@ -23,6 +23,20 @@ HOME_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={"attempt.home_viewed": None},
     ),
+    # WS handler (ws/attempt/home/get.py) emits operation="home_get"; the HTTP
+    # route emits bare "home". Register both so neither emitter is orphaned.
+    "home_get": OperationEventConfig(
+        operation="home_get",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": GetHomeRequest,
+            "completed": GetHomeResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"attempt.home_viewed": None},
+    ),
     "home_refresh": OperationEventConfig(
         operation="home_refresh",
         domain_events={"attempt.home_refreshed": None},
