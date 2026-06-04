@@ -1,74 +1,61 @@
-"""Tests for persist_run_message using real DB and filesystem writes."""
+"""Tests for get_upload."""
 
 import pytest
 
-from app.infra.websocket.persist_run_message import persist_run_message
-from app.tools.entries.groups.create import create_group
-from app.tools.entries.message_uploads.get import get_message_upload
-from app.tools.entries.messages.get import get_message
-from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
-from app.tools.entries.text_uploads.get import get_text_upload
-from app.tools.entries.texts.get import get_text
+from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.uploads.get import get_upload
-from app.tools.resources.agents.create import create_agent
+from tests.helpers import nonexistent_id
 
 pytestmark = pytest.mark.asyncio
 
 
-async def _run_deps(conn, redis_client, profile_id):
-    session = await create_session(conn, redis_client, profile_id=profile_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    run = await create_run(
-        conn, redis_client, group_id=group.id, session_id=session.id
-    )
-    return session, run
+async def _session(conn, redis_client, profile_id):
+    return await create_session(conn, redis_client, profile_id=profile_id)
 
 
-async def test_persist_run_message_writes_file_and_rows(conn, redis_client, profile_id, tmp_path):
-    session, run = await _run_deps(conn, redis_client, profile_id)
-
-    result = await persist_run_message(
+async def test_gets_created_upload(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    created = await create_upload(
         conn,
         redis_client,
-        run_id=run.id,
         session_id=session.id,
-        role="developer",
-        content="Hello from persisted text",
-        upload_folder=tmp_path,
+        file_path="test/get-me.pdf",
+        mime_type="application/pdf",
+        size=4096,
     )
 
-    message = await get_message(conn, result.message_id, redis_client)
-    text = await get_text(conn, result.text_id, redis_client)
-    upload_junction = await get_message_upload(conn, result.message_upload_junction_id, redis_client)
-    text_upload_junction = await get_text_upload(conn, result.text_upload_junction_id, redis_client)
-    upload = await get_upload(conn, upload_junction.upload_id, redis_client)
-    stored_path = tmp_path / upload.file_path
+    upload = await get_upload(conn, created.id, redis_client)
 
-    assert message.role == "developer"
-    assert text.session_id == session.id
-    assert upload_junction.message_id == result.message_id
-    assert text_upload_junction.text_id == result.text_id
-    assert stored_path.exists()
-    assert stored_path.read_text() == "Hello from persisted text"
+    assert upload is not None
+    assert upload.id == created.id
+    assert upload.session_id == session.id
+    assert upload.file_path == "test/get-me.pdf"
+    assert upload.mime_type == "application/pdf"
+    assert upload.size == 4096
+    assert upload.active is True
 
 
-async def test_persist_run_message_links_agent_ids(
-    conn, profile_id, redis_client, tmp_path
-):
-    session, run = await _run_deps(conn, redis_client, profile_id)
-    agent = await create_agent(conn, name="persist-agent", redis=redis_client)
-
-    result = await persist_run_message(
+async def test_get_upload_bypass_cache_reads_db(conn, redis_client, profile_id):
+    session = await _session(conn, redis_client, profile_id)
+    created = await create_upload(
         conn,
         redis_client,
-        run_id=run.id,
         session_id=session.id,
-        role="system",
-        content="System prompt",
-        upload_folder=tmp_path,
-        agent_ids=[agent.id],
+        file_path="test/bypass.txt",
+        mime_type="text/plain",
+        size=128,
     )
 
-    message = await get_message(conn, result.message_id, redis_client)
-    assert message.id == result.message_id
+    upload = await get_upload(conn, created.id, redis_client, bypass_cache=True)
+
+    assert upload is not None
+    assert upload.id == created.id
+    assert upload.file_path == "test/bypass.txt"
+    assert upload.size == 128
+
+
+async def test_returns_none_for_missing_id(conn, redis_client):
+    upload = await get_upload(conn, nonexistent_id(), redis_client)
+
+    assert upload is None

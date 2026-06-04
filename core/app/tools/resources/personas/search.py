@@ -18,6 +18,12 @@ JUNCTION_ARTIFACTS = [
     "scenario",
 ]
 
+# cohort_profile_personas_junction's FK to personas_resource is named
+# `profile_personas_id`, not the generic `{resource}_id` (`personas_id`).
+JUNCTION_COLUMNS = {
+    "cohort_profile": "profile_personas_id",
+}
+
 DRAFT_ARTIFACTS = [
     "chat",
     "scenario",
@@ -108,6 +114,7 @@ async def search_personas(
         suggest_source=suggest_source,
         artifact_filters=artifact_filters,
         junction_artifacts=JUNCTION_ARTIFACTS,
+        junction_columns=JUNCTION_COLUMNS,
         draft_artifacts=DRAFT_ARTIFACTS,
         extra_conditions=extra_conditions if extra_conditions else None,
     )

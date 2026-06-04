@@ -1,148 +1,64 @@
+"""Tests for ``app.utils.auth.derive_key``.
+
+Focuses on ``derive_from_secret_key`` — the purpose-scoped, deterministic
+deriver used to mint ``AUTH_SECRET`` / ``AUTH_KEYCLOAK_SECRET`` from a
+single ``SECRET_KEY`` when they aren't explicitly configured. The raw
+PBKDF2 ``derive_key`` primitive is exercised in ``test_api_key_crypto.py``;
+this file owns the higher-level deterministic-string contract.
+"""
+
 from __future__ import annotations
 
-import json
-from types import SimpleNamespace
+import base64
+import hashlib
 
-import pytest
-from jose import jwt
-
-from app.infra.identity.default_idp import exchange_code_for_tokens, resolve_authorization
-
-
-@pytest.mark.asyncio
-async def test_exchange_code_for_tokens_puts_profile_identity_on_access_token(
-    monkeypatch, redis_client
-):
-    monkeypatch.setenv("SECRET_KEY", "test-secret-key")
-    from app.utils.auth.derive_key import derive_from_secret_key
-
-    test_secret = derive_from_secret_key("test-secret-key", "keycloak-client")
-    monkeypatch.setenv("AUTH_CLIENT_SECRET", test_secret)
-    code = "code-access-token-contract"
-
-    from app.infra.identity import default_idp
-
-    # Authorization codes live in Redis under ``oidc:authz:{code}`` (migrated
-    # from the old in-memory ``_authorization_codes`` dict). Seed the code the
-    # same way the real /authorize flow does, via the module's redis helper.
-    await default_idp._redis_set(
-        f"oidc:authz:{code}",
-        {
-            "profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b029",
-            "email": "alice@example.com",
-            "name": "Alice Example",
-            "role": "admin",
-            "nonce": "nonce-123",
-            "client_id": "test-client",
-            "redirect_uri": "http://localhost/callback",
-            "is_emulation": True,
-            "actor_profile_id": "019ce726-fa14-7f2a-aebb-0067bca4b030",
-        },
-        default_idp._CODE_TTL,
-    )
-
-    tokens = await exchange_code_for_tokens(
-        grant_type="authorization_code",
-        code=code,
-        redirect_uri="http://localhost/callback",
-        client_id="test-client",
-        client_secret=derive_from_secret_key("test-secret-key", "keycloak-client"),
-    )
-
-    access_claims = jwt.get_unverified_claims(tokens["access_token"])
-    id_claims = jwt.get_unverified_claims(tokens["id_token"])
-
-    assert access_claims["profile_id"] == "019ce726-fa14-7f2a-aebb-0067bca4b029"
-    assert access_claims["role"] == "admin"
-    assert access_claims["is_emulation"] is True
-    assert (
-        access_claims["actor_profile_id"] == "019ce726-fa14-7f2a-aebb-0067bca4b030"
-    )
-
-    assert access_claims["profile_id"] == id_claims["profile_id"]
-    assert access_claims["role"] == id_claims["role"]
-    assert access_claims["is_emulation"] == id_claims["is_emulation"]
-    assert access_claims["actor_profile_id"] == id_claims["actor_profile_id"]
+from app.utils.auth.derive_key import (
+    KEY_LENGTH,
+    derive_from_secret_key,
+    derive_key,
+)
 
 
-@pytest.mark.asyncio
-async def test_resolve_authorization_uses_profile_identity_context_for_email(monkeypatch):
-    from app.infra.identity import default_idp
-
-    async def fake_resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        bypass_cache=False,
-    ):
-        return SimpleNamespace(
-            primary_email="artifact-email@example.com",
-            name="Artifact User",
-            role="admin",
-        )
-
-    monkeypatch.setattr(
-        default_idp,
-        "resolve_profile_identity_context",
-        fake_resolve_profile_identity_context,
-    )
-
-    redirect = await resolve_authorization(
-        pool=object(),
-        redis=object(),
-        response_type="code",
-        client_id="test-client",
-        redirect_uri="http://localhost/callback",
-        state="state-123",
-        nonce="nonce-123",
-        profile_id=default_idp.UUID("019ce726-fa14-7f2a-aebb-0067bca4b029"),
-        emulation_grant=None,
-        login_hint=None,
-    )
-
-    assert redirect.startswith("http://localhost/callback?code=")
+def test_derive_from_secret_key_is_deterministic():
+    first = derive_from_secret_key("super-secret", "keycloak-client")
+    second = derive_from_secret_key("super-secret", "keycloak-client")
+    assert first == second
 
 
-@pytest.mark.asyncio
-async def test_resolve_authorization_falls_back_to_first_linked_email(
-    monkeypatch, redis_client
-):
-    from app.infra.identity import default_idp
+def test_derive_from_secret_key_varies_by_purpose():
+    client = derive_from_secret_key("super-secret", "keycloak-client")
+    auth = derive_from_secret_key("super-secret", "auth-secret")
+    assert client != auth
 
-    async def fake_resolve_profile_identity_context(
-        pool,
-        profile_id,
-        redis,
-        bypass_cache=False,
-    ):
-        return SimpleNamespace(
-            primary_email=None,
-            emails=["fallback@example.com", "other@example.com"],
-            name="Fallback User",
-            role="admin",
-        )
 
-    monkeypatch.setattr(
-        default_idp,
-        "resolve_profile_identity_context",
-        fake_resolve_profile_identity_context,
-    )
+def test_derive_from_secret_key_varies_by_secret():
+    a = derive_from_secret_key("secret-a", "keycloak-client")
+    b = derive_from_secret_key("secret-b", "keycloak-client")
+    assert a != b
 
-    redirect = await resolve_authorization(
-        pool=object(),
-        redis=object(),
-        response_type="code",
-        client_id="test-client",
-        redirect_uri="http://localhost/callback",
-        state="state-123",
-        nonce="nonce-123",
-        profile_id=default_idp.UUID("019ce726-fa14-7f2a-aebb-0067bca4b029"),
-        emulation_grant=None,
-        login_hint=None,
-    )
 
-    code = redirect.split("code=")[1].split("&", 1)[0]
-    # Read back the code record from Redis (where resolve_authorization stored
-    # it) instead of the removed in-memory dict.
-    stored = json.loads(await redis_client.get(f"oidc:authz:{code}"))
-    assert stored["email"] == "fallback@example.com"
+def test_derive_from_secret_key_is_urlsafe_b64_without_padding():
+    derived = derive_from_secret_key("super-secret", "keycloak-client")
+    # No ``=`` padding and only url-safe base64 alphabet characters.
+    assert "=" not in derived
+    assert all(ch.isalnum() or ch in "-_" for ch in derived)
+
+
+def test_derive_from_secret_key_matches_manual_pbkdf2_pipeline():
+    """The output equals the documented salt→PBKDF2→urlsafe-b64 pipeline."""
+    secret_key = "super-secret"
+    purpose = "keycloak-client"
+
+    salt = hashlib.sha256(f"glow-{purpose}-v1".encode()).digest()
+    derived_bytes = derive_key(secret_key, salt)
+    expected = base64.urlsafe_b64encode(derived_bytes).decode().rstrip("=")
+
+    assert derive_from_secret_key(secret_key, purpose) == expected
+
+
+def test_derive_from_secret_key_encodes_full_key_length():
+    # 32-byte key → 43 url-safe base64 chars once the single ``=`` pad is
+    # stripped (ceil(32/3)*4 == 44, minus one pad char).
+    assert KEY_LENGTH == 32
+    derived = derive_from_secret_key("super-secret", "keycloak-client")
+    assert len(derived) == 43

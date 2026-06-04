@@ -99,3 +99,22 @@ async def test_bypass_cache(conn, redis_client):
     )
 
     assert len(items) >= 1
+
+
+async def test_cohort_profile_junction_filter_uses_real_column(conn, redis_client):
+    """Enabling cohort_profile must query cohort_profile_personas_junction via its
+    real FK column (profile_personas_id), not the generic personas_id, so the SQL
+    executes without a 'column does not exist' error (#66)."""
+    await create_persona(conn, redis_client, name=f"junction-{unique_tag()}")
+
+    items = await search_personas(
+        conn,
+        redis_client,
+        search="junction-",
+        cohort_profile=True,
+        bypass_cache=True,
+    )
+
+    # No junction rows exist for this fresh persona, so the filter excludes it;
+    # the key assertion is that the query ran without raising a column error.
+    assert items == []

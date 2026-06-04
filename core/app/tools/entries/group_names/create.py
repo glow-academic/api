@@ -80,4 +80,12 @@ async def create_group_name(
         # upsert deactivated an existing active row. Best-effort invalidate.
         await invalidate_row(redis, "group_names", group_id)
 
+    # The ``groups`` read-back row is seeded by ``create_group`` with an empty
+    # ``name`` (the name is owned by this separate primitive). Naming a group
+    # leaves that row stale, so any cached ``get_groups`` read — e.g. the
+    # pricing export's ``group`` column — would surface a blank name until the
+    # row's TTL lapsed. Invalidate it so the next ``get_groups`` rehydrates the
+    # name from groups_mv. (Active or dormant: the displayed name may change.)
+    await invalidate_row(redis, "groups", group_id)
+
     return CreateGroupNameResponse(id=entry_id)

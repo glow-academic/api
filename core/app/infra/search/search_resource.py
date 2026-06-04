@@ -19,6 +19,7 @@ async def search_resource_ids(
     suggest_source: str | None = None,
     artifact_filters: dict[str, bool] | None = None,
     junction_artifacts: list[str] | None = None,
+    junction_columns: dict[str, str] | None = None,
     draft_artifacts: list[str] | None = None,
     order_column: str | None = None,
     additional_search_columns: list[str] | None = None,
@@ -30,7 +31,9 @@ async def search_resource_ids(
     - search: ILIKE on search_column (+ additional_search_columns via OR)
     - exclude_ids: NOT IN filter
     - draft_id + suggest_source='draft': EXISTS across draft connection tables
-    - artifact_filters: EXISTS across junction tables for each True filter
+    - artifact_filters: EXISTS across junction tables for each True filter.
+      Each junction's FK column defaults to '{resource}_id'; junction_columns
+      overrides that per-artifact for junctions whose FK column differs.
     - extra_conditions: list of (sql_template, param) for resource-specific filters.
       sql_template uses {idx} placeholder for param position, {alias} for table alias.
     """
@@ -93,8 +96,9 @@ async def search_resource_ids(
         for artifact in junction_artifacts:
             if artifact_filters.get(artifact):
                 junction = f"{artifact}_{resource}_junction"
+                fk_column = (junction_columns or {}).get(artifact, f"{resource}_id")
                 conditions.append(
-                    f"EXISTS (SELECT 1 FROM {junction} j WHERE j.{resource}_id = {alias}.id AND j.active = true)"
+                    f"EXISTS (SELECT 1 FROM {junction} j WHERE j.{fk_column} = {alias}.id AND j.active = true)"
                 )
 
     where = " AND ".join(conditions) if conditions else "true"
