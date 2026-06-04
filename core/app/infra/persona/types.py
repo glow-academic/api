@@ -8,6 +8,7 @@ from typing import ClassVar  # used by RESOURCE_TYPE_MAP
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
@@ -534,7 +535,7 @@ class CreatePersonaApiRequest(BaseModel):
     """
 
     personas: list[CreatePersonaItem] | None = Field(
-        None, description="List of persona items to create (required on first call)",
+        None, max_length=MAX_BULK_ITEMS, description="List of persona items to create (required on first call)",
     )
 
     # One client key, two consumers: the idempotency replay gate in
