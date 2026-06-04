@@ -8,9 +8,18 @@ from pydantic import BaseModel, ValidationError
 
 from app.infra.websocket.find_profile_by_socket import find_profile_by_socket
 from app.infra.websocket.typed_emit import emit_to_client
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 TRequest = TypeVar("TRequest", bound=BaseModel)
 TResponse = TypeVar("TResponse", bound=BaseModel)
+
+# Generic client-facing message for an unexpected WS handler error. The raw
+# exception string can leak internal schema / file paths / infra details to the
+# WS client (same info-disclosure class as #208 on the HTTP path), so we never
+# echo it — the real error is logged server-side at the catch-all.
+_GENERIC_HANDLER_ERROR = "Handler error. Please try again."
 
 
 def is_generate_error_event(error_event_name: str | None) -> bool:
@@ -29,8 +38,14 @@ def build_client_error_payload(message: str) -> dict[str, Any]:
 
 
 def build_handler_error_message(error: Exception) -> str:
-    """Build a consistent handler failure message."""
-    return f"Handler error: {str(error)}"
+    """Build the client-facing handler-failure message.
+
+    Returns a GENERIC message — never the raw ``str(error)`` — so an
+    unexpected handler exception can't leak internal schema / file paths /
+    infra details to the WS client. The real ``error`` is logged server-side
+    by the catch-all that builds this message.
+    """
+    return _GENERIC_HANDLER_ERROR
 
 
 def build_validation_payload(
@@ -252,8 +267,12 @@ async def handle_internal_event(
                     # If error_response_type doesn't match, log and skip
                     pass
     except Exception as e:
-        # Catch any other exceptions (like recursion errors) and prevent infinite loops
-        # Don't try to emit errors from error handlers - just log and return
+        # Catch any other exceptions (like recursion errors) and prevent infinite loops.
+        # Log the real error server-side (the client only gets a generic message
+        # via build_handler_error_message — no raw-error leak).
+        logger.exception(
+            f"WS handler error (event={error_event_name}, sid={sid}): {type(e).__name__}"
+        )
         if is_generate_error_event(error_event_name):
             # If we're in generate_error handler and hit an exception, don't recurse
             return
