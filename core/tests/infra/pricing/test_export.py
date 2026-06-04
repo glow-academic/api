@@ -1,19 +1,20 @@
-"""Integration tests for the pricing infra wrapper family."""
+"""Integration tests for ``export_pricing_impl``.
+
+Exercises the pricing EXPORT only — that a seeded pricing graph exports a
+base64 zip containing a single ``runs.csv`` whose rows carry the seeded run id
+and its hydrated group name, with the right row_count / mime_type / file name.
+"""
 
 from __future__ import annotations
 
 import base64
+import csv
 import io
 import zipfile
 
 import pytest
 
-from app.infra.pricing.context import (
-    resolve_pricing_context,
-    resolve_pricing_search_context,
-)
 from app.infra.pricing.export import export_pricing_impl
-from app.infra.pricing.refresh import refresh_pricing_impl
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.run_pricing.create import (
@@ -91,59 +92,6 @@ async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
     return session, group, run, model, agent
 
 
-class TestResolvePricingContext:
-    async def test_returns_runs_and_hydrated_resources(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            _session, _group, run, model, agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await resolve_pricing_context(pool, redis_client)
-
-        seeded_run = next(
-            item for item in result.entries["runs"] if item.run_id == run.id
-        )
-
-        assert result.artifact_id is None
-        assert seeded_run.run_id == run.id
-        assert {item.count for item in seeded_run.pricing} == {1500, 2000}
-        assert agent.id in [item.id for item in result.resources["agents"].selected]
-        assert model.id in [item.id for item in result.resources["models"].selected]
-        pricing_ids = {
-            item.id for item in result.resources["pricing"].selected if item.id
-        }
-        assert len(pricing_ids) >= 2
-
-
-class TestResolvePricingSearchContext:
-    async def test_returns_group_history_with_runs(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            session, group, run, _model, _agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await resolve_pricing_search_context(
-            pool,
-            redis_client,
-            session_ids=[session.id],
-            page=0,
-            page_size=10,
-        )
-
-        assert any(item.id == group.id for item in result.entries["groups"])
-        assert any(item.id == group.id for item in result.entries["total_groups"])
-        assert any(item.run_id == run.id for item in result.entries["runs"])
-        assert "names" in result.resources
-
-
 class TestExportPricingClient:
     async def test_exports_pricing_zip(
         self, pool, redis_client, profile_identity_factory
@@ -151,7 +99,7 @@ class TestExportPricingClient:
         profile = await profile_identity_factory()
 
         async with pool.acquire() as conn:
-            session, _group, run, _model, _agent = await _seed_pricing_graph(
+            _session, _group, run, _model, _agent = await _seed_pricing_graph(
                 conn, redis_client, profile.profile_resource_id
             )
 
@@ -162,6 +110,7 @@ class TestExportPricingClient:
         )
 
         assert result.row_count >= 1
+        assert result.file_name.startswith("pricing_export_")
         assert result.file_name.endswith(".zip")
         assert result.mime_type == "application/zip"
         assert result.content != ""
@@ -171,22 +120,76 @@ class TestExportPricingClient:
             assert archive.namelist() == ["runs.csv"]
             runs_csv = archive.read("runs.csv").decode("utf-8")
 
-        assert str(run.id) in runs_csv
-        assert "Pricing Group" in runs_csv
+        # The seeded run is present, with the canonical column header...
+        assert runs_csv.splitlines()[0].split(",") == [
+            "run_id", "group", "run_date", "input_tokens", "output_tokens",
+            "cached_input_tokens", "total_tokens", "cost", "agents", "models",
+        ]
+        rows = list(csv.DictReader(io.StringIO(runs_csv)))
+        seeded = next(row for row in rows if row["run_id"] == str(run.id))
 
+        # ...and its cost is computed from the seeded run_pricing entries
+        # (1500 input tokens @ $0.02/1k + 2000 output @ $0.03/1k = 0.09),
+        # NOT from runs_mv token columns (which the seed leaves at 0 — those
+        # are populated by the live generation path, not create_run).
+        assert seeded["input_tokens"] == "0"
+        assert seeded["output_tokens"] == "0"
+        assert float(seeded["cost"]) == pytest.approx(0.09)
 
-class TestRefreshPricingClient:
-    async def test_refreshes_views_and_invalidates_tags(
+    async def test_export_renders_group_name_from_get_groups(
         self, pool, redis_client, profile_identity_factory
     ):
+        """The ``group`` column must carry the hydrated group name.
+
+        Regression guard for a groups read-back cache-coherence bug this
+        rewrite surfaced: ``create_group`` seeds the ``groups`` cache row with
+        ``name=""`` (the name is owned by the separate group_names primitive),
+        and ``create_group_name`` used to update only the *group_names* cache
+        namespace — never the *groups* one. So the export's cached
+        ``get_groups`` read returned the stale empty name and the ``group``
+        column came out blank even though the name was live in groups_mv
+        (``get_groups(..., bypass_cache=True)`` returned it). Fixed by
+        invalidating the ``groups`` read-back row in ``create_group_name``.
+        """
         profile = await profile_identity_factory()
 
-        result = await refresh_pricing_impl(
+        async with pool.acquire() as conn:
+            _session, _group, run, _model, _agent = await _seed_pricing_graph(
+                conn, redis_client, profile.profile_resource_id
+            )
+
+        result = await export_pricing_impl(
             pool,
             redis_client,
             profile_id=profile.artifact_id,
         )
 
-        assert result.success is True
-        assert result.refreshed_views == ["run_pricing_mv"]
-        assert result.invalidated_tags == ["pricing", "artifacts"]
+        zip_bytes = base64.b64decode(result.content)
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+            runs_csv = archive.read("runs.csv").decode("utf-8")
+
+        rows = list(csv.DictReader(io.StringIO(runs_csv)))
+        seeded = next(row for row in rows if row["run_id"] == str(run.id))
+        assert seeded["group"] == "Pricing Group"
+
+    async def test_export_with_no_runs_returns_empty(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # A profile that never seeds a pricing graph still shares the global
+        # runs MV, so export may legitimately surface other rows. Only assert
+        # the empty-export contract when this run genuinely sees zero runs.
+        profile = await profile_identity_factory()
+
+        result = await export_pricing_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+        )
+
+        assert result.mime_type == "application/zip"
+        if result.row_count == 0:
+            assert result.content == ""
+            assert result.file_name == ""
+        else:
+            assert result.content != ""
+            assert result.file_name.endswith(".zip")

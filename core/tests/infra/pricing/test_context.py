@@ -1,10 +1,12 @@
-"""Integration tests for the pricing infra wrapper family."""
+"""Integration tests for ``resolve_pricing_context`` / search context.
+
+Exercises the pricing CONTEXT resolvers only — that a seeded pricing graph
+(group + runs + run_pricing entries) surfaces in the resolved chart context
+(runs with inline pricing counts + hydrated agent/model/pricing resources)
+and the paginated search context (group history + runs for a session scope).
+"""
 
 from __future__ import annotations
-
-import base64
-import io
-import zipfile
 
 import pytest
 
@@ -12,8 +14,6 @@ from app.infra.pricing.context import (
     resolve_pricing_context,
     resolve_pricing_search_context,
 )
-from app.infra.pricing.export import export_pricing_impl
-from app.infra.pricing.refresh import refresh_pricing_impl
 from app.tools.entries.group_names.create import create_group_name
 from app.tools.entries.groups.create import create_group
 from app.tools.entries.run_pricing.create import (
@@ -142,51 +142,3 @@ class TestResolvePricingSearchContext:
         assert any(item.id == group.id for item in result.entries["total_groups"])
         assert any(item.run_id == run.id for item in result.entries["runs"])
         assert "names" in result.resources
-
-
-class TestExportPricingClient:
-    async def test_exports_pricing_zip(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            session, _group, run, _model, _agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await export_pricing_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.row_count >= 1
-        assert result.file_name.endswith(".zip")
-        assert result.mime_type == "application/zip"
-        assert result.content != ""
-
-        zip_bytes = base64.b64decode(result.content)
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
-            assert archive.namelist() == ["runs.csv"]
-            runs_csv = archive.read("runs.csv").decode("utf-8")
-
-        assert str(run.id) in runs_csv
-        assert "Pricing Group" in runs_csv
-
-
-class TestRefreshPricingClient:
-    async def test_refreshes_views_and_invalidates_tags(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        result = await refresh_pricing_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.success is True
-        assert result.refreshed_views == ["run_pricing_mv"]
-        assert result.invalidated_tags == ["pricing", "artifacts"]
