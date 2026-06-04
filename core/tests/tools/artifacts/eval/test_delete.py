@@ -96,3 +96,47 @@ async def test_hard_delete_cascades_junctions(conn, redis_client):
         "SELECT 1 FROM eval_names_junction WHERE eval_id = $1", p.id
     )
     assert row is None
+
+
+async def test_hard_delete_clears_non_cascading_model_flag_junction(
+    conn, redis_client
+):
+    """Hard-deleting an eval that has a ``model_flags`` link must succeed.
+
+    The ``eval_model_flags_junction.eval_id`` FK was created WITHOUT
+    ``ON DELETE CASCADE`` (NO ACTION). Before the fix, a plain
+    ``DELETE FROM eval_artifact`` raised ForeignKeyViolationError for any
+    eval with a model_flag link, making the artifact undeletable. The delete
+    tool now clears the non-cascading junction first.
+
+    Fail-pre: this raised ForeignKeyViolationError.
+    Pass-post: delete succeeds and the junction row is gone.
+    """
+    from app.tools.resources.flags.create import create_flag
+    from app.tools.resources.model_flags.create import create_model_flag
+    from app.tools.resources.models.create import create_model
+
+    model = await create_model(conn, f"m-{_u()}", redis=redis_client)
+    flag = await create_flag(conn, f"f-{_u()}", "d", redis=redis_client)
+    mf = await create_model_flag(conn, model.id, flag.id, redis_client)
+
+    p = await create_eval(conn, model_flag_ids=[mf.id])
+
+    # Junction is populated.
+    pre = await conn.fetchval(
+        "SELECT count(*) FROM eval_model_flags_junction WHERE eval_id = $1", p.id
+    )
+    assert pre == 1
+
+    # The delete must not raise and must remove the artifact.
+    result = await delete_evals(conn, [p.id])
+    assert p.id in result.deleted_ids
+
+    # Artifact gone…
+    assert await conn.fetchval(
+        "SELECT count(*) FROM eval_artifact WHERE id = $1", p.id
+    ) == 0
+    # …and the non-cascading junction row is cleaned up, not orphaned.
+    assert await conn.fetchval(
+        "SELECT count(*) FROM eval_model_flags_junction WHERE eval_id = $1", p.id
+    ) == 0
