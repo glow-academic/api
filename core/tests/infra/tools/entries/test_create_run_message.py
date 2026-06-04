@@ -122,6 +122,134 @@ async def test_links_message_to_upload(conn, redis_client, profile_id):
     assert row.upload_id == upload.id
 
 
+async def test_enqueue_failure_is_logged_not_swallowed(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """A failed chat-MV refresh enqueue must be observable, not silently passed.
+
+    The enqueue is best-effort (it must never fail the audit write), but a
+    missed enqueue freezes runs_mv/messages_mv/calls_mv until another write
+    re-enqueues — so the stale-data window needs a log trace rather than a
+    bare ``pass``. Asserts: the write still completes (fail-soft preserved)
+    AND the failure is logged at WARNING.
+    """
+    import app.infra.globals as globals_mod
+    import app.infra.tools.entries.create_run_message as mod
+    import app.utils.cache.mv_refresh_queue as mvq
+
+    async def _boom(*_a, **_k):
+        raise RuntimeError("redis enqueue down")
+
+    # The function re-resolves the global redis client + imports enqueue_pending
+    # inside the try; point the former at the test client and make the latter fail.
+    monkeypatch.setattr(globals_mod, "get_redis_client", lambda: redis_client)
+    monkeypatch.setattr(mvq, "enqueue_pending", _boom)
+
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        mod.logger, "warning", lambda msg, *a, **k: warnings.append(str(msg))
+    )
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+    result = await create_run_message(
+        conn,
+        redis_client,
+        run_id=run.id,
+        session_id=session.id,
+        role="system",
+        upload_id=upload.id,
+    )
+
+    # Fail-soft: the audit write completed despite the enqueue failure.
+    assert result.message_id is not None
+    # ...but the failure is now observable (no longer a silent pass).
+    assert any("enqueue chat-MV refresh" in w for w in warnings)
+
+
+async def test_enqueue_success_does_not_warn(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """Happy path: when the enqueue succeeds it enqueues all three chat MVs
+    and emits no warning."""
+    import app.infra.globals as globals_mod
+    import app.infra.tools.entries.create_run_message as mod
+    import app.utils.cache.mv_refresh_queue as mvq
+
+    enqueued: list[str] = []
+
+    async def _spy(_redis, target):
+        enqueued.append(target)
+
+    monkeypatch.setattr(globals_mod, "get_redis_client", lambda: redis_client)
+    monkeypatch.setattr(mvq, "enqueue_pending", _spy)
+
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        mod.logger, "warning", lambda msg, *a, **k: warnings.append(str(msg))
+    )
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+    await create_run_message(
+        conn,
+        redis_client,
+        run_id=run.id,
+        session_id=session.id,
+        role="system",
+        upload_id=upload.id,
+    )
+
+    assert enqueued == ["runs_mv", "messages_mv", "calls_mv"]
+    assert warnings == []
+
+
+async def test_partial_failure_rolls_back_message(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """A mid-chain failure must leave NO orphaned message row.
+
+    ``create_run_message`` chains message → text → text_upload →
+    message_upload. If a later step raises while the earlier inserts have
+    already landed (asyncpg autocommits each statement), the message row
+    becomes a user-visible orphan with no linked upload — corrupt state that
+    can't self-heal. Wrapping the chain in ``conn.transaction()`` makes it
+    atomic: the failure rolls the whole composite back.
+
+    Pre-minting ``id`` lets us look for the would-be message row directly in
+    the table (bypassing the read-through cache) and assert it never existed.
+    """
+    import uuid
+
+    import app.infra.tools.entries.create_run_message as mod
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+
+    pre_minted = uuid.uuid4()
+
+    async def _boom(*_a, **_k):
+        raise RuntimeError("simulated message_upload insert failure")
+
+    # Fail the LAST insert in the chain — message/text/text_upload have
+    # already been written by then.
+    monkeypatch.setattr(mod, "create_message_upload", _boom)
+
+    with pytest.raises(RuntimeError, match="message_upload insert failure"):
+        await create_run_message(
+            conn,
+            redis_client,
+            run_id=run.id,
+            session_id=session.id,
+            role="system",
+            upload_id=upload.id,
+            id=pre_minted,
+        )
+
+    # The message row must NOT survive — the whole composite rolled back.
+    row = await conn.fetchrow(
+        "SELECT id FROM messages_entry WHERE id = $1", pre_minted
+    )
+    assert row is None, "orphaned message row left behind after mid-chain failure"
+
+
 async def test_multiple_messages_on_same_run(conn, redis_client, profile_id):
     """Can create multiple messages on one run (system + developer + user)."""
     session, run, _ = await _deps(conn, redis_client, profile_id)

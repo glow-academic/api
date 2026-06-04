@@ -17,6 +17,9 @@ from app.tools.entries.message_uploads.create import create_message_upload
 from app.tools.entries.messages.create import create_message
 from app.tools.entries.text_uploads.create import create_text_upload
 from app.tools.entries.texts.create import create_text
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -59,28 +62,36 @@ async def create_run_message(
     chain-of-thought trace (default false — normal message). The text +
     upload junctions are written the same way regardless.
     """
-    message = await create_message(
-        conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
-        agent_ids=agent_ids, created_at=created_at, id=id,
-    )
+    # Atomic composite: message + text + both junctions must land together
+    # or not at all. asyncpg autocommits each statement, so without this
+    # boundary a failure on any later insert (e.g. message_upload) would
+    # leave the earlier rows committed — an orphaned message with no linked
+    # upload, visible to reads and unable to self-heal. When the caller
+    # already holds an open transaction (e.g. the document-draft write path)
+    # asyncpg nests this as a SAVEPOINT, so it composes correctly either way.
+    async with conn.transaction():
+        message = await create_message(
+            conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
+            agent_ids=agent_ids, created_at=created_at, id=id,
+        )
 
-    text = await create_text(conn, redis, session_id=session_id, mcp=mcp)
+        text = await create_text(conn, redis, session_id=session_id, mcp=mcp)
 
-    text_upload_junction = await create_text_upload(
-        conn, redis,
-        text_id=text.id,
-        upload_id=upload_id,
-        session_id=session_id,
-        mcp=mcp,
-    )
+        text_upload_junction = await create_text_upload(
+            conn, redis,
+            text_id=text.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            mcp=mcp,
+        )
 
-    message_upload_junction = await create_message_upload(
-        conn, redis,
-        message_id=message.id,
-        upload_id=upload_id,
-        session_id=session_id,
-        mcp=mcp,
-    )
+        message_upload_junction = await create_message_upload(
+            conn, redis,
+            message_id=message.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            mcp=mcp,
+        )
 
     # Flag the chat-data MVs so the scheduler refreshes them within
     # the next ~2s interval. Without this the MVs stay frozen — the
@@ -95,8 +106,12 @@ async def create_run_message(
         redis = get_redis_client()
         for target in ("runs_mv", "messages_mv", "calls_mv"):
             await enqueue_pending(redis, target)
-    except Exception:
-        pass
+    except Exception as e:
+        # Fail-soft (never fail the audit write), but DON'T swallow silently:
+        # a missed enqueue freezes runs_mv/messages_mv/calls_mv until another
+        # write re-enqueues, so the stale-data window needs a trace. Mirrors
+        # the log-on-best-effort pattern in get_cached / invalidate_tags.
+        logger.warning(f"Failed to enqueue chat-MV refresh after run message: {e}")
 
     return CreateRunMessageResult(
         message_id=message.id,
