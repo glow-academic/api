@@ -397,6 +397,43 @@ def compute_can_create(
     return True
 
 
+def compute_can_assign_departments(
+    role_level: int,
+    target_department_ids: list[str] | list[UUID] | None,
+    user_department_ids: list[str] | list[UUID] | None,
+) -> bool:
+    """Whether the actor may write the *target* departments onto a persona.
+
+    Create/update accept ``department_ids`` from the request body. ``compute_can_edit``
+    only scopes the *existing* resource's departments, and ``compute_can_create`` only
+    checks that *some* department was supplied — neither verifies the actor belongs to
+    the departments being assigned. Without this guard a non-top-level Dept-A actor can
+    create a persona directly into Dept-B, or move/retag an editable Dept-A persona
+    into Dept-B (a department they have no access to) — the write-side analog of the
+    read/edit department-subset BOLA guards.
+
+    Mirrors the ``compute_can_edit`` department-subset idiom exactly:
+    - Top-level role (level 0) may assign any departments.
+    - When the actor's departments are known and they assign a non-empty target set,
+      every target department must be one the actor belongs to.
+    """
+    if role_level == 0:
+        return True
+
+    if not target_department_ids:
+        # No departments assigned by this write — nothing cross-tenant to scope.
+        return True
+
+    if user_department_ids is None:
+        # Caller could not supply the actor's departments — preserve prior behavior
+        # rather than hard-fail (the dept-subset guards are all conditioned on this).
+        return True
+
+    user_dept_set = {str(d) for d in user_department_ids}
+    target_dept_set = {str(d) for d in target_department_ids}
+    return target_dept_set.issubset(user_dept_set)
+
+
 # ========== Draft Endpoint Permission Functions ==========
 
 

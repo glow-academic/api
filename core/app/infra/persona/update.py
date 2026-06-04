@@ -282,9 +282,24 @@ async def update_persona_impl(
     has_errors = False
     error_results: list[PersonaResultItem] = []
 
+    from app.infra.persona.permissions import compute_can_assign_departments
+
     with timed("resolve_values"):
         for idx, item in enumerate(items):
             item_errors = await resolve_persona_values(pool, redis, item, is_create=False)
+            # Reject cross-department reassignment: a non-top-level actor who can edit a
+            # persona in their own department must not move/retag it into a department
+            # they don't belong to via body `department_ids`. compute_can_edit only scopes
+            # the persona's *existing* departments, not the target set being written.
+            if item.department_ids is not None and not compute_can_assign_departments(
+                role_level=profile.role_level,
+                target_department_ids=item.department_ids,
+                user_department_ids=profile.department_ids,
+            ):
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Item {idx}: You can only assign personas to your own departments.",
+                )
             if item_errors:
                 has_errors = True
                 error_results.append(
