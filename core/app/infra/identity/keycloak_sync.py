@@ -1689,9 +1689,20 @@ async def sync_emulation_default_idp(kc_admin: Any, config: KeycloakSyncConfig) 
                     kc_admin.add_mapper_to_idp(idp_alias=alias, payload=mapper)
                     logger.debug(f"✅ Created IdP mapper: {mapper['name']}")
             except Exception as mapper_e:
-                logger.warning(
-                    f"Failed to sync IdP mapper '{mapper['name']}': {mapper_e}"
-                )
+                # Benign on an idempotent re-sync: the mapper already exists
+                # (Keycloak 409 / "Duplicate resource error") — that's the
+                # desired state, not a failure, so log quietly and continue.
+                # Genuine mapper-sync errors still surface as WARNING. Mirrors
+                # the client/IdP conflict handling (#171's _is_conflict_error),
+                # which had not been extended to this mapper loop.
+                if _is_conflict_error(mapper_e):
+                    logger.info(
+                        f"✅ IdP mapper '{mapper['name']}' already exists"
+                    )
+                else:
+                    logger.warning(
+                        f"Failed to sync IdP mapper '{mapper['name']}': {mapper_e}"
+                    )
 
         return alias
     except Exception as e:
