@@ -12,7 +12,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "fastapi==0.116.0",
+    "fastapi==0.116.1",
     "uvicorn[standard]==0.35.0",
     "python-dotenv==1.1.1",
     "asyncpg==0.30.0",
@@ -31,7 +31,7 @@ dependencies = [
     "cryptography==44.0.2",
     "click==8.1.7",
     "cffi==1.17.1",
-    "starlette==0.46.2",
+    "starlette==0.47.3",
     "pydantic>=2.11.7,<3",
     "requests==2.32.4",
     "reportlab==4.0.4",
