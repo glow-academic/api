@@ -202,6 +202,54 @@ async def test_enqueue_success_does_not_warn(
     assert warnings == []
 
 
+async def test_partial_failure_rolls_back_message(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """A mid-chain failure must leave NO orphaned message row.
+
+    ``create_run_message`` chains message → text → text_upload →
+    message_upload. If a later step raises while the earlier inserts have
+    already landed (asyncpg autocommits each statement), the message row
+    becomes a user-visible orphan with no linked upload — corrupt state that
+    can't self-heal. Wrapping the chain in ``conn.transaction()`` makes it
+    atomic: the failure rolls the whole composite back.
+
+    Pre-minting ``id`` lets us look for the would-be message row directly in
+    the table (bypassing the read-through cache) and assert it never existed.
+    """
+    import uuid
+
+    import app.infra.tools.entries.create_run_message as mod
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+
+    pre_minted = uuid.uuid4()
+
+    async def _boom(*_a, **_k):
+        raise RuntimeError("simulated message_upload insert failure")
+
+    # Fail the LAST insert in the chain — message/text/text_upload have
+    # already been written by then.
+    monkeypatch.setattr(mod, "create_message_upload", _boom)
+
+    with pytest.raises(RuntimeError, match="message_upload insert failure"):
+        await create_run_message(
+            conn,
+            redis_client,
+            run_id=run.id,
+            session_id=session.id,
+            role="system",
+            upload_id=upload.id,
+            id=pre_minted,
+        )
+
+    # The message row must NOT survive — the whole composite rolled back.
+    row = await conn.fetchrow(
+        "SELECT id FROM messages_entry WHERE id = $1", pre_minted
+    )
+    assert row is None, "orphaned message row left behind after mid-chain failure"
+
+
 async def test_multiple_messages_on_same_run(conn, redis_client, profile_id):
     """Can create multiple messages on one run (system + developer + user)."""
     session, run, _ = await _deps(conn, redis_client, profile_id)
