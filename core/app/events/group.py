@@ -46,10 +46,13 @@ GROUP_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
             "completed": GenerationCompleteEvent,
             "failed": OperationErrorEvent,
         },
+        # Lifecycle phases (.started/.completed/.failed) are auto-generated from
+        # the operation, so the domain events use the distinct .start/.complete
+        # form to avoid colliding with those reserved lifecycle names.
         domain_events={
-            "system.group_generate.started": GenerationCompleteEvent,
+            "system.group_generate.start": GenerationCompleteEvent,
             "system.group_generate.progress": GenerationProgressEvent,
-            "system.group_generate.completed": GenerationCompleteEvent,
+            "system.group_generate.complete": GenerationCompleteEvent,
         },
         filter_events=default_filter_events,
     ),

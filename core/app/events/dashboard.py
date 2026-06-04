@@ -26,6 +26,20 @@ DASHBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={"attempt.dashboard_viewed": None},
     ),
+    # WS handler (ws/attempt/dashboard/get.py) emits operation="dashboard_get";
+    # the HTTP route emits bare "dashboard". Register both (neither orphaned).
+    "dashboard_get": OperationEventConfig(
+        operation="dashboard_get",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": DashboardRequest,
+            "completed": DashboardBundleResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"attempt.dashboard_viewed": None},
+    ),
     "dashboard_refresh": OperationEventConfig(
         operation="dashboard_refresh",
         domain_events={"attempt.dashboard_refreshed": None},

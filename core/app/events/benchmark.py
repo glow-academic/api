@@ -23,6 +23,20 @@ BENCHMARK_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={"test.benchmark_viewed": None},
     ),
+    # WS handler (ws/test/benchmark/get.py) emits operation="benchmark_get";
+    # the HTTP route emits bare "benchmark". Register both (neither orphaned).
+    "benchmark_get": OperationEventConfig(
+        operation="benchmark_get",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": BenchmarkRequest,
+            "completed": BenchmarkResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"test.benchmark_viewed": None},
+    ),
     "benchmark_refresh": OperationEventConfig(
         operation="benchmark_refresh",
         domain_events={"test.benchmark_refreshed": None},

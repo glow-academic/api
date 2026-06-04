@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.events.types import build_default_lifecycle_event_types
 from app.infra.stream.registry import EVENT_REGISTRY
 
 
-@pytest.mark.skip(
-    reason="TODO Phase 1.5 prod-bug: system.group_generate domain events collide with lifecycle events."
-)
 def test_domain_events_do_not_collide_with_lifecycle_events() -> None:
     """Public domain event names must stay distinct from lifecycle names."""
     for artifact, config in EVENT_REGISTRY.items():
