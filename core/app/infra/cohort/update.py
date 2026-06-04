@@ -301,11 +301,26 @@ async def update_cohort_impl(
     has_errors = False
     error_results: list[CohortResultItem] = []
 
+    from app.infra.cohort.permissions import compute_can_assign_departments
+
     with timed("resolve_values"):
      for idx, item in enumerate(items):
         async with pool.acquire() as conn:
             item_errors = await resolve_cohort_values(
                 conn, redis, item, is_create=False
+            )
+        # Reject cross-department reassignment: a non-top-level actor who can edit a
+        # cohort in their own department must not move/retag it into a department they
+        # don't belong to via body `department_ids`. compute_can_edit only scopes the
+        # cohort's *existing* departments, not the target set being written.
+        if item.department_ids is not None and not compute_can_assign_departments(
+            role_level=profile.role_level,
+            target_department_ids=item.department_ids,
+            user_department_ids=profile.department_ids,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Item {idx}: You can only assign cohorts to your own departments.",
             )
         if item_errors:
             has_errors = True
