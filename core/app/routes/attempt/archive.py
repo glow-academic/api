@@ -21,6 +21,36 @@ from app.utils.error.handle_route_error import handle_route_error
 router = APIRouter()
 
 
+def build_attempt_archive_invalidation_tags(
+    profile_ids: list[str] | None,
+) -> list[str]:
+    """HTTP cache tags to bust after an attempt archive/unarchive.
+
+    Archiving an attempt flips its ``is_archived`` flag, which removes it
+    from every default (non-archived) attempt-derived view. Those views are
+    cached under the shared ``artifacts`` umbrella tag: the leaderboard
+    bundle (``["artifacts", "leaderboard"]``), the record/profile report
+    (``["artifacts", "record", ...]``), the session detail
+    (``["artifacts", "session"]``) and the activity feed
+    (``["artifacts", "activity"]``) — none of which carry ``dashboard`` or
+    the per-profile ``home/practice/...`` tags. Busting ``artifacts`` here
+    mirrors the sibling ``POST /test/archive`` route (which busts
+    ``["benchmark", "test", "artifacts"]``) and the attempt run-complete /
+    grade paths (``refresh_attempt_impl`` busts ``["attempt", "artifacts"]``).
+    Without it the leaderboard/record caches keep serving the now-archived
+    attempt for up to their 300s TTL.
+    """
+    tags = ["attempts", "dashboard", "artifacts"]
+    for pid in profile_ids or []:
+        tags.extend([
+            f"home:profile:{pid}",
+            f"reports:profile:{pid}",
+            f"practice:profile:{pid}",
+            f"history:profile:{pid}",
+        ])
+    return tags
+
+
 @router.post("/archive", response_model=ArchiveAttemptsResponse)
 async def archive_attempts(
     request: ArchiveAttemptsRequest,
@@ -82,14 +112,9 @@ async def archive_attempts(
             raise HTTPException(status_code=400, detail=str(e))
 
         # Cache invalidation — HTTP-only concern; not part of the impl contract.
-        invalidation_tags = ["attempts", "dashboard"]
-        for pid in result.profile_ids_to_invalidate or []:
-            invalidation_tags.extend([
-                f"home:profile:{pid}",
-                f"reports:profile:{pid}",
-                f"practice:profile:{pid}",
-                f"history:profile:{pid}",
-            ])
+        invalidation_tags = build_attempt_archive_invalidation_tags(
+            result.profile_ids_to_invalidate
+        )
         await invalidate_tags(invalidation_tags, redis=redis)
         response.headers["X-Invalidate-Tags"] = ",".join(invalidation_tags)
 
