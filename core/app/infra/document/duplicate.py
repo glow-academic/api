@@ -128,16 +128,9 @@ async def duplicate_document_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Permission check -----------------------------------------------
-
-    with timed("permissions"):
-        if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
-            raise HTTPException(
-                status_code=403,
-                detail="You don't have permission to duplicate this document.",
-            )
-
-    # -- Step 3: Fetch original document with all junctions ---------------------
+    # -- Step 2: Fetch original document with all junctions ---------------------
+    # Fetched before the permission check so the department-subset guard below
+    # can see the original's departments (mirrors delete's context→check order).
 
     with timed("hydrate"):
      async with pool.acquire() as conn:
@@ -161,6 +154,20 @@ async def duplicate_document_impl(
         )
 
     original = originals[0]
+
+    # -- Step 3: Permission check -----------------------------------------------
+
+    with timed("permissions"):
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+            document_department_ids=original.department_ids,
+            user_department_ids=profile.department_ids,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this document.",
+            )
 
     # -- Step 4: Create new name resource ---------------------------------------
 

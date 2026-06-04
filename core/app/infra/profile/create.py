@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.profile.permissions_context import (
+    assert_role_assignable,
     create_denormalized_snapshot,
     resolve_profile_values,
 )
@@ -135,6 +136,16 @@ async def create_profile_impl(
     with timed("resolve_values"):
       async with pool.acquire() as conn:
         for idx, item in enumerate(items):
+            # Field-level write authz: the body-supplied role_id sets a
+            # privilege-bearing attribute. Gate it to the actor's level so
+            # a lower-privileged creator can't mint a higher-privilege
+            # profile (mirrors the read surface's compute_role_options).
+            await assert_role_assignable(
+                conn,
+                redis,
+                role_id=item.role_id,
+                actor_role_level=profile.role_level,
+            )
             item_errors = await resolve_profile_values(
                 conn,
                 redis,

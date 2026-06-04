@@ -80,7 +80,11 @@ async def duplicate_simulation_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Permission check ───────────────────────────────────────
+    # ── Step 2: Permission check (role-level) ──────────────────────────
+    # The department-subset guard runs after the original is fetched (below).
+    # This early gate covers the ack short-circuit, which never fetches the
+    # original — it only confirms a pending row whose first call already
+    # passed the full (dept-aware) check.
 
     with timed("permissions"):
         if not compute_can_duplicate(role_level=profile.role_level, role_permissions=profile.role_permissions):
@@ -159,6 +163,21 @@ async def duplicate_simulation_impl(
             )
 
         original = originals[0]
+
+        # ── Step 3b: Department-subset guard ───────────────────────────────
+        # Non-top-level users must belong to ALL of the original's
+        # departments, else a Dept-A actor could clone a Dept-B simulation
+        # they cannot even edit.
+        if not compute_can_duplicate(
+            role_level=profile.role_level,
+            role_permissions=profile.role_permissions,
+            simulation_department_ids=original.department_ids,
+            user_department_ids=profile.department_ids,
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to duplicate this simulation.",
+            )
 
         # ── Step 4: Create new name resource ───────────────────────────────
 
