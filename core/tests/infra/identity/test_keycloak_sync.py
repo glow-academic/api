@@ -483,6 +483,117 @@ async def test_sync_emulation_default_idp_creates_idp_and_claim_mappers():
     ]
 
 
+def test_is_conflict_error_predicate():
+    """The benign-conflict predicate matches 409/already-exists, not other errors."""
+    assert keycloak_sync._is_conflict_error(Exception("409: already exists"))
+    assert keycloak_sync._is_conflict_error(Exception("Duplicate resource error"))
+    assert keycloak_sync._is_conflict_error(Exception("Conflict"))
+    assert not keycloak_sync._is_conflict_error(Exception("500: internal server error"))
+    assert not keycloak_sync._is_conflict_error(Exception("connection refused"))
+
+
+@pytest.mark.asyncio
+async def test_ensure_glow_client_update_benign_409_logs_info_not_warning(caplog):
+    """A benign 409 on the master-realm glow-client UPDATE path is quiet (INFO).
+
+    Mirrors the create-path conflict handling: the client (or a sub-resource
+    like its service-account user) already exists, which is the desired state.
+    """
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.clients = [{"clientId": "glow-client", "id": "client-uuid"}]
+
+    def _conflict_update(client_id, payload):
+        raise Exception('409: {"error":"Duplicate resource error"} already exists')
+
+    admin.update_client = _conflict_update  # type: ignore[method-assign]
+    config = make_config()
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        # Must not raise — sync continues past the benign conflict.
+        await keycloak_sync.ensure_glow_client_in_master_realm(admin, config)
+
+    # No WARNING/ERROR logged for the benign conflict.
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_ensure_glow_client_update_genuine_error_still_warns(caplog):
+    """A non-409 update failure still logs WARNING (catch isn't over-broad)."""
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.clients = [{"clientId": "glow-client", "id": "client-uuid"}]
+
+    def _boom_update(client_id, payload):
+        raise Exception("500: internal server error")
+
+    admin.update_client = _boom_update  # type: ignore[method-assign]
+    config = make_config()
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        await keycloak_sync.ensure_glow_client_in_master_realm(admin, config)
+
+    warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert warnings
+    assert any("Failed to update master realm client" in r.message for r in warnings)
+
+
+@pytest.mark.asyncio
+async def test_sync_emulation_default_idp_benign_409_on_create_is_quiet(caplog):
+    """A benign 409 from create_idp on the default-idp path is quiet, no traceback.
+
+    The get_idp probe fails (treated as not-found), create_idp then reports the
+    IdP already exists — the desired state. The sync must not raise and must
+    not emit a WARNING/ERROR (the scary traceback reported in #49).
+    """
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.auth_flows = [{"alias": "emulation-first-login"}]
+    admin.flow_executions["emulation-first-login"] = []
+
+    def _conflict_create(payload):
+        raise Exception(
+            '409: {"errorMessage":"Identity Provider default-idp already exists"}'
+        )
+
+    admin.create_idp = _conflict_create  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        alias = await keycloak_sync.sync_emulation_default_idp(admin, config)
+
+    assert alias == "default-idp"
+    # No WARNING/ERROR (no "Failed to sync emulation default-idp" traceback).
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_sync_emulation_default_idp_genuine_create_error_still_warns(caplog):
+    """A non-409 create_idp failure still propagates to the outer WARNING."""
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.auth_flows = [{"alias": "emulation-first-login"}]
+    admin.flow_executions["emulation-first-login"] = []
+
+    def _boom_create(payload):
+        raise Exception("500: internal server error")
+
+    admin.create_idp = _boom_create  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        # Still returns gracefully (outer except), but logs the genuine failure.
+        alias = await keycloak_sync.sync_emulation_default_idp(admin, config)
+
+    assert alias == "default-idp"
+    warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert any("Failed to sync emulation default-idp" in r.message for r in warnings)
+
+
 @pytest.mark.asyncio
 async def test_ensure_emulation_client_mappers_creates_missing_mappers():
     admin = FakeKCAdmin()
