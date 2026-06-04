@@ -472,18 +472,6 @@ async def practice_get(
     tags = ["practice", "get"]
     bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
-    cache_key_val = cache_key(
-        http_request.url.path,
-        request.model_dump(mode="json"),
-    )
-
-    if not bypass_cache:
-        cached = await get_cached(cache_key_val, redis=get_redis_client())
-        if cached:
-            response.headers["X-Cache-Tags"] = ",".join(tags)
-            response.headers["X-Cache-Hit"] = "1"
-            return GetPracticeResponse.model_validate(cached["data"])
-
     sql_query: str | None = None
     sql_params: tuple[Any, ...] | None = None
 
@@ -495,6 +483,25 @@ async def practice_get(
                 status_code=401,
                 detail="Profile ID is required. Please sign in again.",
             )
+
+        # Scope the cache entry to the actor: the response is built per
+        # profile_id (per-profile sims/stats + role-gated instructional view),
+        # but GetPracticeRequest carries no profile identity, so a key built
+        # from the request body alone collides across all profiles — one
+        # profile's practice view would be served to another on a cache hit.
+        # Key on profile_id.
+        cache_key_val = cache_key(
+            http_request.url.path,
+            request.model_dump(mode="json"),
+            user_ctx=str(profile_id),
+        )
+
+        if not bypass_cache:
+            cached = await get_cached(cache_key_val, redis=get_redis_client())
+            if cached:
+                response.headers["X-Cache-Tags"] = ",".join(tags)
+                response.headers["X-Cache-Hit"] = "1"
+                return GetPracticeResponse.model_validate(cached["data"])
 
         pool = get_pool()
         redis = get_redis_client()
