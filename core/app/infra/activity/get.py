@@ -107,7 +107,15 @@ async def get_activity_impl_cached(
     cache_key_path: str = "/activity/get",
 ) -> tuple[ActivityResponse, bool]:
     tags = ["artifacts", "activity"]
-    cache_key_val = cache_key(cache_key_path, request.model_dump(mode="json"))
+    # Scope the cache entry to the actor: the activity bundle carries
+    # per-actor analytics facets (dept scoped via ``common.profile``), so the
+    # response varies per profile, but ActivityRequest carries no actor
+    # identity — a key built from the request body alone collides across all
+    # callers and one profile's scoped facets would be served to another on a
+    # cache hit (same class as #191/#194). Key on the actor's profile_id.
+    cache_key_val = cache_key(
+        cache_key_path, request.model_dump(mode="json"), user_ctx=str(profile_id)
+    )
 
     if not bypass_cache:
         cached = await get_cached(cache_key_val, redis=get_redis_client())
