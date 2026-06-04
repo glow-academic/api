@@ -6,7 +6,6 @@ Routes/setting/csv.py is a thin HTTP adapter over parse_setting_csv_impl.
 
 from __future__ import annotations
 
-import csv
 import io
 import os
 import uuid as uuid_mod
@@ -20,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.infra.setting.search import SETTING_IMPORT_FIELDS
 from app.infra.setting.types import CreateSettingItem
 from app.infra.globals import UPLOAD_FOLDER, get_redis_client
+from app.infra.shared_types import read_csv_rows_bounded
 from app.infra.server_timing import timed
 from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
@@ -162,8 +162,9 @@ async def parse_setting_csv_impl(
 
     with timed("parse"):
         content = file_bytes.decode("utf-8-sig")
-        reader = csv.reader(io.StringIO(content))
-        all_rows = list(reader)
+        all_rows = read_csv_rows_bounded(
+            io.StringIO(content), make_error=CsvParseError
+        )
 
     if len(all_rows) < 2:
         raise CsvParseError("CSV must have a header row and at least one data row")
