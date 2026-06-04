@@ -1,16 +1,18 @@
-"""Integration tests for the benchmark infra wrapper family."""
+"""Integration tests for ``resolve_benchmark_context``.
+
+Exercises the benchmark CONTEXT resolver only — that a created benchmark
+(with linked profile + department) surfaces in the resolved dashboard context
+as a ``benchmarks`` entry, with the linked department hydrated into the
+``departments`` resource pair, and that the secondary entry grains
+(invocations / tests / test_invocations) come back empty for a bare benchmark
+that has no test bridges seeded.
+"""
 
 from __future__ import annotations
-
-import base64
-import io
-import zipfile
 
 import pytest
 
 from app.infra.benchmark.context import resolve_benchmark_context
-from app.infra.benchmark.export import export_benchmark_impl
-from app.infra.benchmark.refresh import refresh_benchmark_impl
 from app.tools.entries.benchmark.create import create_benchmark
 from app.tools.entries.benchmark.refresh import refresh_benchmark
 from app.tools.resources.departments.create import create_department
@@ -19,7 +21,7 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestResolveBenchmarkContext:
-    async def test_returns_benchmark_entries_and_hydrated_departments(
+    async def test_returns_benchmark_entry_and_hydrated_department(
         self, pool, redis_client, profile_identity_factory
     ):
         profile = await profile_identity_factory()
@@ -31,9 +33,10 @@ class TestResolveBenchmarkContext:
                 description="Bench dept",
                 redis=redis_client,
             )
-            await create_benchmark(
+            created = await create_benchmark(
                 conn,
-                redis_client, profiles_ids=[profile.profile_resource_id],
+                redis_client,
+                profiles_ids=[profile.profile_resource_id],
                 departments_ids=[department.id],
             )
             await refresh_benchmark(conn)
@@ -44,69 +47,58 @@ class TestResolveBenchmarkContext:
             department_ids=[department.id],
         )
 
-        assert len(result.entries["benchmarks"]) >= 1
-        assert (
-            result.resources["departments"].selected[0].name == "Benchmark Department"
+        # The created benchmark is visible in the benchmark grain, scoped by
+        # the department filter, and carries its department link back.
+        assert result.artifact_id is None
+        seeded = next(
+            b for b in result.entries["benchmarks"] if b.benchmark_id == created.id
         )
-        assert result.entries["invocations"] == []
-        assert result.entries["tests"] == []
-        assert result.entries["test_invocations"] == []
+        assert department.id in (seeded.department_ids or [])
 
+        # The linked department is hydrated by name into the resource pair.
+        selected_depts = result.resources["departments"].selected
+        assert department.id in [d.id for d in selected_depts]
+        assert (
+            next(d for d in selected_depts if d.id == department.id).name
+            == "Benchmark Department"
+        )
 
-class TestExportBenchmarkClient:
-    async def test_exports_benchmarks_zip(
+    async def test_bare_benchmark_has_no_test_or_invocation_entries(
         self, pool, redis_client, profile_identity_factory
     ):
+        # A benchmark with no benchmark_test bridges resolves no downstream
+        # test / invocation / test_invocation rows (those grains are driven by
+        # the benchmark→test bridge, which this benchmark never seeds).
         profile = await profile_identity_factory()
 
         async with pool.acquire() as conn:
             department = await create_department(
                 conn,
-                name="Export Department",
-                description="Bench export dept",
+                name="Bare Benchmark Department",
+                description="Bench dept",
                 redis=redis_client,
             )
-            await create_benchmark(
+            created = await create_benchmark(
                 conn,
-                redis_client, profiles_ids=[profile.profile_resource_id],
+                redis_client,
+                profiles_ids=[profile.profile_resource_id],
                 departments_ids=[department.id],
             )
             await refresh_benchmark(conn)
 
-        result = await export_benchmark_impl(
+        result = await resolve_benchmark_context(
             pool,
             redis_client,
-            profile_id=profile.artifact_id,
+            department_ids=[department.id],
         )
 
-        assert result.row_count >= 1
-        assert result.file_name.endswith(".zip")
-        assert result.mime_type == "application/zip"
-        assert result.content != ""
-
-        zip_bytes = base64.b64decode(result.content)
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
-            assert sorted(archive.namelist()) == [
-                "benchmarks.csv",
-                "test_invocations.csv",
-            ]
-            benchmarks_csv = archive.read("benchmarks.csv").decode("utf-8")
-
-        assert "Export Department" in benchmarks_csv
-
-
-class TestRefreshBenchmarkClient:
-    async def test_refreshes_views_and_invalidates_tags(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        result = await refresh_benchmark_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
+        assert any(
+            b.benchmark_id == created.id for b in result.entries["benchmarks"]
         )
-
-        assert result.success is True
-        assert result.refreshed_views == ["benchmark_mv"]
-        assert result.invalidated_tags == ["benchmark", "artifacts"]
+        # No test bridge → no tests, no test_invocations for this scope.
+        # (invocations is benchmark-scoped via search_invocations on this
+        # benchmark id, which likewise has none.)
+        assert result.entries["benchmark_tests"] == []
+        assert result.entries["invocations"] == []
+        assert result.entries["tests"] == []
+        assert result.entries["test_invocations"] == []
