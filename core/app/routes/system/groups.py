@@ -31,7 +31,6 @@ async def search_groups(
     """Get paginated groups list with cost data (canonical groups list)."""
     tags = ["artifacts", "groups", "list"]
     bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
-    cache_key_val = cache_key(http_request.url.path, request.model_dump(mode="json"))
 
     try:
         pool = get_pool()
@@ -47,6 +46,20 @@ async def search_groups(
         session_id = http_request.state.session_id
         if not session_id:
             raise HTTPException(status_code=400, detail="Session ID is required.")
+
+        # Scope the cache entry to the actor: the groups list is resolved
+        # against the caller's own session (``session_ids=[session_id]``), so
+        # the response varies per actor, but ListPricingRequest carries no
+        # actor identity — a key built from the request body alone collides
+        # across all callers and one profile's session-scoped groups/costs
+        # would be served to another on a cache hit (same class as #191/#194).
+        # Key on the actor's profile_id (the identity that determines the
+        # session scope).
+        cache_key_val = cache_key(
+            http_request.url.path,
+            request.model_dump(mode="json"),
+            user_ctx=str(profile_id),
+        )
 
         redis = get_redis_client()
 

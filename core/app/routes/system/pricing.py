@@ -30,18 +30,6 @@ async def get_pricing(
     tags = ["artifacts", "pricing"]
     bypass_cache = http_request.headers.get("X-Bypass-Cache") == "1"
 
-    cache_key_val = cache_key(
-        http_request.url.path,
-        request.model_dump(mode="json"),
-    )
-
-    if not bypass_cache:
-        cached = await get_cached(cache_key_val, redis=get_redis_client())
-        if cached:
-            response.headers["X-Cache-Tags"] = ",".join(tags)
-            response.headers["X-Cache-Hit"] = "1"
-            return PricingResponse.model_validate(cached["data"])
-
     try:
         pool = get_pool()
         if not pool:
@@ -56,6 +44,26 @@ async def get_pricing(
             )
 
         redis = get_redis_client()
+
+        # Scope the cache entry to the actor: get_pricing_impl resolves
+        # per-actor analytics facets (dept/cohort/role-level scoped via
+        # common.profile), so the response varies per profile, but
+        # PricingRequest carries no actor identity — a key built from the
+        # request body alone collides across all callers and one profile's
+        # scoped pricing chart would be served to another on a cache hit
+        # (same class as #191/#194). Key on the actor's profile_id.
+        cache_key_val = cache_key(
+            http_request.url.path,
+            request.model_dump(mode="json"),
+            user_ctx=str(profile_id),
+        )
+
+        if not bypass_cache:
+            cached = await get_cached(cache_key_val, redis=redis)
+            if cached:
+                response.headers["X-Cache-Tags"] = ",".join(tags)
+                response.headers["X-Cache-Hit"] = "1"
+                return PricingResponse.model_validate(cached["data"])
 
         # Resolve time-windowed group for audit linking
         group_id = None
