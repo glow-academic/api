@@ -969,8 +969,19 @@ async def get_attempt_impl(
 ) -> GetAttemptDetailResponse:
     """Resolve the canonical attempt detail response with shared caching."""
     tags = ["attempt"]
+    # Scope the cache entry to the actor: the response is built per
+    # profile_id (``get_attempt_internal`` runs ``check_attempt_access`` and
+    # gates owner-vs-other display fields on ``is_own_attempt``), but the
+    # request carries only ``attempt_id`` with no actor identity. A key built
+    # from ``attempt_id`` alone collides across all callers, so on a cache hit
+    # an unauthorized profile would be served the full attempt bundle an
+    # authorized profile warmed — bypassing ``check_attempt_access`` entirely
+    # (cross-profile attempt-content leak / IDOR, same class as #146/#191).
+    # Key on profile_id so each actor gets its own access-gated response.
     body_dict = {"attempt_id": str(attempt_id)}
-    cache_key_val = cache_key(cache_key_path or "/attempt/get", body_dict)
+    cache_key_val = cache_key(
+        cache_key_path or "/attempt/get", body_dict, user_ctx=str(profile_id)
+    )
 
     if not bypass_cache:
         with timed("cache_lookup"):
