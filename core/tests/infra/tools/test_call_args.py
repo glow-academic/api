@@ -1,4 +1,4 @@
-"""Tests for call_args — resolve_tool, resolve_tool_for_entry, record_call_args."""
+"""Tests for call_args — ToolArgInfo, ToolInfo, record_call_args."""
 
 import uuid
 
@@ -8,10 +8,7 @@ from app.infra.tools.call_args import (
     ToolArgInfo,
     ToolInfo,
     record_call_args,
-    resolve_tool,
-    resolve_tool_for_entry,
 )
-from tests.helpers import unique_tag
 
 pytestmark = pytest.mark.asyncio
 
@@ -36,48 +33,6 @@ async def test_tool_info_stores_tool_id_and_args():
     assert info.tool_id == tool_id
     assert len(info.args) == 1
     assert info.args[0].name == "body"
-
-
-# -- resolve_tool --------------------------------------------------------------
-
-
-async def test_resolve_tool_returns_none_for_missing_tool(conn, redis_client, monkeypatch):
-    """resolve_tool returns None when no matching tool exists in tools_resource."""
-    monkeypatch.setattr(
-        "app.infra.tools.call_args.get_redis_client", lambda: redis_client
-    )
-
-    result = await resolve_tool(conn, "create", "nonexistent_target_" + unique_tag())
-    assert result is None
-
-
-async def test_resolve_tool_returns_none_for_invalid_scope(conn, redis_client, monkeypatch):
-    """resolve_tool returns None when scope is not entries/resources/artifacts."""
-    monkeypatch.setattr(
-        "app.infra.tools.call_args.get_redis_client", lambda: redis_client
-    )
-
-    result = await resolve_tool(conn, "create", "attempts", scope="invalid_scope")
-    assert result is None
-
-
-async def test_resolve_tool_for_entry_delegates_to_resolve_tool(conn, redis_client, monkeypatch):
-    """resolve_tool_for_entry delegates to resolve_tool with scope='entries'."""
-    captured = {}
-
-    async def _fake_resolve(conn, operation, target, *, scope="entries"):
-        captured["scope"] = scope
-        captured["operation"] = operation
-        captured["target"] = target
-        return None
-
-    monkeypatch.setattr("app.infra.tools.call_args.resolve_tool", _fake_resolve)
-
-    await resolve_tool_for_entry(conn, "create", "attempts")
-
-    assert captured["scope"] == "entries"
-    assert captured["operation"] == "create"
-    assert captured["target"] == "attempts"
 
 
 # -- record_call_args (no-op) --------------------------------------------------
