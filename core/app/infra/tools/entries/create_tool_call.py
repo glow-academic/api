@@ -289,50 +289,59 @@ async def _persist_audit_writes(
         call_size = (upload_folder / call_rel_path).stat().st_size
 
     async with pool.acquire() as conn:
-        text_upload = await create_upload(
-            conn, redis,
-            session_id=session_id,
-            file_path=text_rel_path,
-            mime_type="text/plain",
-            size=text_size,
-            mcp=mcp,
-        )
-
-        call_upload_db_id: UUID | None = None
-        if tool_id is not None and call_rel_path is not None:
-            call_upload = await create_upload(
+        # Atomic composite: the audit uploads + message subtree + call/message
+        # junctions must land together or not at all. asyncpg autocommits each
+        # statement, so without this boundary a failure on a later insert (e.g.
+        # create_call_upload) after the message subtree already committed would
+        # leave uploads + message WITHOUT the linking junction — a partial-write
+        # orphan on the always-hit audited-tool-call path, visible to reads and
+        # unable to self-heal. create_run_message opens its own transaction;
+        # asyncpg nests it as a SAVEPOINT under this outer one, so they compose.
+        async with conn.transaction():
+            text_upload = await create_upload(
                 conn, redis,
                 session_id=session_id,
-                file_path=call_rel_path,
-                mime_type="application/json",
-                size=call_size,
+                file_path=text_rel_path,
+                mime_type="text/plain",
+                size=text_size,
                 mcp=mcp,
             )
-            call_upload_db_id = call_upload.id
 
-        msg = await create_run_message(
-            conn,
-            redis,
-            run_id=run_id,
-            session_id=session_id,
-            role=role,
-            upload_id=text_upload.id,
-            mcp=mcp,
-            created_at=started_at,
-        )
+            call_upload_db_id: UUID | None = None
+            if tool_id is not None and call_rel_path is not None:
+                call_upload = await create_upload(
+                    conn, redis,
+                    session_id=session_id,
+                    file_path=call_rel_path,
+                    mime_type="application/json",
+                    size=call_size,
+                    mcp=mcp,
+                )
+                call_upload_db_id = call_upload.id
 
-        if call_id is not None and call_upload_db_id is not None:
-            await create_call_upload(
-                conn, redis,
-                call_id=call_id,
-                upload_id=call_upload_db_id,
+            msg = await create_run_message(
+                conn,
+                redis,
+                run_id=run_id,
                 session_id=session_id,
+                role=role,
+                upload_id=text_upload.id,
                 mcp=mcp,
+                created_at=started_at,
             )
-            await create_message_upload(
-                conn, redis,
-                message_id=msg.message_id,
-                upload_id=call_upload_db_id,
-                session_id=session_id,
-                mcp=mcp,
-            )
+
+            if call_id is not None and call_upload_db_id is not None:
+                await create_call_upload(
+                    conn, redis,
+                    call_id=call_id,
+                    upload_id=call_upload_db_id,
+                    session_id=session_id,
+                    mcp=mcp,
+                )
+                await create_message_upload(
+                    conn, redis,
+                    message_id=msg.message_id,
+                    upload_id=call_upload_db_id,
+                    session_id=session_id,
+                    mcp=mcp,
+                )

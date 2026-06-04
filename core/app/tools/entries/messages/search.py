@@ -40,18 +40,25 @@ async def search_messages(
 
     order = "ASC" if sort_order.lower() == "asc" else "DESC"
 
+    # The agent filter uses an EXISTS subquery rather than a LEFT JOIN so a
+    # message linked to N agents stays a single row. A join would fan it out,
+    # and ``COUNT(*) OVER()`` (evaluated before ``DISTINCT``) would then
+    # over-count the unpaginated total — corrupting the "Showing X of Y" UI.
     rows = await conn.fetch(
         f"""
-        SELECT DISTINCT {source_alias}.message_id, {source_alias}.run_id, {source_alias}.role, {source_alias}.message_created_at,
+        SELECT {source_alias}.message_id, {source_alias}.run_id, {source_alias}.role, {source_alias}.message_created_at,
                {source_alias}.text_ids, {source_alias}.audio_ids, {source_alias}.image_ids,
                {source_alias}.video_ids, {source_alias}.file_ids, {source_alias}.call_ids,
                {source_alias}.reasoning,
                COUNT(*) OVER() AS total_count
         FROM {from_source}
-        LEFT JOIN messages_agents_connection mac ON mac.message_id = {source_alias}.message_id
         WHERE ($1::uuid[] IS NULL OR {source_alias}.run_id = ANY($1))
           AND ($2::text IS NULL OR {source_alias}.role = $2)
-          AND ($3::uuid[] IS NULL OR mac.agents_id = ANY($3))
+          AND ($3::uuid[] IS NULL OR EXISTS (
+                SELECT 1 FROM messages_agents_connection mac
+                WHERE mac.message_id = {source_alias}.message_id
+                  AND mac.agents_id = ANY($3)
+          ))
           AND ($4::text[] IS NULL OR {source_alias}.role = ANY($4))
         ORDER BY {source_alias}.message_created_at {order}
         LIMIT $5 OFFSET $6

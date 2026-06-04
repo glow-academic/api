@@ -28,6 +28,7 @@ import json
 
 import pytest
 
+from app.infra.tools.entries import create_tool_call as create_tool_call_mod
 from app.infra.tools.entries.create_tool_call import create_tool_call
 from app.tools.entries.call_uploads.search import search_call_uploads
 from app.tools.entries.calls.get import get_calls
@@ -301,6 +302,82 @@ async def test_returns_raw_result_payload(pool, redis_client, tmp_path):
 
     assert result.result is not None
     assert json.loads(result.result)["message"] == "Created"
+
+
+async def test_composite_rolls_back_on_late_db_failure(
+    pool, redis_client, tmp_path, monkeypatch
+):
+    """If a DB write LATE in the audit composite raises (after the upload +
+    message subtree already inserted), the WHOLE composite must roll back —
+    no orphaned message/upload/call rows survive.
+
+    Pre-fix (no outer ``conn.transaction()``) asyncpg autocommits each
+    statement, so the message + uploads stay committed and only the
+    call_upload link is missing → a partial-write orphan. Post-fix the outer
+    transaction unwinds all of them. We force the failure on the last DB write
+    in the composite (``create_message_upload``, reached only after
+    ``create_call_upload`` has run inside the same outer transaction).
+    """
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
+
+    real_create_message_upload = create_tool_call_mod.create_message_upload
+
+    async def _boom_create_message_upload(*args, **kwargs):
+        raise RuntimeError("composite failure injected mid-write")
+
+    monkeypatch.setattr(
+        create_tool_call_mod, "create_message_upload", _boom_create_message_upload
+    )
+
+    result = await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+    # Background audit task raises internally; schedule_background logs and
+    # swallows it. Drain it, then assert nothing partial committed.
+    await wait_for_pending()
+
+    monkeypatch.setattr(
+        create_tool_call_mod, "create_message_upload", real_create_message_upload
+    )
+
+    async with pool.acquire() as conn:
+        # The run + call themselves are written on the SYNC path (outside the
+        # audit composite) and legitimately exist — they are not part of the
+        # rolled-back composite.
+        run = await get_run(conn, result.run_id, redis_client)
+        assert run is not None
+
+        # The composite (uploads + message + junctions) must have fully
+        # rolled back IN POSTGRES: no message and no call_upload link survives.
+        # We assert the durable pg state directly (bypass_mv / bypass_cache):
+        # the sub-creates' redis write_back_row calls already ran pre-fix and
+        # are non-transactional, so a rolled-back pg txn leaves transient
+        # cache phantoms that self-heal on TTL — out of scope for the pg
+        # atomicity contract this fix establishes.
+        messages, total = await search_messages(
+            conn, redis_client, run_ids=[result.run_id], bypass_mv=True
+        )
+        assert total == 0, f"orphaned message(s) survived rollback: {total}"
+
+        call_uploads = await search_call_uploads(
+            conn, redis_client, call_ids=[result.call_id], bypass_cache=True
+        )
+        assert len(call_uploads) == 0, (
+            f"orphaned call_upload(s) survived rollback: {len(call_uploads)}"
+        )
+
+        # And the text/call upload rows themselves rolled back.
+        upload_rows = await conn.fetch(
+            "SELECT id FROM uploads_entry WHERE session_id = $1 AND active = true",
+            session.id,
+        )
+        assert len(upload_rows) == 0, (
+            f"orphaned upload(s) survived rollback: {len(upload_rows)}"
+        )
 
 
 async def test_raise_on_error_persists_then_reraises(pool, redis_client, tmp_path):

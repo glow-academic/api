@@ -595,6 +595,58 @@ async def test_sync_emulation_default_idp_genuine_create_error_still_warns(caplo
 
 
 @pytest.mark.asyncio
+async def test_sync_emulation_default_idp_benign_409_on_mapper_is_quiet(caplog):
+    """A benign 409 when adding an IdP mapper is quiet (INFO), not WARNING.
+
+    On an idempotent re-sync the mapper already exists ("Duplicate resource
+    error") — the desired state. Extends the create-path conflict handling
+    (#171) to the mapper loop, which previously always logged WARNING on the
+    benign 409 (the residual #49-class noise seen live on v1.0.65's deploy).
+    """
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.auth_flows = [{"alias": "emulation-first-login"}]
+    admin.flow_executions["emulation-first-login"] = []
+
+    def _conflict_add_mapper(idp_alias, payload):
+        raise Exception('409: {"error_description":"Duplicate resource error"}')
+
+    admin.add_mapper_to_idp = _conflict_add_mapper  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        alias = await keycloak_sync.sync_emulation_default_idp(admin, config)
+
+    assert alias == "default-idp"
+    # No WARNING/ERROR for the benign mapper conflict.
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_sync_emulation_default_idp_genuine_mapper_error_still_warns(caplog):
+    """A non-409 mapper failure still logs WARNING (the catch isn't over-broad)."""
+    import logging
+
+    admin = FakeKCAdmin()
+    admin.auth_flows = [{"alias": "emulation-first-login"}]
+    admin.flow_executions["emulation-first-login"] = []
+
+    def _boom_add_mapper(idp_alias, payload):
+        raise Exception("500: internal server error")
+
+    admin.add_mapper_to_idp = _boom_add_mapper  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        alias = await keycloak_sync.sync_emulation_default_idp(admin, config)
+
+    assert alias == "default-idp"
+    warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert any("Failed to sync IdP mapper" in r.message for r in warnings)
+
+
+@pytest.mark.asyncio
 async def test_ensure_emulation_client_mappers_creates_missing_mappers():
     admin = FakeKCAdmin()
     admin.clients = [{"clientId": "glow-client", "id": "client-1"}]
