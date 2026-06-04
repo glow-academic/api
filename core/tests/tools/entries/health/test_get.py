@@ -26,7 +26,21 @@ async def test_gets_created_health_hour(conn, redis_client, profile_id):
     )
     await refresh_health_internal(conn)
 
-    summary = (await search_health(conn, redis_client, service="redis"))[0]
+    # Scope the search to THIS test's own hour bucket. search_health aggregates
+    # by date_hour and orders DESC over the shared health_mv; an unscoped
+    # service="redis" search picks up foreign "redis" rows other tests insert
+    # at later hours (e.g. test_health_stack inserts one at 2031-06-01 12:00),
+    # so [0] would be a foreign hour and the assertions would flake by order.
+    hour = ts.replace(minute=0, second=0, microsecond=0)
+    summaries = await search_health(
+        conn,
+        redis_client,
+        service="redis",
+        date_from=hour,
+        date_to=hour,
+    )
+    assert len(summaries) == 1
+    summary = summaries[0]
     items = await get_health(conn, [summary.date_hour], redis_client)
 
     assert len(items) == 1
