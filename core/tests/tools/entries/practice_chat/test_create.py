@@ -4,6 +4,8 @@ import pytest
 
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.practice.create import create_practice
+from app.tools.entries.practice.get import get_practices
+from app.tools.entries.practice.refresh import refresh_practice
 from app.tools.entries.practice_chat.create import create_practice_chat
 from app.tools.entries.practice_chat.get import get_practice_chats
 from app.tools.entries.practice_chat.refresh import refresh_practice_chat
@@ -94,3 +96,47 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id, simulation_bundle
     )
     assert row is not None
     assert row["mcp"] is True
+
+
+async def test_invalidates_stale_practice_chat_ids_cache(
+    conn, redis_client, profile_id, simulation_bundle
+):
+    """Regression: linking a chat must invalidate the parent ``practice`` cache.
+
+    ``create_practice`` seeds the ``practice`` write-back row with empty
+    ``chat_ids`` (the real list is owned by ``practice_chat_entry`` via
+    ``practice_mv``). A cached ``get_practices`` read before the link would
+    prime that empty row; without invalidation in ``create_practice_chat``
+    the next read returns a stale empty ``chat_ids`` even after the MV is
+    refreshed. Mirrors the #163 groups/group_names stale-name bug.
+    """
+    bundle = simulation_bundle
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    practice = await create_practice(
+        conn,
+        redis_client,
+        session_id=session.id,
+        cohorts_ids=[bundle.cohort_id],
+        departments_ids=[bundle.department_id],
+        simulations_ids=[bundle.simulation_id],
+        profiles_ids=[profile_id],
+        profile_personas_ids=[bundle.profile_persona_id],
+        simulation_availability_ids=[bundle.simulation_availability_id],
+        simulation_positions_ids=[bundle.simulation_position_id],
+    )
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+
+    # Prime the cache with the create-time row (empty chat_ids).
+    primed = await get_practices(conn, [practice.id], redis_client)
+    assert primed and primed[0].chat_ids == []
+
+    # Separate primitive sets the real value.
+    await create_practice_chat(
+        conn, redis_client, practice_id=practice.id, chat_id=chat.id, session_id=session.id
+    )
+    await refresh_practice(conn)
+
+    # Post-fix: cache was invalidated, so this rehydrates from practice_mv.
+    refreshed = await get_practices(conn, [practice.id], redis_client)
+    assert refreshed
+    assert chat.id in refreshed[0].chat_ids
