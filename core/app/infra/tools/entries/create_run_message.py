@@ -17,6 +17,9 @@ from app.tools.entries.message_uploads.create import create_message_upload
 from app.tools.entries.messages.create import create_message
 from app.tools.entries.text_uploads.create import create_text_upload
 from app.tools.entries.texts.create import create_text
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -95,8 +98,12 @@ async def create_run_message(
         redis = get_redis_client()
         for target in ("runs_mv", "messages_mv", "calls_mv"):
             await enqueue_pending(redis, target)
-    except Exception:
-        pass
+    except Exception as e:
+        # Fail-soft (never fail the audit write), but DON'T swallow silently:
+        # a missed enqueue freezes runs_mv/messages_mv/calls_mv until another
+        # write re-enqueues, so the stale-data window needs a trace. Mirrors
+        # the log-on-best-effort pattern in get_cached / invalidate_tags.
+        logger.warning(f"Failed to enqueue chat-MV refresh after run message: {e}")
 
     return CreateRunMessageResult(
         message_id=message.id,

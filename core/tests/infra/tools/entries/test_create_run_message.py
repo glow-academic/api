@@ -122,6 +122,86 @@ async def test_links_message_to_upload(conn, redis_client, profile_id):
     assert row.upload_id == upload.id
 
 
+async def test_enqueue_failure_is_logged_not_swallowed(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """A failed chat-MV refresh enqueue must be observable, not silently passed.
+
+    The enqueue is best-effort (it must never fail the audit write), but a
+    missed enqueue freezes runs_mv/messages_mv/calls_mv until another write
+    re-enqueues — so the stale-data window needs a log trace rather than a
+    bare ``pass``. Asserts: the write still completes (fail-soft preserved)
+    AND the failure is logged at WARNING.
+    """
+    import app.infra.globals as globals_mod
+    import app.infra.tools.entries.create_run_message as mod
+    import app.utils.cache.mv_refresh_queue as mvq
+
+    async def _boom(*_a, **_k):
+        raise RuntimeError("redis enqueue down")
+
+    # The function re-resolves the global redis client + imports enqueue_pending
+    # inside the try; point the former at the test client and make the latter fail.
+    monkeypatch.setattr(globals_mod, "get_redis_client", lambda: redis_client)
+    monkeypatch.setattr(mvq, "enqueue_pending", _boom)
+
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        mod.logger, "warning", lambda msg, *a, **k: warnings.append(str(msg))
+    )
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+    result = await create_run_message(
+        conn,
+        redis_client,
+        run_id=run.id,
+        session_id=session.id,
+        role="system",
+        upload_id=upload.id,
+    )
+
+    # Fail-soft: the audit write completed despite the enqueue failure.
+    assert result.message_id is not None
+    # ...but the failure is now observable (no longer a silent pass).
+    assert any("enqueue chat-MV refresh" in w for w in warnings)
+
+
+async def test_enqueue_success_does_not_warn(
+    conn, redis_client, profile_id, monkeypatch
+):
+    """Happy path: when the enqueue succeeds it enqueues all three chat MVs
+    and emits no warning."""
+    import app.infra.globals as globals_mod
+    import app.infra.tools.entries.create_run_message as mod
+    import app.utils.cache.mv_refresh_queue as mvq
+
+    enqueued: list[str] = []
+
+    async def _spy(_redis, target):
+        enqueued.append(target)
+
+    monkeypatch.setattr(globals_mod, "get_redis_client", lambda: redis_client)
+    monkeypatch.setattr(mvq, "enqueue_pending", _spy)
+
+    warnings: list[str] = []
+    monkeypatch.setattr(
+        mod.logger, "warning", lambda msg, *a, **k: warnings.append(str(msg))
+    )
+
+    session, run, upload = await _deps(conn, redis_client, profile_id)
+    await create_run_message(
+        conn,
+        redis_client,
+        run_id=run.id,
+        session_id=session.id,
+        role="system",
+        upload_id=upload.id,
+    )
+
+    assert enqueued == ["runs_mv", "messages_mv", "calls_mv"]
+    assert warnings == []
+
+
 async def test_multiple_messages_on_same_run(conn, redis_client, profile_id):
     """Can create multiple messages on one run (system + developer + user)."""
     session, run, _ = await _deps(conn, redis_client, profile_id)
