@@ -1485,10 +1485,21 @@ async def sync_default_idp_for_profile(
 
         return alias
     except Exception as e:
-        logger.warning(
-            f"Failed to sync default-idp for profile {profile_id}: {e}",
-            exc_info=True,
-        )
+        # Benign on an idempotent re-sync (every deploy): the per-profile IdP
+        # already exists — get/update missed it and create_idp then 409s. That's
+        # the desired state, not a failure, so log quietly at INFO and carry on;
+        # genuine errors still WARN with a traceback. Mirrors #171/#176 (this
+        # per-profile path was the one default-idp create still logging a scary
+        # benign-409 WARNING+traceback on deploy).
+        if _is_conflict_error(e):
+            logger.info(
+                f"✅ default-idp for profile {profile_id} already exists"
+            )
+        else:
+            logger.warning(
+                f"Failed to sync default-idp for profile {profile_id}: {e}",
+                exc_info=True,
+            )
         return alias if "alias" in locals() else f"default-idp-profile-{profile_id}"
 
 

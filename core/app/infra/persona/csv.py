@@ -12,7 +12,6 @@ Flow:
 
 from __future__ import annotations
 
-import csv
 import io
 import os
 import uuid as uuid_mod
@@ -25,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from app.infra.globals import UPLOAD_FOLDER, get_redis_client
 from app.infra.persona.search import PERSONA_IMPORT_FIELDS
+from app.infra.shared_types import read_csv_rows_bounded
 from app.infra.server_timing import timed
 from app.infra.persona.types import CreatePersonaItem
 from app.infra.activate.activate import activate_rows
@@ -191,8 +191,10 @@ async def parse_persona_csv_impl(
 
     with timed("parse"):
         content = file_bytes.decode("utf-8-sig")
-        reader = csv.reader(io.StringIO(content))
-        all_rows = list(reader)
+        all_rows = read_csv_rows_bounded(
+            io.StringIO(content),
+            make_error=lambda msg: HTTPException(status_code=422, detail=msg),
+        )
 
         if len(all_rows) < 2:
             raise HTTPException(
