@@ -1,178 +1,21 @@
-"""Integration tests for the pricing infra wrapper family."""
+"""Integration tests for ``refresh_pricing_impl``.
+
+Exercises the pricing MV REFRESH orchestrator only — the enqueue contract it
+exposes: which views it claims to refresh (``run_pricing_mv``), which cache
+tags it invalidates (``pricing`` + ``artifacts``), and the ack lifecycle
+(default enqueue vs ``soft`` record-only vs explicit ``accept=False`` reject)
+the shared enqueue path drives off the operation/idempotency key.
+"""
 
 from __future__ import annotations
 
-import base64
-import io
-import zipfile
+from uuid import uuid4
 
 import pytest
 
-from app.infra.pricing.context import (
-    resolve_pricing_context,
-    resolve_pricing_search_context,
-)
-from app.infra.pricing.export import export_pricing_impl
 from app.infra.pricing.refresh import refresh_pricing_impl
-from app.tools.entries.group_names.create import create_group_name
-from app.tools.entries.groups.create import create_group
-from app.tools.entries.run_pricing.create import (
-    create_run_pricing_entry_internal,
-)
-from app.tools.entries.runs.create import create_run
-from app.tools.entries.sessions.create import create_session
-from app.tools.resources.agents.create import create_agent
-from app.tools.resources.models.create import create_model
-from app.tools.resources.pricing.create import create_pricing
 
 pytestmark = pytest.mark.asyncio
-
-
-async def _seed_pricing_graph(conn, redis_client, profile_resource_id):
-    session = await create_session(conn, redis_client, profile_id=profile_resource_id)
-    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
-    await create_group_name(conn, redis_client, group.id, "Pricing Group", session.id)
-    model = await create_model(
-        conn,
-        value="gpt-test-pricing",
-        name="Pricing Model",
-        redis=redis_client,
-    )
-    agent = await create_agent(
-        conn,
-        name="Pricing Agent",
-        redis=redis_client,
-        model_id=model.id,
-    )
-    input_pricing = await create_pricing(
-        conn,
-        "input",
-        0.02,
-        "tokens",
-        "tokens",
-        1000,
-        redis_client,
-    )
-    output_pricing = await create_pricing(
-        conn,
-        "output",
-        0.03,
-        "tokens",
-        "tokens",
-        1000,
-        redis_client,
-    )
-    run = await create_run(
-        conn,
-        redis_client, group_id=group.id,
-        session_id=session.id,
-        agent_ids=[agent.id],
-    )
-    await create_run_pricing_entry_internal(
-        conn,
-        redis_client, session_id=session.id,
-        pricing_type="input",
-        run_id=run.id,
-        pricing_id=input_pricing.id,
-        count=1500,
-    )
-    await create_run_pricing_entry_internal(
-        conn,
-        redis_client, session_id=session.id,
-        pricing_type="output",
-        run_id=run.id,
-        pricing_id=output_pricing.id,
-        count=2000,
-    )
-    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY group_names_mv")
-    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY groups_mv")
-    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY run_pricing_mv")
-    await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
-    return session, group, run, model, agent
-
-
-class TestResolvePricingContext:
-    async def test_returns_runs_and_hydrated_resources(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            _session, _group, run, model, agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await resolve_pricing_context(pool, redis_client)
-
-        seeded_run = next(
-            item for item in result.entries["runs"] if item.run_id == run.id
-        )
-
-        assert result.artifact_id is None
-        assert seeded_run.run_id == run.id
-        assert {item.count for item in seeded_run.pricing} == {1500, 2000}
-        assert agent.id in [item.id for item in result.resources["agents"].selected]
-        assert model.id in [item.id for item in result.resources["models"].selected]
-        pricing_ids = {
-            item.id for item in result.resources["pricing"].selected if item.id
-        }
-        assert len(pricing_ids) >= 2
-
-
-class TestResolvePricingSearchContext:
-    async def test_returns_group_history_with_runs(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            session, group, run, _model, _agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await resolve_pricing_search_context(
-            pool,
-            redis_client,
-            session_ids=[session.id],
-            page=0,
-            page_size=10,
-        )
-
-        assert any(item.id == group.id for item in result.entries["groups"])
-        assert any(item.id == group.id for item in result.entries["total_groups"])
-        assert any(item.run_id == run.id for item in result.entries["runs"])
-        assert "names" in result.resources
-
-
-class TestExportPricingClient:
-    async def test_exports_pricing_zip(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            session, _group, run, _model, _agent = await _seed_pricing_graph(
-                conn, redis_client, profile.profile_resource_id
-            )
-
-        result = await export_pricing_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.row_count >= 1
-        assert result.file_name.endswith(".zip")
-        assert result.mime_type == "application/zip"
-        assert result.content != ""
-
-        zip_bytes = base64.b64decode(result.content)
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
-            assert archive.namelist() == ["runs.csv"]
-            runs_csv = archive.read("runs.csv").decode("utf-8")
-
-        assert str(run.id) in runs_csv
-        assert "Pricing Group" in runs_csv
 
 
 class TestRefreshPricingClient:
@@ -190,3 +33,61 @@ class TestRefreshPricingClient:
         assert result.success is True
         assert result.refreshed_views == ["run_pricing_mv"]
         assert result.invalidated_tags == ["pricing", "artifacts"]
+
+    async def test_soft_records_intent_without_enqueueing_views(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # soft mode busts cache but does NOT claim a view refresh — the ack
+        # will run it later.
+        profile = await profile_identity_factory()
+
+        result = await refresh_pricing_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            soft=True,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == []
+        assert result.invalidated_tags == ["pricing", "artifacts"]
+
+    async def test_explicit_reject_with_key_is_a_noop(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # accept=False + an operation key short-circuits to a no-op: nothing
+        # refreshed, nothing invalidated, but the key is echoed back.
+        profile = await profile_identity_factory()
+        op_key = uuid4()
+
+        result = await refresh_pricing_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            accept=False,
+            operation_key=op_key,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == []
+        assert result.invalidated_tags == []
+        assert result.idempotency_key == op_key
+
+    async def test_idempotency_key_is_echoed_back(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # A supplied operation key threads through to the response so callers
+        # can correlate the ack with the enqueue.
+        profile = await profile_identity_factory()
+        op_key = uuid4()
+
+        result = await refresh_pricing_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            operation_key=op_key,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == ["run_pricing_mv"]
+        assert result.idempotency_key == op_key
