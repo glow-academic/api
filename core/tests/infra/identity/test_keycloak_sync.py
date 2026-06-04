@@ -444,6 +444,58 @@ async def test_sync_default_idp_for_profile_creates_profile_specific_idp():
     assert created["config"]["tokenUrl"] == "http://host.docker.internal:8000/auth/token"
 
 
+@pytest.mark.asyncio
+async def test_sync_default_idp_for_profile_benign_409_is_quiet(caplog):
+    """A benign 409 (per-profile IdP already exists) is quiet (INFO), not a
+    WARNING+traceback. This per-profile default-idp path was the last one
+    still logging a scary benign-409 on every deploy (#171/#176 follow-up).
+    """
+    import logging
+
+    admin = FakeKCAdmin()
+
+    def _conflict_create(payload):
+        raise Exception(
+            '409: {"errorMessage":"Identity Provider default-idp-profile-x already exists"}'
+        )
+
+    admin.create_idp = _conflict_create  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret", app_prefix="auth")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        alias = await keycloak_sync.sync_default_idp_for_profile(
+            "123e4567-e89b-12d3-a456-426614174000", "Ops Profile", admin, config,
+        )
+
+    assert alias == "default-idp-profile-123e4567-e89b-12d3-a456-426614174000"
+    # No WARNING/ERROR for the benign already-exists conflict.
+    assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+@pytest.mark.asyncio
+async def test_sync_default_idp_for_profile_genuine_error_still_warns(caplog):
+    """A non-409 failure still logs WARNING (the catch isn't over-broad)."""
+    import logging
+
+    admin = FakeKCAdmin()
+
+    def _boom_create(payload):
+        raise Exception("500: internal server error")
+
+    admin.create_idp = _boom_create  # type: ignore[method-assign]
+    config = make_config(auth_client_secret="broker-secret", app_prefix="auth")
+
+    with caplog.at_level(logging.WARNING, logger="app.infra.identity.keycloak_sync"):
+        await keycloak_sync.sync_default_idp_for_profile(
+            "123e4567-e89b-12d3-a456-426614174000", "Ops Profile", admin, config,
+        )
+
+    warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert any(
+        "Failed to sync default-idp for profile" in r.message for r in warnings
+    )
+
+
 def test_ensure_emulation_first_login_flow_copies_and_reconfigures_review_steps():
     admin = FakeKCAdmin()
     admin.auth_flows = [{"alias": "first broker login"}]
