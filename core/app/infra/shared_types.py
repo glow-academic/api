@@ -12,6 +12,19 @@ from uuid import UUID
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
+# Bulk-write guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on the number of items a single bulk create/update request may
+# carry. Each item fans out into multiple per-item DB round trips (value
+# resolution + snapshot + junction writes, several inside one transaction), so
+# an unbounded list lets one authenticated request exhaust the connection pool
+# / hold a transaction open arbitrarily long (resource-exhaustion DoS). Pydantic
+# rejects oversized lists with a 422 before any DB work runs. Generous enough
+# for legitimate CSV imports; the CSV import flow proposes items the client
+# re-submits through these same bulk endpoints.
+MAX_BULK_ITEMS = 500
+
+# ---------------------------------------------------------------------------
 # Profile context types
 # ---------------------------------------------------------------------------
 

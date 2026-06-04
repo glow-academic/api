@@ -7,6 +7,7 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
@@ -341,7 +342,7 @@ class CreateEvalItem(ScopedItem):
 class CreateEvalApiRequest(BaseModel):
     """Request model for bulk create eval endpoint."""
 
-    evals: list[CreateEvalItem] = Field(..., description="List of evals to create")
+    evals: list[CreateEvalItem] = Field(..., max_length=MAX_BULK_ITEMS, description="List of evals to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
     soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")

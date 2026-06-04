@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField, SectionFilter
@@ -537,7 +538,7 @@ class CreateScenarioItem(ScopedItem):
 class CreateScenarioApiRequest(BaseModel):
     """Request model for bulk create scenario endpoint."""
 
-    scenarios: list[CreateScenarioItem] = Field(..., description="List of scenarios to create")
+    scenarios: list[CreateScenarioItem] = Field(..., max_length=MAX_BULK_ITEMS, description="List of scenarios to create")
 
     # Ack
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
