@@ -21,6 +21,27 @@ from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
 
+
+def _is_conflict_error(exc: Exception) -> bool:
+    """Return True if an exception represents a benign 'already exists' conflict.
+
+    Keycloak returns a 409 when a resource being created/updated already exists
+    (or a server-side side-effect of it, e.g. a service-account user, already
+    exists). On an idempotent re-sync this is the desired state, not a failure.
+
+    This is the same predicate the create paths already use inline; centralising
+    it lets the create AND update paths detect benign conflicts identically.
+    """
+    error_str = str(exc).lower()
+    return (
+        "location" in error_str
+        or "duplicate" in error_str
+        or "conflict" in error_str
+        or "409" in error_str
+        or "already exists" in error_str
+    )
+
+
 # Retry configuration
 MAX_RETRIES = 10
 INITIAL_RETRY_DELAY = 2.0  # seconds
@@ -340,9 +361,16 @@ async def ensure_glow_client_in_master_realm(
                     )
                     logger.info(f"✅ Master realm: Client '{target_client_id}' updated")
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to update master realm client '{target_client_id}': {e}"
-                    )
+                    if _is_conflict_error(e):
+                        # Benign on re-sync: a sub-resource of the client (e.g. the
+                        # service-account user) already exists — the desired state.
+                        logger.info(
+                            f"✅ Master realm: Client '{target_client_id}' already configured"
+                        )
+                    else:
+                        logger.warning(
+                            f"Failed to update master realm client '{target_client_id}': {e}"
+                        )
         else:
             try:
                 new_client_uuid = kc_admin.create_client(
@@ -1578,8 +1606,20 @@ async def sync_emulation_default_idp(kc_admin: Any, config: KeycloakSyncConfig) 
             kc_admin.update_idp(idp_alias=alias, payload=payload)
             logger.info(f"✅ Updated {alias} Identity Provider (for emulation)")
         except Exception:
-            kc_admin.create_idp(payload=payload)
-            logger.info(f"✅ Created {alias} Identity Provider (for emulation)")
+            try:
+                kc_admin.create_idp(payload=payload)
+                logger.info(f"✅ Created {alias} Identity Provider (for emulation)")
+            except Exception as create_e:
+                # Benign on re-sync: the IdP already exists (the get_idp probe
+                # failed for another reason, or a concurrent sync created it).
+                # That's the desired state — log quietly and carry on to the
+                # mapper sync below. Genuine create errors still raise.
+                if _is_conflict_error(create_e):
+                    logger.info(
+                        f"✅ {alias} Identity Provider already exists (for emulation)"
+                    )
+                else:
+                    raise
 
         # Add IdP mappers to import custom claims from our IdP tokens
         # These claims will be stored as user attributes and can be included in client tokens
