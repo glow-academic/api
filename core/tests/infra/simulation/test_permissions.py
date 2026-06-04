@@ -303,6 +303,48 @@ async def test_can_duplicate_denied_for_member():
     )
 
 
+async def test_can_duplicate_owner_in_department():
+    dept = uuid4()
+    assert (
+        compute_can_duplicate(
+            role_level=1,
+            role_permissions=[("simulation", "duplicate")],
+            simulation_department_ids=[dept],
+            user_department_ids=[dept],
+        )
+        is True
+    )
+
+
+async def test_can_duplicate_cross_department_denied():
+    # Actor in Dept A must NOT duplicate a Dept-B simulation they cannot edit.
+    dept_b = uuid4()
+    dept_a = uuid4()
+    assert (
+        compute_can_duplicate(
+            role_level=1,
+            role_permissions=[("simulation", "duplicate")],
+            simulation_department_ids=[dept_b],
+            user_department_ids=[dept_a],
+        )
+        is False
+    )
+
+
+async def test_can_duplicate_superadmin_bypasses_department_scope():
+    dept_b = uuid4()
+    dept_a = uuid4()
+    assert (
+        compute_can_duplicate(
+            role_level=0,
+            role_permissions=[("simulation", "duplicate")],
+            simulation_department_ids=[dept_b],
+            user_department_ids=[dept_a],
+        )
+        is True
+    )
+
+
 # ---------- compute_can_create ----------
 
 

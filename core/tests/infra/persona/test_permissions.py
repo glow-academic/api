@@ -112,6 +112,16 @@ class TestCanDeleteDuplicateCreateDraft:
     def test_can_duplicate_denied(self):
         assert compute_can_duplicate(3, []) is False
 
+    def test_owner_in_department_can_duplicate(self):
+        assert compute_can_duplicate(1, [("persona", "duplicate")], [_DEPT], [_DEPT]) is True
+
+    def test_cross_department_duplicate_denied(self):
+        # Actor in Dept A (_OTHER) must NOT duplicate a Dept-B (_DEPT) persona.
+        assert compute_can_duplicate(1, [("persona", "duplicate")], [_DEPT], [_OTHER]) is False
+
+    def test_superadmin_bypasses_department_scope_on_duplicate(self):
+        assert compute_can_duplicate(0, [("persona", "duplicate")], [_DEPT], [_OTHER]) is True
+
     def test_can_create_with_departments(self):
         assert compute_can_create(1, [("persona", "create")], [_DEPT]) is True
 
