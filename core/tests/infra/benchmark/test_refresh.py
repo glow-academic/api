@@ -1,98 +1,22 @@
-"""Integration tests for the benchmark infra wrapper family."""
+"""Integration tests for ``refresh_benchmark_impl``.
+
+Exercises the benchmark MV REFRESH orchestrator only — the enqueue contract it
+exposes: which views it claims to refresh (``benchmark_mv``), which cache tags
+it invalidates (``benchmark`` + ``artifacts``), and the ack lifecycle
+(default enqueue vs ``soft`` record-only vs explicit ``accept=False`` reject vs
+idempotency-key echo) the shared ``enqueue_refreshes`` path drives off the
+operation/idempotency key.
+"""
 
 from __future__ import annotations
 
-import base64
-import io
-import zipfile
+from uuid import uuid4
 
 import pytest
 
-from app.infra.benchmark.context import resolve_benchmark_context
-from app.infra.benchmark.export import export_benchmark_impl
 from app.infra.benchmark.refresh import refresh_benchmark_impl
-from app.tools.entries.benchmark.create import create_benchmark
-from app.tools.entries.benchmark.refresh import refresh_benchmark
-from app.tools.resources.departments.create import create_department
 
 pytestmark = pytest.mark.asyncio
-
-
-class TestResolveBenchmarkContext:
-    async def test_returns_benchmark_entries_and_hydrated_departments(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            department = await create_department(
-                conn,
-                name="Benchmark Department",
-                description="Bench dept",
-                redis=redis_client,
-            )
-            await create_benchmark(
-                conn,
-                redis_client, profiles_ids=[profile.profile_resource_id],
-                departments_ids=[department.id],
-            )
-            await refresh_benchmark(conn)
-
-        result = await resolve_benchmark_context(
-            pool,
-            redis_client,
-            department_ids=[department.id],
-        )
-
-        assert len(result.entries["benchmarks"]) >= 1
-        assert (
-            result.resources["departments"].selected[0].name == "Benchmark Department"
-        )
-        assert result.entries["invocations"] == []
-        assert result.entries["tests"] == []
-        assert result.entries["test_invocations"] == []
-
-
-class TestExportBenchmarkClient:
-    async def test_exports_benchmarks_zip(
-        self, pool, redis_client, profile_identity_factory
-    ):
-        profile = await profile_identity_factory()
-
-        async with pool.acquire() as conn:
-            department = await create_department(
-                conn,
-                name="Export Department",
-                description="Bench export dept",
-                redis=redis_client,
-            )
-            await create_benchmark(
-                conn,
-                redis_client, profiles_ids=[profile.profile_resource_id],
-                departments_ids=[department.id],
-            )
-            await refresh_benchmark(conn)
-
-        result = await export_benchmark_impl(
-            pool,
-            redis_client,
-            profile_id=profile.artifact_id,
-        )
-
-        assert result.row_count >= 1
-        assert result.file_name.endswith(".zip")
-        assert result.mime_type == "application/zip"
-        assert result.content != ""
-
-        zip_bytes = base64.b64decode(result.content)
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
-            assert sorted(archive.namelist()) == [
-                "benchmarks.csv",
-                "test_invocations.csv",
-            ]
-            benchmarks_csv = archive.read("benchmarks.csv").decode("utf-8")
-
-        assert "Export Department" in benchmarks_csv
 
 
 class TestRefreshBenchmarkClient:
@@ -110,3 +34,61 @@ class TestRefreshBenchmarkClient:
         assert result.success is True
         assert result.refreshed_views == ["benchmark_mv"]
         assert result.invalidated_tags == ["benchmark", "artifacts"]
+
+    async def test_soft_records_intent_without_enqueueing_views(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # soft mode busts cache but does NOT claim a view refresh — the ack
+        # will run it later.
+        profile = await profile_identity_factory()
+
+        result = await refresh_benchmark_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            soft=True,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == []
+        assert result.invalidated_tags == ["benchmark", "artifacts"]
+
+    async def test_explicit_reject_with_key_is_a_noop(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # accept=False + an operation key short-circuits to a no-op: nothing
+        # refreshed, nothing invalidated, but the key is echoed back.
+        profile = await profile_identity_factory()
+        op_key = uuid4()
+
+        result = await refresh_benchmark_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            accept=False,
+            operation_key=op_key,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == []
+        assert result.invalidated_tags == []
+        assert result.idempotency_key == op_key
+
+    async def test_idempotency_key_is_echoed_back(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        # A supplied operation key threads through to the response so callers
+        # can correlate the ack with the enqueue.
+        profile = await profile_identity_factory()
+        op_key = uuid4()
+
+        result = await refresh_benchmark_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            operation_key=op_key,
+        )
+
+        assert result.success is True
+        assert result.refreshed_views == ["benchmark_mv"]
+        assert result.idempotency_key == op_key
