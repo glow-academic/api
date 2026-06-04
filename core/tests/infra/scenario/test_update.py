@@ -111,6 +111,94 @@ class TestProfileResolved:
         assert len(called) == 1
 
 
+@dataclass
+class _DeptScopedProfile:
+    """Non-top-level actor (level 1) holding scenario:update, scoped to one dept."""
+
+    role_level = 1
+    role_permissions = [("scenario", "update")]
+    department_ids = None  # set per-instance
+
+    def __init__(self, own_dept):
+        self.department_ids = [own_dept]
+
+
+@dataclass
+class _FakePermsCtx:
+    exists: bool
+    department_ids: list
+    active_simulation_count: int = 0
+
+
+class TestUpdateDepartmentAssignmentGuard:
+    """Body `department_ids` on update must be a subset of the actor's own departments.
+
+    The actor can edit a scenario in their OWN department (compute_can_edit scopes
+    the scenario's *existing* depts) but must not be able to move it INTO a foreign
+    department via the body — the write-side cross-department BOLA.
+    """
+
+    def _patch_common(self, monkeypatch, own_dept):
+        async def fake_resolve(*args, **kw):
+            return _DeptScopedProfile(own_dept)
+
+        async def fake_perms(pool, scenario_id):
+            # Scenario currently lives in the actor's own dept → editable.
+            return _FakePermsCtx(exists=True, department_ids=[own_dept])
+
+        async def fake_values(pool, redis, item, is_create):
+            return []
+
+        monkeypatch.setattr(
+            "app.infra.scenario.update.resolve_profile_identity_context", fake_resolve,
+        )
+        monkeypatch.setattr(
+            "app.infra.scenario.update.resolve_scenario_permissions_context", fake_perms,
+        )
+        monkeypatch.setattr(
+            "app.infra.scenario.update.resolve_scenario_values", fake_values,
+        )
+
+    async def test_cross_department_reassignment_denied(self, monkeypatch):
+        own_dept = uuid4()
+        foreign_dept = uuid4()
+        self._patch_common(monkeypatch, own_dept)
+
+        # Edit an own-dept scenario but retag it INTO a foreign dept.
+        req = UpdateScenarioApiRequest(
+            scenarios=[UpdateScenarioItem(id=uuid4(), department_ids=[foreign_dept])]
+        )
+        with pytest.raises(HTTPException) as exc_info:
+            await update_scenario_impl(
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=req,
+            )
+        assert exc_info.value.status_code == 403
+
+    async def test_own_department_reassignment_passes_guard(self, monkeypatch):
+        own_dept = uuid4()
+        reached = []
+        self._patch_common(monkeypatch, own_dept)
+
+        async def fake_snapshot(*a, **kw):
+            reached.append(True)
+            raise RuntimeError("stop after guard")
+
+        monkeypatch.setattr(
+            "app.infra.scenario.update.create_denormalized_snapshot", fake_snapshot,
+        )
+
+        # Legit: keep the scenario in the actor's own dept — guard passes, then
+        # we short-circuit at the snapshot step (proving no 403 was raised).
+        req = UpdateScenarioApiRequest(
+            scenarios=[UpdateScenarioItem(id=uuid4(), department_ids=[own_dept])]
+        )
+        with pytest.raises(RuntimeError, match="stop after guard"):
+            await update_scenario_impl(
+                _FakePool(), object(), profile_id=_PROFILE_ID, request=req,
+            )
+        assert reached == [True]
+
+
 class TestImport:
     async def test_function_is_importable(self):
         assert callable(update_scenario_impl)

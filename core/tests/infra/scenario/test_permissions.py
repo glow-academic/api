@@ -12,7 +12,10 @@ from app.infra.scenario.permissions import (
     compute_can_duplicate,
     compute_can_draft,
 )
-from app.infra.scenario.permissions import compute_can_create
+from app.infra.scenario.permissions import (
+    compute_can_create,
+    compute_can_assign_departments,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -299,4 +302,65 @@ class TestCanDeleteDuplicateCreateDraft:
                 role_permissions=[],
             )
             is False
+        )
+
+
+class TestComputeCanAssignDepartments:
+    """Write-side department-assignment BOLA guard (create/update body `department_ids`)."""
+
+    async def test_actor_can_assign_own_department(self):
+        # Legit path: actor in Dept A assigns the scenario to Dept A.
+        assert (
+            compute_can_assign_departments(
+                role_level=1,
+                target_department_ids=[_DEPT],
+                user_department_ids=[_DEPT],
+            )
+            is True
+        )
+
+    async def test_cross_department_assignment_denied(self):
+        # Exploit: actor in Dept A (_DEPT) tries to assign the scenario to
+        # Dept B (_OTHER) — a department they don't belong to.
+        assert (
+            compute_can_assign_departments(
+                role_level=1,
+                target_department_ids=[_OTHER],
+                user_department_ids=[_DEPT],
+            )
+            is False
+        )
+
+    async def test_partial_cross_department_assignment_denied(self):
+        # Mixing an owned dept with a foreign dept must still be rejected
+        # (subset, not intersection).
+        assert (
+            compute_can_assign_departments(
+                role_level=1,
+                target_department_ids=[_DEPT, _OTHER],
+                user_department_ids=[_DEPT],
+            )
+            is False
+        )
+
+    async def test_superadmin_bypasses_assignment_scope(self):
+        # Top-level role (level 0) may assign any department, as with edit/delete.
+        assert (
+            compute_can_assign_departments(
+                role_level=0,
+                target_department_ids=[_OTHER],
+                user_department_ids=[_DEPT],
+            )
+            is True
+        )
+
+    async def test_empty_target_is_allowed(self):
+        # No departments assigned by this write — nothing cross-tenant to scope.
+        assert (
+            compute_can_assign_departments(
+                role_level=1,
+                target_department_ids=None,
+                user_department_ids=[_DEPT],
+            )
+            is True
         )
