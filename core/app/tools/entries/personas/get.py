@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.personas.types import GetPersonasResponse
-from app.utils.cache.hedged_row import read_back_row
+from app.utils.cache.hedged_row import read_back_rows
 
 
 async def get_personas(
@@ -23,8 +23,10 @@ async def get_personas(
     cached_results: dict[str, GetPersonasResponse] = {}
     missing_ids: list[UUID] = []
     if not bypass_cache:
+        # One pipelined MGET for all ids instead of one GET per id.
+        cached_rows = await read_back_rows(redis, "personas", list(ids))
         for did in ids:
-            cached = await read_back_row(redis, "personas", did)
+            cached = cached_rows.get(str(did))
             if cached is not None:
                 # GET filters active=true; honor that on cached rows
                 if not cached.get("active", True):

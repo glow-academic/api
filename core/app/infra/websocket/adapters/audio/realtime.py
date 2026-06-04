@@ -228,6 +228,7 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
             "OpenAI-Beta": "realtime=v1",
         }
 
+        ws = None
         try:
             ws = await websockets.connect(ws_url, additional_headers=headers)
             session.oa_ws_connection = ws
@@ -307,6 +308,16 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
 
         except Exception as e:
             logger.exception(f"Failed to connect to Realtime API: {e}")
+            # Close the provider WS if it opened before the failure
+            # (e.g. session.update send raised). The caller drops the
+            # session via remove_session() without calling stop_session(),
+            # so without this the provider connection would leak.
+            if ws is not None:
+                try:
+                    await ws.close()
+                except Exception:
+                    pass
+                session.oa_ws_connection = None
             raise
 
     async def stop_session(self, session: AudioSession) -> None:
