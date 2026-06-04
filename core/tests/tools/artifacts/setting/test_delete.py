@@ -96,3 +96,38 @@ async def test_hard_delete_cascades_junctions(conn, redis_client):
         "SELECT 1 FROM setting_names_junction WHERE setting_id = $1", p.id
     )
     assert row is None
+
+
+async def test_hard_delete_clears_non_cascading_systems_junction(
+    conn, redis_client
+):
+    """Hard-deleting a setting that has a ``systems`` link must succeed.
+
+    The ``setting_systems_junction.setting_id`` FK was created WITHOUT
+    ``ON DELETE CASCADE`` (NO ACTION). Before the fix, a plain
+    ``DELETE FROM setting_artifact`` raised ForeignKeyViolationError for any
+    setting with a systems/mcp/logins link, making the artifact undeletable.
+    The delete tool now clears the non-cascading junctions first.
+
+    Fail-pre: this raised ForeignKeyViolationError.
+    Pass-post: delete succeeds and the junction row is gone.
+    """
+    from app.tools.resources.systems.create import create_system
+
+    system = await create_system(conn, name=f"s-{_u()}", redis=redis_client)
+    p = await create_setting(conn, system_ids=[system.id])
+
+    pre = await conn.fetchval(
+        "SELECT count(*) FROM setting_systems_junction WHERE setting_id = $1", p.id
+    )
+    assert pre == 1
+
+    result = await delete_settings(conn, [p.id])
+    assert p.id in result.deleted_ids
+
+    assert await conn.fetchval(
+        "SELECT count(*) FROM setting_artifact WHERE id = $1", p.id
+    ) == 0
+    assert await conn.fetchval(
+        "SELECT count(*) FROM setting_systems_junction WHERE setting_id = $1", p.id
+    ) == 0
