@@ -5,6 +5,8 @@ These were previously auto-generated in app.sql.types — now hand-maintained.
 
 from __future__ import annotations
 
+import csv
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -23,6 +25,51 @@ from pydantic import BaseModel
 # for legitimate CSV imports; the CSV import flow proposes items the client
 # re-submits through these same bulk endpoints.
 MAX_BULK_ITEMS = 500
+
+# ---------------------------------------------------------------------------
+# CSV-import parse guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on the number of rows a single uploaded CSV may carry. The CSV
+# parse path used to materialize the whole file (``list(csv.reader(...))``)
+# before any size check, so a huge upload could spike memory during parse —
+# even though the items it proposes are then re-submitted through the
+# ``MAX_BULK_ITEMS``-capped bulk-create endpoints. We cap the row count at the
+# same bound (a CSV that would exceed the create cap anyway is rejected early)
+# plus the one mandatory header row, and we bail *while reading* rather than
+# after materializing, so the unbounded read never happens.
+MAX_CSV_ROWS = MAX_BULK_ITEMS + 1
+
+
+def read_csv_rows_bounded(
+    csv_file: Any,
+    *,
+    make_error: Callable[[str], Exception] | None = None,
+    max_rows: int = MAX_CSV_ROWS,
+) -> list[list[str]]:
+    """Read a CSV file-like into rows, bailing as soon as ``max_rows`` is
+    exceeded.
+
+    Replaces the unbounded ``list(csv.reader(...))`` idiom: rows are pulled one
+    at a time and the read aborts the moment the cap is crossed, so an
+    oversized upload cannot be fully materialized in memory before being
+    rejected. ``make_error`` lets each artifact raise its own client-CSV error
+    type (e.g. ``CsvParseError`` or ``HTTPException``) — it receives the message
+    and returns the exception to raise; defaults to ``ValueError``. The route
+    boundary translates the raised error to a 4xx.
+    """
+    if make_error is None:
+        make_error = ValueError
+    reader = csv.reader(csv_file)
+    rows: list[list[str]] = []
+    for row in reader:
+        if len(rows) >= max_rows:
+            raise make_error(
+                f"CSV exceeds the maximum of {max_rows - 1} data rows "
+                f"(including a header row, {max_rows} lines). Split the import "
+                f"into smaller files."
+            )
+        rows.append(row)
+    return rows
 
 # ---------------------------------------------------------------------------
 # Profile context types

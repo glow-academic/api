@@ -6,7 +6,6 @@ Routes/auth/csv.py is a thin HTTP adapter over parse_auth_csv_impl.
 
 from __future__ import annotations
 
-import csv
 import io
 import os
 import uuid as uuid_mod
@@ -24,6 +23,7 @@ from app.tools.entries.uploads.create import create_upload
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.infra.activate.activate import activate_rows
+from app.infra.shared_types import read_csv_rows_bounded
 from app.infra.server_timing import timed
 
 
@@ -161,8 +161,9 @@ async def parse_auth_csv_impl(
 
     with timed("csv_parse"):
         content = file_bytes.decode("utf-8-sig")
-        reader = csv.reader(io.StringIO(content))
-        all_rows = list(reader)
+        all_rows = read_csv_rows_bounded(
+            io.StringIO(content), make_error=CsvParseError
+        )
 
     if len(all_rows) < 2:
         raise CsvParseError("CSV must have a header row and at least one data row")
