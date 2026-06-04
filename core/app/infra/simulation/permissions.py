@@ -154,6 +154,7 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     simulation_department_ids: list[str] | list[UUID] | None,
     cohort_usage_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -161,12 +162,30 @@ def compute_can_delete(
     - Default simulations (no departments) cannot be deleted except by top-level role
     - Simulations linked to ANY cohort cannot be deleted
     - User must have simulation:delete permission
+    - Non-top-level users must belong to ALL of the simulation's departments
+      (mirrors ``compute_can_edit`` — delete must not bypass the department
+      scope an edit enforces, else a Dept-A user could delete a Dept-B
+      simulation they cannot even edit).
     """
     if not simulation_department_ids and role_level > 0:
         return False
     if cohort_usage_count > 0:
         return False
-    return has_permission(role_permissions, "simulation", "delete")
+    if not has_permission(role_permissions, "simulation", "delete"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and simulation_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        sim_dept_set = {str(d) for d in simulation_department_ids}
+        if not sim_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(

@@ -219,6 +219,7 @@ async def delete_cohort_impl(
             role_level=profile.role_level, role_permissions=profile.role_permissions,
             cohort_department_ids=ctx.department_ids,
             usage_count=0,
+            user_department_ids=profile.department_ids,
         ):
             if all:
                 skipped_results.append(DeleteCohortResult(

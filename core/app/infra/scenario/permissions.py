@@ -275,6 +275,7 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     scenario_department_ids: list[str] | list[UUID] | None,
     active_simulation_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -282,6 +283,10 @@ def compute_can_delete(
     - Default scenarios (no departments) cannot be deleted except by top-level role
     - Scenarios linked to active simulations cannot be deleted
     - User must have scenario:delete permission
+    - Non-top-level users must belong to ALL of the scenario's departments
+      (mirrors ``compute_can_edit`` — delete must not bypass the department
+      scope an edit enforces, else a Dept-A user could delete a Dept-B
+      scenario they cannot even edit).
     """
     # Default scenarios can only be deleted by top-level role
     if not scenario_department_ids and role_level > 0:
@@ -292,7 +297,21 @@ def compute_can_delete(
         return False
 
     # Permission check
-    return has_permission(role_permissions, "scenario", "delete")
+    if not has_permission(role_permissions, "scenario", "delete"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and scenario_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        scenario_dept_set = {str(d) for d in scenario_department_ids}
+        if not scenario_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(

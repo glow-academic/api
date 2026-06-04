@@ -229,6 +229,7 @@ async def delete_simulation_impl(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 simulation_department_ids=ctx.department_ids,
                 cohort_usage_count=ctx.cohort_usage_count,
+                user_department_ids=profile.department_ids,
             ):
                 if all:
                     skipped_results.append(DeleteSimulationResult(

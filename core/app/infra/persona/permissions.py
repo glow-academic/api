@@ -299,6 +299,7 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     persona_department_ids: list[str] | list[UUID] | None,
     active_scenario_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -306,6 +307,10 @@ def compute_can_delete(
     - Default personas (no departments) cannot be deleted except by top-level role
     - Personas linked to active scenarios cannot be deleted
     - User must have persona:delete permission
+    - Non-top-level users must belong to ALL of the persona's departments
+      (mirrors ``compute_can_edit`` — delete must not bypass the department
+      scope an edit enforces, else a Dept-A user could delete a Dept-B
+      persona they cannot even edit).
     """
     # Default personas can only be deleted by top-level role
     if not persona_department_ids and role_level > 0:
@@ -316,7 +321,21 @@ def compute_can_delete(
         return False
 
     # Permission check
-    return has_permission(role_permissions, "persona", "delete")
+    if not has_permission(role_permissions, "persona", "delete"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and persona_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        persona_dept_set = {str(d) for d in persona_department_ids}
+        if not persona_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(

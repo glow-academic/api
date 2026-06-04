@@ -181,12 +181,17 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     cohort_department_ids: list[str] | list[UUID] | None,
     usage_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Default cohorts (no departments) cannot be deleted except by top-level role
     - User must have cohort:delete permission
+    - Non-top-level users must belong to ALL of the cohort's departments
+      (mirrors ``compute_can_edit`` — delete must not bypass the department
+      scope an edit enforces, else a Dept-A user could delete a Dept-B
+      cohort they cannot even edit).
 
     NOTE: usage_count (profile links) is intentionally NOT checked here.
     Unlike other artifacts where usage_count blocks deletion because child
@@ -199,7 +204,21 @@ def compute_can_delete(
         return False
     # if usage_count > 0:
     #     return False
-    return has_permission(role_permissions, "cohort", "delete")
+    if not has_permission(role_permissions, "cohort", "delete"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and cohort_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        cohort_dept_set = {str(d) for d in cohort_department_ids}
+        if not cohort_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(
