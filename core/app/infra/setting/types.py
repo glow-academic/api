@@ -7,6 +7,7 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
@@ -518,7 +519,7 @@ class CreateSettingItem(ScopedItem):
 class CreateSettingApiRequest(BaseModel):
     """Request model for bulk create setting endpoint."""
 
-    settings: list[CreateSettingItem] = Field(..., description="List of settings to create")
+    settings: list[CreateSettingItem] = Field(..., max_length=MAX_BULK_ITEMS, description="List of settings to create")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack — promotes or rejects a dormant create")
     soft: bool = Field(False, description="Stage the create dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept (promote) or reject dormant state. Only meaningful with idempotency_key")
