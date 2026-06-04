@@ -73,7 +73,23 @@ class TestResolveProfileIdentityContext:
         assert result.emails == profile.emails
         assert result.primary_department_id is None
         assert len(result.department_ids) == len(profile.departments)
-        assert result.settings_id is None
+        # This profile has no primary department, so ``settings_id`` is not
+        # sourced from a dept's ``setting_ids``. The resolver instead falls
+        # back to the platform-default setting (the active setting whose
+        # ``department_ids`` is empty) via
+        # ``resolve_platform_default_settings_resource_id`` — see
+        # ``profile_identity_context`` lines ~234-245. So the hydrated value
+        # equals that platform-default resource id (which is ``None`` only
+        # when no platform-default setting exists in the DB). Assert against
+        # the canonical resolver rather than a hard-coded ``None``.
+        from app.infra.identity.settings import (
+            resolve_platform_default_settings_resource_id,
+        )
+
+        expected_settings_id = await resolve_platform_default_settings_resource_id(
+            pool
+        )
+        assert result.settings_id == expected_settings_id
         assert result.request_limit is None
         assert result.is_active is True
         assert result.session_id is None

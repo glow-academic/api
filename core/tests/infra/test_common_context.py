@@ -50,7 +50,22 @@ class TestResolveCommonContext:
 
         assert result is not None
         assert isinstance(result, CommonContext)
-        assert result.profile.settings_id is None
+        # This profile has no primary department / no department-scoped
+        # setting. ``resolve_profile_identity_context`` therefore falls back to
+        # the platform-default setting (active, empty ``department_ids``) via
+        # ``resolve_platform_default_settings_resource_id``, so ``settings_id``
+        # is that platform-default resource id (``None`` only when no such
+        # default exists in the DB) rather than unconditionally ``None``. The
+        # real point of this test is the empty tool_graph below: a profile with
+        # no tool-bearing setting graph yields no tools.
+        from app.infra.identity.settings import (
+            resolve_platform_default_settings_resource_id,
+        )
+
+        expected_settings_id = await resolve_platform_default_settings_resource_id(
+            pool
+        )
+        assert result.profile.settings_id == expected_settings_id
 
         tool_graph, runs = await _resolve_tool_graph_for(pool, redis_client, result)
         assert tool_graph.tools == []
