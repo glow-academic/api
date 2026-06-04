@@ -102,6 +102,37 @@ async def read_back_row(
         return None
 
 
+async def read_back_rows(
+    redis: Redis, entry: str, row_ids: list[UUID | str],
+) -> dict[str, dict[str, Any]]:
+    """Batch variant of ``read_back_row`` — one pipelined MGET for all ids.
+
+    Returns a ``{str(id): parsed_dict}`` map containing only cache HITS;
+    missing/undecodable ids are simply absent. Behaviour for any single id is
+    identical to ``read_back_row`` (same key, same JSON parse), but collapses N
+    per-id ``GET`` round-trips into one ``MGET`` — the same merge-index pattern
+    ``hedged_search`` already uses. Best-effort: a cache outage yields ``{}``.
+    """
+    if not row_ids:
+        return {}
+    keys = [_row_key(entry, rid) for rid in row_ids]
+    try:
+        raws = await redis.mget(*keys)
+    except Exception:
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for rid, raw in zip(row_ids, raws or []):
+        if raw is None:
+            continue
+        if isinstance(raw, bytes):
+            raw = raw.decode()
+        try:
+            out[str(rid)] = json.loads(raw)
+        except Exception:
+            continue
+    return out
+
+
 async def invalidate_row(
     redis: Redis, entry: str, row_id: UUID | str,
 ) -> None:
