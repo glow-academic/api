@@ -57,10 +57,13 @@ def test_build_client_error_payload_uses_standard_shape():
     }
 
 
-def test_build_handler_error_message_prefixes_exception_message():
-    assert build_handler_error_message(ValueError("bad input")) == (
-        "Handler error: bad input"
-    )
+def test_build_handler_error_message_is_generic_and_does_not_leak():
+    # The raw exception text must NOT reach the WS client (info-disclosure,
+    # same class as #208 on the HTTP path) — only a generic message.
+    msg = build_handler_error_message(ValueError("bad input: table users col x"))
+    assert "bad input" not in msg
+    assert "users" not in msg
+    assert msg == "Handler error. Please try again."
 
 
 def test_is_generate_error_event_only_matches_generate_error():
