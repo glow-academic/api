@@ -58,11 +58,21 @@ async def test_department_filter(conn, redis_client):
 
 async def test_exclude_ids(conn, redis_client):
     """Excluded profiles should not appear in results."""
-    name = await create_name(conn, f"excl-{_u()}", redis_client)
+    tag = _u()
+    name = await create_name(conn, f"excl-{tag}", redis_client)
     p1 = await create_profile(conn, name_id=name.id)
     p2 = await create_profile(conn, name_id=name.id)
 
-    ids, _total = await search_profiles(conn, exclude_ids=[p1.id])
+    # Scope the search to this test's own profiles via the unique name tag.
+    # ``search_profiles`` defaults to ``limit_count=20`` ordered by name, so
+    # in the shared template DB (which holds many sibling profiles) an
+    # unfiltered search can page ``p2`` out of the result set and break the
+    # ``p2.id in ids`` assertion. Filtering by the unique name bounds the
+    # result to exactly p1/p2, making the exclude assertions id-scoped and
+    # robust to contamination.
+    ids, _total = await search_profiles(
+        conn, search=f"excl-{tag}", exclude_ids=[p1.id]
+    )
     assert p1.id not in ids
     assert p2.id in ids
 
