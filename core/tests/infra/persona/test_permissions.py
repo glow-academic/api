@@ -96,6 +96,16 @@ class TestCanDeleteDuplicateCreateDraft:
     def test_can_delete_blocked_by_usage(self):
         assert compute_can_delete(1, [("persona", "delete")], [_DEPT], 1) is False
 
+    def test_owner_in_department_can_delete(self):
+        assert compute_can_delete(1, [("persona", "delete")], [_DEPT], 0, [_DEPT]) is True
+
+    def test_cross_department_delete_denied(self):
+        # Actor in Dept A (_OTHER) must NOT delete a Dept-B (_DEPT) persona.
+        assert compute_can_delete(1, [("persona", "delete")], [_DEPT], 0, [_OTHER]) is False
+
+    def test_superadmin_bypasses_department_scope_on_delete(self):
+        assert compute_can_delete(0, [("persona", "delete")], [_DEPT], 0, [_OTHER]) is True
+
     def test_can_duplicate_granted(self):
         assert compute_can_duplicate(1, [("persona", "duplicate")]) is True
 

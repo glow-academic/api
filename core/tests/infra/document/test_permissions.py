@@ -187,6 +187,43 @@ class TestCanDelete:
             is False
         )
 
+    async def test_owner_in_department_can_delete(self):
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("document", "delete")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+                user_department_ids=[_DEPT],
+            )
+            is True
+        )
+
+    async def test_cross_department_delete_denied(self):
+        # Actor in Dept A (_OTHER) must NOT delete a Dept-B (_DEPT) document.
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("document", "delete")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+                user_department_ids=[_OTHER],
+            )
+            is False
+        )
+
+    async def test_superadmin_bypasses_department_scope_on_delete(self):
+        assert (
+            compute_can_delete(
+                role_level=0,
+                role_permissions=[("document", "delete")],
+                document_department_ids=[_DEPT],
+                active_scenario_count=0,
+                user_department_ids=[_OTHER],
+            )
+            is True
+        )
+
     async def test_member_cannot_delete(self):
         assert (
             compute_can_delete(
