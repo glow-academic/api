@@ -31,6 +31,7 @@ from app.tools.artifacts.profile.update import _UNSET
 from app.tools.artifacts.profile.update import (
     update_profile as update_profile_artifact,
 )
+from app.tools.resources.roles.get import get_roles as get_role_artifacts
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
@@ -235,6 +236,26 @@ async def update_profile_impl(
                     status_code=403,
                     detail=f"Item {idx}: You don't have permission to update this profile.",
                 )
+
+            # Field-level write authz: the body-supplied role_id sets a
+            # privilege-bearing attribute. Gate it to the actor's level so
+            # an editor can't escalate a target (or self) to a higher
+            # privilege role. All-matching mode soft-skips like the
+            # permission failures above.
+            if item.role_id is not None and profile.role_level != 0:
+                target_role = await get_role_artifacts(conn, [item.role_id], redis)
+                target_role_level = target_role[0].level if target_role else None
+                if target_role_level is None or target_role_level < profile.role_level:
+                    if is_all_matching:
+                        skipped_results.append(ProfileResultItem(
+                            success=False, profile_id=item.profile_id,
+                            message=f"No permission to assign this role to profile {item.profile_id} (skipped)",
+                        ))
+                        continue
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Item {idx}: You don't have permission to assign this role.",
+                    )
 
             permitted_items.append(item)
 
