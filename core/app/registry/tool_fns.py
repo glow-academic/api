@@ -747,10 +747,6 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.attempt_message_tree.create",
         "create_attempt_message_tree",
     ),
-    ("create", "attempt_mutes"): (
-        f"{_T}.entries.attempt_mutes.create",
-        "create_attempt_mutes",
-    ),
     ("create", "attempt_practice"): (
         f"{_T}.entries.attempt_practice.create",
         "create_attempt_practice",
@@ -1023,10 +1019,6 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
     ("refresh", "attempt_message_tree"): (
         f"{_T}.entries.attempt_message_tree.refresh",
         "refresh_attempt_message_tree",
-    ),
-    ("refresh", "attempt_mutes"): (
-        f"{_T}.entries.attempt_mutes.refresh",
-        "refresh_attempt_mutes",
     ),
     ("refresh", "attempt_practice"): (
         f"{_T}.entries.attempt_practice.refresh",
@@ -1318,10 +1310,6 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
         f"{_T}.entries.attempt_message_tree.search",
         "search_attempt_message_trees",
     ),
-    ("search", "attempt_mutes"): (
-        f"{_T}.entries.attempt_mutes.search",
-        "search_attempt_mutes_entries_internal",
-    ),
     ("search", "attempt_practice"): (
         f"{_T}.entries.attempt_practice.search",
         "search_attempt_practice_entries",
@@ -1590,10 +1578,6 @@ ENTRY_TOOL_FNS: dict[tuple[str, str], tuple[str, str]] = {
     ("docs", "attempt_message_tree"): (
         f"{_T}.entries.attempt_message_tree.docs",
         "get_attempt_message_tree_docs",
-    ),
-    ("docs", "attempt_mutes"): (
-        f"{_T}.entries.attempt_mutes.docs",
-        "get_attempt_mutes_docs",
     ),
     ("docs", "attempt_practice"): (
         f"{_T}.entries.attempt_practice.docs",
