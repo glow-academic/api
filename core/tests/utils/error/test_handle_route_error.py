@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.utils.error.handle_route_error import handle_route_error
+from app.utils.error.log_and_raise_error import _GENERIC_500_DETAIL
 
 
 def test_always_raises_http_exception():
@@ -40,12 +41,15 @@ def test_generic_error_becomes_500():
     assert exc_info.value.status_code == 500
 
 
-def test_error_detail_contains_message():
-    """The HTTPException detail should contain the original error message."""
+def test_error_detail_does_not_leak_internal_message():
+    """The HTTPException detail must NOT echo the raw internal error to the
+    client — only a generic message (the real error is logged server-side)."""
     with pytest.raises(HTTPException) as exc_info:
         handle_route_error(
             error=ValueError("bad input"),
             route_path="/api/test",
             operation="test_op",
         )
-    assert "bad input" in str(exc_info.value.detail)
+    detail = str(exc_info.value.detail)
+    assert detail == _GENERIC_500_DETAIL
+    assert "bad input" not in detail

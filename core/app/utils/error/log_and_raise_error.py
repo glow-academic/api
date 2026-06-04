@@ -9,6 +9,13 @@ from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
 
+# Generic client-facing message for unexpected 500s. The real error (raw
+# asyncpg/exception string, SQL, params, stack trace) is always logged
+# server-side; we never echo it back to the client to avoid leaking internal
+# schema, file paths, infra details, or secrets. Callers that have a safe,
+# specific user-facing message can pass ``user_friendly_message`` to override.
+_GENERIC_500_DETAIL = "Internal server error. Please try again later."
+
 
 def log_and_raise_error(
     error: Exception,
@@ -115,13 +122,19 @@ def log_and_raise_error(
             )
             status_code = 403
         else:
-            # Other SQL errors: 500 with database error message
+            # Other SQL errors: 500. The raw asyncpg message leaks internal
+            # schema (table/column/constraint names, the failing SQL) to the
+            # client, so we never surface it — the full error is already
+            # logged above with query + params for server-side debugging.
             status_code = 500
-            detail = user_friendly_message or f"Database error: {str(error)}"
+            detail = user_friendly_message or _GENERIC_500_DETAIL
     else:
-        # Other errors: 500 with generic message
+        # Other errors: 500. ``str(error)`` on an arbitrary unhandled
+        # exception can leak file paths, infra details, stack-ish context,
+        # or secrets to the client, so default to a generic message and rely
+        # on the full server-side log above.
         status_code = 500
-        detail = user_friendly_message or str(error)
+        detail = user_friendly_message or _GENERIC_500_DETAIL
 
     # Raise HTTPException
     raise HTTPException(status_code=status_code, detail=detail)

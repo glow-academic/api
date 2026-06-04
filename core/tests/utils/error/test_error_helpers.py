@@ -5,7 +5,10 @@ from fastapi import HTTPException
 from starlette.requests import Request
 
 from app.utils.error.handle_route_error import handle_route_error
-from app.utils.error.log_and_raise_error import log_and_raise_error
+from app.utils.error.log_and_raise_error import (
+    _GENERIC_500_DETAIL,
+    log_and_raise_error,
+)
 
 
 def _request() -> Request:
@@ -59,4 +62,6 @@ def test_handle_route_error_raises_http_exception():
         )
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.detail == "failure"
+    # The raw error must not be echoed to the client; only a generic message.
+    assert exc_info.value.detail == _GENERIC_500_DETAIL
+    assert "failure" not in str(exc_info.value.detail)
