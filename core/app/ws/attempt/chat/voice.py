@@ -28,14 +28,26 @@ async def attempt_chat_voice(sid: str, data: dict[str, Any]) -> dict[str, Any]:
     pool = get_pool()
     redis = get_redis_client()
 
-    return await run_artifact_operation_with_audit(
-        pool,
-        redis,
-        artifact="attempt",
-        operation="chat_voice",
-        profile_id=identity.profile_id,
-        session_id=identity.session_id,
-        sid=sid,
-        runner=_runner,
-        arguments={k: v for k, v in data.items() if k not in {"sid", "profile_id", "session_id"}},
-    )
+    # The HTTP route validates the body via ``ChatVoiceRequest`` (typed
+    # ``chat_id``/``idempotency_key`` as ``UUID``) before reaching the impl;
+    # the WS surface spreads the raw socket payload straight through, so a
+    # malformed ``chat_id``/``idempotency_key`` reaches the impl's
+    # ``uuid.UUID(...)`` coercion and raises ``ValueError``. Unhandled, that
+    # ValueError aborts the handler and the client's emit-ack never resolves
+    # (a hung voice-session start). Mirror the sibling handlers
+    # (``attempt.chat_audio``, ``attempt.draft``) and return a clean error
+    # ack instead.
+    try:
+        return await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="attempt",
+            operation="chat_voice",
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            sid=sid,
+            runner=_runner,
+            arguments={k: v for k, v in data.items() if k not in {"sid", "profile_id", "session_id"}},
+        )
+    except (ValueError, TypeError) as exc:
+        return {"success": False, "error": str(exc)}
