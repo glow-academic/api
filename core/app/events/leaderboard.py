@@ -26,6 +26,20 @@ LEADERBOARD_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={"attempt.leaderboard_viewed": None},
     ),
+    # WS handler (ws/attempt/leaderboard/get.py) emits "leaderboard_get"; the
+    # HTTP route emits bare "leaderboard". Register both (neither orphaned).
+    "leaderboard_get": OperationEventConfig(
+        operation="leaderboard_get",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": LeaderboardRequest,
+            "completed": LeaderboardResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"attempt.leaderboard_viewed": None},
+    ),
     "leaderboard_refresh": OperationEventConfig(
         operation="leaderboard_refresh",
         domain_events={"attempt.leaderboard_refreshed": None},

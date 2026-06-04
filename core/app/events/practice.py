@@ -26,6 +26,20 @@ PRACTICE_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
         },
         domain_events={"attempt.practice_viewed": None},
     ),
+    # WS handler (ws/attempt/practice/get.py) emits operation="practice_get";
+    # the HTTP route emits bare "practice". Register both (neither orphaned).
+    "practice_get": OperationEventConfig(
+        operation="practice_get",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": GetPracticeRequest,
+            "completed": GetPracticeResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"attempt.practice_viewed": None},
+    ),
     "practice_refresh": OperationEventConfig(
         operation="practice_refresh",
         scope="collection",
