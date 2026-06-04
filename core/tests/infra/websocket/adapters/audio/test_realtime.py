@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -109,3 +109,42 @@ async def test_stop_session_cancels_tasks():
     mock_ws.close.assert_called_once()
     assert session.oa_ws_connection is None
     assert "test-group" not in adapter._tasks
+
+
+async def test_initialize_session_closes_ws_when_send_fails():
+    """A post-connect failure (session.update send) must close the provider
+    WS so the connection doesn't leak — the caller drops the session via
+    remove_session() and never calls stop_session()."""
+    emitter = AsyncMock()
+    adapter = RealtimeAudioAdapter(emitter)
+
+    from app.infra.websocket.session_store import AudioSession
+
+    session = AudioSession(
+        sid="test-sid",
+        chat_id="test-chat",
+        run_id="test-run",
+        group_id="test-group",
+    )
+
+    # WS connects fine, but the session.update send raises (e.g. network drop).
+    mock_ws = AsyncMock()
+    mock_ws.send.side_effect = RuntimeError("send blew up")
+
+    async def _fake_connect(*_args, **_kwargs):
+        return mock_ws
+
+    with patch(
+        "app.infra.websocket.adapters.audio.realtime.websockets.connect",
+        side_effect=_fake_connect,
+    ):
+        with pytest.raises(RuntimeError, match="send blew up"):
+            await adapter.initialize_session(
+                session=session,
+                api_key="sk-test",
+                base_url="http://localhost:4000",
+            )
+
+    # The leaked-connection guard: ws closed and session reference cleared.
+    mock_ws.close.assert_called_once()
+    assert session.oa_ws_connection is None
