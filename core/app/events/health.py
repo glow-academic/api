@@ -11,8 +11,22 @@ from app.events.types import (
 from app.infra.health.types import HealthRequest, HealthResponse
 
 HEALTH_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    # HTTP route emits operation="health"; WS handler emits "health_get".
+    # Register both keys so neither emitter is orphaned (both project).
     "health": OperationEventConfig(
         operation="health",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": HealthRequest,
+            "completed": HealthResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"system.health_viewed": None},
+    ),
+    "health_get": OperationEventConfig(
+        operation="health_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

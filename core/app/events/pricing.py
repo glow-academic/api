@@ -9,8 +9,22 @@ from app.events.types import (
 from app.infra.pricing.types import PricingRequest, PricingResponse
 
 PRICING_EVENT_CONFIGS: dict[str, OperationEventConfig] = {
+    # HTTP route emits operation="pricing"; WS handler emits "get".
+    # Register both keys so neither emitter is orphaned (both project).
     "pricing": OperationEventConfig(
         operation="pricing",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": PricingRequest,
+            "completed": PricingResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"pricing.viewed": None},
+    ),
+    "get": OperationEventConfig(
+        operation="get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

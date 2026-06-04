@@ -14,8 +14,22 @@ from app.infra.activity.types import (
 )
 
 ACTIVITY_OPERATION_CONFIGS: dict[str, OperationEventConfig] = {
+    # HTTP route emits operation="activity"; WS handler emits "activity_get".
+    # Register both keys so neither emitter is orphaned (both project).
     "activity": OperationEventConfig(
         operation="activity",
+        scope="collection",
+        entity_key=None,
+        can_subscribe=require_authenticated_profile,
+        lifecycle_models={
+            "started": ActivityRequest,
+            "completed": ActivityResponse,
+            "failed": OperationErrorEvent,
+        },
+        domain_events={"system.activity_viewed": None},
+    ),
+    "activity_get": OperationEventConfig(
+        operation="activity_get",
         scope="collection",
         entity_key=None,
         can_subscribe=require_authenticated_profile,

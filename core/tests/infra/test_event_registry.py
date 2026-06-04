@@ -258,3 +258,50 @@ def test_system_absorbs_activity_group_health_session() -> None:
     assert {"session_get", "session_refresh"}.issubset(ops)
     assert "system.activity_viewed" in config.event_types
     assert "system.group_generate.progress" in config.event_types
+
+
+def test_system_read_ops_register_both_http_and_ws_operation_keys() -> None:
+    """Each system read-op has two live emitters that must BOTH project.
+
+    The HTTP route emits the bare ``<x>`` operation while the WS handler
+    emits ``<x>_get``. Both operation keys must resolve to a projection
+    config (``get_operation`` returns non-None) so neither emitter is
+    orphaned — this is the core of issue #133.
+    """
+    config = get_artifact_events_config("system")
+    assert config is not None
+
+    # (HTTP-route operation, WS-handler operation) for each system read-op.
+    for http_op, ws_op in (
+        ("activity", "activity_get"),
+        ("health", "health_get"),
+        ("session", "session_get"),
+    ):
+        http_config = config.get_operation(http_op)
+        ws_config = config.get_operation(ws_op)
+        assert http_config is not None, (
+            f"HTTP-route emit '{http_op}' has no projection config (orphaned)"
+        )
+        assert ws_config is not None, (
+            f"WS-handler emit '{ws_op}' has no projection config (orphaned)"
+        )
+        # Each config self-identifies with its own operation name so the
+        # generated lifecycle event names match what each emitter actually
+        # publishes on the wire.
+        assert http_config.operation == http_op
+        assert ws_config.operation == ws_op
+
+
+def test_pricing_read_op_registers_both_http_and_ws_operation_keys() -> None:
+    """Pricing's HTTP route emits ``pricing`` and its WS handler emits ``get``.
+
+    Both must resolve to a projection config so neither emitter is orphaned.
+    """
+    config = get_artifact_events_config("pricing")
+    assert config is not None
+    assert config.get_operation("pricing") is not None, (
+        "HTTP-route emit 'pricing' has no projection config (orphaned)"
+    )
+    assert config.get_operation("get") is not None, (
+        "WS-handler emit 'get' has no projection config (orphaned)"
+    )
