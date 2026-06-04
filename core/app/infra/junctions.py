@@ -145,3 +145,30 @@ async def insert_multi(
         f"VALUES ($1, $2, $3, $4)",
         [(owner_id, rid, generated, mcp) for rid in resource_ids],
     )
+
+
+async def delete_junctions_by_owner(
+    conn: asyncpg.Connection,
+    *,
+    tables: list[str],
+    owner_col: str,
+    owner_ids: list[UUID],
+) -> None:
+    """Hard-delete every junction row owned by the given artifact ids.
+
+    Most ``{artifact}_*_junction`` tables declare their owner-side FK with
+    ``ON DELETE CASCADE``, so a hard DELETE of the artifact tears the
+    junction rows down automatically. A handful of junctions were created
+    *without* that cascade (NO ACTION default), which makes a hard delete of
+    a populated artifact fail with a foreign_key_violation. This helper lets
+    an artifact delete tool clear those non-cascading junctions explicitly
+    *before* deleting the artifact, restoring the "junctions cascade"
+    contract the delete tools promise.
+    """
+    if not owner_ids or not tables:
+        return
+    for table in tables:
+        await conn.execute(
+            f"DELETE FROM {table} WHERE {owner_col} = ANY($1)",
+            owner_ids,
+        )
