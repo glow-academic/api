@@ -8,6 +8,7 @@ Uses composable context resolver with black-box MV search tools.
 Zero inline SQL — all data from context resolver + resource fetchers.
 """
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
@@ -382,7 +383,31 @@ def _build_timeline(data: SessionInternalData) -> list[SessionTimelineItem]:
             )
         )
 
-    # Sort by created_at ascending
-    items.sort(key=lambda x: x.created_at or x.created_at, reverse=False)
+    # Sort by created_at ascending. Timeline sources are heterogeneous
+    # (typed MV rows + raw chat_mv dicts); a missing/NULL created_at yields
+    # None, and a naive datetime from any source would otherwise make
+    # list.sort raise TypeError ("'<' not supported between NoneType and
+    # datetime" / "can't compare offset-naive and offset-aware datetimes").
+    # Normalize to an aware-UTC key and push None entries last (NULLS LAST).
+    items.sort(key=_timeline_sort_key, reverse=False)
 
     return items
+
+
+# Far-future sentinel so None timestamps sort last (mirrors SQL NULLS LAST).
+_TIMELINE_NULL_SENTINEL = datetime.max.replace(tzinfo=timezone.utc)
+
+
+def _timeline_sort_key(item: SessionTimelineItem) -> datetime:
+    """Build a uniformly-comparable aware-UTC sort key for a timeline item.
+
+    None -> far-future sentinel (sorts last). Naive datetimes are assumed UTC
+    (all timeline sources are PG ``timestamptz``) and made aware so naive/aware
+    values never get compared against each other.
+    """
+    created = item.created_at
+    if created is None:
+        return _TIMELINE_NULL_SENTINEL
+    if created.tzinfo is None:
+        return created.replace(tzinfo=timezone.utc)
+    return created
