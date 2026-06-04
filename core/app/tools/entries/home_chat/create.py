@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.home_chat.types import CreateHomeChatResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_home_chat(
@@ -56,5 +56,14 @@ async def create_home_chat(
         fresh_row,
         score_ms=int(created_at.timestamp() * 1000),
     )
+
+    # The ``home`` read-back row is seeded by ``create_home`` with empty
+    # ``chat_ids``/``scenario_ids`` (both are sourced from ``home_chat_entry``
+    # joins in ``home_mv`` — the latter via ``chat_scenarios_connection``).
+    # Linking a chat here leaves that row stale, so a cached ``get_homes``
+    # read would surface an empty ``chat_ids``/``scenario_ids`` until the
+    # row's TTL lapsed. Invalidate it so the next ``get_homes`` rehydrates
+    # from ``home_mv``. Mirrors the #163 groups/group_names fix.
+    await invalidate_row(redis, "home", home_id)
 
     return CreateHomeChatResponse(id=row_id)

@@ -6,7 +6,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.practice_chat.types import CreatePracticeChatResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_practice_chat(
@@ -56,5 +56,15 @@ async def create_practice_chat(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+
+    # The ``practice`` read-back row is seeded by ``create_practice`` with
+    # empty ``chat_ids``/``scenario_ids`` (both are sourced from
+    # ``practice_chat_entry`` joins in ``practice_mv`` — the latter via
+    # ``chat_scenarios_connection``). Linking a chat here leaves that row
+    # stale, so a cached ``get_practices`` read would surface an empty
+    # ``chat_ids``/``scenario_ids`` until the row's TTL lapsed. Invalidate
+    # it so the next read rehydrates from ``practice_mv``. Mirrors the #163
+    # groups/group_names fix.
+    await invalidate_row(redis, "practice", practice_id)
 
     return CreatePracticeChatResponse(id=row_id)

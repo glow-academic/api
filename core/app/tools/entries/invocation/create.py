@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 
 from app.tools.entries.invocation.types import CreateInvocationResponse
 from app.tools.entries.sessions.create import create_session
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_invocation(
@@ -137,5 +137,14 @@ async def create_invocation(
         fresh_row,
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
+
+    # The ``benchmark`` read-back row is seeded by ``create_benchmark`` with
+    # empty ``invocation_entry_ids`` (sourced from ``invocation_entry`` rows
+    # in ``benchmark_mv``). Creating an invocation under this benchmark leaves
+    # that row stale, so a cached ``get_benchmarks`` read would surface an
+    # empty ``invocation_entry_ids`` until the row's TTL lapsed. Invalidate it
+    # so the next read rehydrates from ``benchmark_mv``. Mirrors the #163
+    # groups/group_names fix.
+    await invalidate_row(redis, "benchmark", benchmark_id)
 
     return CreateInvocationResponse(id=invocation_id)
