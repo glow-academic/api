@@ -19,12 +19,13 @@ async def test_visible_via_get_after_refresh(conn, redis_client, profile_id):
     graph = await create_attempt_chat_graph(conn, redis_client, profile_id)
     await refresh_attempt_chat(conn)
 
-    # The attempt_chat MV/cache is keyed by the base chat id (chat_id), so
-    # reads look the entry up by graph.chat_id, not the attempt_chat_entry id.
-    items = await get_attempt_chats(conn, [graph.chat_id], redis_client)
+    # attempt_chat_mv keys by ``c.id AS chat_id`` where c = attempt_chat_entry,
+    # so reads look the entry up by graph.attempt_chat_id (matching the MV /
+    # search / prod contract), not the base chat id.
+    items = await get_attempt_chats(conn, [graph.attempt_chat_id], redis_client)
 
     assert len(items) == 1
-    assert items[0].chat_id == graph.chat_id
+    assert items[0].chat_id == graph.attempt_chat_id
     assert items[0].attempt_id == graph.attempt_id
 
 

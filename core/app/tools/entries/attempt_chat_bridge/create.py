@@ -63,6 +63,12 @@ async def create_attempt_chat_bridge(
     # Parent attempt's cached attempt_chat_id / chat_entry_id / scenario_ids
     # derive from this bridge; invalidate so the next read picks up MV.
     await invalidate_row(redis, "attempt", attempt_id)
+    # The attempt_chat cache row written at attempt_chat/create time has
+    # attempt_id=None — this bridge is what links the attempt, so the MV will
+    # now hydrate it. Evict the stale attempt_chat cache slot (keyed by the
+    # attempt_chat_entry id) so the next get/search falls through to the
+    # hydrated MV instead of returning the stale None (see #62).
+    await invalidate_row(redis, "attempt_chat", attempt_chat_id)
 
     return CreateAttemptChatBridgeResponse(
         attempt_id=attempt_id, attempt_chat_id=attempt_chat_id
