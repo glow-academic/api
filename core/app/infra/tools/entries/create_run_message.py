@@ -62,28 +62,36 @@ async def create_run_message(
     chain-of-thought trace (default false — normal message). The text +
     upload junctions are written the same way regardless.
     """
-    message = await create_message(
-        conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
-        agent_ids=agent_ids, created_at=created_at, id=id,
-    )
+    # Atomic composite: message + text + both junctions must land together
+    # or not at all. asyncpg autocommits each statement, so without this
+    # boundary a failure on any later insert (e.g. message_upload) would
+    # leave the earlier rows committed — an orphaned message with no linked
+    # upload, visible to reads and unable to self-heal. When the caller
+    # already holds an open transaction (e.g. the document-draft write path)
+    # asyncpg nests this as a SAVEPOINT, so it composes correctly either way.
+    async with conn.transaction():
+        message = await create_message(
+            conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
+            agent_ids=agent_ids, created_at=created_at, id=id,
+        )
 
-    text = await create_text(conn, redis, session_id=session_id, mcp=mcp)
+        text = await create_text(conn, redis, session_id=session_id, mcp=mcp)
 
-    text_upload_junction = await create_text_upload(
-        conn, redis,
-        text_id=text.id,
-        upload_id=upload_id,
-        session_id=session_id,
-        mcp=mcp,
-    )
+        text_upload_junction = await create_text_upload(
+            conn, redis,
+            text_id=text.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            mcp=mcp,
+        )
 
-    message_upload_junction = await create_message_upload(
-        conn, redis,
-        message_id=message.id,
-        upload_id=upload_id,
-        session_id=session_id,
-        mcp=mcp,
-    )
+        message_upload_junction = await create_message_upload(
+            conn, redis,
+            message_id=message.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            mcp=mcp,
+        )
 
     # Flag the chat-data MVs so the scheduler refreshes them within
     # the next ~2s interval. Without this the MVs stay frozen — the
