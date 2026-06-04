@@ -230,6 +230,46 @@ async def test_can_delete_default_denied():
     )
 
 
+async def test_can_delete_owner_in_department():
+    assert (
+        compute_can_delete(
+            role_level=1,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=["dept-b"],
+            cohort_usage_count=0,
+            user_department_ids=["dept-b"],
+        )
+        is True
+    )
+
+
+async def test_can_delete_cross_department_denied():
+    # Actor in Dept A must NOT delete a Dept-B simulation.
+    assert (
+        compute_can_delete(
+            role_level=1,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=["dept-b"],
+            cohort_usage_count=0,
+            user_department_ids=["dept-a"],
+        )
+        is False
+    )
+
+
+async def test_can_delete_superadmin_bypasses_department_scope():
+    assert (
+        compute_can_delete(
+            role_level=0,
+            role_permissions=[("simulation", "delete")],
+            simulation_department_ids=["dept-b"],
+            cohort_usage_count=0,
+            user_department_ids=["dept-a"],
+        )
+        is True
+    )
+
+
 # ---------- compute_can_duplicate ----------
 
 

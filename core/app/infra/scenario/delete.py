@@ -217,6 +217,7 @@ async def delete_scenario_impl(
             role_level=profile.role_level, role_permissions=profile.role_permissions,
             scenario_department_ids=ctx.department_ids,
             active_simulation_count=ctx.active_simulation_count,
+            user_department_ids=profile.department_ids,
         ):
             if all:
                 skipped_results.append(DeleteScenarioResult(

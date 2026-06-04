@@ -160,6 +160,46 @@ class TestCanDeleteDuplicateCreateDraft:
             is False
         )
 
+    async def test_owner_in_department_can_delete(self):
+        # Actor B who DOES belong to the scenario's department may delete.
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("scenario", "delete")],
+                scenario_department_ids=[_DEPT],
+                active_simulation_count=0,
+                user_department_ids=[_DEPT],
+            )
+            is True
+        )
+
+    async def test_cross_department_delete_denied(self):
+        # Actor in Dept A (_OTHER) must NOT delete a scenario scoped to
+        # Dept B (_DEPT) — cross-department BOLA guard, mirrors can_edit.
+        assert (
+            compute_can_delete(
+                role_level=1,
+                role_permissions=[("scenario", "delete")],
+                scenario_department_ids=[_DEPT],
+                active_simulation_count=0,
+                user_department_ids=[_OTHER],
+            )
+            is False
+        )
+
+    async def test_superadmin_bypasses_department_scope_on_delete(self):
+        # Top-level role (level 0) deletes across departments as before.
+        assert (
+            compute_can_delete(
+                role_level=0,
+                role_permissions=[("scenario", "delete")],
+                scenario_department_ids=[_DEPT],
+                active_simulation_count=0,
+                user_department_ids=[_OTHER],
+            )
+            is True
+        )
+
     async def test_can_duplicate_granted(self):
         assert (
             compute_can_duplicate(
