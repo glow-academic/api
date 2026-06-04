@@ -24,6 +24,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
@@ -97,6 +98,20 @@ async def export_record_client(
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
+        )
+
+    # Authorization: a caller-supplied target_profile_id may only scope to a
+    # profile the actor is permitted to see. ``resolve_visible_profile_ids``
+    # encodes the full policy (self + same-department lower-privilege profiles,
+    # or the entire org for role_level 0). Membership in that set is the
+    # authoritative allow check, mirroring the on-screen sibling
+    # ``record/get.py`` (~82-84). Without this, any holder of ``attempt:export``
+    # could dump another profile's entire attempt/grade history (IDOR, #151).
+    visible_profile_ids = await resolve_visible_profile_ids(pool, profile)
+    if target_profile_id not in visible_profile_ids:
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to export this profile's record.",
         )
 
     # -- Step 2: Search attempts + chats scoped to target profile --
