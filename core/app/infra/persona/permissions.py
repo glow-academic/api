@@ -339,14 +339,37 @@ def compute_can_delete(
 
 
 def compute_can_duplicate(
-    role_level: int, role_permissions: list[tuple[str, str]],
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+    persona_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
     - User must have persona:duplicate permission
+    - Non-top-level users must belong to ALL of the persona's departments
+      (mirrors ``compute_can_edit``/``compute_can_delete`` — duplicate must
+      not bypass the department scope an edit enforces, else a Dept-A user
+      could clone a Dept-B persona they cannot even edit, inheriting its
+      department scope into the copy).
     """
-    return has_permission(role_permissions, "persona", "duplicate")
+    # Permission check
+    if not has_permission(role_permissions, "persona", "duplicate"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and persona_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        persona_dept_set = {str(d) for d in persona_department_ids}
+        if not persona_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 # ========== Save/Create Endpoint Permission Functions ==========

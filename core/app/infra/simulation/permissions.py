@@ -189,14 +189,37 @@ def compute_can_delete(
 
 
 def compute_can_duplicate(
-    role_level: int, role_permissions: list[tuple[str, str]],
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+    simulation_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
     - User must have simulation:duplicate permission
+    - Non-top-level users must belong to ALL of the simulation's departments
+      (mirrors ``compute_can_edit``/``compute_can_delete`` — duplicate must
+      not bypass the department scope an edit enforces, else a Dept-A user
+      could clone a Dept-B simulation they cannot even edit, inheriting its
+      department scope into the copy).
     """
-    return has_permission(role_permissions, "simulation", "duplicate")
+    # Permission check
+    if not has_permission(role_permissions, "simulation", "duplicate"):
+        return False
+
+    # Department subset check (when user_department_ids is available)
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and simulation_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        sim_dept_set = {str(d) for d in simulation_department_ids}
+        if not sim_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 # =============================================================================
