@@ -223,11 +223,26 @@ def _build_voice_session_reaper(
             try:
                 await sleep_fn(interval_seconds)
                 stale = get_stale_sessions_fn(timeout=timeout_seconds)
+                # Per-item isolation: one un-cleanable session must not abort
+                # the whole batch. Without this, a session whose cleanup raises
+                # (and which therefore stays in the store and stays "stale") is
+                # re-found and re-aborts every cycle — wedging cleanup of every
+                # other stale session queued behind it forever. Skip the bad
+                # one (WARNING), keep reaping the rest.
                 for session in stale:
-                    logger_obj.info(
-                        f"Reaping stale voice session - group_id={session.group_id}"
-                    )
-                    await cleanup_audio_session_fn(session)
+                    group_id = getattr(session, "group_id", None)
+                    try:
+                        logger_obj.info(
+                            f"Reaping stale voice session - group_id={group_id}"
+                        )
+                        await cleanup_audio_session_fn(session)
+                    except asyncio.CancelledError:
+                        raise
+                    except Exception as item_err:
+                        logger_obj.warning(
+                            f"Skipping un-reapable voice session "
+                            f"group_id={group_id}: {item_err}"
+                        )
             except asyncio.CancelledError:
                 break
             except Exception as e:
