@@ -620,19 +620,25 @@ async def get_attempt_internal(
             feedbacks_by_grade.get(chat_grade_id, []) if chat_grade_id else []
         )
         for feedback in chat_feedbacks:
-            std_group_id = None
-            if feedback.standard_id:
-                std_meta = resource_meta["standards"].get(feedback.standard_id, {})
-                std_group_id = std_meta.get("standard_group_id")
-            feedbacks.append(
-                FeedbackEntry(
-                    id=feedback.feedback_id,
-                    standard_id=feedback.standard_id,
-                    standard_group_id=std_group_id,
-                    total=feedback.total,
-                    feedback=feedback.feedback,
+            # ``GetAttemptFeedbackResponse`` carries a plural ``standard_ids``
+            # list. ``FeedbackEntry`` is single-standard, so emit one entry per
+            # standard (sharing the feedback's total/text). When a feedback has
+            # no standards, still surface it once with ``standard_id=None``.
+            std_ids = feedback.standard_ids or [None]
+            for std_id in std_ids:
+                std_group_id = None
+                if std_id:
+                    std_meta = resource_meta["standards"].get(std_id, {})
+                    std_group_id = std_meta.get("standard_group_id")
+                feedbacks.append(
+                    FeedbackEntry(
+                        id=feedback.feedback_id,
+                        standard_id=std_id,
+                        standard_group_id=std_group_id,
+                        total=feedback.total,
+                        feedback=feedback.feedback,
+                    )
                 )
-            )
         analyses_entries: list[AnalysisEntry] | None = None
         chat_analyses = (
             analyses_by_grade.get(chat_grade_id, []) if chat_grade_id else []
@@ -647,9 +653,12 @@ async def get_attempt_internal(
             passed_dict: dict[str, bool] = {}
             feedback_dict: dict[str, str] = {}
             if chat_feedbacks:
+                # Flatten plural ``standard_ids`` into per-standard dicts for the
+                # achieved/passed helpers (which key on singular ``standard_id``).
                 feedbacks_dicts = [
-                    {"standard_id": feedback.standard_id, "total": feedback.total}
+                    {"standard_id": std_id, "total": feedback.total}
                     for feedback in chat_feedbacks
+                    for std_id in feedback.standard_ids
                 ]
                 achieved_raw = compute_achieved_standards(feedbacks_dicts)
                 if achieved_raw:
@@ -668,8 +677,11 @@ async def get_attempt_internal(
                         if std_id:
                             passed_dict[str(std_id)] = passed.get("passed", False)
                 for feedback in chat_feedbacks:
-                    if feedback.standard_id and feedback.feedback:
-                        feedback_dict[str(feedback.standard_id)] = feedback.feedback
+                    if not feedback.feedback:
+                        continue
+                    for std_id in feedback.standard_ids:
+                        if std_id:
+                            feedback_dict[str(std_id)] = feedback.feedback
             grading_state_data = GradingStateData(
                 achieved_standards=achieved_dict if achieved_dict else None,
                 passed_standards=passed_dict if passed_dict else None,
