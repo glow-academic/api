@@ -149,6 +149,23 @@ def rotate_run_id(session: AudioSession, new_run_id: str) -> None:
     _session_store[new_run_id] = session
 
 
+def rotate_group_id(session: AudioSession, new_group_id: str) -> None:
+    """Rotate the group_id on an existing session (multi-generate reuse).
+
+    The realtime session stays open across turns, but each
+    ``/attempt/generate`` turn carries a fresh ``group_id``. Re-key the
+    store so lookups (and teardown via ``remove_session(group_id)``) find
+    the session under the current group_id — otherwise the old key dangles
+    and the session leaks. Caller is responsible for re-keying the
+    adapter's per-group task map (see ``rebind_group_id``).
+    """
+    if session.group_id == new_group_id:
+        return
+    _session_store.pop(session.group_id, None)
+    session.group_id = new_group_id
+    _session_store[new_group_id] = session
+
+
 def get_session_by_sid(sid: str) -> AudioSession | None:
     """Get session by socket ID (disconnect cleanup only)."""
     for session in set(_session_store.values()):
