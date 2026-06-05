@@ -13,17 +13,27 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
+from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.complete import complete_attempt_impl
 from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_chat.search import search_attempt_chats
+from app.utils.cache.mv_refresh_queue import enqueue_pending
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
 
 GRACE_SECONDS = 60  # 1 minute grace period
 CHECK_INTERVAL = 60  # check every 60 seconds
+
+# The exact MVs ``complete_attempt_impl`` refreshes once the completion row is
+# written (see ``complete.py``). When the owner profile is unresolvable, the
+# profile-scoped permission gate inside that refresh raises *after* the
+# completion row has already been persisted, so we enqueue these directly
+# (degraded, owner-less) to flip ``attempt_mv.is_completed`` — otherwise the
+# stale attempt is re-found every cycle and the loop error-spams forever.
+_COMPLETE_REFRESH_TARGETS = ["attempt_completion_mv", "attempt_mv"]
 
 
 async def expire_stale_attempts(
@@ -89,6 +99,37 @@ async def expire_stale_attempts(
                 "completion_id": result["completion_id"],
             })
             logger.info(f"Expired attempt {attempt.attempt_id}")
+        except HTTPException as e:
+            # Graceful degradation for stale attempts whose owner profile is
+            # unresolvable (deactivated / identity-stripped "bare-shell"
+            # profile). ``complete_attempt_impl`` writes the completion row
+            # FIRST, then runs a profile-scoped MV refresh whose permission
+            # gate raises 401 "Profile not found" for an unresolvable owner.
+            # The attempt is therefore already terminal — only the refresh
+            # failed — but the global ``attempt_mv`` never flips, so without
+            # this branch the attempt is re-found every CHECK_INTERVAL and the
+            # loop logs ERROR forever (~540/hr observed in prod).
+            #
+            # An unresolvable owner has no profile-scoped views to serve, so we
+            # skip the profile gate and enqueue the same MVs directly (the
+            # underlying enqueue is global, not profile-scoped). This lands the
+            # attempt in its terminal state so it is NOT reprocessed next cycle.
+            # Narrow: only the 401 profile-not-found case is degraded; any other
+            # HTTPException falls through to the ERROR path below.
+            if e.status_code == 401:
+                if redis is not None:
+                    for target in _COMPLETE_REFRESH_TARGETS:
+                        await enqueue_pending(redis, target)
+                expired.append({"attempt_id": str(attempt.attempt_id)})
+                logger.warning(
+                    "Expired attempt %s with unresolvable owner profile %s — "
+                    "skipped profile-scoped refresh (no views to serve), "
+                    "enqueued MV refresh directly",
+                    attempt.attempt_id,
+                    attempt.profile_id,
+                )
+            else:
+                logger.error(f"Failed to expire attempt {attempt.attempt_id}: {e}")
         except Exception as e:
             logger.error(f"Failed to expire attempt {attempt.attempt_id}: {e}")
 
