@@ -148,3 +148,69 @@ async def test_initialize_session_closes_ws_when_send_fails():
     # The leaked-connection guard: ws closed and session reference cleared.
     mock_ws.close.assert_called_once()
     assert session.oa_ws_connection is None
+
+
+async def test_rebind_group_id_rekeys_tasks_so_stop_session_cancels_them():
+    """Multi-generate reuse rotates the session's group_id while reusing the
+    open WS + its uplink/downlink tasks. ``_tasks`` is keyed by group_id, so
+    without ``rebind_group_id`` ``stop_session`` would pop the NEW (empty) key
+    and leave the original tasks running forever — an orphaned-task leak.
+
+    Fail-pre (no rebind): the original tasks survive ``stop_session``.
+    Pass-post (with rebind): ``stop_session`` finds + cancels them.
+    """
+    import asyncio
+
+    emitter = AsyncMock()
+    adapter = RealtimeAudioAdapter(emitter)
+
+    from app.infra.websocket.session_store import AudioSession
+
+    session = AudioSession(
+        sid="sid-1",
+        chat_id="chat-1",
+        run_id="run-1",
+        group_id="group-old",
+    )
+
+    async def noop():
+        await asyncio.sleep(100)
+
+    uplink = asyncio.create_task(noop())
+    downlink = asyncio.create_task(noop())
+    # initialize_session keys the tasks under the ORIGINAL group_id.
+    adapter._tasks["group-old"] = [uplink, downlink]
+
+    # Reuse turn: session adopts the new turn's group_id, WS/tasks reused.
+    session.group_id = "group-new"
+    adapter.rebind_group_id("group-old", "group-new")
+
+    assert "group-old" not in adapter._tasks
+    assert adapter._tasks["group-new"] == [uplink, downlink]
+
+    session.oa_ws_connection = AsyncMock()
+    await adapter.stop_session(session)
+
+    # Both original tasks cancelled — no orphan/zombie.
+    assert uplink.cancelled()
+    assert downlink.cancelled()
+    assert "group-new" not in adapter._tasks
+
+
+async def test_rebind_group_id_is_noop_when_unchanged():
+    """Stable group_id (normal continuation) leaves _tasks untouched."""
+    import asyncio
+
+    emitter = AsyncMock()
+    adapter = RealtimeAudioAdapter(emitter)
+
+    async def noop():
+        await asyncio.sleep(100)
+
+    task = asyncio.create_task(noop())
+    adapter._tasks["group-x"] = [task]
+
+    adapter.rebind_group_id("group-x", "group-x")
+
+    assert adapter._tasks["group-x"] == [task]
+    task.cancel()

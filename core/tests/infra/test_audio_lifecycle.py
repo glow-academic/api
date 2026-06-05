@@ -8,6 +8,8 @@ from app.infra.websocket.session_store import (
     _session_store,
     create_session,
     get_session_by_group_id,
+    remove_session,
+    rotate_group_id,
 )
 
 
@@ -57,6 +59,30 @@ class TestAudioLifecycle:
         assert adapter.stopped_sessions == ["group-1"]
         assert get_session_by_group_id("group-1") is None
         assert "group-1" not in globals_mod._voice_message_ids
+
+    @pytest.mark.asyncio
+    async def test_rotate_group_id_reindexes_so_remove_session_finds_it(self):
+        """Multi-generate reuse rotates group_id. Without re-indexing the
+        store, teardown via remove_session(new_group_id) misses and the
+        session leaks under its old keys forever. rotate_group_id keeps the
+        index following the current turn.
+
+        Fail-pre (in-place mutation): remove_session(new) is a no-op, session
+        stays in the store. Pass-post (rotate): remove_session(new) clears it.
+        """
+        session = create_session("sid-r", "chat-r", "run-r", "group-old")
+
+        rotate_group_id(session, "group-new")
+
+        # Old key gone, new key resolves, session.group_id updated.
+        assert get_session_by_group_id("group-old") is None
+        assert get_session_by_group_id("group-new") is session
+        assert session.group_id == "group-new"
+
+        # Teardown via the CURRENT group_id now actually removes the session.
+        remove_session("group-new")
+        assert get_session_by_group_id("group-new") is None
+        assert _session_store.get("chat-r") is None
 
     @pytest.mark.asyncio
     async def test_cleanup_audio_session_is_resilient_to_stop_errors(self):
