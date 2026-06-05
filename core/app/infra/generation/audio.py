@@ -45,6 +45,8 @@ async def execute_audio_dispatch(
         get_session_by_chat_id,
         get_session_by_conversation_id,
         remove_session,
+        rotate_group_id,
+        rotate_run_id,
     )
 
     llm_config = dispatch.llm_config
@@ -89,8 +91,17 @@ async def execute_audio_dispatch(
         session = existing
         # Most session scalars stay pinned to the original values (sid,
         # session_id, etc.). Update the handles that reflect THIS turn.
-        session.run_id = run_id
-        session.group_id = group_id
+        #
+        # run_id/group_id are STORE INDEX KEYS — mutating them in place
+        # would orphan the session under its old keys (so teardown via
+        # remove_session(group_id)/stop_session never finds it, leaking the
+        # session + its uplink/downlink tasks). Rotate through the store
+        # helpers so the index follows the new turn, and rebind the
+        # adapter's per-group task map to match (the WS + tasks are reused).
+        old_group_id = session.group_id
+        rotate_run_id(session, run_id)
+        rotate_group_id(session, group_id)
+        get_audio_adapter().rebind_group_id(old_group_id, group_id)
         session.artifact_type = artifact_type
         session.resource_type = resource_type
         if metadata:

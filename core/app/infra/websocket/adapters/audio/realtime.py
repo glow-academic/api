@@ -132,6 +132,21 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
         """This adapter uses WebSocket (server-side connection)."""
         return "websocket"
 
+    def rebind_group_id(self, old_group_id: str, new_group_id: str) -> None:
+        """Re-key the per-connection task list when a session's group_id rotates.
+
+        On a multi-generate-per-conversation turn the WS (and its
+        uplink/downlink tasks) are reused but the session adopts the new
+        turn's ``group_id``. ``_tasks`` is keyed by group_id, so without
+        re-keying ``stop_session`` would ``pop`` the new (empty) key and
+        leave the original tasks running forever — an orphaned-task leak.
+        """
+        if old_group_id == new_group_id:
+            return
+        tasks = self._tasks.pop(old_group_id, None)
+        if tasks is not None:
+            self._tasks[new_group_id] = tasks
+
     async def initialize_session(
         self,
         session: AudioSession,
