@@ -96,6 +96,8 @@ def get_ai_models(config: dict) -> list[dict]:
     """Return list of model configs.
 
     Each: {"name": str, "provider": str, "description": str, "modalities": list}
+    Optional "value": str — the model id sent to the upstream provider/proxy;
+    defaults to "name" when absent (see database/seeds/models.py).
     """
     return config.get("ai", {}).get("models", [])
 
