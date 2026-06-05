@@ -27,6 +27,8 @@ from database.seeds.setting import ALL_SYSTEMS
 from database.seeds.setups.university.colors import ALL_COLOR_IDS
 from database.seeds.setups.university.profiles import (
     BENCHMARK_PROFILE_RESOURCE,
+    UNI_GUEST_RESOURCE,
+    UNI_MEMBER_RESOURCE,
     UNI_SUPERADMIN_RESOURCE,
 )
 
@@ -34,9 +36,17 @@ from database.seeds.setups.university.profiles import (
 # Logins — auth logins from config + profile logins from linked profiles
 # ---------------------------------------------------------------------------
 
+# Every entry here surfaces a "Continue as <name>" button on the demo login
+# screen (logins_resource row with login_type="profile"). Beyond the two
+# admin-tier identities, we expose the two learner-tier profiles (Default
+# Member = GTA, Default Guest) so the student-practice experience can be
+# demonstrated from the learner's perspective — without a profile login a
+# student profile is a resolvable identity but has no way to sign in.
 _PROFILE_LOGINS = build_profile_logins([
     dict(name="Benchmark", resource_id=BENCHMARK_PROFILE_RESOURCE),
     dict(name="Default Superadmin", resource_id=UNI_SUPERADMIN_RESOURCE),
+    dict(name="Default Member", resource_id=UNI_MEMBER_RESOURCE),
+    dict(name="Default Guest", resource_id=UNI_GUEST_RESOURCE),
 ])
 UNI_LOGINS_IDS = AUTH_LOGIN_IDS + [lg["id"] for lg in _PROFILE_LOGINS]
 UNI_LOGINS = _PROFILE_LOGINS  # auth logins are in AUTH_LOGINS (logins.py)

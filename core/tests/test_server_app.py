@@ -164,6 +164,58 @@ async def test_voice_session_reaper_cleans_up_stale_sessions_and_exits_on_cancel
 
 
 @pytest.mark.asyncio
+async def test_voice_session_reaper_isolates_one_bad_session_and_reaps_the_rest():
+    """A session whose cleanup raises must NOT wedge the batch.
+
+    Regression for the expire-class robustness bug: without per-item
+    isolation, one un-cleanable stale session (cleanup raises) aborts the
+    whole `for session in stale` loop, so every other stale session behind
+    it is skipped — and since the bad session stays in the store and stays
+    stale, it is re-found and re-aborts the batch every single cycle,
+    permanently starving cleanup of the good sessions.
+
+    With per-item isolation the bad session is skipped (WARNING) and the
+    good sessions are still reaped, every cycle.
+    """
+    cleaned_sessions: list[str] = []
+    sleep_calls = 0
+
+    async def cleanup_audio_session(session: object) -> None:
+        # The first session in the batch is permanently un-cleanable.
+        if session.group_id == "bad-session":
+            raise RuntimeError("unresolvable session owner")
+        cleaned_sessions.append(session.group_id)
+
+    def get_stale_sessions(*, timeout: float) -> list[object]:
+        # Bad one first so it would abort the batch pre-fix.
+        return [
+            SimpleNamespace(group_id="bad-session"),
+            SimpleNamespace(group_id="good-1"),
+            SimpleNamespace(group_id="good-2"),
+        ]
+
+    async def sleep_two_cycles(_interval: float) -> None:
+        nonlocal sleep_calls
+        sleep_calls += 1
+        # Let the loop run two full cycles, then stop it.
+        if sleep_calls > 2:
+            raise asyncio.CancelledError
+
+    reaper = _build_voice_session_reaper(
+        cleanup_audio_session_fn=cleanup_audio_session,
+        get_stale_sessions_fn=get_stale_sessions,
+        sleep_fn=sleep_two_cycles,
+        logger_obj=logging.getLogger("test.server.reaper.isolation"),
+    )
+
+    await reaper()
+
+    # The good sessions are reaped on BOTH cycles (loop survived the bad one
+    # and was not wedged by it); the bad one never makes it into the list.
+    assert cleaned_sessions == ["good-1", "good-2", "good-1", "good-2"]
+
+
+@pytest.mark.asyncio
 async def test_db_logging_middleware_records_profile_and_request_duration():
     recorded_profile_ids: list[str | None] = []
     request_durations: list[float] = []
