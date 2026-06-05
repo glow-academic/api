@@ -203,15 +203,24 @@ async def attempt_message_internal_impl(
     # Refresh MVs so messages appear in the UI
     # (audio-link MV is best-effort — there's no attempt_audio_mv in the
     # registry, so we don't enqueue one here even when audios_id is set.)
+    # ``attempt_message_tree_mv`` is enqueued whenever we wrote a tree edge
+    # above (create_attempt_message_tree) — the tree MV reads directly from
+    # attempt_message_tree_mv (get/search SELECT * FROM it), and the
+    # MVRefresher worker only runs a target when something enqueues it, so
+    # omitting it would leave the new parent/child edge invisible (stale
+    # parent_message_id / sibling projection) until a manual refresh.
+    refresh_targets = [
+        "attempt_content_mv",
+        "attempt_message_completion_mv",
+        "attempt_message_mv",
+    ]
+    if parent_message_id is not None:
+        refresh_targets.append("attempt_message_tree_mv")
     from app.infra.attempt.refresh import refresh_attempt_impl
     with timed("refresh"):
         await refresh_attempt_impl(
             pool, redis, profile_id=profile_id, session_id=session_id,
-            targets=[
-                "attempt_content_mv",
-                "attempt_message_completion_mv",
-                "attempt_message_mv",
-            ],
+            targets=refresh_targets,
         )
 
     logger.info(
