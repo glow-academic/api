@@ -58,7 +58,12 @@ async def _terminate(conn: asyncpg.Connection, dbname: str) -> None:
     )
 
 
-async def _has_marker(conn: asyncpg.Connection, setup: str) -> bool:
+async def _existing_setups(conn: asyncpg.Connection) -> list[str]:
+    """Return the setups the target DB has already been seeded for.
+
+    Empty list ⇒ either the marker table is absent (never seeded) or it
+    exists but has no rows. Either way the swap is free to proceed.
+    """
     table_exists = await conn.fetchval(
         "SELECT EXISTS ("
         "  SELECT 1 FROM information_schema.tables "
@@ -66,16 +71,43 @@ async def _has_marker(conn: asyncpg.Connection, setup: str) -> bool:
         ")"
     )
     if not table_exists:
-        return False
-    return await conn.fetchval(
-        "SELECT EXISTS (SELECT 1 FROM _glow_seed_complete WHERE setup = $1)",
-        setup,
-    )
+        return []
+    rows = await conn.fetch("SELECT setup FROM _glow_seed_complete ORDER BY setup")
+    return [row["setup"] for row in rows]
+
+
+def _seed_decision(
+    setup: str, existing: list[str], *, force: bool, target_db: str
+) -> tuple[str, str]:
+    """Decide what to do given the setups already seeded into the target.
+
+    Pure (no I/O) so the guard logic is unit-testable without a DB.
+    Returns ``(action, message)`` where action is one of:
+      - ``"skip"``     — already seeded for this setup; idempotent no-op.
+      - ``"refuse"``   — already seeded for a DIFFERENT setup; the whole-DB
+                          swap would discard live data, so refuse.
+      - ``"proceed"``  — safe to build staging + swap.
+    """
+    if setup in existing and not force:
+        return "skip", f"[init] {target_db} already seeded for '{setup}' — skipping."
+    other = [s for s in existing if s != setup]
+    if other and not force:
+        return "refuse", (
+            f"[init] REFUSING to seed setup '{setup}' into '{target_db}': "
+            f"it is already seeded for {other}. The atomic swap would "
+            f"DISCARD all live data for {other}. If this setup change is "
+            f"intentional, re-run with SEED_FORCE=1."
+        )
+    return "proceed", ""
 
 
 async def run(setup: str) -> None:
     target_url = os.environ["SEED_TARGET_PG_URL"]
     redis_url = os.environ["SEED_TARGET_REDIS_URL"]
+    # Escape hatch for the rare intentional re-seed / setup change. Set
+    # SEED_FORCE=1 to allow swapping a fully-seeded DB to a *different*
+    # setup (which discards the live data) or re-running the same setup.
+    force = os.environ.get("SEED_FORCE", "").strip().lower() in {"1", "true", "yes"}
 
     target_db = urlparse(target_url).path.lstrip("/")
     if not target_db:
@@ -87,16 +119,30 @@ async def run(setup: str) -> None:
     # 1. Marker check on current target. The stock postgres image
     #    auto-creates POSTGRES_DB on first boot, so this normally
     #    succeeds; if the target doesn't exist yet, we just proceed.
+    #
+    #    Two guards here, both reading the `_glow_seed_complete` marker:
+    #      (a) idempotency — already seeded for THIS setup ⇒ skip.
+    #      (b) anti-downgrade — already seeded for a DIFFERENT setup ⇒
+    #          refuse, because the swap below does a whole-DB
+    #          `ALTER DATABASE RENAME` that would silently discard the
+    #          live data. This is the class of bug that wiped a live
+    #          `university` instance (28 seeded attempts + all academic
+    #          data) when a re-seed ran with the default SEED_SETUP=fresh.
+    #          SEED_FORCE=1 overrides for an intentional setup change.
     try:
         target_conn = await asyncpg.connect(target_url)
         try:
-            if await _has_marker(target_conn, setup):
-                print(
-                    f"[init] {target_db} already seeded for '{setup}' — skipping."
-                )
-                return
+            existing = await _existing_setups(target_conn)
         finally:
             await target_conn.close()
+        action, message = _seed_decision(
+            setup, existing, force=force, target_db=target_db
+        )
+        if action == "skip":
+            print(message)
+            return
+        if action == "refuse":
+            raise SystemExit(message)
     except asyncpg.InvalidCatalogNameError:
         print(f"[init] target db '{target_db}' missing — will be created via swap.")
 
