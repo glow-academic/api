@@ -26,8 +26,17 @@ from app.tools.artifacts.department.create import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 ARTIFACT = "department"
+
+_KEYCLOAK_CREATE_SYNC_WARNING = (
+    " (warning: identity-provider sync to Keycloak did not complete — login "
+    "scoped to this department may not work until Keycloak is reachable and "
+    "re-syncs)"
+)
 
 
 async def create_department_impl(
@@ -220,11 +229,33 @@ async def create_department_impl(
                 operation_key=idempotency_key or (results[0].department_id if results else None),
             )
 
+        # Provision each new department's Keycloak IdP scope. The DB rows are
+        # committed, but until the sync lands the department isn't reflected in
+        # Keycloak, so a failure is NOT cosmetic. ``perform_keycloak_sync`` does
+        # NOT raise on failure — it returns ``KeycloakSyncResult(success=False)``
+        # and logs internally, so the old ``except Exception`` was dead code and
+        # the ``False`` result was dropped while results still said "created
+        # successfully". Surface it per-department (mirrors #249).
+        failed_sync_ids: set[UUID] = set()
         for department_id in saved_department_ids:
             try:
-                await perform_keycloak_sync(department_id=str(department_id))
-            except Exception:
-                pass
+                sync_result = await perform_keycloak_sync(department_id=str(department_id))
+            except Exception as e:  # defensive — perform_* shouldn't raise
+                logger.warning(
+                    f"Keycloak sync errored after department {department_id} create: {e}"
+                )
+                sync_result = None
+            if sync_result is None or not sync_result.success:
+                failed_sync_ids.add(department_id)
+                detail = sync_result.message if sync_result else "Keycloak sync errored"
+                logger.warning(
+                    f"Keycloak sync did not complete after department "
+                    f"{department_id} create: {detail}"
+                )
+        if failed_sync_ids:
+            for result_item in results:
+                if result_item.success and result_item.department_id in failed_sync_ids:
+                    result_item.message += _KEYCLOAK_CREATE_SYNC_WARNING
 
     # ── Hydrate full row content for the client ───────────────────────
     # See ``hydrate_department_list_rows``: returns the same shape

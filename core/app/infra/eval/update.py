@@ -192,6 +192,8 @@ async def update_eval_impl(
             if not compute_can_edit(
                 role_level=profile.role_level,
                 role_permissions=profile.role_permissions,
+                eval_department_ids=perms.department_ids,
+                user_department_ids=profile.department_ids,
             ):
                 if is_all_matching:
                     skipped_results.append(EvalResultItem(

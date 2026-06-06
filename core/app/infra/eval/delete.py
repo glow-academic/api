@@ -181,6 +181,8 @@ async def delete_eval_impl(
             if not compute_can_delete(
                 role_level=profile.role_level,
                 role_permissions=profile.role_permissions,
+                eval_department_ids=ctx.department_ids,
+                user_department_ids=profile.department_ids,
             ):
                 if all:
                     skipped_results.append(DeleteEvalResult(

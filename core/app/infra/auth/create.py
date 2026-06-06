@@ -223,10 +223,36 @@ async def create_auth_impl(
                 operation_key=idempotency_key or (results[0].auth_id if results else None),
             )
 
+        # Provision the new auth provider as a Keycloak IdP. The DB row is
+        # already committed, but until this sync lands no one can actually
+        # log in through the provider — so a failure here is NOT cosmetic.
+        #
+        # NOTE: ``perform_keycloak_sync`` does NOT raise on failure (e.g.
+        # Keycloak unreachable); it returns ``KeycloakSyncResult(success=False)``
+        # and logs internally. The old ``except Exception`` here was therefore
+        # dead code that never fired, and the real failure (a ``False`` result)
+        # was dropped on the floor while every ``AuthResultItem`` still said
+        # "Auth created successfully". Surface it instead — append a warning to
+        # each result message so the caller (UI / LLM tool) can tell the IdP
+        # didn't provision, mirroring how #247 turned a swallowed write failure
+        # into a visible error string.
         try:
-            await perform_keycloak_sync(department_id=None)
-        except Exception:
-            logger.warning("Keycloak sync failed after auth create (non-fatal)")
+            sync_result = await perform_keycloak_sync(department_id=None)
+        except Exception as e:  # defensive — perform_* shouldn't raise
+            logger.warning(f"Keycloak sync errored after auth create: {e}")
+            sync_result = None
+        if sync_result is None or not sync_result.success:
+            detail = sync_result.message if sync_result else "Keycloak sync errored"
+            logger.warning(
+                f"Keycloak sync did not complete after auth create: {detail}"
+            )
+            for result_item in results:
+                if result_item.success:
+                    result_item.message += (
+                        " (warning: identity-provider sync to Keycloak did not "
+                        "complete — login via this provider may not work until "
+                        "Keycloak is reachable and re-syncs)"
+                    )
 
     # Hydrate full row content for the client. See
     # ``hydrate_auth_list_rows``: returns the same shape /auth/search

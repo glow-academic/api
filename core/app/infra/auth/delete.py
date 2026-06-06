@@ -21,8 +21,21 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 ARTIFACT = "auth"
+
+# Appended to a delete result's message when the post-delete Keycloak sync did
+# not complete. Delete semantics differ from create/update: the DB row IS
+# deleted, but the identity provider may still exist in Keycloak (stale IdP),
+# so the provider was likely NOT de-provisioned there.
+_KEYCLOAK_DELETE_SYNC_WARNING = (
+    " (warning: identity-provider de-provisioning sync to Keycloak did not "
+    "complete — the provider may still exist in Keycloak until it is reachable "
+    "and re-syncs)"
+)
 
 
 async def delete_auth_impl(
@@ -100,15 +113,25 @@ async def delete_auth_impl(
             operation_key=idempotency_key,
         )
         try:
-            await perform_keycloak_sync(department_id=None)
-        except Exception:
-            pass
+            sync_result = await perform_keycloak_sync(department_id=None)
+        except Exception as e:  # defensive — perform_* shouldn't raise
+            logger.warning(f"Keycloak sync errored after auth delete ack: {e}")
+            sync_result = None
+        ack_message = "Delete confirmed" if accept else "Delete rejected — auth restored"
+        # Only an accepted delete de-provisions the IdP; a reject restores the
+        # row, so the de-provision warning is irrelevant there.
+        if accept and (sync_result is None or not sync_result.success):
+            detail = sync_result.message if sync_result else "Keycloak sync errored"
+            logger.warning(
+                f"Keycloak sync did not complete after auth delete ack: {detail}"
+            )
+            ack_message += _KEYCLOAK_DELETE_SYNC_WARNING
         return DeleteAuthApiResponse(
             results=[
                 DeleteAuthResult(
                     success=True,
                     auth_id=target_id,
-                    message="Delete confirmed" if accept else "Delete rejected — auth restored",
+                    message=ack_message,
                 )
             ],
             idempotency_key=idempotency_key,
@@ -245,11 +268,26 @@ async def delete_auth_impl(
             operation_key=idempotency_key or (result.deleted_ids[0] if result.deleted_ids else None),
         )
 
+    # De-provision the deleted auth providers' Keycloak IdPs. The DB rows are
+    # already committed; a failure here leaves stale IdP config in Keycloak
+    # (the provider was NOT de-provisioned), so it must be surfaced, not
+    # swallowed. ``perform_keycloak_sync`` does NOT raise on failure — it
+    # returns ``KeycloakSyncResult(success=False)`` and logs internally, so
+    # the old ``except Exception`` was dead code. Mirrors #249, adapted for
+    # delete semantics. Soft deletes (pending confirmation) don't sync.
+    keycloak_sync_failed = False
     if not soft:
         try:
-            await perform_keycloak_sync(department_id=None)
-        except Exception:
-            pass
+            sync_result = await perform_keycloak_sync(department_id=None)
+        except Exception as e:  # defensive — perform_* shouldn't raise
+            logger.warning(f"Keycloak sync errored after auth delete: {e}")
+            sync_result = None
+        if sync_result is None or not sync_result.success:
+            keycloak_sync_failed = True
+            detail = sync_result.message if sync_result else "Keycloak sync errored"
+            logger.warning(
+                f"Keycloak sync did not complete after auth delete: {detail}"
+            )
 
     results = [
         DeleteAuthResult(
@@ -259,7 +297,8 @@ async def delete_auth_impl(
                 f"Auth '{name_map.get(pid, 'Unknown')}' deleted (pending confirmation)"
                 if soft
                 else f"Auth '{name_map.get(pid, 'Unknown')}' deleted successfully"
-            ),
+            )
+            + (_KEYCLOAK_DELETE_SYNC_WARNING if keycloak_sync_failed else ""),
         )
         for pid in result.deleted_ids
     ]

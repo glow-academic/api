@@ -17,13 +17,37 @@ from app.infra.permissions_helpers import has_permission
 def compute_can_edit(
     role_level: int,
     role_permissions: list[tuple[str, str]],
+    eval_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Unified can_edit logic for both get and list views.
 
     Constraints:
     1. User has eval:update permission
+    2. Non-top-level users must belong to ALL of the eval's departments
+       (mirrors ``scenario.compute_can_edit`` — the write path must not
+       bypass the department scope that ``has_access`` enforces on
+       ``get``, else a Dept-A user could edit a Dept-B eval they cannot
+       even view).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the write paths pass it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
     """
-    return has_permission(role_permissions, "eval", "update")
+    if not has_permission(role_permissions, "eval", "update"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and eval_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        eval_dept_set = {str(d) for d in eval_department_ids}
+        if not eval_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_disabled_reason(
@@ -180,13 +204,36 @@ def compute_model_positions_required() -> bool:
 def compute_can_delete(
     role_level: int,
     role_permissions: list[tuple[str, str]],
+    eval_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Must have eval:delete permission
+    - Non-top-level users must belong to ALL of the eval's departments
+      (mirrors ``scenario.compute_can_delete`` — delete must not bypass
+      the department scope an ``has_access`` ``get`` enforces, else a
+      Dept-A user could delete a Dept-B eval they cannot even view).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the delete path passes it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
     """
-    return has_permission(role_permissions, "eval", "delete")
+    if not has_permission(role_permissions, "eval", "delete"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and eval_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        eval_dept_set = {str(d) for d in eval_department_ids}
+        if not eval_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(
