@@ -173,10 +173,18 @@ def verify_jwt(token: str) -> dict[str, Any]:
         if not key:
             raise ValueError(f"No matching JWK found for kid={kid}")
 
+        # Pin the verification algorithm to RS256. Both legitimate signers —
+        # Keycloak's realm key and the built-in default-idp (see
+        # default_idp._build_id_and_access_tokens + jwks.py) — only ever issue
+        # RS256-signed tokens. Deriving the algorithm from the attacker-
+        # controlled token header (headers["alg"]) would delegate the entire
+        # alg-confusion defense to python-jose internals; pin it here so an
+        # `alg=none` or HS-vs-RS confusion token can never reach a verifying
+        # path regardless of the installed jose version.
         claims = jwt.decode(
             token,
             key,
-            algorithms=[headers.get("alg", "RS256")],
+            algorithms=["RS256"],
             options={
                 "verify_at_hash": False,
                 "verify_aud": False,
@@ -184,7 +192,9 @@ def verify_jwt(token: str) -> dict[str, Any]:
             },
         )
 
-        # Validate issuer — accept Keycloak and default-idp issuers
+        # Validate issuer — accept Keycloak and default-idp issuers. A token
+        # with a missing/empty `iss` is rejected: every legitimate signer
+        # always sets `iss`, so an absent issuer is never a valid token.
         token_issuer = claims.get("iss", "")
         expected_issuers = [
             KEYCLOAK_ISSUER,
@@ -193,7 +203,7 @@ def verify_jwt(token: str) -> dict[str, Any]:
             _default_idp_base,
         ]
 
-        if token_issuer and not any(
+        if not token_issuer or not any(
             _issuer_matches(token_issuer, expected) for expected in expected_issuers
         ):
             logger.warning(
