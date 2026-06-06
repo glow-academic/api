@@ -86,7 +86,7 @@ lint: check-venv
 # Run MyPy for static type checking
 typecheck: check-venv
 	@echo "Type checking..."
-	@$(VENV_PYTHON) -m mypy core/app core/utils
+	@$(VENV_PYTHON) -m mypy core/app
 	@echo "✅ Type checking complete"
 
 

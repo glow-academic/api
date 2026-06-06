@@ -110,6 +110,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
