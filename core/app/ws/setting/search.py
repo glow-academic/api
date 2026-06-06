@@ -5,9 +5,11 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
-from app.infra.globals import get_pool, get_redis_client, sio
+from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.setting.search import search_setting_impl
+
+internal_sio = get_internal_sio()
 
 
 class SettingSearchPayload(BaseModel):
@@ -22,7 +24,24 @@ async def setting_search(sid: str, data: dict[str, Any]) -> None:
     if not identity:
         return
 
-    payload = SettingSearchPayload(**data)
+    # The raw socket payload is untrusted: a non-dict ``data`` makes the
+    # ``**data`` spread raise ``TypeError`` and a wrong-typed field (e.g.
+    # ``flag_search`` as a list) raises a Pydantic ``ValidationError``.
+    # Unguarded, that exception aborts the handler and socket.io swallows it,
+    # so the client never sees a ``.failed`` event (silent hang). Mirror the
+    # sibling search handlers (``agent.search`` et al.) and emit a clean
+    # validation error instead.
+    try:
+        payload = SettingSearchPayload(**data)
+    except Exception as e:
+        await internal_sio.emit("setting.search.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": str(e),
+            "error_type": "validation",
+        })
+        return
+
     pool = get_pool()
     redis = get_redis_client()
 

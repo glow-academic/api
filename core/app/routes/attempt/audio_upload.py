@@ -14,6 +14,7 @@ from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.media_types import AudioUploadAttemptApiResponse
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.shared_types import read_upload_bounded
 from app.utils.error.handle_route_error import handle_route_error
 from app.utils.mime.get_content_type import get_content_type
 
@@ -104,7 +105,13 @@ async def upload_audio(
                     )
                 content_type = base_content_type
 
-                file_bytes = await file.read()
+                # Bounded read: abort the moment the body crosses the cap so a
+                # streamed multi-GB audio upload can't exhaust memory/disk
+                # before being rejected (audio bodies are inherently large).
+                file_bytes = await read_upload_bounded(
+                    file,
+                    make_error=lambda msg: HTTPException(status_code=413, detail=msg),
+                )
                 if not file_bytes:
                     raise HTTPException(status_code=400, detail="Empty file")
 
