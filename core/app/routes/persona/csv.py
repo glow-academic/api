@@ -12,6 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.shared_types import MAX_CSV_UPLOAD_BYTES, read_upload_bounded
 from app.infra.persona.csv import ParsePersonaCsvApiResponse, parse_persona_csv_impl
 from app.infra.persona.group import group_persona_impl
 from app.utils.error.handle_route_error import handle_route_error
@@ -54,8 +55,15 @@ async def parse_persona_csv(
         else:
             if file is None or not file.filename:
                 raise HTTPException(status_code=400, detail="Missing CSV file")
-            # Read file bytes at route boundary (UploadFile can only be read once)
-            file_bytes = await file.read()
+            # Read file bytes at route boundary (UploadFile can only be read
+            # once), bounded: abort the moment the body crosses the cap so a
+            # streamed multi-GB upload can't exhaust memory before the row-cap
+            # parse even runs.
+            file_bytes = await read_upload_bounded(
+                file,
+                make_error=lambda msg: HTTPException(status_code=413, detail=msg),
+                max_bytes=MAX_CSV_UPLOAD_BYTES,
+            )
             file_name = file.filename or "file.csv"
             content_type = file.content_type or "text/csv"
             arguments = {
