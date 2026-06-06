@@ -75,3 +75,66 @@ async def test_sync_creates_practice_and_chat_entries(pool, redis_client, sync_f
 
     # 1 practice entry + 1 chat entry = 2
     assert count == 2
+
+
+async def test_sync_is_atomic_on_midway_failure(
+    pool, redis_client, sync_fixture, monkeypatch
+):
+    """A failure partway through the create sequence must leave NO partial rows.
+
+    ``sync_home_practice_entries`` performs many dependent writes per simulation:
+    the ``practice_entry`` parent row, its 7 junction-table inserts, then a
+    ``chat_entry`` plus its junctions, then the ``practice_chat`` link — all on
+    one acquired connection. These are wrapped in a single
+    ``async with conn.transaction():`` so that if any later write fails, the
+    already-written parent + junctions roll back instead of being committed
+    (autocommit) as an orphaned, half-built practice entry.
+
+    Regression: inject a failure on ``create_chat`` (which runs AFTER the
+    practice parent + junctions are written) and assert the practice_entry
+    parent was rolled back. Before the transaction wrap, the parent persisted.
+    """
+
+    async def _baseline_count(table: str) -> int:
+        async with pool.acquire() as conn:
+            return await conn.fetchval(f"SELECT count(*) FROM {table}")
+
+    before_practice = await _baseline_count("practice_entry")
+    before_conn = await _baseline_count("practice_simulations_connection")
+
+    # create_chat is imported lazily inside sync_home_practice_entries via
+    # `from app.tools.entries.chat.create import create_chat`, so patch the
+    # source module attribute. It runs only after the practice parent row and
+    # all 7 of its junction inserts have been issued on the same connection.
+    import app.tools.entries.chat.create as chat_create_mod
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("injected failure after practice parent was written")
+
+    monkeypatch.setattr(chat_create_mod, "create_chat", _boom)
+
+    with pytest.raises(RuntimeError, match="injected failure"):
+        await sync_home_practice_entries(
+            pool=pool,
+            cohorts_resource_id=sync_fixture["cohort_id"],
+            simulation_ids=[sync_fixture["simulation_id"]],
+            simulation_position_ids=[],
+            simulation_availability_ids=[],
+            department_ids=[],
+            profile_ids=[sync_fixture["profile_id"]],
+            profile_persona_ids=[],
+        )
+
+    after_practice = await _baseline_count("practice_entry")
+    after_conn = await _baseline_count("practice_simulations_connection")
+
+    # Atomicity: the parent practice_entry and its junction rows written before
+    # the failure must have been rolled back — no orphaned/partial state.
+    assert after_practice == before_practice, (
+        "practice_entry parent row leaked after a mid-sequence failure "
+        "(writes were not wrapped in a transaction)"
+    )
+    assert after_conn == before_conn, (
+        "practice_simulations_connection junction row leaked after a "
+        "mid-sequence failure (writes were not wrapped in a transaction)"
+    )
