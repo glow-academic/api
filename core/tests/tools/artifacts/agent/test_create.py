@@ -11,6 +11,8 @@ from app.tools.resources.departments.create import create_department
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.flags.create import create_flag
 from app.tools.resources.names.create import create_name
+from app.tools.resources.rubrics.create import create_rubric
+from app.tools.resources.tools.create import create_tool
 
 pytestmark = pytest.mark.asyncio
 
@@ -109,3 +111,37 @@ async def test_no_junctions_when_none_provided(conn, redis_client):
     assert p.department_ids == []
     assert p.flag_ids == []
     assert p.agent_ids == []
+
+
+async def test_links_rubric_tool_department_junctions(conn, redis_client):
+    """Regression: linking a rubric (also tool + department) must not raise.
+
+    The agent_rubrics_junction PK is named ``agent_rubrics_junction_pkey`` in
+    the live schema. A mis-named ON CONFLICT constraint (e.g.
+    ``agent_rubrics_pkey``) makes the upsert raise
+    ``asyncpg.UndefinedObjectError`` and 500s agent creation whenever a rubric
+    is selected. This asserts the upsert path succeeds and the links persist.
+    """
+    rubric = await create_rubric(conn, redis_client, name=f"r-{_u()}")
+    tool = await create_tool(conn, name=f"t-{_u()}", redis=redis_client)
+    dept = await create_department(conn, redis=redis_client)
+
+    # Must not raise asyncpg.UndefinedObjectError (constraint does not exist).
+    result = await create_agent(
+        conn,
+        rubric_ids=[rubric.id],
+        tool_ids=[tool.id],
+        department_ids=[dept.id],
+    )
+
+    items = await get_agents(
+        conn,
+        [result.id],
+        rubrics=True,
+        tools=True,
+        departments=True,
+    )
+    p = items[0]
+    assert p.rubric_ids == [rubric.id]
+    assert p.tool_ids == [tool.id]
+    assert p.department_ids == [dept.id]
