@@ -16,6 +16,7 @@ or Redis.
 
 from __future__ import annotations
 
+import time
 from uuid import UUID
 
 import pytest
@@ -123,6 +124,158 @@ class TestIssuerMatches:
             "https://attacker.com/auth/realms/master",
             "https://glow.example.com/auth/realms/master",
         ) is False
+
+
+# ─── verify_jwt (signature / alg / iss enforcement) ────────────────────────
+
+
+class TestVerifyJwtSecurity:
+    """`verify_jwt` is the single trust boundary every token entry point
+    (HTTP middleware, MCP, WS connect, login) funnels through. Contract:
+
+    - A correctly-formed RS256 token signed by a key in the JWKS set, with a
+      recognized `iss`, is ACCEPTED.
+    - The algorithm is pinned to RS256 — a token whose header claims a
+      different algorithm (`alg=none`, `HS256`) is REJECTED, never trusting
+      the attacker-controlled header to pick the verifier.
+    - An expired token is REJECTED (`exp` enforced).
+    - A token with a missing/empty or foreign `iss` is REJECTED.
+
+    Only external dependency — `_get_jwks` — is monkeypatched to return the
+    test public key, so the test is fully modular (no DB / network).
+    """
+
+    @staticmethod
+    def _keypair():
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from jose import jwk
+
+        priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        priv_pem = priv.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        ).decode()
+        pub_pem = (
+            priv.public_key()
+            .public_bytes(
+                serialization.Encoding.PEM,
+                serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            .decode()
+        )
+        public_jwk = jwk.construct(pub_pem, algorithm="RS256").to_dict()
+        public_jwk = {
+            k: (v.decode() if isinstance(v, bytes) else v)
+            for k, v in public_jwk.items()
+        }
+        public_jwk["kid"] = "test-kid"
+        public_jwk["alg"] = "RS256"
+        return priv_pem, pub_pem, public_jwk
+
+    @pytest.fixture
+    def _patched(self, monkeypatch):
+        priv_pem, _pub_pem, public_jwk = self._keypair()
+        monkeypatch.setattr(ri, "_get_jwks", lambda: [public_jwk])
+        # A recognized issuer for the happy path.
+        monkeypatch.setattr(ri, "KEYCLOAK_ISSUER", "http://localhost/auth/realms/master")
+        return priv_pem
+
+    @staticmethod
+    def _valid_claims():
+        return {
+            "iss": "http://localhost/auth/realms/master",
+            "profile_id": "11111111-1111-1111-1111-111111111111",
+            "email": "user@example.com",
+            "exp": int(time.time()) + 3600,
+            "iat": int(time.time()),
+        }
+
+    def test_valid_rs256_token_is_accepted(self, _patched):
+        from jose import jwt
+
+        token = jwt.encode(
+            self._valid_claims(),
+            _patched,
+            algorithm="RS256",
+            headers={"kid": "test-kid"},
+        )
+        claims = ri.verify_jwt(token)
+        assert claims["profile_id"] == "11111111-1111-1111-1111-111111111111"
+
+    def test_alg_none_token_is_rejected(self, _patched):
+        """Unsigned `alg=none` token must never be accepted, even though its
+        header advertises `kid=test-kid`."""
+        import base64
+        import json
+
+        def _b64(d):
+            return (
+                base64.urlsafe_b64encode(json.dumps(d).encode())
+                .rstrip(b"=")
+                .decode()
+            )
+
+        forged = (
+            _b64({"alg": "none", "kid": "test-kid"})
+            + "."
+            + _b64(self._valid_claims())
+            + "."
+        )
+        with pytest.raises(ValueError):
+            ri.verify_jwt(forged)
+
+    def test_hs256_confusion_token_is_rejected(self, _patched):
+        """An HS256 token (alg-confusion attempt) is rejected because the
+        verifier is pinned to RS256 — it never honors the header `alg`."""
+        from jose import jwt
+
+        # Sign with a symmetric secret + HS256 header. Pre-fix, verify_jwt
+        # used algorithms=[header alg] and would route this to the HMAC path.
+        forged = jwt.encode(
+            self._valid_claims(),
+            "attacker-symmetric-secret",
+            algorithm="HS256",
+            headers={"kid": "test-kid"},
+        )
+        with pytest.raises(ValueError):
+            ri.verify_jwt(forged)
+
+    def test_expired_token_is_rejected(self, _patched):
+        from jose import jwt
+
+        claims = self._valid_claims()
+        claims["exp"] = int(time.time()) - 100
+        token = jwt.encode(
+            claims, _patched, algorithm="RS256", headers={"kid": "test-kid"}
+        )
+        with pytest.raises(ValueError, match="expired"):
+            ri.verify_jwt(token)
+
+    def test_missing_issuer_token_is_rejected(self, _patched):
+        """A validly-RS256-signed token with no `iss` claim is rejected:
+        every legitimate signer always sets `iss`."""
+        from jose import jwt
+
+        claims = self._valid_claims()
+        claims.pop("iss")
+        token = jwt.encode(
+            claims, _patched, algorithm="RS256", headers={"kid": "test-kid"}
+        )
+        with pytest.raises(ValueError, match="issuer"):
+            ri.verify_jwt(token)
+
+    def test_foreign_issuer_token_is_rejected(self, _patched):
+        from jose import jwt
+
+        claims = self._valid_claims()
+        claims["iss"] = "https://attacker.example.com/auth/realms/master"
+        token = jwt.encode(
+            claims, _patched, algorithm="RS256", headers={"kid": "test-kid"}
+        )
+        with pytest.raises(ValueError, match="issuer"):
+            ri.verify_jwt(token)
 
 
 # ─── get_system_session_id ─────────────────────────────────────────────────
