@@ -1,6 +1,7 @@
 """Invocation decrypt logic — composable infra architecture.
 
-Validates the key belongs to the invocation, then delegates to resolve_decrypt.
+Authorizes the caller, validates the key belongs to the invocation, then
+delegates to resolve_decrypt.
 """
 
 from __future__ import annotations
@@ -13,6 +14,8 @@ from redis.asyncio import Redis
 
 from app.infra.identity.decrypt import resolve_decrypt
 from app.infra.invocation.types import DecryptInvocationKeyApiResponse
+from app.infra.permissions_helpers import has_permission
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.invocation.get import get_invocations
 
@@ -29,11 +32,33 @@ async def decrypt_invocation_impl(
     """Decrypt a key scoped to an invocation entry.
 
     Flow:
-      1. Validate the key belongs to the invocation (get_invocations)
-      2. resolve_decrypt — profile identity check + actual decryption
-      3. Return typed response
+      1. Authorize — caller must hold the test:invocation_draft permission
+         (revealing a raw invocation key is a privileged read tied to the
+         invocation editor where the reveal action lives; editing the
+         invocation's keys is gated on this same permission).
+      2. Validate the key belongs to the invocation (get_invocations)
+      3. resolve_decrypt — profile identity check + actual decryption
+      4. Return typed response
     """
-    # ── Step 1: Validate key belongs to invocation ────────────────────
+    # ── Step 1: Authorize the caller ──────────────────────────────────
+    # The route/WS layer only guarantees an *authenticated* profile; it
+    # does NOT gate by role. Without this check any signed-in user could
+    # reveal an invocation's raw API-key secret.
+    profile = await resolve_profile_identity_context(
+        pool, profile_id, redis, bypass_cache=bypass_cache
+    )
+    if profile is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Profile not found. Please sign in again.",
+        )
+    if not has_permission(profile.role_permissions, "test", "invocation_draft"):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to reveal invocation keys.",
+        )
+
+    # ── Step 2: Validate key belongs to invocation ────────────────────
     with timed("hydrate"):
       async with pool.acquire() as conn:
         invocations = await get_invocations(conn, [invocation_id], redis)
