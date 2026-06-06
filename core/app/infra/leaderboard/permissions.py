@@ -7,7 +7,7 @@ shapes that can be expanded without changing route wiring.
 
 import json
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from statistics import mean
 from typing import Any
 from uuid import UUID
@@ -65,6 +65,29 @@ def _json_point(**kwargs: object) -> str:
     return json.dumps(kwargs, separators=(",", ":"), default=str)
 
 
+# Far-future sentinel so None timestamps sort last (mirrors SQL NULLS LAST).
+# Aware-UTC so it never gets compared against an aware datetime as a naive value
+# (see session/get.py#_timeline_sort_key and api#182 — the timeline-sort crash).
+_DT_SORT_SENTINEL = datetime.max.replace(tzinfo=timezone.utc)
+
+
+def _dt_sort_key(dt: datetime | None) -> datetime:
+    """Uniformly-comparable aware-UTC sort key.
+
+    All leaderboard timestamps originate from PG ``timestamptz`` (asyncpg →
+    tz-aware) or its JSON-cached ISO form. Sorting them with a *naive*
+    ``datetime.min`` fallback raises ``TypeError: can't compare offset-naive
+    and offset-aware datetimes`` the moment any value is ``None`` and a sibling
+    is aware. Normalize: ``None`` → aware far-future sentinel; a naive value is
+    assumed UTC and made aware. This mirrors the api#182 fix in session/get.py.
+    """
+    if dt is None:
+        return _DT_SORT_SENTINEL
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def _format_dt(dt: datetime | None) -> str | None:
     if dt is None:
         return None
@@ -78,7 +101,7 @@ def _profile_context(
 ) -> dict[str, list]:
     attempts = sorted(
         attempts_by_profile.get(profile_id, []),
-        key=lambda a: a.attempt_created_at or datetime.min,
+        key=lambda a: _dt_sort_key(a.attempt_created_at),
     )
     chats = sorted(
         chats_by_profile.get(profile_id, []),
@@ -907,7 +930,7 @@ def compute_message_stats(
 
     stats: dict[UUID, dict[str, Any]] = {}
     for chat_id, msgs in msgs_by_chat.items():
-        sorted_msgs = sorted(msgs, key=lambda m: m.created_at or datetime.min)
+        sorted_msgs = sorted(msgs, key=lambda m: _dt_sort_key(m.created_at))
         num_messages = len(sorted_msgs)
 
         # Compute response times: time between consecutive query→response pairs
