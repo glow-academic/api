@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.resources.providers.get import get_providers
 from app.tools.resources.providers.types import GetProviderResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.url_safety import validate_endpoint_url
 
 
 async def create_provider(
@@ -23,7 +24,15 @@ async def create_provider(
     key: str | None = None,
     value: str | None = None,
 ) -> GetProviderResponse:
-    """Create a provider resource (plain INSERT — no unique constraint)."""
+    """Create a provider resource (plain INSERT — no unique constraint).
+
+    The denormalized ``endpoint`` is read back as the outbound litellm
+    ``base_url`` (see ``prepare_pipeline``), so SSRF-validate any
+    non-empty value before persisting (raises ``ValueError`` → HTTP 400).
+    """
+    if endpoint:
+        validate_endpoint_url(endpoint)
+
     provider_id = await conn.fetchval(
         """
         INSERT INTO providers_resource (id, name, description, active, mcp, generated, department_ids, endpoint, key, value)
