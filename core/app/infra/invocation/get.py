@@ -88,6 +88,17 @@ def _decorate(selected_items: list, suggestions: list, *, id_attr: str = "id") -
     )
 
 
+def _mask_key(raw: str | None) -> str | None:
+    """Non-revealing mask for a key preview.
+
+    The raw key is a server-side secret (encrypted at rest, decrypted only
+    during generation). The invocation editor UI shows this field merely as a
+    "a key is set" placeholder beneath the key name and has a separate explicit
+    reveal action for the real value, so we never serialize the secret here.
+    """
+    return "••••••••" if raw else None
+
+
 def _flag_key_and_label(name: str | None) -> tuple[str, str]:
     if not name:
         return ("unknown", "Unknown")
@@ -314,8 +325,8 @@ async def get_invocation_impl(
             key_id=item.id,
             name=item.name,
             description=item.description,
-            key_masked=getattr(item, "key", None),
-            masked_key=getattr(item, "key", None),
+            key_masked=_mask_key(getattr(item, "key", None)),
+            masked_key=_mask_key(getattr(item, "key", None)),
             active=item.active,
             generated=item.generated,
             suggested=bool(item.id and item.id in keys_suggested_ids),
