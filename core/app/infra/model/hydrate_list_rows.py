@@ -34,7 +34,6 @@ from app.infra.model.permissions import (
 )
 from app.infra.model.types import ListModelApiModel
 from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.tools.artifacts.agent.search import search_agents
 from app.tools.artifacts.model.get import get_models
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.names.get import get_names
@@ -54,8 +53,9 @@ async def hydrate_model_list_rows(
 
     Mirrors ``_search_model_build``'s row-hydration steps minus facets
     and pagination. Permissions are computed via the same helpers the
-    list endpoint uses; ``active_agent_count`` is resolved per-row from
-    ``search_agents`` so can_edit/can_delete reflect current state.
+    list endpoint uses; ``active_agent_count`` is resolved for all rows
+    in a single grouped junction query (see below) so can_edit/can_delete
+    reflect current state without an N+1.
     """
     if not model_ids:
         return []
@@ -120,23 +120,49 @@ async def hydrate_model_list_rows(
     description_map = {d.id: d for d in descriptions_data}
     provider_resource_map = {p.id: p for p in providers_data}
 
-    # Per-row reverse lookup: model artifact -> active agent count, via
-    # the same hop the bulk-write resolver uses (model artifact has
-    # ``model_ids`` carrying its models_resource ids; agents reference
-    # those models_resource ids in their junction). Mirrors
+    # Reverse lookup: model artifact -> active agent count, via the same
+    # hop the bulk-write resolver uses (model artifact has ``model_ids``
+    # carrying its models_resource ids; agents reference those
+    # models_resource ids in their junction). Mirrors
     # ``resolve_model_permissions_context`` so can_edit/can_delete are
     # correct on freshly-created/updated rows.
-    async def _agent_count(model_resource_ids: list[UUID]) -> int:
+    #
+    # Batched: one grouped query over EVERY model's resource ids instead
+    # of one ``search_agents`` round-trip per row. The bulk-write paths
+    # (create/duplicate/update all-matching) hydrate N rows at once, so a
+    # per-row query was N+1. The query mirrors ``search_agents``'s
+    # active-agent semantics (active junction → active agent_artifact),
+    # returning (agent_id, models_id) pairs so the per-model count
+    # de-dupes agents linked to multiple of a model's resource ids —
+    # identical to ``search_agents``'s DISTINCT-agent total.
+    all_model_resource_ids: list[UUID] = []
+    for a in artifacts:
+        all_model_resource_ids.extend(a.model_ids or [])
+
+    agents_by_model_resource: dict[UUID, set[UUID]] = {}
+    if all_model_resource_ids:
+        async with pool.acquire() as conn:
+            pair_rows = await conn.fetch(
+                """
+                SELECT DISTINCT amj.models_id, amj.agent_id
+                FROM agent_models_junction amj
+                JOIN agent_artifact a ON a.id = amj.agent_id AND a.active = true
+                WHERE amj.models_id = ANY($1) AND amj.active = true
+                """,
+                all_model_resource_ids,
+            )
+        for pr in pair_rows:
+            agents_by_model_resource.setdefault(pr["models_id"], set()).add(
+                pr["agent_id"]
+            )
+
+    def _agent_count(model_resource_ids: list[UUID]) -> int:
         if not model_resource_ids:
             return 0
-        async with pool.acquire() as conn:
-            _, total = await search_agents(
-                conn,
-                model_ids=model_resource_ids,
-                active_only=True,
-                limit_count=1,
-            )
-            return total
+        agents: set[UUID] = set()
+        for rid in model_resource_ids:
+            agents |= agents_by_model_resource.get(rid, set())
+        return len(agents)
 
     rows: list[ListModelApiModel] = []
     for a in artifacts:
@@ -155,7 +181,7 @@ async def hydrate_model_list_rows(
 
         dept_ids = [str(d) for d in (a.department_ids or [])]
 
-        active_agent_count = await _agent_count(list(a.model_ids or []))
+        active_agent_count = _agent_count(list(a.model_ids or []))
 
         can_edit = compute_can_edit(
             role_level=user_role_level,
