@@ -71,6 +71,57 @@ def read_csv_rows_bounded(
         rows.append(row)
     return rows
 
+
+# ---------------------------------------------------------------------------
+# Upload-size guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on the byte size of a single uploaded file (audio/image/document/
+# CSV). The upload routes used to materialize the whole body with a single
+# ``await file.read()`` *before* any size check — so an authenticated client
+# could stream a multi-GB body and exhaust server memory (and then disk, since
+# the bytes are written out) before anything rejected it (resource-exhaustion
+# DoS). ``read_upload_bounded`` closes that gap: it pulls the body in chunks and
+# aborts the moment the cap is crossed, so the oversized read never completes.
+# 64 MiB is generous for the largest legitimate uploads (audio recordings,
+# images) while keeping a hard ceiling on per-request memory.
+MAX_UPLOAD_BYTES = 64 * 1024 * 1024
+
+
+async def read_upload_bounded(
+    upload: Any,
+    *,
+    make_error: Callable[[str], Exception] | None = None,
+    max_bytes: int = MAX_UPLOAD_BYTES,
+    chunk_size: int = 1024 * 1024,
+) -> bytes:
+    """Read a Starlette/FastAPI ``UploadFile`` fully, bailing as soon as
+    ``max_bytes`` is exceeded.
+
+    Replaces the unbounded ``await file.read()`` idiom: the body is pulled one
+    chunk at a time and the read aborts the moment the cumulative size crosses
+    the cap, so an oversized upload cannot be fully materialized in memory (or
+    written to disk) before being rejected. ``make_error`` lets the caller raise
+    its own client-facing error type (e.g. ``HTTPException(413)``) — it receives
+    the message and returns the exception to raise; defaults to ``ValueError``.
+    The route boundary translates the raised error to a 4xx.
+    """
+    if make_error is None:
+        make_error = ValueError
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await upload.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise make_error(
+                f"Upload exceeds the maximum size of {max_bytes} bytes "
+                f"({max_bytes // (1024 * 1024)} MiB). Upload a smaller file."
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 # ---------------------------------------------------------------------------
 # Profile context types
 # ---------------------------------------------------------------------------
