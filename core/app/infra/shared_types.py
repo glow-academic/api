@@ -86,6 +86,14 @@ def read_csv_rows_bounded(
 # images) while keeping a hard ceiling on per-request memory.
 MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
+# Tighter ceiling for CSV imports specifically. A CSV import is plain text whose
+# rows are already row-capped at ``MAX_CSV_ROWS`` (a few hundred rows) and then
+# re-submitted through the ``MAX_BULK_ITEMS``-capped bulk endpoints, so a
+# legitimate import is far smaller than a media upload. 16 MiB is well above any
+# real import while bounding the bytes the parser ever holds — the byte-cap
+# (this) runs first, the row-cap (``read_csv_rows_bounded``) second.
+MAX_CSV_UPLOAD_BYTES = 16 * 1024 * 1024
+
 
 async def read_upload_bounded(
     upload: Any,

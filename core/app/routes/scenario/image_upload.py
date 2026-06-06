@@ -11,6 +11,7 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, Response, Upl
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.shared_types import read_upload_bounded
 from app.infra.scenario.group import group_scenario_impl
 from app.infra.scenario.image_upload import image_upload_scenario_impl
 from app.infra.scenario.types import ImageUploadScenarioApiResponse
@@ -72,7 +73,13 @@ async def upload_image(
                     detail=f"Unsupported image type: {content_type}",
                 )
 
-            file_bytes = await file.read()
+            # Bounded read: abort the moment the body crosses the cap so a
+            # streamed multi-GB upload can't exhaust memory/disk before being
+            # rejected (image/video/file bodies are inherently large).
+            file_bytes = await read_upload_bounded(
+                file,
+                make_error=lambda msg: HTTPException(status_code=413, detail=msg),
+            )
             if not file_bytes:
                 raise HTTPException(status_code=400, detail="Empty file")
             filename = file.filename
