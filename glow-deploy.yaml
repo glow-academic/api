@@ -34,6 +34,12 @@ ai:
     transcribe: glow-transcribe
     realtime: glow-realtime
 
+  # Each model's DB `value` (the id sent to the upstream provider/proxy)
+  # defaults to its `name`. To remap WITHOUT renaming (renaming breaks the
+  # deterministic sid("model-resource/<name>") linkage evals.py depends on),
+  # add a `value:` key per model in your gitignored glow-deploy.local.yaml —
+  # e.g. `value: local-text` to route a deployment's proxy to a different
+  # upstream id. Durable across reseed; never committed here.
   models:
     - name: glow-text
       provider: learnloop

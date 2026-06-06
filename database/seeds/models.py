@@ -153,6 +153,21 @@ def _collect_voices(model_name: str, voice_names: list[str]) -> list[UUID]:
 # Build model dicts from config
 # ---------------------------------------------------------------------------
 
+
+def _resolve_model_value(model_cfg: dict, name: str) -> str:
+    """The DB `value` is the model id sent to the upstream provider/proxy.
+
+    It defaults to the model `name` (so `value == name == "glow-text"` for the
+    committed config), but may be overridden per-model via a `value:` key in
+    config. This lets a deployment whose proxy uses different upstream model ids
+    remap (e.g. `glow-text` → `local-text`) WITHOUT renaming the model, so the
+    deterministic `sid("model-resource/glow-text")` linkage that evals.py relies
+    on stays intact. Override lives in the gitignored `glow-deploy.local.yaml`,
+    so it is durable across reseed and never leaks into the committed template.
+    """
+    return model_cfg.get("value", name)
+
+
 models: list[dict] = []
 
 for _m in _config_models_raw:
@@ -200,7 +215,7 @@ for _m in _config_models_raw:
         id=sid(f"model/{_name}"),
         resource_id=sid(f"model-resource/{_name}"),
         name=_name,
-        value=_name,
+        value=_resolve_model_value(_m, _name),
         description=_m.get("description", _name),
         provider_id=_prov_id,
         flag_ids=_flag_ids,
