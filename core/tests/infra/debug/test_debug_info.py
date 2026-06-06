@@ -1,6 +1,5 @@
 """Tests for debug info helper."""
 
-import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -14,6 +13,11 @@ class FakeConn:
 
     async def execute(self, query: str, run_id: object, content: str) -> None:
         self.calls.append((run_id, content))
+
+
+class FailingConn:
+    async def execute(self, query: str, run_id: object, content: str) -> None:
+        raise RuntimeError("db is down")
 
 
 def test_extract_debug_context_supports_multiple_shapes():
@@ -36,11 +40,27 @@ async def test_debug_info_returns_error_when_context_is_missing():
 
 
 @pytest.mark.asyncio
-async def test_debug_info_schedules_problem_insert():
+async def test_debug_info_persists_before_returning():
+    # The insert must have completed by the time debug_info returns its
+    # confirmation — no event-loop yield (asyncio.sleep) is needed. If the
+    # insert were fire-and-forget (un-awaited create_task), conn.calls would
+    # still be empty here and the un-retained task could be GC'd entirely.
     conn = FakeConn()
 
     result = await debug_info({"run_id": "run-1", "conn": conn}, "need help")
-    await asyncio.sleep(0)
 
-    assert result == "Saved debug info"
     assert conn.calls == [("run-1", "need help")]
+    assert result == "Saved debug info"
+
+
+@pytest.mark.asyncio
+async def test_debug_info_surfaces_insert_failure():
+    # A failing insert must surface as an error rather than being swallowed:
+    # awaiting the coroutine lets the except clause catch it. With a
+    # fire-and-forget create_task the try/except only guards task *creation*,
+    # so a DB failure would be silently lost and the caller still told
+    # "Saved debug info".
+    result = await debug_info({"run_id": "run-1", "conn": FailingConn()}, "need help")
+
+    assert result.startswith("Error saving problem:")
+    assert "db is down" in result

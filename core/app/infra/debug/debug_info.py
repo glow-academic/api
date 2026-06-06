@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any
 
 import asyncpg  # type: ignore
@@ -37,7 +36,7 @@ async def debug_info(ctx: Any, content: str) -> str:
         return "Error: Missing run_id or conn in context"
 
     try:
-        asyncio.create_task(_insert_problem_from_run(conn, run_id, content))
+        await _insert_problem_from_run(conn, run_id, content)
     except Exception as e:
         print(f"Error saving problem: {e}")
         return f"Error saving problem: {e}"
