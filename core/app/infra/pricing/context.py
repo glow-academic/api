@@ -148,7 +148,9 @@ async def resolve_pricing_search_context(
     Entries (raw MVs):
       - groups: groups_mv rows (paginated)
       - total_groups: groups_mv rows (all matching, for total_count)
-      - runs: runs_mv rows (for groups on current page)
+      - runs: runs_mv rows (for ALL matching groups, so the caller's
+        in-memory model/profile/agent filter can recompute total_count
+        across every page, not just the current one)
 
     Resources (hydrated from IDs derived from runs):
       - agents, models, names, pricing (for cost computation + display)
@@ -225,8 +227,19 @@ async def resolve_pricing_search_context(
         _fetch_groups_total(),
     )
 
-    # Step 2: Fetch runs for groups on current page
-    group_ids = [g.id for g in all_groups]
+    # Step 2: Fetch runs for ALL matching groups, not just the current page.
+    # The caller (groups_system_impl) applies in-memory model/profile/agent
+    # filters that derive ``matching_group_ids`` from these runs and then
+    # filter ``total_groups`` (the full result set) down to compute
+    # ``total_count``. If runs only covered the current page's groups, every
+    # off-page group would be missing from ``runs`` and therefore dropped
+    # from ``total_groups`` regardless of whether it actually matches the
+    # filter — capping ``total_count`` at the page's matching count and
+    # breaking pagination math. Scope runs to ``total_groups`` so the
+    # filtered count is correct across all pages. (Per-page display
+    # aggregation in Phase 4 only emits page-group ids, so the extra
+    # off-page run stats are harmless.)
+    group_ids = [g.id for g in total_groups]
     if group_ids:
         async with pool.acquire() as conn:
             all_runs = (await search_runs(conn, redis, group_ids=group_ids, limit=100000))[0]
