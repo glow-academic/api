@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.resources.endpoints.get import get_endpoints
 from app.tools.resources.endpoints.types import GetEndpointResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.url_safety import validate_endpoint_url
 
 
 async def create_endpoint(
@@ -18,7 +19,15 @@ async def create_endpoint(
     mcp: bool = False,
     soft: bool = False,
 ) -> GetEndpointResponse:
-    """Create an endpoint resource."""
+    """Create an endpoint resource.
+
+    The ``base_url`` is used verbatim as the outbound litellm/OpenAI
+    ``base_url`` for server-side LLM calls, so SSRF-validate it here —
+    the single chokepoint every provider-supplied endpoint passes
+    through — before persisting (raises ``ValueError`` → HTTP 400).
+    """
+    validate_endpoint_url(base_url)
+
     endpoint_id = await conn.fetchval(
         """
         INSERT INTO endpoints_resource (id, base_url, active, mcp, generated)
