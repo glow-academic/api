@@ -33,8 +33,8 @@ class ListActivityRequest(BaseModel):
     role_ids: list[UUID] = Field(default_factory=list, description="Role resource IDs to filter profiles by")
 
     active: bool | None = Field(default=None, description="Filter by active status")
-    page: int = Field(0, description="Pagination page number")
-    page_size: int = Field(50, description="Items per page")
+    page: int = Field(0, ge=0, description="Pagination page number")
+    page_size: int = Field(50, ge=1, le=200, description="Items per page")
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
