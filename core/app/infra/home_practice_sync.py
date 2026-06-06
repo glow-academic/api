@@ -513,112 +513,113 @@ async def sync_home_practice_entries(
     # One entry per simulation (shared across all profiles), one chat per scenario.
     redis = get_redis_client()
     async with pool.acquire() as conn:
-        session = await create_session(conn, redis)
+        async with conn.transaction():
+            session = await create_session(conn, redis)
 
-        for sim_data in sim_data_list:
-            if sim_data["is_practice"]:
-                parent = await create_practice(
-                    conn, redis,
-                    session_id=session.id,
-                    cohorts_ids=[cohorts_resource_id],
-                    departments_ids=department_ids,
-                    simulations_ids=[sim_data["simulation_id"]],
-                    profiles_ids=profile_ids,
-                    profile_personas_ids=profile_persona_ids,
-                    simulation_availability_ids=sim_data["sim_avail_resource_ids"],
-                    simulation_positions_ids=sim_data["sim_pos_resource_ids"],
-                    position=sim_data["position"],
-                    start_time=sim_data["start_time"],
-                    end_time=sim_data["end_time"],
-                )
-            else:
-                parent = await create_home(
-                    conn, redis,
-                    session_id=session.id,
-                    cohorts_ids=[cohorts_resource_id],
-                    departments_ids=department_ids,
-                    simulations_ids=[sim_data["simulation_id"]],
-                    profiles_ids=profile_ids,
-                    profile_personas_ids=profile_persona_ids,
-                    simulation_availability_ids=sim_data["sim_avail_resource_ids"],
-                    simulation_positions_ids=sim_data["sim_pos_resource_ids"],
-                    position=sim_data["position"],
-                    start_time=sim_data["start_time"],
-                    end_time=sim_data["end_time"],
-                )
-
-            entry_count += 1
-
-            for chat_data in sim_data["chats"]:
-                chat = await create_chat(
-                    conn, redis,
-                    session_id=session.id,
-                    scenario_ids=[chat_data["scenario_id"]],
-                    position=chat_data["position"],
-                    name=chat_data["name"],
-                    description=chat_data["description"],
-                    time_limit=chat_data["time_limit"],
-                    negative_time=chat_data["negative_time"],
-                    # 13 flag booleans
-                    audio_enabled=chat_data["audio_enabled"],
-                    text_enabled=chat_data["text_enabled"],
-                    hints_enabled=chat_data["hints_enabled"],
-                    copy_paste_allowed=chat_data["copy_paste_allowed"],
-                    show_images=chat_data["show_images"],
-                    show_objectives=chat_data["show_objectives"],
-                    show_problem_statement=chat_data["show_problem_statement"],
-                    analyses_enabled=chat_data["analyses_enabled"],
-                    improvements_enabled=chat_data["improvements_enabled"],
-                    strengths_enabled=chat_data["strengths_enabled"],
-                    use_custom=chat_data["use_custom"],
-                    use_previous=chat_data["use_previous"],
-                    # 5 content-enabled
-                    problem_statement_enabled=chat_data[
-                        "problem_statement_enabled"
-                    ],
-                    objectives_enabled=chat_data["objectives_enabled"],
-                    video_enabled=chat_data["video_enabled"],
-                    images_enabled=chat_data["images_enabled"],
-                    questions_enabled=chat_data["questions_enabled"],
-                    # 11 generate flags
-                    generate_problem_statements=chat_data[
-                        "generate_problem_statements"
-                    ],
-                    generate_objectives=chat_data["generate_objectives"],
-                    generate_videos=chat_data["generate_videos"],
-                    generate_images=chat_data["generate_images"],
-                    generate_questions=chat_data["generate_questions"],
-                    generate_personas=chat_data["generate_personas"],
-                    generate_documents=chat_data["generate_documents"],
-                    generate_options=chat_data["generate_options"],
-                    generate_parameter_fields=chat_data[
-                        "generate_parameter_fields"
-                    ],
-                    generate_names=chat_data["generate_names"],
-                    generate_descriptions=chat_data["generate_descriptions"],
-                    # connection resource IDs
-                    rubric_ids=chat_data["rubric_ids"],
-                    scenario_flag_ids=chat_data["scenario_flag_ids"],
-                    scenario_position_ids=chat_data["scenario_position_ids"],
-                    scenario_time_limit_ids=chat_data["scenario_time_limit_ids"],
-                    persona_ids=chat_data["persona_ids"],
-                    document_ids=chat_data["document_ids"],
-                    image_ids=chat_data["image_ids"],
-                    video_ids=chat_data["video_ids"],
-                    question_ids=chat_data["question_ids"],
-                    option_ids=chat_data["option_ids"],
-                    problem_statement_ids=chat_data["problem_statement_ids"],
-                    objective_ids=chat_data["objective_ids"],
-                    parameter_field_ids=chat_data["parameter_field_ids"],
-                    standard_group_ids=chat_data["standard_group_ids"],
-                    standard_ids=chat_data["standard_ids"],
-                )
-
+            for sim_data in sim_data_list:
                 if sim_data["is_practice"]:
-                    await create_practice_chat(conn, redis, parent.id, chat.id, session.id)
+                    parent = await create_practice(
+                        conn, redis,
+                        session_id=session.id,
+                        cohorts_ids=[cohorts_resource_id],
+                        departments_ids=department_ids,
+                        simulations_ids=[sim_data["simulation_id"]],
+                        profiles_ids=profile_ids,
+                        profile_personas_ids=profile_persona_ids,
+                        simulation_availability_ids=sim_data["sim_avail_resource_ids"],
+                        simulation_positions_ids=sim_data["sim_pos_resource_ids"],
+                        position=sim_data["position"],
+                        start_time=sim_data["start_time"],
+                        end_time=sim_data["end_time"],
+                    )
                 else:
-                    await create_home_chat(conn, redis, parent.id, chat.id, session.id)
+                    parent = await create_home(
+                        conn, redis,
+                        session_id=session.id,
+                        cohorts_ids=[cohorts_resource_id],
+                        departments_ids=department_ids,
+                        simulations_ids=[sim_data["simulation_id"]],
+                        profiles_ids=profile_ids,
+                        profile_personas_ids=profile_persona_ids,
+                        simulation_availability_ids=sim_data["sim_avail_resource_ids"],
+                        simulation_positions_ids=sim_data["sim_pos_resource_ids"],
+                        position=sim_data["position"],
+                        start_time=sim_data["start_time"],
+                        end_time=sim_data["end_time"],
+                    )
 
                 entry_count += 1
+
+                for chat_data in sim_data["chats"]:
+                    chat = await create_chat(
+                        conn, redis,
+                        session_id=session.id,
+                        scenario_ids=[chat_data["scenario_id"]],
+                        position=chat_data["position"],
+                        name=chat_data["name"],
+                        description=chat_data["description"],
+                        time_limit=chat_data["time_limit"],
+                        negative_time=chat_data["negative_time"],
+                        # 13 flag booleans
+                        audio_enabled=chat_data["audio_enabled"],
+                        text_enabled=chat_data["text_enabled"],
+                        hints_enabled=chat_data["hints_enabled"],
+                        copy_paste_allowed=chat_data["copy_paste_allowed"],
+                        show_images=chat_data["show_images"],
+                        show_objectives=chat_data["show_objectives"],
+                        show_problem_statement=chat_data["show_problem_statement"],
+                        analyses_enabled=chat_data["analyses_enabled"],
+                        improvements_enabled=chat_data["improvements_enabled"],
+                        strengths_enabled=chat_data["strengths_enabled"],
+                        use_custom=chat_data["use_custom"],
+                        use_previous=chat_data["use_previous"],
+                        # 5 content-enabled
+                        problem_statement_enabled=chat_data[
+                            "problem_statement_enabled"
+                        ],
+                        objectives_enabled=chat_data["objectives_enabled"],
+                        video_enabled=chat_data["video_enabled"],
+                        images_enabled=chat_data["images_enabled"],
+                        questions_enabled=chat_data["questions_enabled"],
+                        # 11 generate flags
+                        generate_problem_statements=chat_data[
+                            "generate_problem_statements"
+                        ],
+                        generate_objectives=chat_data["generate_objectives"],
+                        generate_videos=chat_data["generate_videos"],
+                        generate_images=chat_data["generate_images"],
+                        generate_questions=chat_data["generate_questions"],
+                        generate_personas=chat_data["generate_personas"],
+                        generate_documents=chat_data["generate_documents"],
+                        generate_options=chat_data["generate_options"],
+                        generate_parameter_fields=chat_data[
+                            "generate_parameter_fields"
+                        ],
+                        generate_names=chat_data["generate_names"],
+                        generate_descriptions=chat_data["generate_descriptions"],
+                        # connection resource IDs
+                        rubric_ids=chat_data["rubric_ids"],
+                        scenario_flag_ids=chat_data["scenario_flag_ids"],
+                        scenario_position_ids=chat_data["scenario_position_ids"],
+                        scenario_time_limit_ids=chat_data["scenario_time_limit_ids"],
+                        persona_ids=chat_data["persona_ids"],
+                        document_ids=chat_data["document_ids"],
+                        image_ids=chat_data["image_ids"],
+                        video_ids=chat_data["video_ids"],
+                        question_ids=chat_data["question_ids"],
+                        option_ids=chat_data["option_ids"],
+                        problem_statement_ids=chat_data["problem_statement_ids"],
+                        objective_ids=chat_data["objective_ids"],
+                        parameter_field_ids=chat_data["parameter_field_ids"],
+                        standard_group_ids=chat_data["standard_group_ids"],
+                        standard_ids=chat_data["standard_ids"],
+                    )
+
+                    if sim_data["is_practice"]:
+                        await create_practice_chat(conn, redis, parent.id, chat.id, session.id)
+                    else:
+                        await create_home_chat(conn, redis, parent.id, chat.id, session.id)
+
+                    entry_count += 1
 
     return entry_count
