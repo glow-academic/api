@@ -306,7 +306,6 @@ def build_setting_get_result(
             id=item.id,
             provider_id=item.provider_id,
             key_id=item.key_id,
-            key=item.key,
             name=item.name,
             description=item.description,
             generated=item.generated,

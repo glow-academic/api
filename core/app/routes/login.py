@@ -78,7 +78,15 @@ async def callback(code: str | None = None, error: str | None = None):
         )
 
     if resp.status_code != 200:
-        logger.error(f"Token exchange failed: {resp.status_code} {resp.text}")
+        # Don't log the raw token-endpoint body — it can carry sensitive
+        # material. Surface only the non-secret OIDC ``error`` code.
+        try:
+            err_code = resp.json().get("error", "unknown")
+        except Exception:
+            err_code = "unparseable"
+        logger.error(
+            f"Token exchange failed: status={resp.status_code} error={err_code}"
+        )
         raise HTTPException(400, "Token exchange failed")
 
     tokens = resp.json()
