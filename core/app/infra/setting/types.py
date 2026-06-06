@@ -75,7 +75,11 @@ class SettingProviderKeyResource(BaseModel):
     id: UUID | None = Field(None, description="Provider key identifier")
     provider_id: UUID | None = Field(None, description="Provider identifier")
     key_id: UUID | None = Field(None, description="Key identifier")
-    key: str | None = Field(None, description="Key value")
+    # NOTE: the raw secret key value is intentionally NOT exposed here.
+    # Like ``keys_catalog`` / ``SettingProviderKeyOption`` (masked_key), the
+    # setting response only carries identifiers + display metadata. The actual
+    # provider key is used server-side only (``get_provider_keys`` during
+    # generation) and must never be serialized into a caller-reachable response.
     name: str | None = Field(None, description="Key display name")
     description: str | None = Field(None, description="Key description")
     generated: bool | None = Field(None, description="Whether the provider-key pair was AI-generated")
