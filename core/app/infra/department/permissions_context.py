@@ -24,6 +24,9 @@ from redis.asyncio import Redis
 from app.tools.artifacts.department.get import (
     get_departments as get_department_artifacts,
 )
+from app.tools.artifacts.setting.get import (
+    get_settings as get_setting_artifacts,
+)
 from app.tools.resources.departments.create import (
     create_department as create_department_resource,
 )
@@ -162,6 +165,30 @@ async def resolve_department_values(
                     )
                 )
         item.flag_ids = resolved_flag_ids
+
+    # --- Cross-artifact artifact ID → settings_resource ID resolution ---
+    #
+    # ``settings_ids`` supplied by the client are *setting artifact* IDs (that
+    # is what ``/setting/search`` surfaces as each row's id). But
+    # ``department_settings_junction.settings_id`` is FK'd to
+    # ``settings_resource`` (the denormalized snapshot each setting artifact
+    # owns via its own ``setting_settings_junction``), and the department read
+    # side hydrates ``settings_ids`` straight back out of that junction. Writing
+    # the artifact ID into the junction violates the FK → HTTP 500. Resolve
+    # artifact IDs to their snapshot resource IDs here. Unknown IDs (e.g. an
+    # already-resolved resource ID round-tripped from the read side) pass
+    # through so the FK still validates. Mirrors the #280/#282 sweep.
+    settings_ids = getattr(item, "settings_ids", None)
+    if settings_ids:
+        setting_artifacts = await get_setting_artifacts(
+            conn, list(settings_ids), settings=True
+        )
+        setting_map = {
+            a.id: a.setting_ids[0]
+            for a in setting_artifacts
+            if a.id and a.setting_ids
+        }
+        item.settings_ids = [setting_map.get(sid, sid) for sid in settings_ids]
 
     # --- Validate required fields (create only) ---
 
