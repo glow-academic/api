@@ -282,17 +282,26 @@ def compute_attempt_aggregates(chats: list[ChatData]) -> dict:
 
 
 def compute_total_possible_points(chats: list[ChatData]) -> float:
-    """Compute total possible points from completed chats' grade total_points.
+    """Compute total possible points from graded chats' grade total_points.
+
+    Gated on ``chat.grade`` (NOT ``chat.completed``) to stay aligned with the
+    numerator in :func:`compute_attempt_aggregates`, which adds ``grade.score``
+    for *any* graded chat — including graded-but-not-completed ones (manual /
+    instructor / AI grade that precedes the completion write). If the
+    denominator gated on ``completed`` while the numerator did not, a
+    graded-not-completed chat would inflate ``total_score`` with no matching
+    ``total_possible`` and the attempt percentage could exceed 100%. A chat's
+    points count here exactly when its score counts in the numerator.
 
     Args:
         chats: List of ChatData objects
 
     Returns:
-        Sum of rubric total_points for completed chats
+        Sum of rubric total_points for graded chats
     """
     total = 0.0
     for chat in chats:
-        if chat.completed and chat.grade and chat.grade.total_points:
+        if chat.grade and chat.grade.total_points:
             total += chat.grade.total_points
     return total
 
