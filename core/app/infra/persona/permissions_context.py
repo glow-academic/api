@@ -326,9 +326,10 @@ async def resolve_persona_values(
     # ``departments_resource``; writing a raw artifact id violates the FK
     # (HTTP 500). #282 class, missed for the cross-cutting ``department_ids``
     # dimension. Unknown/already-resolved ids pass through. No raw SQL.
-    item.department_ids = await resolve_department_ids_to_resource_ids(
-        conn, getattr(item, "department_ids", None)
-    )
+    async with pool.acquire() as conn:
+        item.department_ids = await resolve_department_ids_to_resource_ids(
+            conn, getattr(item, "department_ids", None)
+        )
 
     # --- Validate required fields (create only) ---
 
