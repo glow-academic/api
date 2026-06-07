@@ -24,6 +24,9 @@ from app.tools.artifacts.agent.search import search_agents
 from app.tools.artifacts.model.get import (
     get_models as get_model_artifacts,
 )
+from app.tools.artifacts.provider.get import (
+    get_providers as get_provider_artifacts,
+)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
@@ -155,6 +158,34 @@ async def resolve_model_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Provider artifact ID → providers_resource ID resolution ---
+    #
+    # ``item.provider_id`` supplied by the client is a ``provider_artifact``
+    # ID (that is what ``/provider/search`` surfaces). The model's
+    # ``model_providers_junction.providers_id`` column, however, references
+    # the denormalized ``providers_resource`` snapshot each provider artifact
+    # owns via ``provider_providers_junction`` — and the model search hydrates
+    # it back through ``get_providers_resource``. Writing the artifact ID
+    # straight into the junction produces a silent broken link (the junction
+    # has no FK, so there is no 500 — the provider simply never resolves).
+    # Resolve the artifact ID to its snapshot resource ID here so both the
+    # snapshot write and the junction write store a resource ID. Unknown IDs
+    # (e.g. an already-resolved resource ID re-submitted) pass through.
+    if item.provider_id is not None:
+        provider_artifacts = await get_provider_artifacts(
+            conn,
+            [item.provider_id],
+            providers=True,
+        )
+        artifact_to_resource = {
+            a.id: a.provider_ids[0]
+            for a in provider_artifacts
+            if a.id and a.provider_ids
+        }
+        resolved_provider_id = artifact_to_resource.get(item.provider_id)
+        if resolved_provider_id is not None:
+            item.provider_id = resolved_provider_id
 
     # --- Validate required fields (create only) ---
 

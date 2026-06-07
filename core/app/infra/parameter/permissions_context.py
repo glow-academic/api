@@ -20,6 +20,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.tools.artifacts.field.get import (
+    get_fields as get_field_artifacts,
+)
 from app.tools.artifacts.parameter.get import (
     get_parameters as get_parameter_artifacts,
 )
@@ -148,6 +151,27 @@ async def resolve_parameter_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Field artifact ID → fields_resource ID resolution ---
+    #
+    # ``field_ids`` supplied by the client are *field artifact* IDs (that is
+    # what ``/field/search`` surfaces). ``parameter_fields_junction.fields_id``
+    # is FK'd to ``fields_resource`` (the denormalized snapshot each field
+    # artifact owns via ``field_fields_junction``), and the parameter read side
+    # hydrates them back through ``get_fields_resource``. Writing the artifact
+    # ID straight into the junction violates the FK → HTTP 500. Resolve
+    # artifact IDs to their snapshot resource IDs here; unknown IDs (e.g. an
+    # already-resolved resource ID) pass through so the FK validates.
+    if item.field_ids:
+        field_artifacts = await get_field_artifacts(
+            conn, list(item.field_ids), fields=True
+        )
+        field_map = {
+            a.id: a.field_ids[0]
+            for a in field_artifacts
+            if a.id and a.field_ids
+        }
+        item.field_ids = [field_map.get(fid, fid) for fid in item.field_ids]
 
     # --- Validate required fields (create only) ---
 
