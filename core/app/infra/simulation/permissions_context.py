@@ -21,6 +21,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.tools.artifacts.cohort.search import search_cohorts
+from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.artifacts.simulation.get import (
     get_simulations as get_simulation_artifacts,
 )
@@ -181,6 +182,43 @@ async def resolve_simulation_values(
                     )
             if not any(e.field == "scenarios" for e in errors):
                 item.scenario_ids = resolved_ids
+
+        # --- Scenario artifact ID → scenarios_resource ID resolution ---
+        #
+        # ``item.scenario_ids`` supplied directly by the client are
+        # ``scenario_artifact`` IDs (that is what ``/scenario/search`` and the
+        # simulation draft surface). The ``simulation_scenarios_junction``
+        # constraint, however, references ``scenarios_resource(id)`` — the
+        # denormalized snapshot row each scenario artifact owns via
+        # ``scenario_scenarios_junction``. Writing the artifact ID straight
+        # into the junction violates ``simulation_scenarios_scenario_id_fkey``
+        # (HTTP 500). Resolve artifact IDs to their snapshot resource IDs here
+        # so both the snapshot write and the junction write get resource IDs.
+        #
+        # Skip when ``item.scenarios`` was set: that branch already resolved
+        # via the scenarios_resource search, yielding resource IDs.
+        if item.scenarios is None and item.scenario_ids:
+            scenario_artifacts = await get_scenarios(
+                conn,
+                list(item.scenario_ids),
+                scenarios=True,
+            )
+            artifact_to_resource: dict[UUID, UUID] = {
+                a.id: a.scenario_ids[0]
+                for a in scenario_artifacts
+                if a.id and a.scenario_ids
+            }
+            resolved_scenario_ids: list[UUID] = []
+            for artifact_id in item.scenario_ids:
+                resource_id = artifact_to_resource.get(artifact_id)
+                if resource_id is not None:
+                    resolved_scenario_ids.append(resource_id)
+                elif artifact_id not in artifact_to_resource:
+                    # Not a known scenario artifact. It may already be a
+                    # resource ID (e.g. a re-submitted resolved value); leave
+                    # it untouched so the junction FK still validates it.
+                    resolved_scenario_ids.append(artifact_id)
+            item.scenario_ids = resolved_scenario_ids
 
     # --- Validate required fields (create only) ---
 
