@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 
 class TestProgressData(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     sid: str | None = None
     rooms: list[str] = []
     invocation_id: str
@@ -21,6 +22,7 @@ class TestProgressData(BaseModel):
 
 
 class TestRunCompleteData(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     sid: str | None = None
     rooms: list[str] = []
     invocation_id: str
@@ -33,6 +35,7 @@ class TestRunCompleteData(BaseModel):
 
 
 class TestGradedData(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     sid: str | None = None
     rooms: list[str] = []
     invocation_id: str
@@ -43,6 +46,7 @@ class TestGradedData(BaseModel):
 
 
 class TestErrorData(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     sid: str | None = None
     rooms: list[str] = []
     invocation_id: str | None = None
@@ -52,6 +56,7 @@ class TestErrorData(BaseModel):
 
 
 class TestAllCompleteEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client event: test_all_complete.
 
     Emitted when all runs are complete.

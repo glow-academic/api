@@ -53,6 +53,7 @@ OPERATION = "trace"
 
 
 class TestTracePayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: open a trace on a test invocation.
 
     Bundle fields are stored verbatim on the trace's connection tables.
@@ -98,6 +99,7 @@ class TestTracePayload(BaseModel):
 
 
 class TestTraceInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_invocation_trace_id: str
     success: bool = True
     idempotency_key: UUID | None = None

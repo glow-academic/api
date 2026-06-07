@@ -44,6 +44,7 @@ OPERATION = "start"
 
 
 class TestStartInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_id: str
     invocation_id: str | None = None
     benchmark_id: str | None = None

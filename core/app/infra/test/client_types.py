@@ -21,18 +21,21 @@ TEST_GRADE_ENTRY_TYPES = ["grades", "feedbacks"]
 
 
 class TestJoinPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: join a test room for real-time updates."""
 
     invocation_id: UUID = Field(..., description="UUID of the test invocation to join")
 
 
 class TestLeavePayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: leave a test room."""
 
     invocation_id: UUID = Field(..., description="UUID of the test invocation to leave")
 
 
 class TestStartPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: create a new test.
 
     Surface field is the eval the user picks; the server resolves the
@@ -48,12 +51,14 @@ class TestStartPayload(BaseModel):
 
 
 class TestNextPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: find next pending run in an existing test."""
 
     test_id: UUID = Field(..., description="UUID of the test")
 
 
 class TestRunPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: bind a runs_entry (produced by /test/generate)
     to a test_invocation. Pure binding row — no model invocation.
 
@@ -72,6 +77,7 @@ class TestRunPayload(BaseModel):
 
 
 class TestGroupPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: run all runs in a group sequentially."""
 
     test_id: UUID = Field(..., description="UUID of the test")
@@ -80,6 +86,7 @@ class TestGroupPayload(BaseModel):
 
 
 class TestInvocationCompletePayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: complete a single invocation within a test.
 
     Mirrors ``ChatCompleteRequest`` (/attempt/chat/complete) — completion is
@@ -96,6 +103,7 @@ class TestInvocationCompletePayload(BaseModel):
 
 
 class TestCompletePayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: complete the entire test.
 
     Mirrors AttemptCompletePayload.
@@ -114,6 +122,7 @@ TestEndAllPayload = TestCompletePayload
 
 
 class TestStopPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Client-to-server: stop current test execution."""
 
     invocation_id: UUID = Field(..., description="UUID of the test invocation to stop")
@@ -123,6 +132,7 @@ class TestStopPayload(BaseModel):
 
 
 class TestJoinedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: successfully joined a test room."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -130,12 +140,14 @@ class TestJoinedEvent(BaseModel):
 
 
 class TestStartedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: test created."""
 
     test_id: str = Field(..., description="UUID of the created test")
 
 
 class TestRunStartEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: run replay started."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -147,6 +159,7 @@ class TestRunStartEvent(BaseModel):
 
 
 class TestRunDeltaEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: generation progress delta."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -155,6 +168,7 @@ class TestRunDeltaEvent(BaseModel):
 
 
 class TestRunCompleteEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: single run replay completed."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -167,6 +181,7 @@ class TestRunCompleteEvent(BaseModel):
 
 
 class TestAllCompleteEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: all runs complete."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -175,6 +190,7 @@ class TestAllCompleteEvent(BaseModel):
 
 
 class TestGradedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: grading completed."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -185,6 +201,7 @@ class TestGradedEvent(BaseModel):
 
 
 class TestProgressEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: test progress update."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -196,6 +213,7 @@ class TestProgressEvent(BaseModel):
 
 
 class TestStoppedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: test execution stopped."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -204,6 +222,7 @@ class TestStoppedEvent(BaseModel):
 
 
 class TestErrorEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: test error."""
 
     invocation_id: str | None = Field(None, description="UUID of the test invocation")
@@ -218,6 +237,7 @@ class TestErrorEvent(BaseModel):
 
 
 class TestInvocationStartedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: a test invocation started executing."""
 
     test_id: str = Field(..., description="UUID of the parent test")
@@ -226,6 +246,7 @@ class TestInvocationStartedEvent(BaseModel):
 
 
 class TestInvocationEndedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: a single invocation within a test ended."""
 
     test_id: str = Field(..., description="UUID of the parent test")
@@ -235,6 +256,7 @@ class TestInvocationEndedEvent(BaseModel):
 
 
 class TestInvocationStoppedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: a single invocation within a test was stopped."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")
@@ -243,6 +265,7 @@ class TestInvocationStoppedEvent(BaseModel):
 
 
 class TestInvocationResponseSavedEvent(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Server-to-client: an invocation run produced a persisted response."""
 
     invocation_id: str = Field(..., description="UUID of the test invocation")

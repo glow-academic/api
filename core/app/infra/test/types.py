@@ -75,6 +75,7 @@ class GetTestArtifactRequest(BaseModel):
 
 
 class TestRunItem(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """A single run row for the UI table, derived from a benchmark invocation."""
 
     chat_id: str = Field(..., description="ID of the chat")
@@ -90,6 +91,7 @@ class TestRunItem(BaseModel):
 
 
 class TestConfigItem(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """A reusable run configuration the picker can queue.
 
     Sources from runs_entry rows. Each row is a distinct config
@@ -140,6 +142,7 @@ class TestConfigItem(BaseModel):
 
 
 class TestConfigGroup(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """A group bucket for the picker — used as the section header.
 
     Renders one accordion section per row. `run_count` is the total
@@ -155,6 +158,7 @@ class TestConfigGroup(BaseModel):
 
 
 class TestStatusSummary(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     total: int = Field(0, description="Total number of invocations")
     completed: int = Field(0, description="Number of completed invocations")
     in_progress: int = Field(0, description="Number of in-progress invocations")
@@ -222,6 +226,7 @@ class InvocationDetail(BaseModel):
 
 
 class TestEntries(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Entry payloads grouped by type."""
 
     tests: list[GetTestResponse] | None = Field(None, description="Test entry payloads")
@@ -235,6 +240,7 @@ class TestEntries(BaseModel):
 
 
 class TestResources(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Resource maps keyed by ID string."""
 
     evals: dict[str, dict] | None = Field(None, description="Eval resources keyed by ID")
@@ -324,6 +330,8 @@ class TestInternalData:
     into their specific response types.
     """
 
+    __test__ = False  # pytest: not a test class (domain model)
+
     # Raw entry results
     test: GetTestResponse | None = None
     invocations: list[GetTestInvocationResponse] = field(default_factory=list)
@@ -372,6 +380,7 @@ class GetTestListRequest(BaseModel):
 
 
 class TestListFilterOption(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """Filter option row for tests list."""
 
     value: str = Field(..., description="Filter option value")
@@ -380,6 +389,7 @@ class TestListFilterOption(BaseModel):
 
 
 class TestListItem(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     """List row for benchmark tests."""
 
     attempt_id: str = Field(..., description="ID of the test attempt")
