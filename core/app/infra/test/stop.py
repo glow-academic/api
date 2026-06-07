@@ -32,6 +32,7 @@ OPERATION = "stop"
 
 
 class TestStopInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     invocation_id: str
     success: bool
     message: str | None = None
