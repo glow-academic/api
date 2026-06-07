@@ -1,7 +1,17 @@
-"""Tests for attempt permissions — check_attempt_access."""
-import pytest
+"""Tests for attempt permissions — check_attempt_access + score aggregates."""
 from uuid import uuid4
-from app.infra.attempt.permissions import check_attempt_access, ROLE_HIERARCHY
+
+import pytest
+
+from app.infra.attempt.permissions import (
+    ROLE_HIERARCHY,
+    check_attempt_access,
+    compute_attempt_aggregates,
+    compute_percentage,
+    compute_total_possible_points,
+)
+from app.infra.attempt.types import ChatData, GradeData
+
 pytestmark = pytest.mark.asyncio
 
 async def test_access_own_attempt():
@@ -21,3 +31,62 @@ async def test_role_hierarchy_ordering():
     assert ROLE_HIERARCHY["superadmin"] > ROLE_HIERARCHY["admin"]
     assert ROLE_HIERARCHY["admin"] > ROLE_HIERARCHY["instructional"]
     assert ROLE_HIERARCHY["instructional"] > ROLE_HIERARCHY["member"]
+
+
+def _graded_chat(*, completed: bool, score: float, total_points: float) -> ChatData:
+    """Build a minimal ChatData carrying a grade (mirrors get.py attachment)."""
+    return ChatData(
+        id=uuid4(),
+        completed=completed,
+        grade=GradeData(
+            score=score,
+            passed=score >= total_points,
+            time_taken=10,
+            total_points=total_points,
+        ),
+    )
+
+
+def test_pct_not_over_100_for_graded_not_completed_chat():
+    """Regression: a graded-but-not-completed chat must not inflate the
+    numerator without a matching denominator (pct must stay <= 100).
+
+    The grade pipeline allows grading a chat that was never completed
+    (chat_grade is an independent operation from chat_complete — no completion
+    guard), so the numerator (compute_attempt_aggregates.total_score) and the
+    denominator (compute_total_possible_points) must count the SAME chat set.
+    """
+    chats = [_graded_chat(completed=False, score=10.0, total_points=10.0)]
+
+    total_score = compute_attempt_aggregates(chats)["total_score"]
+    total_possible = compute_total_possible_points(chats)
+    pct = compute_percentage(total_score, total_possible)
+
+    # numerator counted the graded chat → denominator must too
+    assert total_score == 10.0
+    assert total_possible == 10.0
+    assert pct == 100.0
+    assert pct <= 100.0
+
+
+def test_pct_aligned_numerator_denominator_mixed():
+    """Mixed completed + graded-not-completed chats: pct stays <= 100."""
+    chats = [
+        _graded_chat(completed=True, score=8.0, total_points=10.0),
+        _graded_chat(completed=False, score=10.0, total_points=10.0),
+    ]
+    total_score = compute_attempt_aggregates(chats)["total_score"]
+    total_possible = compute_total_possible_points(chats)
+    pct = compute_percentage(total_score, total_possible)
+
+    assert total_score == 18.0
+    assert total_possible == 20.0
+    assert pct == 90.0
+    assert pct <= 100.0
+
+
+def test_ungraded_chat_contributes_no_points():
+    """A chat with no grade contributes to neither numerator nor denominator."""
+    chats = [ChatData(id=uuid4(), completed=True, grade=None)]
+    assert compute_attempt_aggregates(chats)["total_score"] == 0.0
+    assert compute_total_possible_points(chats) == 0.0
