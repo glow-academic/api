@@ -20,6 +20,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.tools.artifacts.document.get import (
+    get_documents as get_document_artifacts,
+)
+from app.tools.artifacts.persona.get import (
+    get_personas as get_persona_artifacts,
+)
 from app.tools.artifacts.scenario.get import (
     get_scenarios as get_scenario_artifacts,
 )
@@ -378,6 +384,47 @@ async def resolve_scenario_values(
                     )
             if not any(e.field == "options" for e in errors):
                 item.option_ids = resolved_ids
+
+        # --- Cross-artifact artifact ID → *_resource ID resolution ---
+        #
+        # ``persona_ids`` / ``document_ids`` supplied directly by the client
+        # are *artifact* IDs (that is what ``/persona/search`` and
+        # ``/document/search`` surface). ``scenario_personas_junction`` and
+        # ``scenario_documents_junction`` are FK'd to ``personas_resource`` /
+        # ``documents_resource`` (the denormalized snapshot each artifact owns
+        # via its own self-junction), and the scenario read side hydrates them
+        # back through the ``*_resource`` getters. Writing the artifact ID
+        # straight into the junction violates the FK → HTTP 500. Resolve
+        # artifact IDs to their snapshot resource IDs here. Unknown IDs (e.g.
+        # an already-resolved resource ID) pass through so the FK validates.
+        #
+        # Skip when the ``personas`` / ``documents`` CSV branch ran: those
+        # already resolved via the resource search, yielding resource IDs.
+        if item.personas is None and item.persona_ids:
+            persona_artifacts = await get_persona_artifacts(
+                conn, list(item.persona_ids), personas=True
+            )
+            persona_map = {
+                a.id: a.persona_ids[0]
+                for a in persona_artifacts
+                if a.id and a.persona_ids
+            }
+            item.persona_ids = [
+                persona_map.get(pid, pid) for pid in item.persona_ids
+            ]
+
+        if item.documents is None and item.document_ids:
+            document_artifacts = await get_document_artifacts(
+                conn, list(item.document_ids), documents=True
+            )
+            document_map = {
+                a.id: a.document_ids[0]
+                for a in document_artifacts
+                if a.id and a.document_ids
+            }
+            item.document_ids = [
+                document_map.get(did, did) for did in item.document_ids
+            ]
 
     # --- Validate required fields (create only) ---
 

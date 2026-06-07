@@ -21,6 +21,9 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.tools.artifacts.eval.get import get_evals as get_eval_artifacts
+from app.tools.artifacts.model.get import (
+    get_models as get_model_artifacts,
+)
 from app.tools.resources.departments.search import search_departments
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.descriptions.get import get_descriptions
@@ -170,6 +173,27 @@ async def resolve_eval_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Model artifact ID → models_resource ID resolution ---
+    #
+    # ``model_ids`` supplied by the client are *model artifact* IDs (that is
+    # what ``/model/search`` surfaces). ``eval_models_junction.models_id`` is
+    # FK'd to ``models_resource`` (the denormalized snapshot each model
+    # artifact owns via ``model_models_junction``), and the eval read side
+    # hydrates them back through ``get_models_resource``. Writing the artifact
+    # ID straight into the junction violates the FK → HTTP 500. Resolve
+    # artifact IDs to their snapshot resource IDs here; unknown IDs (e.g. an
+    # already-resolved resource ID) pass through so the FK validates.
+    if item.model_ids:
+        model_artifacts = await get_model_artifacts(
+            conn, list(item.model_ids), models=True
+        )
+        model_map = {
+            a.id: a.model_ids[0]
+            for a in model_artifacts
+            if a.id and a.model_ids
+        }
+        item.model_ids = [model_map.get(mid, mid) for mid in item.model_ids]
 
     # --- Validate required fields (create only) ---
 

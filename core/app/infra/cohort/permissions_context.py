@@ -23,6 +23,12 @@ from redis.asyncio import Redis
 from app.tools.artifacts.cohort.get import (
     get_cohorts as get_cohort_artifacts,
 )
+from app.tools.artifacts.profile.get import (
+    get_profiles as get_profile_artifacts,
+)
+from app.tools.artifacts.simulation.get import (
+    get_simulations as get_simulation_artifacts,
+)
 from app.tools.resources.cohorts.create import (
     create_cohort as create_cohort_resource,
 )
@@ -230,6 +236,47 @@ async def resolve_cohort_values(
                 )
         if not any(e.field == "profiles" for e in errors):
             item.profile_ids = resolved_ids
+
+    # --- Cross-artifact artifact ID → *_resource ID resolution ---
+    #
+    # ``simulation_ids`` / ``profile_ids`` supplied directly by the client are
+    # *artifact* IDs (that is what ``/simulation/search`` and
+    # ``/profile/search`` surface). ``cohort_simulations_junction`` and
+    # ``cohort_profiles_junction`` are FK'd to ``simulations_resource`` /
+    # ``profiles_resource`` (the denormalized snapshot each artifact owns via
+    # its own self-junction), and the cohort read side hydrates them back
+    # through the ``*_resource`` getters. Writing the artifact ID straight into
+    # the junction violates the FK → HTTP 500. Resolve artifact IDs to their
+    # snapshot resource IDs here; unknown IDs (e.g. an already-resolved
+    # resource ID) pass through so the FK validates.
+    #
+    # Skip when the ``simulations`` / ``profiles`` CSV branch ran: those
+    # already resolved via the resource search, yielding resource IDs.
+    if item.simulations is None and item.simulation_ids:
+        sim_artifacts = await get_simulation_artifacts(
+            conn, list(item.simulation_ids), simulations=True
+        )
+        sim_map = {
+            a.id: a.simulation_ids[0]
+            for a in sim_artifacts
+            if a.id and a.simulation_ids
+        }
+        item.simulation_ids = [
+            sim_map.get(sid, sid) for sid in item.simulation_ids
+        ]
+
+    if item.profiles is None and item.profile_ids:
+        profile_artifacts = await get_profile_artifacts(
+            conn, list(item.profile_ids), profiles=True
+        )
+        profile_map = {
+            a.id: a.profile_ids[0]
+            for a in profile_artifacts
+            if a.id and a.profile_ids
+        }
+        item.profile_ids = [
+            profile_map.get(pid, pid) for pid in item.profile_ids
+        ]
 
     # --- Validate required fields ---
 
