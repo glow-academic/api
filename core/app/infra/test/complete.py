@@ -40,6 +40,7 @@ OPERATION = "complete"
 
 
 class TestCompleteInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_id: str
     success: bool = True
     completed_count: int = 0

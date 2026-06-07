@@ -43,6 +43,7 @@ OPERATION = "run"
 
 
 class TestRunInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_invocation_run_id: str
     success: bool = True
     idempotency_key: UUID | None = None

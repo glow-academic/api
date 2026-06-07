@@ -34,6 +34,7 @@ router = APIRouter()
 
 
 class TestRunEndPayload(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_invocation_run_id: UUID = Field(
         ..., description="UUID of the test_invocation_runs_entry to finalize"
     )
@@ -44,6 +45,7 @@ class TestRunEndPayload(BaseModel):
 
 
 class TestRunEndResponse(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     test_invocation_run_id: str
     completion_id: str
     success: bool = True
