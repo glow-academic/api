@@ -20,6 +20,12 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.tools.artifacts.auth.get import (
+    get_auths as get_auth_artifacts,
+)
+from app.tools.artifacts.provider.get import (
+    get_providers as get_provider_artifacts,
+)
 from app.tools.artifacts.setting.get import (
     get_settings as get_setting_artifacts,
 )
@@ -136,6 +142,41 @@ async def resolve_setting_values(
                 )
         if not any(e.field == "departments" for e in errors):
             item.department_ids = resolved_ids
+
+    # --- Cross-artifact artifact ID → *_resource ID resolution ---
+    #
+    # ``auth_ids`` / ``provider_ids`` supplied by the client are *artifact* IDs
+    # (that is what ``/auth/search`` and ``/provider/search`` surface).
+    # ``setting_auths_junction.auths_id`` and
+    # ``setting_providers_junction.providers_id`` are FK'd to ``auths_resource``
+    # / ``providers_resource`` (the denormalized snapshot each artifact owns via
+    # its own self-junction). Writing the artifact ID straight into the junction
+    # violates the FK → HTTP 500. Resolve artifact IDs to their snapshot
+    # resource IDs here; unknown IDs (e.g. an already-resolved resource ID) pass
+    # through so the FK validates.
+    if item.auth_ids:
+        auth_artifacts = await get_auth_artifacts(
+            conn, list(item.auth_ids), auths=True
+        )
+        auth_map = {
+            a.id: a.auth_ids[0]
+            for a in auth_artifacts
+            if a.id and a.auth_ids
+        }
+        item.auth_ids = [auth_map.get(aid, aid) for aid in item.auth_ids]
+
+    if item.provider_ids:
+        provider_artifacts = await get_provider_artifacts(
+            conn, list(item.provider_ids), providers=True
+        )
+        provider_map = {
+            a.id: a.provider_ids[0]
+            for a in provider_artifacts
+            if a.id and a.provider_ids
+        }
+        item.provider_ids = [
+            provider_map.get(pid, pid) for pid in item.provider_ids
+        ]
 
     # --- Validate required fields (create only) ---
 

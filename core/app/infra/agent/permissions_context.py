@@ -23,6 +23,15 @@ from redis.asyncio import Redis
 from app.tools.artifacts.agent.get import (
     get_agents as get_agent_artifacts,
 )
+from app.tools.artifacts.model.get import (
+    get_models as get_model_artifacts,
+)
+from app.tools.artifacts.rubric.get import (
+    get_rubrics as get_rubric_artifacts,
+)
+from app.tools.artifacts.tool.get import (
+    get_tools as get_tool_artifacts,
+)
 from app.tools.resources.agents.create import (
     create_agent as create_agent_resource,
 )
@@ -164,6 +173,59 @@ async def resolve_agent_values(
                     message=f"Flag row not found for agent_active={desired}",
                 )
             )
+
+    # --- Cross-artifact artifact ID → *_resource ID resolution ---
+    #
+    # ``model_id`` / ``tool_ids`` / ``rubric_ids`` supplied by the client are
+    # *artifact* IDs (that is what ``/model/search``, ``/tool/search`` and
+    # ``/rubric/search`` surface). The agent junctions, however, reference the
+    # denormalized ``*_resource`` snapshot each of those artifacts owns via its
+    # own self-junction — and the agent read side hydrates them back through
+    # the ``*_resource`` getters. ``agent_models_junction`` carries no FK (so a
+    # raw artifact ID is a silent broken link), while ``agent_tools_junction``
+    # and ``agent_rubrics_junction`` are FK'd to ``tools_resource`` /
+    # ``rubrics_resource`` (so a raw artifact ID is a ForeignKeyViolationError
+    # → HTTP 500). Resolve artifact IDs to their snapshot resource IDs here.
+    # Unknown IDs (e.g. an already-resolved resource ID) pass through.
+    if item.model_id is not None:
+        model_artifacts = await get_model_artifacts(
+            conn, [item.model_id], models=True
+        )
+        model_map = {
+            a.id: a.model_ids[0]
+            for a in model_artifacts
+            if a.id and a.model_ids
+        }
+        item.model_id = model_map.get(item.model_id, item.model_id)
+
+    if item.tool_ids:
+        tool_artifacts = await get_tool_artifacts(
+            conn, list(item.tool_ids), tools=True
+        )
+        tool_map = {
+            a.id: a.tool_ids[0]
+            for a in tool_artifacts
+            if a.id and a.tool_ids
+        }
+        item.tool_ids = [tool_map.get(tid, tid) for tid in item.tool_ids]
+
+    # ``rubric_ids`` only exists on CreateAgentItem (UpdateAgentItem has no
+    # rubric field), so guard the attribute access for the shared update path.
+    item_rubric_ids = getattr(item, "rubric_ids", None)
+    if item_rubric_ids:
+        rubric_artifacts = await get_rubric_artifacts(
+            conn, list(item_rubric_ids), rubrics=True
+        )
+        rubric_map = {
+            a.id: a.rubric_ids[0]
+            for a in rubric_artifacts
+            if a.id and a.rubric_ids
+        }
+        # ``rubric_ids`` is only present on CreateAgentItem; ``item_rubric_ids``
+        # being truthy implies that branch, so the attribute exists here.
+        item.rubric_ids = [  # type: ignore[union-attr]
+            rubric_map.get(rid, rid) for rid in item_rubric_ids
+        ]
 
     # --- Validate required fields (create only) ---
 
