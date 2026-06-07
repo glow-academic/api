@@ -20,6 +20,9 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.department_id_resolution import (
+    resolve_department_ids_to_resource_ids,
+)
 from app.tools.artifacts.field.get import (
     get_fields as get_field_artifacts,
 )
@@ -172,6 +175,16 @@ async def resolve_parameter_values(
             if a.id and a.field_ids
         }
         item.field_ids = [field_map.get(fid, fid) for fid in item.field_ids]
+
+    # Resolve department *artifact* ids -> departments_resource ids before
+    # the junction write. ``/department/search`` surfaces artifact ids, but
+    # every ``*_departments_junction.departments_id`` is FK'd to
+    # ``departments_resource``; writing a raw artifact id violates the FK
+    # (HTTP 500). #282 class, missed for the cross-cutting ``department_ids``
+    # dimension. Unknown/already-resolved ids pass through. No raw SQL.
+    item.department_ids = await resolve_department_ids_to_resource_ids(
+        conn, getattr(item, "department_ids", None)
+    )
 
     # --- Validate required fields (create only) ---
 
