@@ -38,6 +38,7 @@ OPERATION = "invocation_complete"
 
 
 class TestInvocationCompleteInternalResult(BaseModel):
+    __test__ = False  # pytest: not a test class (domain model)
     invocation_id: str
     completion_id: str | None = None
     success: bool = True
