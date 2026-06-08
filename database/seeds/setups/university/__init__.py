@@ -2,6 +2,8 @@
 
 Dependency order (each module may reference IDs from earlier modules):
   1. departments    (refs: settings_ids=[SR] — no FK, forward-reference OK)
+  1b. auths         (setup SSO providers — create_auth_impl; artifact+resource)
+  1c. pricing       (non-zero-rate pricing_resource rows so spend != $0)
   2. documents
   3. personas
   4. rubrics
@@ -51,6 +53,8 @@ AGENT_DEPARTMENT_IDS = [UNIVERSITY_DEPT_RESOURCE]
 # Each corresponds to a .py file in this package.
 MODULES = [
     "departments",
+    "auths",
+    "pricing",
     "documents",
     "personas",
     "rubrics",
