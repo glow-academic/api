@@ -15,6 +15,7 @@ from database.seeds.logins import (
 )
 from database.seeds.mcps import MCP_COMPOSER
 from database.seeds.setups.university.departments import (
+    EXTRA_DEPT_RESOURCES,
     UNIVERSITY_DEPT,
     UNIVERSITY_DEPT_RESOURCE,
 )
@@ -110,4 +111,44 @@ settings = [
         logins_ids=UNI_LOGINS_IDS or None,
         mcp_id=MCP_COMPOSER,
     ),
+]
+
+# ---------------------------------------------------------------------------
+# Additional department-scoped settings.
+#
+# Why: with a single setting the settings library is a one-row demo. Seeding
+# four more (5 total) — each scoped to one of the extra academic departments
+# — gives the settings list real content to browse/filter. They reuse the
+# same systems / grading thresholds / color theme / logins bundle as the
+# University default (all references to already-seeded resource rows, so the
+# FKs resolve), differing only in name, description, and department scope.
+# ---------------------------------------------------------------------------
+
+_DEPT_SETTINGS: list[tuple[str, str, str]] = [
+    ("computer-science", "Computer Science Settings", "Department settings for Computer Science, scoping AI systems, grading thresholds, and theme."),
+    ("mathematics", "Mathematics Settings", "Department settings for Mathematics, scoping AI systems, grading thresholds, and theme."),
+    ("biology", "Biology Settings", "Department settings for Biology, scoping AI systems, grading thresholds, and theme."),
+    ("history", "History Settings", "Department settings for History, scoping AI systems, grading thresholds, and theme."),
+]
+
+settings += [
+    dict(
+        id=sid(f"uni/setting/{slug}"),
+        resource_id=sid(f"uni/setting-resource/{slug}"),
+        name=name,
+        description=desc,
+        flag_ids=[FLAG_ACTIVE],
+        department_ids=[EXTRA_DEPT_RESOURCES[slug]],
+        auth_ids=_UNI_AUTH_IDS or None,
+        provider_ids=_UNI_PROVIDER_IDS or None,
+        provider_key_ids=PROVIDER_KEY_IDS,
+        auth_item_key_ids=AUTH_ITEM_KEY_IDS,
+        auth_item_value_ids=AUTH_ITEM_VALUE_IDS,
+        system_ids=SYSTEMS,
+        threshold_ids=[THRESHOLD_SUCCESS, THRESHOLD_WARNING, THRESHOLD_DANGER],
+        color_ids=ALL_COLOR_IDS,
+        logins_ids=UNI_LOGINS_IDS or None,
+        mcp_id=MCP_COMPOSER,
+    )
+    for slug, name, desc in _DEPT_SETTINGS
 ]

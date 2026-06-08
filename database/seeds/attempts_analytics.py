@@ -926,8 +926,23 @@ async def seed(pool: asyncpg.Pool, redis: Redis) -> None:
         )
 
         primary_agent_id = agents[0].id if agents else None
-        input_pricing_id = input_pricings[0].id if input_pricings else None
-        output_pricing_id = output_pricings[0].id if output_pricings else None
+
+        # Prefer the highest-priced pricing row of each type. The default
+        # deploy config ships every model at price=0, so picking the first
+        # row by id (effectively random) usually lands on a $0 row and every
+        # Pricing dashboard renders $0.00 even though run_pricing rows exist.
+        # Setups that seed real rates (e.g. university/pricing.py) thus win,
+        # and the seeded spend is non-zero. Falls back to the first row when
+        # no priced row exists (e.g. a setup with only $0 config pricing).
+        def _best_priced(rows: list) -> object | None:
+            if not rows:
+                return None
+            return max(rows, key=lambda p: (float(p.price or 0), str(p.id)))
+
+        _input_pricing = _best_priced(input_pricings)
+        _output_pricing = _best_priced(output_pricings)
+        input_pricing_id = _input_pricing.id if _input_pricing else None
+        output_pricing_id = _output_pricing.id if _output_pricing else None
         video_id = videos[0].id if videos else None
 
         home_cursor = 0

@@ -2276,6 +2276,33 @@ async def main_setup(
 
             if module_name == "departments":
                 await _run_department_seeds(pool, redis_client, mod.departments)
+            elif module_name == "auths":
+                # Setup-specific auth providers. Reuses create_auth_impl (same
+                # black box as the config-driven base auths) so artifact +
+                # resource snapshot are created consistently from one item.
+                from app.infra.auth.create import create_auth_impl
+                from app.infra.auth.types import (
+                    CreateAuthApiRequest,
+                    CreateAuthItem,
+                )
+
+                _auth_items = [CreateAuthItem(**d) for d in mod.auths]
+                _auth_result = await create_auth_impl(
+                    pool,
+                    redis_client,
+                    profile_id=SEED_PROFILE_ID,
+                    request=CreateAuthApiRequest(auths=_auth_items),
+                )
+                _auth_ok = sum(1 for r in _auth_result.results if r.success)
+                for r in _auth_result.results:
+                    if not r.success:
+                        print(f"  ERROR: {r.message}")
+                print(f"  OK: {_auth_ok} setup auths created")
+            elif module_name == "pricing":
+                # Setup-specific pricing resources with non-zero rates so the
+                # analytics seed can attach real spend (config models are $0).
+                async with pool.acquire() as _pricing_conn:
+                    await _seed_pricing(_pricing_conn, redis_client, mod.pricing)
             elif module_name == "documents":
                 await _run_document_seeds(pool, redis_client, mod.documents)
             elif module_name == "personas":
