@@ -2019,6 +2019,61 @@ async def _start_containers() -> tuple:
     return pg, pg_url, redis_container, redis_url
 
 
+def _force_reseed_requested() -> bool:
+    """True only when FORCE_RESEED is explicitly enabled in the environment.
+
+    Mirrors the file's other env-read idioms. An unset, empty, or any
+    non-truthy value yields False, so the default deploy behavior (an
+    idempotent skip of already-seeded DBs) is never destructive.
+    """
+    return os.environ.get("FORCE_RESEED", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def _inplace_reseed_decision(table_count: int, *, force_reseed: bool) -> str:
+    """Pure decision for the in-place seed guard (deps as params, no I/O).
+
+    Returns one of:
+      - ``"seed"``   : empty target — load schema + seed normally.
+      - ``"skip"``   : already-seeded target, not forced — idempotent
+                       no-op. This is the safe default and is byte-for-byte
+                       the historical behavior, so an unset/empty
+                       FORCE_RESEED can never trigger a drop.
+      - ``"reseed"`` : already-seeded target AND FORCE_RESEED set — drop the
+                       public app schema, then seed from scratch.
+    """
+    if table_count and table_count > 0:
+        return "reseed" if force_reseed else "skip"
+    return "seed"
+
+
+async def _drop_app_schemas(conn: asyncpg.Connection) -> None:
+    """Destructively reset the app-owned schemas for a forced reseed.
+
+    Drops ONLY the application schemas: ``public`` (immediately recreated
+    empty, which also restores the default schema grants) and the empty
+    ``types`` schema. CASCADE clears every app table/view plus the
+    public-resident extensions (pgcrypto, uuid-ossp); the subsequent
+    reload restores them via ``CREATE EXTENSION IF NOT EXISTS ... WITH
+    SCHEMA public``. ``types`` must be dropped too because the reload
+    re-creates it with a non-idempotent ``CREATE SCHEMA types;``.
+
+    The ``keycloak`` schema is deliberately NEVER touched — it holds auth
+    state and the pre-deploy pg_dump excludes it
+    (``--exclude-schema=keycloak``). Keeping the drop public-only ensures
+    a forced reseed cannot orphan the auth realm.
+    """
+    await conn.execute(
+        "DROP SCHEMA IF EXISTS public CASCADE; "
+        "CREATE SCHEMA public; "
+        "DROP SCHEMA IF EXISTS types CASCADE;"
+    )
+
+
 async def _load_schema(conn: asyncpg.Connection) -> None:
     """Load schema into the database."""
     print("Loading schema...")
@@ -2072,21 +2127,40 @@ async def main_setup(
     in_place = target_pg_url is not None and target_redis_url is not None
     print(f"=== Seed Runner: {setup} ({'in-place' if in_place else 'dump'}) ===\n")
 
+    force_reseed = _force_reseed_requested()
+    force_reseed_applied = False
     if in_place:
         # Idempotency guard: if the target DB already has user tables,
         # treat this as an already-seeded deploy and exit silently. This
         # makes db-init safe to re-run on every `compose up`.
+        #
+        # Escape hatch: FORCE_RESEED=1 turns this into a destructive
+        # reseed — the public schema is dropped + rebuilt below. Without
+        # it the skip is preserved exactly (the safe default).
         guard_conn = await asyncpg.connect(target_pg_url)
         try:
             table_count = await guard_conn.fetchval(
                 "SELECT count(*) FROM information_schema.tables "
                 "WHERE table_schema = 'public'"
             )
+            decision = _inplace_reseed_decision(
+                table_count or 0, force_reseed=force_reseed
+            )
+            if decision == "skip":
+                print(
+                    f"  Target DB already has {table_count} public tables "
+                    "— skipping seed."
+                )
+                return
+            if decision == "reseed":
+                # Destructive reseed of an already-seeded DB. Tear down the
+                # public (app) schema only — keycloak/auth is left intact —
+                # then fall through to the normal load_schema → seed flow.
+                print("FORCE_RESEED: dropping public schema + reseeding")
+                await _drop_app_schemas(guard_conn)
+                force_reseed_applied = True
         finally:
             await guard_conn.close()
-        if table_count and table_count > 0:
-            print(f"  Target DB already has {table_count} public tables — skipping seed.")
-            return
         pg, pg_url, redis_container, redis_url = None, target_pg_url, None, target_redis_url
     else:
         pg, pg_url, redis_container, redis_url = await _start_containers()
@@ -2099,6 +2173,13 @@ async def main_setup(
 
         pool = await asyncpg.create_pool(pg_url)
         redis_client = Redis.from_url(redis_url)
+
+        # Forced reseed dropped the public schema above; flush the live
+        # redis too so stale cache (resource caches, lookups) from the
+        # prior seed can't survive into the freshly reseeded DB.
+        if force_reseed_applied:
+            await redis_client.flushdb()
+            print("  FORCE_RESEED: redis cache flushed")
 
         # The seed runner runs OUTSIDE the FastAPI lifespan, so the
         # globals singletons (redis_client, _db_pool) are never set by
