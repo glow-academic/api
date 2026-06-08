@@ -107,6 +107,7 @@ async def resolve_leaderboard_search_context(
     redis: Redis,
     *,
     target_profile_id: UUID | None = None,
+    visible_profile_ids: list[UUID] | None = None,
     cohort_ids: list[UUID] | None = None,
     department_ids: list[UUID] | None = None,
     simulation_ids: list[UUID] | None = None,
@@ -127,11 +128,21 @@ async def resolve_leaderboard_search_context(
     Resources (hydrated from IDs derived from attempt_chats):
       - profiles, simulations, scenarios
     """
-    # Step 1: Fetch attempt_chats with full filter set
+    # Step 1: Fetch attempt_chats with full filter set.
+    # Scope the profile set to the actor's visible profiles (mirrors
+    # ``dashboard/context.py`` ~427-432): a specific ``target_profile_id``
+    # narrows to that one profile (already IDOR-checked by the caller against
+    # the visible set); otherwise restrict to ``visible_profile_ids`` so the
+    # leaderboard never reads org-wide attempt data for a restricted actor.
+    # Caller-supplied cohort/department filters are applied ON TOP by the same
+    # query (intersected with this profile scope), not instead of it.
+    profile_filter_ids = (
+        [target_profile_id] if target_profile_id else (visible_profile_ids or None)
+    )
     async with pool.acquire() as conn:
         all_attempt_chats, _total_count = await search_attempt_chats(
             conn,
-            redis, profile_ids=[target_profile_id] if target_profile_id else None,
+            redis, profile_ids=profile_filter_ids,
             cohort_ids=cohort_ids,
             department_ids=department_ids,
             simulation_ids=simulation_ids,
