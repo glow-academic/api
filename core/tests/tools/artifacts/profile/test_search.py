@@ -21,11 +21,23 @@ def _u() -> str:
 
 
 async def test_bare_search_returns_results(conn, redis_client):
-    """A profile with a name should appear in an unfiltered search."""
-    name = await create_name(conn, f"bare-{_u()}", redis_client)
+    """A profile with a name should be findable via search.
+
+    Scope the search to this test's own profile via the unique name tag.
+    ``search_profiles`` defaults to ``limit_count=20`` ordered by name, so in
+    the shared process (where sibling ``pool``-fixture tests commit hundreds of
+    profiles that escape the per-test transaction rollback) an unfiltered
+    ``search_profiles(conn)`` returns only the first 20-by-name and pages this
+    fresh profile out of the result window. Searching by the unique name tag
+    bounds the result to exactly this profile, asserting presence robustly and
+    independent of how many sibling profiles exist — mirroring the id-scoped
+    approach in ``test_exclude_ids``.
+    """
+    tag = _u()
+    name = await create_name(conn, f"bare-{tag}", redis_client)
     p = await create_profile(conn, name_id=name.id)
 
-    ids, _total = await search_profiles(conn)
+    ids, _total = await search_profiles(conn, search=f"bare-{tag}")
     assert p.id in ids
 
 
