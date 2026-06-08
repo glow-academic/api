@@ -18,6 +18,7 @@ from app.infra.analytics_facets import (
 from app.infra.api_types import FilterOption
 from app.infra.auth.types import AnalyticsFilterFields
 from app.infra.common_context import resolve_common_context
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.globals import get_redis_client
 from app.infra.leaderboard.context import resolve_leaderboard_search_context
 from app.infra.leaderboard.permissions import (
@@ -133,6 +134,27 @@ async def get_leaderboard_impl_cached(
     if not common:
         raise HTTPException(status_code=401, detail="Profile not found")
 
+    # Authorization: the leaderboard has no scoping of its own, so apply the
+    # canonical visibility policy here — mirroring the on-screen siblings
+    # ``dashboard/get.py`` (~101-125) and ``reports/get.py`` (~80-110).
+    # ``resolve_visible_profile_ids`` returns exactly the profiles this actor
+    # may see (self + same-department lower-privilege profiles, or the entire
+    # org for role_level 0). A caller-supplied ``target_profile_id`` is allowed
+    # only if it is in that set; otherwise any authenticated caller could read
+    # any profile's attempt data by supplying its id (IDOR, sibling of #145).
+    # When no target is given the search is restricted to this visible set so
+    # the leaderboard defaults to a scoped view rather than every profile
+    # org-wide (the prior leak).
+    visible_profile_ids = await resolve_visible_profile_ids(pool, common.profile)
+    if (
+        request.target_profile_id is not None
+        and request.target_profile_id not in visible_profile_ids
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Not authorized to view analytics for this profile.",
+        )
+
     filters = _parse_filters(request)
     # Use the search context (richer — also hydrates simulations + scenarios)
     # so we can build sections AND rows from one pass.
@@ -141,6 +163,7 @@ async def get_leaderboard_impl_cached(
             pool,
             redis,
             target_profile_id=request.target_profile_id,
+            visible_profile_ids=visible_profile_ids,
             cohort_ids=filters["cohort_ids"],
             department_ids=filters["department_ids"],
             simulation_ids=filters["simulation_ids"],
