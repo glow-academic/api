@@ -90,7 +90,10 @@ async def search_parameters(
     extra_conditions.append(("{alias}.active = ${idx}", True))
     if department_ids:
         extra_conditions.append(
-            ("{alias}.department_ids && ${idx}", department_ids),
+            (
+                "(COALESCE(array_length({alias}.department_ids, 1), 0) = 0 OR {alias}.department_ids && ${idx})",
+                department_ids,
+            ),
         )
     if field_ids:
         extra_conditions.append(

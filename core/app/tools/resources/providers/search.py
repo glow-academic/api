@@ -38,7 +38,7 @@ async def search_providers(
     if department_ids:
         extra_conditions.append(
             (
-                "(COALESCE(array_length(${idx}::uuid[], 1), 0) = 0 OR {alias}.department_ids && ${idx}::uuid[])",
+                "(COALESCE(array_length({alias}.department_ids, 1), 0) = 0 OR {alias}.department_ids && ${idx}::uuid[])",
                 department_ids,
             )
         )

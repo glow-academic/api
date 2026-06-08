@@ -3,10 +3,50 @@
 import pytest
 from tests.helpers import unique_tag
 
+from app.tools.resources.departments.create import create_department
 from app.tools.resources.providers.create import create_provider
 from app.tools.resources.providers.search import search_providers
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_global_provider_visible_to_dept_scoped_user(conn, redis_client):
+    """A GLOBAL (no-dept) provider must be visible to a dept-scoped user.
+
+    Pre-fix this FAILED: the dept filter excluded no-department resources
+    when the user passed a non-empty department filter (empty picker bug).
+    Semantics: visible = global (no dept) OR dept-overlap.
+    """
+    dept_x = await create_department(conn, redis=redis_client)
+
+    global_name = f"global-prov-{unique_tag()}"
+    own_name = f"deptx-prov-{unique_tag()}"
+    other_name = f"depty-prov-{unique_tag()}"
+    dept_y = await create_department(conn, redis=redis_client)
+
+    glob = await create_provider(conn, name=global_name, redis=redis_client)
+    own = await create_provider(
+        conn, name=own_name, department_ids=[dept_x.id], redis=redis_client
+    )
+    other = await create_provider(
+        conn, name=other_name, department_ids=[dept_y.id], redis=redis_client
+    )
+
+    items = await search_providers(
+        conn,
+        redis_client,
+        search="-prov-",
+        department_ids=[dept_x.id],
+        bypass_cache=True,
+    )
+    ids = {i.id for i in items}
+
+    # Global (no-dept) provider is visible to the dept-scoped user (the fix).
+    assert glob.id in ids
+    # Own-department provider is still visible.
+    assert own.id in ids
+    # A provider in a different, inaccessible department stays excluded.
+    assert other.id not in ids
 
 
 async def test_finds_created_provider(conn, redis_client):
