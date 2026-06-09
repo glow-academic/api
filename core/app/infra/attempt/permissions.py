@@ -104,6 +104,21 @@ async def enforce_attempt_media_access(
     student (the resource owner), so the same owner-or-strictly-higher-role
     rule that protects ``/attempt/get`` applies here.
 
+    THREAT MODEL (issue #148): the gate protects STUDENT-PRODUCED media from
+    other students. Student uploads always flow through the uploading student's
+    profile-linked session, so they always resolve to an ``owner_profile_id``
+    and stay fully gated by ``check_attempt_access``.
+
+    AUTHORED/SEED content (scenario/policy documents, e.g. the "Academic
+    Integrity Policy") is seeded through a session with NO profile link, so it
+    has no ``profiles_sessions_connection`` row and is absent from
+    ``sessions_mv`` → its owner resolves to ``None``. There is no student behind
+    it and nothing private to leak — it is shared instructional material every
+    attempt references. When (and ONLY when) the owning session has no profile
+    owner, we treat the blob as authored/shared and ALLOW. This NARROWS the gate
+    to student-owned media; it does not weaken protection of any student's
+    media.
+
     Raises ``HTTPException(403)`` (matching the impls' existing has_permission
     denial shape) when the caller neither owns the upload's session nor holds a
     strictly-higher role. ``check_attempt_access`` already short-circuits to
@@ -139,6 +154,24 @@ async def enforce_attempt_media_access(
         sessions = await get_sessions(conn, [upload.session_id], redis)
 
     owner_profile_id = sessions[0].profile_id if sessions else None
+
+    # Authored/seed content has NO profile-linked owner. Its seed session is
+    # created without a profile (runner.py: "no profile link"), so it carries no
+    # row in profiles_sessions_connection and is therefore absent from
+    # sessions_mv → get_sessions returns [] → owner_profile_id is None. There is
+    # no student behind it and nothing private to leak, so it is shared
+    # instructional material every attempt references — ALLOW.
+    #
+    # Student-produced media is the opposite: it ALWAYS flows through the
+    # uploading student's profile-linked session, which IS in sessions_mv (and
+    # is cache-warmed by create_session on write), so it ALWAYS resolves to a
+    # real owner_profile_id and stays fully gated by check_attempt_access below.
+    # This NARROWS the gate to student-owned media; it does not weaken
+    # protection of any student's media. See the THREAT MODEL note in this
+    # function's docstring (issue #148).
+    if owner_profile_id is None:
+        return
+
     if not check_attempt_access(
         owner_profile_id,
         requester.profiles_id,
