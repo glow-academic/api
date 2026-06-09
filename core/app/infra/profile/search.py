@@ -172,19 +172,31 @@ async def _search_profile_build(
       all_roles = await get_roles(pool, None, redis)
     async with pool.acquire() as conn:
 
-        # Show roles at or below the user's level
-        allowed_role_names = {r.name for r in all_roles if r.level >= user_role_level}
-
-        # Intersect with explicit role_filter if provided
+        # Roles strictly above the actor's privilege (lower level number =
+        # higher privilege) are never visible. Apply this as an EXCLUSION
+        # filter rather than requiring the profile to *have* an allowed role:
+        # a name-only / roleless profile carries no privilege and must stay
+        # visible, but an inclusion filter on the allowed roles silently
+        # dropped it from search (created profiles were invisible — broke the
+        # profiles-bulk / profiles-edit flows). Explicit role_filter keeps
+        # inclusion semantics (scope to exactly that one role).
+        role_ids_filter: list[UUID] | None
+        exclude_role_ids: list[UUID] | None
         if role_filter:
-            if role_filter in allowed_role_names:
-                allowed_role_names = {role_filter}
-            else:
+            allowed_role_names = {
+                r.name for r in all_roles if r.level >= user_role_level
+            }
+            if role_filter not in allowed_role_names:
                 return _empty_response(actor_name, total_count=0)
-
-        role_ids_filter = [r.id for r in all_roles if r.name in allowed_role_names]
-        if not role_ids_filter:
-            return _empty_response(actor_name, total_count=0)
+            role_ids_filter = [r.id for r in all_roles if r.name == role_filter]
+            exclude_role_ids = None
+            if not role_ids_filter:
+                return _empty_response(actor_name, total_count=0)
+        else:
+            role_ids_filter = None
+            exclude_role_ids = [
+                r.id for r in all_roles if r.level < user_role_level
+            ] or None
 
         # -- Step 3: Search profiles --
 
@@ -194,6 +206,7 @@ async def _search_profile_build(
             department_ids=filter_department_ids,
             cohort_ids=cohort_ids,
             role_ids=role_ids_filter,
+            exclude_role_ids=exclude_role_ids,
             limit_count=page_size,
             offset_count=page_offset,
         )
