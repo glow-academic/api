@@ -3,7 +3,7 @@
 Composes existing black-box tools:
   1. resolve_profile_identity_context — profile (role, departments)
   2. has_permission — permission check for attempt:text_download
-  3. search_text_uploads — resolve text_id -> upload_id
+  3. search_texts — resolve texts-RESOURCE id -> upload_id (via texts_mv)
   4. get_upload — resolve upload_id -> file_path, mime_type, size
 
 Returns resolved file metadata. The transport layer (HTTP route / WS input)
@@ -25,7 +25,7 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
-from app.tools.entries.text_uploads.search import search_text_uploads
+from app.tools.entries.texts.search import search_texts
 from app.tools.entries.uploads.get import get_upload
 
 
@@ -42,9 +42,14 @@ async def text_download_attempt_impl(
     Flow:
       1. resolve_profile_identity_context -> role, permissions
       2. has_permission check (attempt:text_download)
-      3. search_text_uploads(text_ids=[text_id]) -> upload_id
+      3. search_texts(texts_ids=[text_id]) -> upload_id
       4. get_upload(upload_id) -> file_path, mime_type, size
       5. Verify file exists on disk
+
+    ``text_id`` here is the texts-RESOURCE id the document viewer holds, so it
+    is resolved via ``texts_mv.texts_id`` (mirroring the working file path's
+    ``search_files(files_ids=...)``), NOT via the text-uploads junction whose
+    ``text_id`` column is the texts-ENTRY id.
     """
     # -- Step 1: Profile context -----------------------------------------------
     with timed("profile"):
@@ -64,18 +69,18 @@ async def text_download_attempt_impl(
             detail="You don't have permission to download attempt text files.",
         )
 
-    # -- Step 3: Resolve text_id -> upload_id ----------------------------------
+    # -- Step 3: Resolve texts-RESOURCE id -> upload_id ------------------------
     with timed("resolve_upload"):
      async with pool.acquire() as conn:
-        junctions = await search_text_uploads(conn, redis, text_ids=[text_id], limit=1)
+        results = await search_texts(conn, redis, texts_ids=[text_id], limit=1)
 
-        if not junctions:
+        if not results or results[0].upload_id is None:
             raise HTTPException(
                 status_code=404,
                 detail="No upload found for this text.",
             )
 
-        upload_id = junctions[0].upload_id
+        upload_id = results[0].upload_id
 
         # -- Step 4: Resolve upload_id -> file metadata ------------------------
         upload = await get_upload(conn, upload_id, redis)
