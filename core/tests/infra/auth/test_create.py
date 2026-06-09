@@ -103,21 +103,20 @@ async def test_create_returns_results_for_empty_items(monkeypatch):
     assert hasattr(result, "results")
     assert len(result.results) == 0
 
+    # The empty-items path still schedules the fire-and-forget Keycloak sync;
+    # drain it so it doesn't leak into other tests.
+    from app.utils.async_tasks import wait_for_pending
+    await wait_for_pending(timeout=2.0)
 
-async def test_create_surfaces_failed_keycloak_idp_sync(monkeypatch):
-    """A failed Keycloak IdP sync must NOT report an unqualified success.
 
-    ``perform_keycloak_sync`` does not raise on failure — it returns
-    ``KeycloakSyncResult(success=False)``. Before the fix that ``False`` was
-    dropped and every result still said "Auth created successfully", even
-    though no one can log in through the just-created provider until Keycloak
-    re-syncs. This proves the warning now reaches the caller (fails before the
-    fix, passes after). Mirrors #247's surfaced-error contract.
+def _patch_create_happy_path(monkeypatch, *, new_auth_id, keycloak):
+    """Patch the create_auth_impl collaborators down to a single auth write.
+
+    ``keycloak`` is injected as a parameter so each test can supply a slow,
+    raising, or failing ``perform_keycloak_sync`` stub without re-stating the
+    rest of the happy-path wiring (deps-as-params keeps the tests modular).
     """
-    from app.infra.identity.keycloak_sync import KeycloakSyncResult
     from app.tools.artifacts.auth.types import CreateAuthResponse
-
-    new_auth_id = uuid4()
 
     async def mock_resolve(pool, pid, redis, **kw):
         return _FakeProfile(
@@ -145,14 +144,6 @@ async def test_create_surfaces_failed_keycloak_idp_sync(monkeypatch):
     async def mock_hydrate(pool, redis, **kw):
         return []
 
-    # Keycloak unreachable: sync reports success=False rather than raising.
-    async def mock_keycloak(**kw):
-        return KeycloakSyncResult(
-            success=False,
-            message="Keycloak sync did not complete (Keycloak unavailable)",
-            error="keycloak_unavailable",
-        )
-
     monkeypatch.setattr(
         "app.infra.auth.create.resolve_profile_identity_context", mock_resolve
     )
@@ -171,8 +162,84 @@ async def test_create_surfaces_failed_keycloak_idp_sync(monkeypatch):
     monkeypatch.setattr(
         "app.infra.auth.hydrate_list_rows.hydrate_auth_list_rows", mock_hydrate
     )
+    # perform_keycloak_sync is imported lazily inside create_auth_impl, so patch
+    # it at its source module.
     monkeypatch.setattr(
-        "app.infra.identity.keycloak_sync.perform_keycloak_sync", mock_keycloak
+        "app.infra.identity.keycloak_sync.perform_keycloak_sync", keycloak
+    )
+
+
+async def test_create_does_not_block_on_slow_keycloak_sync(monkeypatch):
+    """A slow/stalled Keycloak IdP sync must NOT block the create response.
+
+    The auth row is committed before the sync, and the sync is now scheduled
+    fire-and-forget. Before the fix create_auth_impl AWAITED
+    ``perform_keycloak_sync`` inline, so a slow sync (the fresh-deploy KC
+    sync-race retries for ~90-150s) pushed /auth/create past nginx's 60s
+    ``proxy_read_timeout`` → a 504 even though the row was already written.
+    This proves the response returns promptly while the sync hangs, and that
+    the sync was still scheduled (not dropped).
+    """
+    import asyncio
+
+    from app.utils.async_tasks import wait_for_pending
+
+    new_auth_id = uuid4()
+    sync_started = asyncio.Event()
+    release_sync = asyncio.Event()
+
+    async def slow_keycloak(**kw):
+        # Mimic a stalled sync: signal that it started, then hang until the
+        # test releases it. If create_auth_impl awaited this inline the test
+        # would deadlock on the wait_for below.
+        sync_started.set()
+        await release_sync.wait()
+
+    _patch_create_happy_path(
+        monkeypatch, new_auth_id=new_auth_id, keycloak=slow_keycloak
+    )
+
+    request = CreateAuthApiRequest(auths=[{"name": "Acme SSO"}])
+    # Returns promptly despite the sync hanging — a generous bound that is
+    # still far under nginx's 60s timeout.
+    result = await asyncio.wait_for(
+        create_auth_impl(_FakePool(), None, profile_id=uuid4(), request=request),
+        timeout=5.0,
+    )
+
+    # The auth row is written and reported as a clean success.
+    assert len(result.results) == 1
+    item = result.results[0]
+    assert item.success is True
+    assert item.auth_id == new_auth_id
+    assert item.message == "Auth created successfully"
+
+    # The sync was scheduled (fire-and-forget) and is still running — proves
+    # the response did NOT wait for it to complete.
+    await asyncio.wait_for(sync_started.wait(), timeout=2.0)
+    assert not release_sync.is_set()
+
+    # Let the background task finish so it doesn't leak into other tests.
+    release_sync.set()
+    await wait_for_pending(timeout=2.0)
+
+
+async def test_create_returns_success_when_keycloak_sync_raises(monkeypatch):
+    """If the background Keycloak sync raises, the create still returns 2xx.
+
+    The failure is logged by ``schedule_background`` (never re-raised), so the
+    caller gets a clean success with the auth row — the create is decoupled
+    from the best-effort sync's outcome.
+    """
+    from app.utils.async_tasks import wait_for_pending
+
+    new_auth_id = uuid4()
+
+    async def raising_keycloak(**kw):
+        raise RuntimeError("keycloak boom")
+
+    _patch_create_happy_path(
+        monkeypatch, new_auth_id=new_auth_id, keycloak=raising_keycloak
     )
 
     request = CreateAuthApiRequest(auths=[{"name": "Acme SSO"}])
@@ -184,6 +251,46 @@ async def test_create_surfaces_failed_keycloak_idp_sync(monkeypatch):
     item = result.results[0]
     assert item.success is True
     assert item.auth_id == new_auth_id
-    # The swallowed sync failure must now be visible to the caller.
-    assert "did not complete" in item.message.lower()
-    assert item.message != "Auth created successfully"
+    assert item.message == "Auth created successfully"
+
+    # Drain the background task: it raised internally, schedule_background
+    # logged it, and it did not surface to the caller or crash the test.
+    await wait_for_pending(timeout=2.0)
+
+
+async def test_create_returns_success_when_keycloak_sync_reports_failure(monkeypatch):
+    """A ``success=False`` sync result no longer degrades the create response.
+
+    ``perform_keycloak_sync`` returns ``KeycloakSyncResult(success=False)`` when
+    Keycloak is unreachable. Since the sync now runs off the response critical
+    path, that result is observed only in the background — the create returns a
+    clean success with the row (the backstop resync reconciles KC later).
+    """
+    from app.infra.identity.keycloak_sync import KeycloakSyncResult
+    from app.utils.async_tasks import wait_for_pending
+
+    new_auth_id = uuid4()
+
+    async def failing_keycloak(**kw):
+        return KeycloakSyncResult(
+            success=False,
+            message="Keycloak sync did not complete (Keycloak unavailable)",
+            error="keycloak_unavailable",
+        )
+
+    _patch_create_happy_path(
+        monkeypatch, new_auth_id=new_auth_id, keycloak=failing_keycloak
+    )
+
+    request = CreateAuthApiRequest(auths=[{"name": "Acme SSO"}])
+    result = await create_auth_impl(
+        _FakePool(), None, profile_id=uuid4(), request=request
+    )
+
+    assert len(result.results) == 1
+    item = result.results[0]
+    assert item.success is True
+    assert item.auth_id == new_auth_id
+    assert item.message == "Auth created successfully"
+
+    await wait_for_pending(timeout=2.0)
