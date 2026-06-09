@@ -304,7 +304,8 @@ class ListDocumentApiDocument(BaseModel):
     extension: str | None = Field(None, description="File extension derived from the primary file (e.g. 'pdf', 'docx', 'txt')")
     num_scenarios: int | None = Field(None, description="Total number of scenarios")
     active_scenario_count: int | None = Field(None, description="Number of active scenarios")
-    file_id: UUID | None = Field(None, description="Associated file resource UUID")
+    file_id: UUID | None = Field(None, description="Associated file resource UUID (binary/PDF content)")
+    text_id: UUID | None = Field(None, description="Associated text resource UUID (HTML/plain-text content); the preview viewer prefers this when set")
     # Computed in Python
     can_edit: bool | None = Field(None, description="Whether the current user can edit")
     can_duplicate: bool | None = Field(None, description="Whether the current user can duplicate")
