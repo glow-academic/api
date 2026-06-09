@@ -23,13 +23,19 @@ async def search_profiles(
     flag_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
     role_ids: list[UUID] | None = None,
+    exclude_role_ids: list[UUID] | None = None,
     cohort_ids: list[UUID] | None = None,
     exclude_ids: list[UUID] | None = None,
     active_only: bool = True,
     limit_count: int = 20,
     offset_count: int = 0,
 ) -> tuple[list[UUID], int]:
-    """Search profile artifacts by filters. Returns (IDs, total_count)."""
+    """Search profile artifacts by filters. Returns (IDs, total_count).
+
+    ``role_ids`` is an inclusion filter (profile must carry one of the roles);
+    ``exclude_role_ids`` is the negative form (profile must carry none of them)
+    and, unlike inclusion, leaves roleless profiles in the result set.
+    """
     conditions: list[str] = []
     params: list[object] = []
     idx = 1
@@ -116,6 +122,23 @@ async def search_profiles(
             resource_col="roles_id",
             ids=role_ids,
         )
+
+    # Negative role filter — exclude profiles that carry any of these roles.
+    # Used for role-hierarchy visibility scoping: callers pass the roles
+    # strictly above the actor's privilege so those profiles are hidden,
+    # while roleless profiles (no junction row) remain visible. Expressed as
+    # NOT EXISTS rather than an inclusion filter on the allowed roles, which
+    # would also drop name-only/roleless profiles.
+    if exclude_role_ids:
+        conditions.append(
+            f"NOT EXISTS ("
+            f"SELECT 1 FROM profile_roles_junction j "
+            f"WHERE j.{OWNER_COL} = a.id AND j.active = true "
+            f"AND j.roles_id = ANY(${idx})"
+            f")"
+        )
+        params.append(exclude_role_ids)
+        idx += 1
 
     # Cohort filter — 2-hop: profile_artifact → profile_profiles_junction → profiles_resource
     #                        → cohort_profiles_junction → cohort_id

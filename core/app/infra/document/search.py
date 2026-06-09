@@ -40,6 +40,9 @@ from app.tools.resources.departments.search import search_departments
 from app.tools.resources.fields.search import (
     search_fields as search_fields_resource,
 )
+from app.tools.resources.documents.get import (
+    get_documents as get_document_resources,
+)
 from app.tools.resources.files.get import get_files as get_uploads
 from app.tools.resources.flags.get import get_flags
 from app.tools.resources.flags.search import search_flags
@@ -246,6 +249,27 @@ async def _search_document_build(
             active=None,
         )
 
+    # -- Step 3b: Resolve canonical content ids (file_id / text_id) --
+    # A document's content (the file or HTML/text the viewer renders) lives on
+    # ``documents_resource`` — reached via the ``document_documents_junction``
+    # (exposed as ``a.document_ids``). The artifact-level ``document_files_junction``
+    # is NOT where seeded docs keep their content, so resolving file_id from
+    # ``a.files_ids`` alone yields null and never surfaces text_id. Mirror the
+    # attempt/scenario context path and read file_id/text_id off the resource.
+    all_doc_resource_ids = list(
+        {a.document_ids[0] for a in artifacts if a.document_ids}
+    )
+    doc_resources = await get_document_resources(pool, all_doc_resource_ids, redis)
+    doc_resource_map = {r.id: r for r in doc_resources}
+
+    resolved_file_id: dict[UUID, UUID | None] = {}
+    resolved_text_id: dict[UUID, UUID | None] = {}
+    for a in artifacts:
+        primary_doc_id = (a.document_ids or [None])[0]
+        res = doc_resource_map.get(primary_doc_id) if primary_doc_id else None
+        resolved_file_id[a.id] = res.file_id if res else None
+        resolved_text_id[a.id] = res.text_id if res else None
+
     # -- Step 4: Parallel hydration + facets --
 
     all_name_ids: list[UUID] = []
@@ -256,6 +280,10 @@ async def _search_document_build(
         all_name_ids.extend(a.name_ids or [])
         all_files_ids.extend(a.files_ids or [])
         all_flag_ids.extend(a.flag_ids or [])
+
+    # Fold the resolved resource file_ids into the set so the upload/extension
+    # hydration (thumbnail + extension chip) covers them too.
+    all_files_ids.extend(fid for fid in resolved_file_id.values() if fid)
 
     # Deduplicate files IDs
     all_files_ids = list(set(all_files_ids))
@@ -391,8 +419,9 @@ async def _search_document_build(
         )
         can_duplicate = compute_can_duplicate(role_level=user_role_level, role_permissions=profile.role_permissions)
 
-        # Resolve first file_id for preview thumbnail
-        file_id: UUID | None = (a.files_ids or [None])[0] if a.files_ids else None
+        # Canonical content ids from documents_resource (what the viewer fetches).
+        file_id: UUID | None = resolved_file_id.get(a.id)
+        text_id: UUID | None = resolved_text_id.get(a.id)
         extension = extension_map.get(file_id) if file_id else None
 
         # Derive per-row flag state booleans from flag_ids
@@ -420,6 +449,7 @@ async def _search_document_build(
                 num_scenarios=active_scenario_count,
                 active_scenario_count=active_scenario_count,
                 file_id=file_id,
+                text_id=text_id,
                 pending_status=ledger.status if ledger else None,
                 pending_operation=ledger.operation if ledger else None,
                 pending_call_id=ledger.call_id if ledger else None,

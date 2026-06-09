@@ -113,3 +113,116 @@ class TestProfileResolved:
 class TestImport:
     async def test_function_is_importable(self):
         assert callable(search_document_impl)
+
+
+@dataclass
+class _FakeArtifact:
+    id: object
+    name_ids: list
+    files_ids: list
+    flag_ids: list
+    department_ids: list
+    document_ids: list
+    active: bool = True
+    updated_at: object = None
+
+
+@dataclass
+class _FakeDocResource:
+    id: object
+    file_id: object
+    text_id: object
+
+
+@dataclass
+class _FakeName:
+    id: object
+    name: str
+
+
+@dataclass
+class _FakePerm:
+    active_scenario_count: int = 0
+
+
+class TestContentIdResolution:
+    """The library preview needs the document's canonical content ids.
+
+    Content lives on ``documents_resource`` (file_id / text_id), reached via
+    ``document_documents_junction``. The build must surface those — NOT the
+    empty artifact-level ``document_files_junction`` — so the viewer has an id
+    to fetch with. Regression guard for the "Failed to load document" bug.
+    """
+
+    async def test_search_surfaces_resolved_file_and_text_ids(self, monkeypatch):
+        from app.infra.document import search as search_mod
+
+        artifact_id = uuid4()
+        resource_id = uuid4()
+        file_id = uuid4()
+        text_id = uuid4()
+        name_id = uuid4()
+
+        async def fake_profile(*a, **kw):
+            return _FakeProfile()
+
+        async def fake_search_documents(*a, **kw):
+            return ([artifact_id], 1)
+
+        async def fake_soft_calls(*a, **kw):
+            return []
+
+        async def fake_get_documents(*a, **kw):
+            # Artifact carries NO artifact-level file junction (files_ids empty);
+            # its content lives on the documents_resource it points to.
+            return [
+                _FakeArtifact(
+                    id=artifact_id,
+                    name_ids=[name_id],
+                    files_ids=[],
+                    flag_ids=[],
+                    department_ids=[],
+                    document_ids=[resource_id],
+                )
+            ]
+
+        async def fake_get_document_resources(*a, **kw):
+            return [_FakeDocResource(id=resource_id, file_id=file_id, text_id=text_id)]
+
+        async def fake_get_names(*a, **kw):
+            return [_FakeName(id=name_id, name="Academic Integrity Policy")]
+
+        async def fake_empty(*a, **kw):
+            return []
+
+        async def fake_perm(*a, **kw):
+            return _FakePerm()
+
+        monkeypatch.setattr(search_mod, "resolve_profile_identity_context", fake_profile)
+        monkeypatch.setattr(search_mod, "search_documents", fake_search_documents)
+        monkeypatch.setattr(
+            "app.tools.entries.soft_calls.search.search_soft_calls", fake_soft_calls
+        )
+        monkeypatch.setattr(search_mod, "get_documents", fake_get_documents)
+        monkeypatch.setattr(
+            search_mod, "get_document_resources", fake_get_document_resources
+        )
+        monkeypatch.setattr(search_mod, "get_names", fake_get_names)
+        monkeypatch.setattr(search_mod, "get_uploads", fake_empty)
+        monkeypatch.setattr(search_mod, "get_flags", fake_empty)
+        monkeypatch.setattr(search_mod, "search_scenarios_resource", fake_empty)
+        monkeypatch.setattr(search_mod, "search_fields_resource", fake_empty)
+        monkeypatch.setattr(search_mod, "search_departments", fake_empty)
+        monkeypatch.setattr(search_mod, "search_flags", fake_empty)
+        monkeypatch.setattr(
+            search_mod, "resolve_document_permissions_context", fake_perm
+        )
+
+        result = await search_mod._search_document_build(
+            _FakePool(), object(), profile_id=_PROFILE_ID,
+        )
+
+        assert result.documents and len(result.documents) == 1
+        doc = result.documents[0]
+        assert doc.file_id == file_id
+        assert doc.text_id == text_id

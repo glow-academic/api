@@ -48,6 +48,7 @@ async def create_auth_impl(
     """Auth bulk create using composable infra functions."""
     from app.infra.auth.permissions import compute_can_create
     from app.infra.identity.keycloak_sync import perform_keycloak_sync
+    from app.utils.async_tasks import schedule_background
 
     idempotency_key = idempotency_key or request.idempotency_key
     if idempotency_key is not None and accept is None:
@@ -223,36 +224,29 @@ async def create_auth_impl(
                 operation_key=idempotency_key or (results[0].auth_id if results else None),
             )
 
-        # Provision the new auth provider as a Keycloak IdP. The DB row is
-        # already committed, but until this sync lands no one can actually
-        # log in through the provider — so a failure here is NOT cosmetic.
+        # Provision the new auth provider as a Keycloak IdP — but do NOT block
+        # the HTTP response on it. The auth row is already committed (and is
+        # immediately visible via /auth/search); the Keycloak IdP sync is a
+        # best-effort post-write side effect.
         #
-        # NOTE: ``perform_keycloak_sync`` does NOT raise on failure (e.g.
-        # Keycloak unreachable); it returns ``KeycloakSyncResult(success=False)``
-        # and logs internally. The old ``except Exception`` here was therefore
-        # dead code that never fired, and the real failure (a ``False`` result)
-        # was dropped on the floor while every ``AuthResultItem`` still said
-        # "Auth created successfully". Surface it instead — append a warning to
-        # each result message so the caller (UI / LLM tool) can tell the IdP
-        # didn't provision, mirroring how #247 turned a swallowed write failure
-        # into a visible error string.
-        try:
-            sync_result = await perform_keycloak_sync(department_id=None)
-        except Exception as e:  # defensive — perform_* shouldn't raise
-            logger.warning(f"Keycloak sync errored after auth create: {e}")
-            sync_result = None
-        if sync_result is None or not sync_result.success:
-            detail = sync_result.message if sync_result else "Keycloak sync errored"
-            logger.warning(
-                f"Keycloak sync did not complete after auth create: {detail}"
-            )
-            for result_item in results:
-                if result_item.success:
-                    result_item.message += (
-                        " (warning: identity-provider sync to Keycloak did not "
-                        "complete — login via this provider may not work until "
-                        "Keycloak is reachable and re-syncs)"
-                    )
+        # Why fire-and-forget: ``perform_keycloak_sync`` can be slow or stall
+        # for a long time — most notably the fresh-deploy Keycloak sync-race,
+        # where the admin client is briefly ``unauthorized_client`` and the
+        # sync retries for ~90-150s. Awaiting it inline pushed /auth/create
+        # past nginx's 60s ``proxy_read_timeout`` → a 504 to the caller, EVEN
+        # THOUGH the auth row had already been written. That 504 broke the
+        # auths-create / auths-bulk demos.
+        #
+        # The sync still HAPPENS (it is not dropped) — it just runs off the
+        # response critical path. ``perform_keycloak_sync`` is idempotent
+        # (every ``ensure_*`` upserts) and does not raise on failure; any error
+        # is logged by ``schedule_background`` under the label below and the
+        # backstop ``schedule_keycloak_resync`` reconciles later. So KC
+        # eventually reflects the new auth without ever blocking the create.
+        schedule_background(
+            perform_keycloak_sync(department_id=None),
+            label="auth_create_kc_idp_sync",
+        )
 
     # Hydrate full row content for the client. See
     # ``hydrate_auth_list_rows``: returns the same shape /auth/search
