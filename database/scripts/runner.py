@@ -2407,6 +2407,10 @@ async def main_setup(
         from database.seeds.tests_analytics import seed as _seed_tests_analytics
         await _seed_tests_analytics(pool, redis_client)
 
+        print("\nSeeding health + metrics analytics...")
+        from database.seeds.health_analytics import seed as _seed_health_analytics
+        await _seed_health_analytics(pool, redis_client)
+
         print("\nRefreshing materialized views after analytics seeds...")
         async with pool.acquire() as _refresh_conn:
             mvs_rows = await _refresh_conn.fetch(
