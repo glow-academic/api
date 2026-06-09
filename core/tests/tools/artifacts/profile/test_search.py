@@ -7,6 +7,7 @@ from app.tools.artifacts.profile.create import create_profile
 from app.tools.artifacts.profile.search import search_profiles
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.names.create import create_name
+from app.tools.resources.roles.create import create_role
 
 pytestmark = pytest.mark.asyncio
 
@@ -131,3 +132,42 @@ async def test_active_only_false_includes_inactive(conn, redis_client):
 
     ids, _total = await search_profiles(conn, search=name.name, active_only=False)
     assert p.id in ids
+
+
+async def test_exclude_role_ids_keeps_roleless_profiles(conn, redis_client):
+    """Role-hierarchy scoping via exclude_role_ids must keep roleless profiles.
+
+    Regression for the profiles-bulk / profiles-edit demos: a name-only
+    profile (no role junction) was created successfully but never appeared in
+    /profile/search, because the search scoped visibility with an *inclusion*
+    role filter (profile must carry an allowed role). A roleless profile
+    carries no privilege and must remain visible — expressed as the negative
+    ``exclude_role_ids`` filter (exclude only roles above the actor's level).
+    """
+    tag = _u()
+    name_roleless = await create_name(conn, f"roleless-{tag}", redis_client)
+    name_roled = await create_name(conn, f"roled-{tag}", redis_client)
+    higher_role = await create_role(
+        conn, redis_client, name=f"role-{tag}", level=0
+    )
+
+    p_roleless = await create_profile(conn, name_id=name_roleless.id)
+    p_roled = await create_profile(
+        conn, name_id=name_roled.id, role_ids=[higher_role.id]
+    )
+
+    # Negative scoping: exclude the higher-privilege role. The roleless
+    # profile stays; the profile carrying that role is filtered out.
+    ids, _total = await search_profiles(
+        conn, search=tag, exclude_role_ids=[higher_role.id]
+    )
+    assert p_roleless.id in ids
+    assert p_roled.id not in ids
+
+    # The old inclusion semantics would have dropped the roleless profile —
+    # this documents exactly why the demos broke.
+    inc_ids, _ = await search_profiles(
+        conn, search=tag, role_ids=[higher_role.id]
+    )
+    assert p_roleless.id not in inc_ids
+    assert p_roled.id in inc_ids
