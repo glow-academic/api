@@ -94,6 +94,7 @@ async def attempt_message_internal_impl(
         raise HTTPException(status_code=401, detail="Profile not found.")
 
     # Create entries using black boxes
+    from app.tools.entries.attempt_chat.get import get_attempt_chats
     from app.tools.entries.attempt_content.create import create_attempt_content
     from app.tools.entries.attempt_message.create import create_attempt_message
     from app.tools.entries.attempt_message_completion.create import (
@@ -108,6 +109,19 @@ async def attempt_message_internal_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
+        # Pre-validate the chat exists BEFORE any write. The message insert
+        # carries a hard FK (attempt_message_entry.chat_id → attempt_chat_entry);
+        # a stale/bogus chat_id would otherwise surface as an uncaught
+        # asyncpg.ForeignKeyViolationError and bubble out of the route as a raw
+        # 500 (the route only maps ValueError → 400). Resolve via the existing
+        # black-box getter (same pattern as the voice adapter) and fail with a
+        # clean 404 — HTTPException propagates cleanly through
+        # run_artifact_operation_with_audit, mirroring the impl's other 400/401
+        # guards.
+        chat_entries = await get_attempt_chats(conn, [chat_id], redis)
+        if not chat_entries:
+            raise HTTPException(status_code=404, detail="chat not found")
+
         # Auto-link to the chat's latest prior message when the caller
         # didn't specify one AND opted into auto-link (the default).
         # Makes every non-root message an explicit child of some parent
