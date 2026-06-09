@@ -385,3 +385,115 @@ async def test_enforce_helper_denies_missing_upload_linkage(monkeypatch):
             requester=_profile(uuid4(), "member", role_level=1),
         )
     assert ei.value.status_code == 403
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Issue #2 — authored / seed (profile-less) content is shared, not gated
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _wire_authored(monkeypatch, *, upload_id: UUID, session_id: UUID):
+    """Patch owner-resolution so the upload's session has NO profile-linked
+    owner — exactly how seeded authored content resolves. Such a session lacks a
+    profiles_sessions_connection row, so it is absent from sessions_mv and
+    get_sessions returns an empty list (owner -> None)."""
+    import app.tools.entries.sessions.get as sessions_get
+    import app.tools.entries.uploads.get as uploads_get
+
+    async def fake_get_upload(conn, uid, redis, *, bypass_cache=False):
+        assert uid == upload_id
+        return _upload_obj(upload_id, session_id, "authored.pdf")
+
+    async def fake_get_sessions(conn, ids, redis, *a, **k):
+        assert ids == [session_id]
+        return []  # profile-less seed session -> absent from sessions_mv
+
+    monkeypatch.setattr(uploads_get, "get_upload", fake_get_upload)
+    monkeypatch.setattr(sessions_get, "get_sessions", fake_get_sessions)
+
+
+async def test_enforce_helper_allows_authored_profileless_content(monkeypatch):
+    """Issue #2: authored/seed content (profile-less owning session) is shared
+    instructional material with no student to protect — a non-owner member is
+    ALLOWED (was wrongly 403 because the gate failed closed on owner=None)."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    requester_id = uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    _wire_authored(monkeypatch, upload_id=upload_id, session_id=session_id)
+
+    # Should NOT raise — authored content is shared.
+    await enforce_attempt_media_access(
+        _FakePool(), object(), upload_id=upload_id,
+        requester=_profile(requester_id, "guest", role_level=0),
+    )
+
+
+async def test_text_download_authored_policy_resolves_and_passes_gate(monkeypatch):
+    """End-to-end-ish (issue #1 + #2): a seeded text document (e.g. the
+    "Academic Integrity Policy") is fetched by its texts-RESOURCE id, resolves
+    through search_texts(texts_ids=...) -> upload -> content (issue #1), and is
+    served because its profile-less authored session passes the relaxed gate
+    (issue #2). Pre-fix this 404'd (entry-keyed lookup) AND 403'd (gate)."""
+    import app.infra.attempt.text_download as mod
+    import app.tools.entries.sessions.get as sessions_get
+    import app.tools.entries.uploads.get as uploads_get
+    from app.infra.attempt.text_download import text_download_attempt_impl
+    from app.tools.entries.texts.types import SearchTextResponse
+
+    actor = _profile(uuid4(), "member", role_level=1)  # ordinary student
+    resource_id, upload_id, seed_session_id = uuid4(), uuid4(), uuid4()
+
+    async def fake_resolve(pool, profile_id, redis, *a, **k):
+        return actor
+
+    async def fake_search_texts(conn, redis, *, texts_ids=None, limit=1, **k):
+        assert texts_ids == [resource_id]  # RESOURCE id, not the entry id
+        return [
+            SearchTextResponse(
+                texts_id=resource_id,
+                text_id=uuid4(),
+                upload_id=upload_id,
+                file_path="policy.txt",
+                mime_type="text/plain",
+                created_at=datetime.now(UTC),
+            )
+        ]
+
+    async def fake_get_upload(conn, uid, redis, *, bypass_cache=False):
+        return _upload_obj(upload_id, seed_session_id, "policy.txt")
+
+    async def fake_get_sessions(conn, ids, redis, *a, **k):
+        return []  # authored seed session -> no profile owner
+
+    monkeypatch.setattr(mod, "resolve_profile_identity_context", fake_resolve)
+    monkeypatch.setattr(mod, "search_texts", fake_search_texts)
+    monkeypatch.setattr(mod, "get_upload", fake_get_upload)
+    monkeypatch.setattr(uploads_get, "get_upload", fake_get_upload)  # gate's late import
+    monkeypatch.setattr(sessions_get, "get_sessions", fake_get_sessions)
+    _real_disk_file(monkeypatch, mod, "UPLOAD_FOLDER", "policy.txt")
+
+    result = await text_download_attempt_impl(
+        _FakePool(), object(), profile_id=actor.profiles_id, text_id=resource_id
+    )
+    assert result.upload_id == upload_id
+    assert os.path.exists(result.file_path)
+
+
+async def test_student_media_stays_gated_alongside_authored_allow(monkeypatch):
+    """Protection-preserved companion to the test above: with the SAME relaxed
+    gate, a profile-OWNED upload is STILL denied to a non-owner peer. This pins
+    that #2 narrows the gate to profile-less content only and does not weaken
+    #148's protection of any student's media."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    attacker_id, owner_id = uuid4(), uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    _wire_owner(monkeypatch, upload_id=upload_id, session_id=session_id, owner_profile_id=owner_id)
+
+    with pytest.raises(HTTPException) as ei:
+        await enforce_attempt_media_access(
+            _FakePool(), object(), upload_id=upload_id,
+            requester=_profile(attacker_id, "member", role_level=1),
+        )
+    assert ei.value.status_code == 403
