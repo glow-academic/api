@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from app.tools.resources.icons.get import get_icons
 from app.tools.resources.icons.types import GetIconResponse
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.svg_safety import sanitize_icon_value
 
 
 async def create_icon(
@@ -20,7 +21,15 @@ async def create_icon(
     mcp: bool = False,
     soft: bool = False,
 ) -> GetIconResponse:
-    """Create an icon resource."""
+    """Create an icon resource.
+
+    The ``value`` is sanitized on write (see ``sanitize_icon_value``):
+    raw inline SVG is rebuilt from a safe allowlist and named identifiers
+    pass through, so a malicious SVG payload can never be persisted. This
+    is the single write boundary for icon values, complementing the
+    client-side render sanitization (DOMPurify).
+    """
+    value = sanitize_icon_value(value)
     icon_id = await conn.fetchval(
         """
         INSERT INTO icons_resource (id, name, description, value, active, mcp, generated)
