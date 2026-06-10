@@ -42,10 +42,14 @@ def _is_conflict_error(exc: Exception) -> bool:
     )
 
 
-# Retry configuration
-MAX_RETRIES = 10
+# Retry configuration.
+# Budget is generous on purpose: Keycloak 26's cold-boot on a loaded host can
+# take minutes, and the startup sync (perform_keycloak_sync) is idempotent and
+# awaited, so a longer wait can only help — exhausting the budget before
+# glow-client is provisioned is what broke OIDC login on fresh deploys.
+MAX_RETRIES = 30
 INITIAL_RETRY_DELAY = 2.0  # seconds
-MAX_RETRY_DELAY = 30.0  # seconds
+MAX_RETRY_DELAY = 60.0  # seconds
 
 
 @dataclass
@@ -2371,25 +2375,32 @@ async def _resync_keycloak_until_ready(
     max_attempts: int = 40,
     interval_seconds: float = 30.0,
 ) -> None:
-    """Retry the realm-wide Keycloak sync until it succeeds (or gives up)."""
+    """Retry the realm-wide Keycloak sync until it succeeds (or gives up).
+
+    The first attempt is IMMEDIATE (sleep moved to the END of the loop):
+    sleeping at the top left a guaranteed ``interval_seconds`` blind window on
+    every fresh deploy where ``glow-client`` was absent and OIDC login failed
+    with ``unauthorized_client`` until the first retry fired.
+    """
     for attempt in range(1, max_attempts + 1):
-        await asyncio.sleep(interval_seconds)
         try:
             result = await perform_keycloak_sync(department_id=None)
         except Exception as e:  # defensive — perform_* already catches, but be safe
             logger.warning(
                 f"Background Keycloak re-sync attempt {attempt}/{max_attempts} errored: {e}"
             )
-            continue
-        if result.success:
-            logger.info(
-                f"✅ Background Keycloak re-sync succeeded on attempt {attempt}"
+        else:
+            if result.success:
+                logger.info(
+                    f"✅ Background Keycloak re-sync succeeded on attempt {attempt}"
+                )
+                return
+            logger.warning(
+                f"Background Keycloak re-sync attempt {attempt}/{max_attempts}: "
+                "Keycloak still not ready, will retry"
             )
-            return
-        logger.warning(
-            f"Background Keycloak re-sync attempt {attempt}/{max_attempts}: "
-            "Keycloak still not ready, will retry"
-        )
+        if attempt < max_attempts:
+            await asyncio.sleep(interval_seconds)
     logger.error(
         f"Background Keycloak re-sync gave up after {max_attempts} attempts; "
         "OIDC login will not work until Keycloak is reachable and the api re-syncs"

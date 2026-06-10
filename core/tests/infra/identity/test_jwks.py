@@ -1,11 +1,116 @@
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 from uuid import UUID
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
+from app.infra.identity import jwks
 from app.infra.identity import resolve_identity
+
+
+def _priv_pem(private_key) -> bytes:
+    return private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+
+def _gen_and_persist(path: Path) -> rsa.RSAPrivateKey:
+    """Make a key and write it to ``path`` exactly as the module would."""
+    k = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    path.write_bytes(_priv_pem(k))
+    return k
+
+
+# ─── FIX 1: atomic IdP key load — in-memory == on-disk, always ─────────────
+
+
+def test_generate_key_pair_creates_and_persists_when_file_absent(
+    monkeypatch, tmp_path
+):
+    """File absent → a key is generated, persisted, and the returned key
+    matches what landed on disk (so a fresh verifier process agrees)."""
+    key_path = tmp_path / ".idp-key.pem"
+    monkeypatch.setattr(jwks, "_KEY_PATH", key_path)
+
+    private_key, _ = jwks.generate_key_pair()
+
+    assert key_path.exists()
+    assert _priv_pem(private_key) == key_path.read_bytes()
+
+
+def test_generate_key_pair_adopts_existing_on_disk_key(monkeypatch, tmp_path):
+    """File present → the on-disk key is loaded and returned (never a fresh
+    one), so the in-memory key matches the persisted key."""
+    key_path = tmp_path / ".idp-key.pem"
+    on_disk = _gen_and_persist(key_path)
+    monkeypatch.setattr(jwks, "_KEY_PATH", key_path)
+
+    private_key, _ = jwks.generate_key_pair()
+
+    assert _priv_pem(private_key) == _priv_pem(on_disk)
+
+
+def test_generate_key_pair_lost_race_returns_on_disk_key_not_candidate(
+    monkeypatch, tmp_path
+):
+    """Simulate "lost the atomic create": the file already holds key K (a
+    rival colour won), so generate_key_pair must DISCARD its freshly generated
+    candidate and return K. The divergence (returning a different in-memory
+    key than the file) is impossible."""
+    key_path = tmp_path / ".idp-key.pem"
+    monkeypatch.setattr(jwks, "_KEY_PATH", key_path)
+
+    # The "winner" persists K *before* our generate_key_pair adopts it. We make
+    # _load_key_from_disk miss on its first probe (mimicking the brief window
+    # where exists() raced ahead of a readable file) so the code path goes
+    # generate-candidate → O_EXCL fails → adopt-on-disk.
+    winner_key = _gen_and_persist(key_path)
+
+    private_key, _ = jwks.generate_key_pair()
+
+    # Returned key is the on-disk key K, never the candidate.
+    assert _priv_pem(private_key) == _priv_pem(winner_key)
+    # And the file is untouched (we did not overwrite the winner's key).
+    assert key_path.read_bytes() == _priv_pem(winner_key)
+
+
+def test_generate_key_pair_concurrent_callers_converge_to_same_on_disk_key(
+    monkeypatch, tmp_path
+):
+    """The race itself: many callers invoke generate_key_pair concurrently with
+    the file absent. Exactly one wins the atomic O_EXCL claim; every caller
+    returns the SAME key, equal to the single key persisted on disk."""
+    key_path = tmp_path / ".idp-key.pem"
+    monkeypatch.setattr(jwks, "_KEY_PATH", key_path)
+
+    results: list[bytes] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(8)
+
+    def worker():
+        barrier.wait()  # maximise contention on the create
+        priv, _ = jwks.generate_key_pair()
+        with lock:
+            results.append(_priv_pem(priv))
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    on_disk = key_path.read_bytes()
+    assert len(results) == 8
+    # Every caller agrees with every other caller …
+    assert set(results) == {on_disk}
+    # … and with the single key persisted on disk.
+    assert all(r == on_disk for r in results)
 
 
 def test_get_jwks_includes_builtin_default_idp_keys_when_remote_jwks_do_not_match(

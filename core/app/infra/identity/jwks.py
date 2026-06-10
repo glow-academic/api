@@ -6,6 +6,7 @@ restarts. Generated once, then reloaded from file.
 
 import hashlib
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -20,37 +21,85 @@ _key_pair: tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey] | None = None
 _KEY_PATH = Path(os.getenv("IDP_KEY_PATH", "/app/uploads/.idp-key.pem"))
 
 
+def _load_key_from_disk() -> (
+    tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey] | None
+):
+    """Read + parse the on-disk PEM, or return None if absent/empty/corrupt."""
+    try:
+        pem = _KEY_PATH.read_bytes()
+    except OSError:
+        return None  # absent or unreadable
+    if not pem:
+        return None  # racing winner hasn't finished writing yet
+    try:
+        private_key = serialization.load_pem_private_key(pem, password=None)
+    except Exception:
+        return None  # corrupt / partial write
+    return private_key, private_key.public_key()
+
+
 def generate_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
-    """Load persisted key or generate and save a new one."""
-    # Try to load existing key
-    if _KEY_PATH.exists():
-        try:
-            pem = _KEY_PATH.read_bytes()
-            private_key = serialization.load_pem_private_key(pem, password=None)
-            return private_key, private_key.public_key()
-        except Exception:
-            pass  # Corrupt file, regenerate
+    """Return the IdP signing key, guaranteeing in-memory == on-disk.
 
-    # Generate new key
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
+    Create-if-absent ATOMICALLY, else adopt the on-disk key. This is the fix
+    for the blue/green key divergence: both server colours share the same
+    uploads volume and boot concurrently on a fresh deploy with the file
+    absent. A naive check-then-generate is a TOCTOU race — every process
+    generates a *different* key, last-writer-wins the file, and the losers'
+    in-memory key no longer matches the persisted one, so self-minted tokens
+    (verified in a fresh process that reads the file) fail "No matching JWK".
 
-    # Persist to file
+    Here the claim is atomic: ``os.open`` with ``O_CREAT | O_EXCL`` lets
+    exactly ONE process create the file. The winner writes + returns its
+    candidate; every loser DISCARDS its candidate and adopts the on-disk key.
+    The invariant "returned key == on-disk key" therefore holds for every
+    process regardless of boot order.
+    """
+    # Fast path: a key is already persisted → adopt it (the common case after
+    # the first boot, and for the second colour once the first has written).
+    existing = _load_key_from_disk()
+    if existing is not None:
+        return existing
+
     try:
         _KEY_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _KEY_PATH.write_bytes(
-            private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-        )
-    except Exception:
-        pass  # Read-only filesystem, key won't persist
+    except OSError:
+        pass  # read-only FS; the os.open below will fail and we'll fall back
 
-    return private_key, private_key.public_key()
+    # Generate a candidate, but only keep it if we win the atomic claim.
+    candidate = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    candidate_pem = candidate.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    try:
+        # O_EXCL → only the first process to reach this line creates the file.
+        fd = os.open(_KEY_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except FileExistsError:
+        # Lost the race: another process/colour claimed the file first. Discard
+        # our candidate and adopt the on-disk key so in-memory == on-disk. The
+        # winner may still be mid-write (empty/partial file), so retry briefly.
+        for _ in range(100):
+            on_disk = _load_key_from_disk()
+            if on_disk is not None:
+                return on_disk
+            time.sleep(0.01)
+        return candidate, candidate.public_key()  # give up; won't persist
+    except OSError:
+        return candidate, candidate.public_key()  # read-only FS; won't persist
+
+    # We own the file: write our candidate and return it.
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(candidate_pem)
+    except OSError:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+    return candidate, candidate.public_key()
 
 
 def get_or_create_key_pair() -> tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:

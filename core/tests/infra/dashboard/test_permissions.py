@@ -771,3 +771,62 @@ def test_compute_footer_metrics_legacy_builds_composition_and_numeric_stats():
     } == {"Scenario A", "Scenario B"}
     assert metrics.scenario_performance.valid_parameter_ids == [str(param_regular)]
     assert metrics.scenario_stats.valid_numeric_parameter_ids == [str(param_numeric)]
+
+
+def test_avg_score_trend_excludes_graded_but_incomplete_chat():
+    """Regression: the normalized average-score trend must count the SAME chat
+    set in its numerator (``sum_grade_percent``) as its denominator.
+
+    The denominator (``expected``) and the ``completed_chats == graded_chats``
+    gate treat only *completed* chats as earning points, so a graded-but-
+    incomplete chat must NOT add its percent to ``sum_grade_percent``. Before
+    the fix, an attempt with one completed+graded chat (80) and one graded-but-
+    incomplete chat (90) over 2 expected scenarios produced an inflated norm of
+    (80 + 90) / 2 = 85.0; aligned, the incomplete chat earns nothing, so the
+    norm is the correctly-scored 80 / 2 = 40.0.
+    """
+    sim_id = uuid4()
+    attempt_id = uuid4()
+    chat_rows = [
+        _ns(  # completed + graded — earns points
+            attempt_id=attempt_id,
+            attempt_created_at=_ns(date=lambda: date(2026, 1, 1)),
+            chat_created_at=_ns(date=lambda: date(2026, 1, 1)),
+            simulation_id=sim_id,
+            completed=True,
+            grade_percent=80,
+            message_time_taken_seconds=[5],
+            time_taken=600,
+        ),
+        _ns(  # graded but NOT completed — must contribute 0 to the numerator
+            attempt_id=attempt_id,
+            attempt_created_at=_ns(date=lambda: date(2026, 1, 1)),
+            chat_created_at=_ns(date=lambda: date(2026, 1, 1)),
+            simulation_id=sim_id,
+            completed=False,
+            grade_percent=90,
+            message_time_taken_seconds=[5],
+            time_taken=600,
+        ),
+    ]
+
+    metrics = compute_header_metrics(
+        attempts=[
+            _ns(
+                attempt_created_at=_ns(date=lambda: date(2026, 1, 1)),
+                score_percent=80,
+                simulation_id=sim_id,
+                total_time_seconds=1200,
+                has_passed=True,
+            )
+        ],
+        daily_rows=[],
+        chat_rows=chat_rows,
+        profile_rows=[],
+        first_attempt_rows=[],
+        simulation_scenario_counts={str(sim_id): 2},
+        thresholds={"success": 90, "warning": 75, "danger": 60},
+    )
+
+    # aligned numerator/denominator: (80) / 2 expected == 40.0, NOT (80+90)/2 == 85.0
+    assert metrics.average_score.current_value == 40.0

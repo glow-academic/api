@@ -92,7 +92,10 @@ async def create_grade_impl(
             rubrics = await get_rubrics(conn, [rubric_id], redis)
             if rubrics:
                 total_points = rubrics[0].total_points or 0
-                pass_points = rubrics[0].pass_points
+                # ``pass_points`` may be NULL on the rubric; coalesce to 0 so the
+                # ``pass_points > 0`` check below doesn't raise on ``None > 0``
+                # (mirrors the sibling chat_grade.py guard).
+                pass_points = rubrics[0].pass_points or 0
 
         # ``full=True`` shortcut — fill in max marks now that we know
         # the rubric's total_points. Caller-supplied ``score`` is
