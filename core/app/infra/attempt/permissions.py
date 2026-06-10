@@ -53,27 +53,42 @@ def check_attempt_access(
     request_profile_id: UUID,
     request_role: str | None = None,
     attempt_role: str | None = None,
+    department_in_scope: bool = True,
 ) -> bool:
     """Check if the requesting user has access to the attempt.
 
     Access is granted if:
     1. The requesting user owns the attempt (profile IDs match), OR
-    2. The requesting user's role is strictly higher than the attempt
-       owner's role (instructional > member/guest, admin > instructional,
-       superadmin > all). Guests and members can only see their own.
+    2. The requesting user is a super-admin (sees everyone), OR
+    3. The requesting user's role is strictly higher than the attempt
+       owner's role (instructional > member/guest, admin > instructional)
+       AND the attempt owner is within the requester's DEPARTMENT scope
+       (``department_in_scope``). Guests and members can only see their own.
+
+    The ``department_in_scope`` gate mirrors the dashboard/leaderboard
+    department boundary (#152/#148): a non-super, non-self caller may only
+    reach an attempt whose owner shares one of their departments (or is
+    global/roleless). It is computed by the caller via
+    :func:`app.infra.dashboard.visibility.is_profile_in_department_scope`
+    (or :func:`department_scope_allows`) and threaded in here. Self and
+    super-admin access are unaffected by it.
 
     Args:
         attempt_profile_id: The profile ID associated with the attempt.
         request_profile_id: The profile ID of the requesting user.
         request_role: The role of the requesting user.
         attempt_role: The role of the attempt owner.
+        department_in_scope: Whether the attempt owner is within the
+            requester's department scope. Defaults to ``True`` so the role
+            hierarchy is unchanged for callers that have no department to
+            scope against; production callers always pass the resolved value.
 
     Returns:
         True if the user has access, False otherwise.
     """
     if attempt_profile_id is None:
         return False
-    # Own attempt — always allowed
+    # Own attempt — always allowed (department-scope irrelevant)
     if attempt_profile_id == request_profile_id:
         return True
     # Role-based access: higher roles can view lower-role attempts
@@ -82,10 +97,12 @@ def check_attempt_access(
     # guests and members (level <= 1) can only see their own
     if req_level <= 1:
         return False
-    # superadmin can see everyone (including other superadmins)
+    # superadmin can see everyone (including other superadmins) — global
     if req_level == ROLE_HIERARCHY["superadmin"]:
         return True
-    return req_level > att_level
+    # Non-super, non-self: BOTH the role hierarchy AND the department overlap
+    # must hold (cross-department access closed, #152/#148).
+    return req_level > att_level and department_in_scope
 
 
 async def enforce_attempt_media_access(
@@ -172,6 +189,21 @@ async def enforce_attempt_media_access(
     if owner_profile_id is None:
         return
 
+    # Department scope (mirrors the dashboard/leaderboard boundary, #152/#148):
+    # a non-super, non-self caller may only reach media owned by a profile that
+    # shares one of their departments (or is global/roleless). Threaded into
+    # check_attempt_access alongside the existing role-hierarchy rule — both
+    # must hold. Self short-circuits the gate (own media is always allowed) so
+    # we skip the resolution query entirely for the common self-download path;
+    # super-admins resolve to ``True`` without a query inside the resolver.
+    department_in_scope = True
+    if owner_profile_id != requester.profiles_id:
+        from app.infra.dashboard.visibility import is_profile_in_department_scope
+
+        department_in_scope = await is_profile_in_department_scope(
+            pool, requester, owner_profile_id
+        )
+
     if not check_attempt_access(
         owner_profile_id,
         requester.profiles_id,
@@ -182,6 +214,7 @@ async def enforce_attempt_media_access(
         # student, which is the correct conservative default for these
         # student-facing media resources.
         attempt_role=None,
+        department_in_scope=department_in_scope,
     ):
         _deny()
 

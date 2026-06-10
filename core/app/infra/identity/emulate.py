@@ -16,6 +16,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import department_scope_allows
 from app.infra.identity.resolve_identity import (
     MAX_EMULATION_DEPTH,
     resolve_emulation_chain,
@@ -102,10 +103,25 @@ async def resolve_emulation(
             expires_at=None,
         )
 
-    # Step 3: Authorization check
+    # Step 3: Authorization check.
+    #
+    # Role gate (SIMULATABLE_ROLES) + DEPARTMENT scope. A non-super requester
+    # may only emulate a target whose role they may simulate AND who shares one
+    # of their departments (or is global/roleless) — mirroring the
+    # dashboard/leaderboard boundary (#152/#148) so a dept-A admin can no longer
+    # impersonate a dept-B user. Self and super-admin are unaffected:
+    # department_scope_allows returns True for role_level 0, and self
+    # short-circuits the whole check.
     is_self = requester_profile_id == target_profile_id
     allowed_roles = SIMULATABLE_ROLES.get(requester.role, set())
-    is_allowed = is_self or target.role in allowed_roles
+    role_allowed = target.role in allowed_roles
+    department_allowed = department_scope_allows(
+        caller_role_level=requester.role_level,
+        caller_department_ids=requester.department_ids,
+        owner_role_level=target.role_level,
+        owner_department_ids=target.department_ids,
+    )
+    is_allowed = is_self or (role_allowed and department_allowed)
 
     if not is_allowed:
         return EmulationResult(
