@@ -18,8 +18,8 @@ class BenchmarkRequest(BaseModel):
     end_date: str | None = Field(None, description="Filter end date")
     department_ids: list[str] = Field(default_factory=list, description="Department IDs to filter by")
     # History params
-    history_page: int = Field(0, description="History pagination page number")
-    history_page_size: int = Field(10, description="History items per page")
+    history_page: int = Field(0, ge=0, description="History pagination page number")
+    history_page_size: int = Field(10, ge=1, le=200, description="History items per page")
     history_eval_ids: list[str] = Field(default_factory=list, description="Eval IDs for history filter")
     history_search: str | None = Field(None, description="Search string for history")
     history_archived: bool | None = Field(None, description="Filter by archived status")
