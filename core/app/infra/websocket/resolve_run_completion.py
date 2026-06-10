@@ -104,9 +104,19 @@ async def resolve_run_completion(
             if aid in expected_agent_ids:
                 completed_agent_ids.add(aid)
 
-    # Fallback: if messages don't have agent_ids linked,
-    # count distinct assistant messages as proxy
-    completed_count = len(completed_agent_ids) if completed_agent_ids else len(messages)
+    # Fallback: run_complete_impl persists assistant messages WITHOUT
+    # linking agent_ids, so completed_agent_ids is empty on the hot path
+    # and we approximate completed agents from the message rows. A
+    # reasoning model emits TWO assistant rows per agent — a reasoning
+    # trace (reasoning=True) followed by the final answer (reasoning=False)
+    # — so counting raw rows double-counts each agent and trips all_done
+    # after only ~half the agents finish. Count just the answer rows
+    # (reasoning=False), which is exactly one per completed agent and also
+    # leaves the common single-answer (non-reasoning) path counting 1.
+    answer_messages = [m for m in messages if not getattr(m, "reasoning", False)]
+    completed_count = (
+        len(completed_agent_ids) if completed_agent_ids else len(answer_messages)
+    )
     all_done = completed_count >= expected_count
 
     # Step 3: Tool calls for this run
