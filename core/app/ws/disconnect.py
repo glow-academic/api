@@ -31,6 +31,11 @@ async def _mark_profile_inactive(profile_id: str, sid: str) -> None:
                 conn, get_redis_client(),
                 session_id=uuid.UUID(session_id_str),
                 profile_id=uuid.UUID(profile_id),
+                # Disconnect == went inactive. ``create_activity`` writes
+                # ``active = NOT soft``; without ``soft=True`` the row lands as
+                # ``active=true`` and a logout inflates the activity/presence
+                # dashboard exactly like a login. Mark it inactive.
+                soft=True,
             )
     except Exception:
         logger.warning("Failed to mark profile %s inactive", profile_id)
