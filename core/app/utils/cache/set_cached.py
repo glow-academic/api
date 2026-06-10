@@ -33,8 +33,20 @@ async def set_cached(
         pipe.setex(key, ttl, json.dumps(data))
         # Track which keys belong to each tag
         for tag in tags:
-            pipe.sadd(f"{TAG_PREFIX}{tag}", key)
-            pipe.expire(f"{TAG_PREFIX}{tag}", ttl)  # Expire tag set with cache
+            tag_key = f"{TAG_PREFIX}{tag}"
+            pipe.sadd(tag_key, key)
+            # The tag set must outlive its longest-lived member so that
+            # invalidate_tags (which SMEMBERS the set) can still reach every
+            # live key.  A plain EXPIRE would let a short-TTL write shrink a
+            # set that already holds longer-lived keys, orphaning them.  Set
+            # the TTL to the MAX of current and new instead, never shrinking:
+            #   NX -> establish the initial TTL on a fresh set (GT alone never
+            #         sets a TTL because a key with none is treated as
+            #         infinite, which would orphan the set forever);
+            #   GT -> only extend, never reduce, an existing TTL.
+            # Requires Redis 7+ (NX/GT flags) — prod + tests run redis:7-alpine.
+            pipe.expire(tag_key, ttl, nx=True)
+            pipe.expire(tag_key, ttl, gt=True)
         await pipe.execute()
         record_write()
     except Exception as e:
