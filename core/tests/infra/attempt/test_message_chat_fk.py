@@ -29,6 +29,7 @@ from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bri
 from app.tools.entries.chat.create import create_chat
 from app.tools.entries.persona.create import create_persona
 from app.tools.entries.sessions.create import create_session
+from app.tools.resources.audios.create import create_audio_resource
 
 pytestmark = pytest.mark.asyncio
 
@@ -174,3 +175,136 @@ async def test_missing_persona_raises_value_error(
             text="hello",
             persona_id=None,
         )
+
+
+# --- #299 follow-up: the two OTHER client-supplied FKs + write atomicity. ----
+# #299 only closed chat_id. POST /attempt/chat_message also accepts
+# ``parent_message_id`` (FK attempt_message_tree_entry.parent_id →
+# attempt_message_entry) and ``audios_id`` (FK attempt_audio_entry.audios_id →
+# audios_resource). A stale/bogus value for either still raised an uncaught
+# asyncpg.ForeignKeyViolationError → raw 500, AND — because the writes ran on
+# the bare autocommit pool connection — left a DANGLING message row. These
+# exercise the pre-validate (clean 404) + the new wrapping transaction.
+
+
+async def _message_count(pool, chat_id):
+    """Count attempt_message_entry rows for a chat (raw — asserting DB state,
+    not building fixtures; the MV-backed getters can't see uncommitted/
+    unrefreshed rows, so a direct entry-table read is the only way to prove a
+    rollback left nothing behind)."""
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            "SELECT count(*) FROM attempt_message_entry WHERE chat_id = $1",
+            chat_id,
+        )
+
+
+async def test_nonexistent_parent_message_id_returns_404(
+    pool, redis_client, profile_identity_factory
+):
+    """A bogus/stale parent_message_id fails cleanly with 404 — NOT a raw 500."""
+    profile = await profile_identity_factory()
+    session, attempt_chat, persona = await _build_chat_chain(
+        pool, redis_client, profile
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await attempt_message_internal_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            session_id=session,
+            chat_id=attempt_chat,
+            text="hello",
+            persona_id=persona,
+            parent_message_id=uuid4(),  # never inserted → tree FK target missing
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "parent message not found"
+
+
+async def test_nonexistent_audios_id_returns_404(
+    pool, redis_client, profile_identity_factory
+):
+    """A bogus/stale audios_id fails cleanly with 404 — NOT a raw 500."""
+    profile = await profile_identity_factory()
+    session, attempt_chat, persona = await _build_chat_chain(
+        pool, redis_client, profile
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await attempt_message_internal_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            session_id=session,
+            chat_id=attempt_chat,
+            text="hello",
+            persona_id=persona,
+            audios_id=uuid4(),  # never inserted → audio FK target missing
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "audio not found"
+
+
+async def test_valid_audios_id_succeeds(
+    pool, redis_client, profile_identity_factory
+):
+    """A real audios_resource attaches and the message still posts (200)."""
+    profile = await profile_identity_factory()
+    session, attempt_chat, persona = await _build_chat_chain(
+        pool, redis_client, profile
+    )
+    async with pool.acquire() as conn:
+        audio = await create_audio_resource(
+            conn, "mic recording", "transcribed user audio", redis_client
+        )
+
+    result = await attempt_message_internal_impl(
+        pool,
+        redis_client,
+        profile_id=profile.artifact_id,
+        session_id=session,
+        chat_id=attempt_chat,
+        text="hello",
+        persona_id=persona,
+        audios_id=audio.id,
+    )
+
+    assert result.success is True
+    assert result.message_id is not None
+
+
+async def test_failed_insert_rolls_back_no_dangling_message(
+    pool, redis_client, profile_identity_factory
+):
+    """A downstream failure (the persona guard, raised AFTER the message row is
+    created) rolls the whole write back — no dangling attempt_message_entry.
+
+    Pre-fix the message committed on the autocommit pool connection before the
+    content loop ran, so the post-failure count was 1. The wrapping
+    ``conn.transaction()`` makes it 0.
+    """
+    profile = await profile_identity_factory()
+    session, attempt_chat, _persona = await _build_chat_chain(
+        pool, redis_client, profile
+    )
+
+    assert await _message_count(pool, attempt_chat) == 0
+
+    with pytest.raises(ValueError, match="persona_id is required"):
+        await attempt_message_internal_impl(
+            pool,
+            redis_client,
+            profile_id=profile.artifact_id,
+            session_id=session,
+            chat_id=attempt_chat,
+            text="hello",
+            persona_id=None,  # trips the guard AFTER create_attempt_message
+        )
+
+    # Transaction rolled back → the message row created before the guard fired
+    # must be gone. (Pre-fix this asserted 1 — a dangling message.)
+    assert await _message_count(pool, attempt_chat) == 0
