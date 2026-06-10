@@ -11,11 +11,20 @@ all events published to those groups.
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Final
 from uuid import UUID
 
 from app.infra.stream.types import EventEnvelope
+
+logger = logging.getLogger(__name__)
+
+# Cap each subscriber's buffer. A slow/throttled SSE consumer on a long-lived
+# group-wide stream (run_id=None) would otherwise accumulate events without
+# bound. With a cap, publish() sheds the oldest event for a full queue rather
+# than growing memory or blocking the fan-out to the other subscribers.
+_QUEUE_MAXSIZE: Final[int] = 1000
 
 
 @dataclass(slots=True)
@@ -29,7 +38,7 @@ _SUBSCRIPTIONS: Final[list[_Subscription]] = []
 
 def subscribe(*, group_id: UUID) -> asyncio.Queue[EventEnvelope]:
     """Create a queue subscription for a specific group's events."""
-    queue: asyncio.Queue[EventEnvelope] = asyncio.Queue()
+    queue: asyncio.Queue[EventEnvelope] = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
     _SUBSCRIPTIONS.append(_Subscription(queue=queue, group_id=group_id))
     return queue
 
@@ -40,9 +49,34 @@ def unsubscribe(queue: asyncio.Queue[EventEnvelope]) -> None:
 
 
 async def publish(event: EventEnvelope) -> None:
-    """Publish a live event to subscribers watching its group_id."""
+    """Publish a live event to subscribers watching its group_id.
+
+    Never blocks on a single subscriber: one slow consumer must not stall the
+    fan-out to the others. When a subscriber's bounded queue is full we drop
+    its OLDEST buffered event to make room for the new one, so memory stays
+    bounded while the consumer keeps receiving the freshest events.
+    """
     if not event.group_id:
         return
     for subscription in list(_SUBSCRIPTIONS):
-        if event.group_id == subscription.group_id:
-            await subscription.queue.put(event)
+        if event.group_id != subscription.group_id:
+            continue
+        queue = subscription.queue
+        try:
+            queue.put_nowait(event)
+        except asyncio.QueueFull:
+            # Slow consumer: shed the oldest event, then enqueue the newest.
+            try:
+                queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+            try:
+                queue.put_nowait(event)
+            except asyncio.QueueFull:
+                # Lost a race with another producer refilling the slot; the
+                # event is dropped rather than blocking the fan-out.
+                logger.warning(
+                    "SSE subscriber queue full for group %s; dropping event %s",
+                    subscription.group_id,
+                    event.event_type,
+                )

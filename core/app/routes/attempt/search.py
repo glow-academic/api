@@ -64,8 +64,8 @@ class SearchAttemptApiRequest(BaseModel):
     # Sort / pagination
     sort_by: str = Field("date", description="Sort field")
     sort_order: str = Field("desc", description="Sort direction (asc or desc)")
-    page: int = Field(0, description="Page number")
-    page_size: int = Field(20, description="Items per page")
+    page: int = Field(0, ge=0, description="Page number")
+    page_size: int = Field(20, ge=1, le=200, description="Items per page")
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
 
