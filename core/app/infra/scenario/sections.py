@@ -279,6 +279,7 @@ def build_scenario_get_result(
             name=document.name,
             description=document.description,
             file_id=document.file_id,
+            text_id=document.text_id,
             upload_id=file_entry.upload_id if file_entry else None,
             file_path=file_entry.file_path if file_entry else None,
             mime_type=file_entry.mime_type if file_entry else None,
