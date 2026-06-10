@@ -146,39 +146,52 @@ async def run_complete_impl(
     # assistant message so the two sort in the natural reasoning →
     # answer order. Each row is independently inactivatable / collapsible
     # by the FE.
+    # The reasoning trace, the answer, and the token-accounting row are ONE
+    # logical model turn — they must land together or not at all. asyncpg
+    # autocommits each statement, so without an explicit boundary a failure
+    # midway (e.g. the answer write fails after the reasoning write committed,
+    # or token accounting fails after both messages committed) leaves a
+    # half-written turn: a committed reasoning trace with no answer (surfaced
+    # to the user via the messages hedge-cache write-back) or messages with no
+    # token row (lost cost accounting). Wrapping the three writes in a single
+    # transaction makes the turn atomic. The nested create_* impls open their
+    # own ``conn.transaction()`` blocks, which asyncpg nests as SAVEPOINTs
+    # under this outer transaction, so they compose correctly. The write-back
+    # caches inside those impls still fire on the successful path.
     try:
-        if reasoning_output:
-            await persist_run_message(
-                conn,
-                redis,
-                run_id=run_uuid,
-                session_id=session_id,
-                role="assistant",
-                content=reasoning_output,
-                upload_folder=upload_folder,
-                reasoning=True,
-                created_at=reasoning_started_at,
-            )
+        async with conn.transaction():
+            if reasoning_output:
+                await persist_run_message(
+                    conn,
+                    redis,
+                    run_id=run_uuid,
+                    session_id=session_id,
+                    role="assistant",
+                    content=reasoning_output,
+                    upload_folder=upload_folder,
+                    reasoning=True,
+                    created_at=reasoning_started_at,
+                )
 
-        if assistant_output:
-            await persist_run_message(
-                conn,
-                redis,
-                run_id=run_uuid,
-                session_id=session_id,
-                role="assistant",
-                content=assistant_output,
-                upload_folder=upload_folder,
-            )
+            if assistant_output:
+                await persist_run_message(
+                    conn,
+                    redis,
+                    run_id=run_uuid,
+                    session_id=session_id,
+                    role="assistant",
+                    content=assistant_output,
+                    upload_folder=upload_folder,
+                )
 
-        if input_tokens or output_tokens:
-            await create_token(
-                conn,
-                redis, run_id=run_uuid,
-                session_id=session_id,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-            )
+            if input_tokens or output_tokens:
+                await create_token(
+                    conn,
+                    redis, run_id=run_uuid,
+                    session_id=session_id,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                )
     except Exception as e:
         logger.exception(f"Failed to save run_complete for {artifact_type}: {e}")
 
