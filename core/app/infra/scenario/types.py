@@ -111,6 +111,10 @@ class ScenarioDocument(BaseModel):
     name: str | None = Field(None, description="Document name")
     description: str | None = Field(None, description="Document description text")
     file_id: UUID | None = Field(None, description="UUID of the files_resource (used for download)")
+    text_id: UUID | None = Field(
+        None,
+        description="UUID of the texts_resource (HTML/plain-text content); the preview viewer prefers this over file_id when set",
+    )
     file_path: str | None = Field(None, description="Storage path of the file")
     mime_type: str | None = Field(None, description="MIME type of the document")
     upload_id: UUID | None = Field(None, description="UUID of the associated upload")
