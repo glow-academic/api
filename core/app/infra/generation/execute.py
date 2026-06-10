@@ -210,6 +210,10 @@ async def _call_chat_completions_api(
         "messages": messages,
         "stream": True,
         "temperature": temperature,
+        # Parity with the Responses path (_call_responses_api): cap the upstream
+        # wait so a stalled DGX on the chat fallback can't tie up a worker for
+        # litellm's ~600s default.
+        "timeout": 120.0,
     }
     if tools:
         kwargs["tools"] = tools
