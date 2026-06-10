@@ -10,6 +10,43 @@ from uuid import UUID
 import asyncpg  # type: ignore
 
 from app.tools.entries.uploads.types import GetUploadResponse
+from app.tools.resources.audios.types import GetAudioResponse
+
+
+async def get_audio_resource(
+    conn: asyncpg.Connection,
+    audios_id: UUID,
+) -> GetAudioResponse | None:
+    """Resolve a resource-level ``audios_id`` to its ``audios_resource`` row.
+
+    This is the exact FK target of ``attempt_audio_entry.audios_id`` (and
+    ``audios_audios_connection.audios_id``). Callers that accept a
+    client-supplied ``audios_id`` use this to pre-validate the reference
+    before any write — a missing resource surfaces as a clean 404 instead of
+    an uncaught ``ForeignKeyViolationError`` raw-500. Unlike
+    ``get_upload_by_audios_id`` (which requires the full bytes chain), this
+    checks only the resource's existence, so a freshly-promoted resource with
+    no uploads yet still validates.
+    """
+    row = await conn.fetchrow(
+        """
+        SELECT id, name, description, created_at, active, generated, mcp
+        FROM audios_resource
+        WHERE id = $1
+        """,
+        audios_id,
+    )
+    if row is None:
+        return None
+    return GetAudioResponse(
+        id=row["id"],
+        name=row["name"],
+        description=row["description"],
+        created_at=row["created_at"],
+        active=row["active"],
+        generated=row["generated"],
+        mcp=row["mcp"],
+    )
 
 
 async def get_upload_by_audios_id(
