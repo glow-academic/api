@@ -8,6 +8,7 @@ Handles:
   - Path rewriting for Cursor/ChatGPT compatibility
 """
 
+import asyncio
 import os
 from typing import Any
 
@@ -231,7 +232,11 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
         # --- Keycloak OAuth verification ---
 
         try:
-            claims = verify_jwt(token)
+            # Offload to a worker thread: verify_jwt is synchronous and its
+            # JWKS fetch (_get_jwks) does a blocking `requests.get` to
+            # Keycloak. Calling it inline in this async middleware would freeze
+            # the event loop on a slow Keycloak. Verification logic unchanged.
+            claims = await asyncio.to_thread(verify_jwt, token)
             logger.debug(
                 f"MCP OAuth token validated: "
                 f"sub={claims.get('sub')}, azp={claims.get('azp')}"

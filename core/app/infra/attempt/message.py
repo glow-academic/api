@@ -97,6 +97,7 @@ async def attempt_message_internal_impl(
     from app.tools.entries.attempt_chat.get import get_attempt_chats
     from app.tools.entries.attempt_content.create import create_attempt_content
     from app.tools.entries.attempt_message.create import create_attempt_message
+    from app.tools.entries.attempt_message.get import get_attempt_messages
     from app.tools.entries.attempt_message_completion.create import (
         create_attempt_message_completion,
     )
@@ -104,6 +105,7 @@ async def attempt_message_internal_impl(
     from app.tools.entries.attempt_message_tree.create import (
         create_attempt_message_tree,
     )
+    from app.tools.resources.audios.get import get_audio_resource
 
     effective_session_id = session_id or profile.session_id
 
@@ -121,6 +123,34 @@ async def attempt_message_internal_impl(
         chat_entries = await get_attempt_chats(conn, [chat_id], redis)
         if not chat_entries:
             raise HTTPException(status_code=404, detail="chat not found")
+
+        # Pre-validate the two OTHER client-supplied FK references the same
+        # way (#299 only closed chat_id). Both are raw UUIDs off the request:
+        #   - parent_message_id → attempt_message_tree_entry.parent_id FK to
+        #     attempt_message_entry(id). A stale fork target would raise an
+        #     uncaught ForeignKeyViolationError on the tree insert below.
+        #   - audios_id → attempt_audio_entry.audios_id FK to
+        #     audios_resource(id). A stale attachment id would raise the same
+        #     on the audio insert below.
+        # Resolve each via its black-box getter and fail with a clean 404
+        # (propagates through the audit wrapper) instead of a raw 500. Only the
+        # explicit, client-supplied parent_message_id is checked here — the
+        # auto-linked parent (resolved from search_attempt_messages below) is
+        # server-derived and always valid.
+        if parent_message_id is not None:
+            parent_entries = await get_attempt_messages(
+                conn, [parent_message_id], redis
+            )
+            if not parent_entries:
+                raise HTTPException(
+                    status_code=404, detail="parent message not found"
+                )
+        if audios_id is not None:
+            audios_uuid = (
+                audios_id if isinstance(audios_id, UUID) else UUID(str(audios_id))
+            )
+            if await get_audio_resource(conn, audios_uuid) is None:
+                raise HTTPException(status_code=404, detail="audio not found")
 
         # Auto-link to the chat's latest prior message when the caller
         # didn't specify one AND opted into auto-link (the default).
@@ -144,75 +174,86 @@ async def attempt_message_internal_impl(
             if latest_items:
                 parent_message_id = latest_items[0].message_id
 
-        # Create attempt_message_entry (container)
-        message_result = await create_attempt_message(
-            conn, redis,
-            chat_id=chat_id,
-            session_id=effective_session_id,
-        )
+        # Wrap the whole message+content+tree+completion+audio write
+        # sequence in a single DB transaction so it commits all-or-nothing.
+        # Previously these ran on the bare autocommit pool connection: the
+        # message + content rows committed BEFORE the tree/audio inserts, so a
+        # downstream failure (e.g. the persona guard, or — pre-#299-completion
+        # — a bad parent/audio FK) left a DANGLING message row with no parent
+        # edge and no audio. The transaction rolls the message back on any
+        # failure. (Redis write-back inside the create_* calls is not
+        # transactional, same caveat as every other conn.transaction() impl;
+        # the MV refresh stays OUTSIDE the txn — it only runs on success.)
+        async with conn.transaction():
+            # Create attempt_message_entry (container)
+            message_result = await create_attempt_message(
+                conn, redis,
+                chat_id=chat_id,
+                session_id=effective_session_id,
+            )
 
-        # Create attempt_content_entry for each content block
-        content_ids = []
-        for content_text, content_persona_id in content_items:
-            # ``persona_id`` FKs to ``personas_entry(id)`` (NOT NULL). The old
-            # ``or UUID(int=0)`` fallback inserted the all-zero UUID when no
-            # persona was supplied, which has no personas_entry row → an
-            # uncaught ForeignKeyViolationError that crashed the socket task
-            # ("Task exception was never retrieved"). Fail loud and early with
-            # a clear, client-facing message instead. Callers must pass a real
-            # persona entry id (e.g. the attempt's ``user_persona_id`` for the
-            # learner, or an assistant persona for the reply).
-            if not content_persona_id:
-                raise ValueError(
-                    "persona_id is required to post a chat message — pass the "
-                    "attempt's user_persona_id (learner) or an assistant "
-                    "persona_id. None/empty is not allowed."
+            # Create attempt_content_entry for each content block
+            content_ids = []
+            for content_text, content_persona_id in content_items:
+                # ``persona_id`` FKs to ``personas_entry(id)`` (NOT NULL). The old
+                # ``or UUID(int=0)`` fallback inserted the all-zero UUID when no
+                # persona was supplied, which has no personas_entry row → an
+                # uncaught ForeignKeyViolationError that crashed the socket task
+                # ("Task exception was never retrieved"). Fail loud and early with
+                # a clear, client-facing message instead. Callers must pass a real
+                # persona entry id (e.g. the attempt's ``user_persona_id`` for the
+                # learner, or an assistant persona for the reply).
+                if not content_persona_id:
+                    raise ValueError(
+                        "persona_id is required to post a chat message — pass the "
+                        "attempt's user_persona_id (learner) or an assistant "
+                        "persona_id. None/empty is not allowed."
+                    )
+                content_result = await create_attempt_content(
+                    conn, redis,
+                    message_id=message_result.id,
+                    session_id=effective_session_id,
+                    content=content_text,
+                    persona_id=content_persona_id,
                 )
-            content_result = await create_attempt_content(
-                conn, redis,
-                message_id=message_result.id,
-                session_id=effective_session_id,
-                content=content_text,
-                persona_id=content_persona_id,
-            )
-            content_ids.append(str(content_result.id))
+                content_ids.append(str(content_result.id))
 
-        # Connect to the parent in the tree. First message in a chat
-        # stays unparented (parent_message_id is None after the search
-        # above returned nothing) — MV's LEFT JOIN returns null for
-        # roots, which is the expected shape.
-        if parent_message_id is not None:
-            await create_attempt_message_tree(
-                conn, redis,
-                parent_id=parent_message_id,
-                child_id=message_result.id,
-                session_id=effective_session_id,
-            )
+            # Connect to the parent in the tree. First message in a chat
+            # stays unparented (parent_message_id is None after the search
+            # above returned nothing) — MV's LEFT JOIN returns null for
+            # roots, which is the expected shape.
+            if parent_message_id is not None:
+                await create_attempt_message_tree(
+                    conn, redis,
+                    parent_id=parent_message_id,
+                    child_id=message_result.id,
+                    session_id=effective_session_id,
+                )
 
-        await create_attempt_message_completion(
-            conn, redis,
-            attempt_message_id=message_result.id,
-            session_id=effective_session_id,
-        )
-
-        # Optional audio attachment: when the caller transcribed a mic
-        # recording, the ``audios_id`` rides on the create request and we
-        # link it to this fresh message via ``attempt_audio_entry`` — the
-        # same junction the realtime adapter uses for assistant audio.
-        # Keeping this inline (instead of a separate post-hoc call) gives
-        # us a single atomic write and avoids the message briefly
-        # existing without its audio in the MV.
-        if audios_id is not None:
-            audios_uuid = audios_id if isinstance(audios_id, UUID) else UUID(str(audios_id))
-            from app.tools.entries.attempt_audio.create import (
-                create_attempt_audio,
-            )
-            await create_attempt_audio(
+            await create_attempt_message_completion(
                 conn, redis,
-                message_id=message_result.id,
-                audios_id=audios_uuid,
+                attempt_message_id=message_result.id,
                 session_id=effective_session_id,
             )
+
+            # Optional audio attachment: when the caller transcribed a mic
+            # recording, the ``audios_id`` rides on the create request and we
+            # link it to this fresh message via ``attempt_audio_entry`` — the
+            # same junction the realtime adapter uses for assistant audio.
+            # Keeping this inline (instead of a separate post-hoc call) gives
+            # us a single atomic write and avoids the message briefly
+            # existing without its audio in the MV.
+            if audios_id is not None:
+                audios_uuid = audios_id if isinstance(audios_id, UUID) else UUID(str(audios_id))
+                from app.tools.entries.attempt_audio.create import (
+                    create_attempt_audio,
+                )
+                await create_attempt_audio(
+                    conn, redis,
+                    message_id=message_result.id,
+                    audios_id=audios_uuid,
+                    session_id=effective_session_id,
+                )
 
     # Refresh MVs so messages appear in the UI
     # (audio-link MV is best-effort — there's no attempt_audio_mv in the

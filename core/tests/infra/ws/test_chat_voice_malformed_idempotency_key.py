@@ -122,10 +122,10 @@ async def test_ws_chat_voice_well_formed_uuid_passes_coercion(
 
     data = {"chat_id": str(uuid4()), "idempotency_key": str(UUID(int=7))}
 
-    # Well-formed UUID coerces; the handler then trips the sentinel deeper in.
-    # That RuntimeError is NOT a (ValueError, TypeError), so it propagates —
-    # which is fine: we only assert coercion succeeded (sentinel reached).
-    with pytest.raises(RuntimeError):
-        await handler_mod.attempt_chat_voice("sid-1", data)
+    # Well-formed UUID coerces; the handler then reaches the sentinel deeper in.
+    # The sentinel's RuntimeError is now swallowed by the centralized ws guard
+    # (app.infra.globals; see test_ws_handler_error_containment), so we assert
+    # coercion succeeded via the sentinel flag rather than a propagated raise.
+    await handler_mod.attempt_chat_voice("sid-1", data)
 
     assert reached["hit"] is True

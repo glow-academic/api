@@ -134,8 +134,10 @@ async def test_ws_setting_search_valid_payload_passes_validation(
 
     monkeypatch.setattr(handler_mod, "run_artifact_operation_with_audit", _sentinel)
 
-    with pytest.raises(RuntimeError):
-        await handler_mod.setting_search("sid-1", {"flag_search": "active"})
+    # Validation passes and the handler reaches the audit sentinel; its
+    # RuntimeError is swallowed by the centralized ws guard (app.infra.globals;
+    # see test_ws_handler_error_containment), so we assert via the flag.
+    await handler_mod.setting_search("sid-1", {"flag_search": "active"})
 
     assert reached["hit"] is True
     assert bus.events == []

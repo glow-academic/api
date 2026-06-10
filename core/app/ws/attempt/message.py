@@ -17,6 +17,9 @@ from app.infra.websocket.attempt.audio_frame import (
 )
 from app.infra.websocket.session_store import get_session_by_chat_id
 from app.tools.entries.uploads.get import get_upload
+from app.utils.logging.db_logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @sio.on("attempt.chat_message")  # type: ignore
@@ -105,16 +108,34 @@ async def attempt_message(sid: str, data: dict[str, Any]) -> dict[str, Any] | No
         )
         return result.model_dump(mode="json")
 
-    result = await run_artifact_operation_with_audit(
-        pool,
-        redis,
-        artifact="attempt",
-        operation="chat_message",
-        profile_id=identity.profile_id,
-        session_id=identity.session_id,
-        group_id=group_resolve.group_id,
-        sid=sid,
-        runner=_runner,
-        arguments={"chat_id": chat_id, "text": text, "persona_id": data.get("persona_id")},
-    )
+    try:
+        result = await run_artifact_operation_with_audit(
+            pool,
+            redis,
+            artifact="attempt",
+            operation="chat_message",
+            profile_id=identity.profile_id,
+            session_id=identity.session_id,
+            group_id=group_resolve.group_id,
+            sid=sid,
+            runner=_runner,
+            arguments={"chat_id": chat_id, "text": text, "persona_id": data.get("persona_id")},
+        )
+    except Exception as exc:
+        # The audit wrapper already emitted ``attempt.chat_message.failed`` to
+        # the client BEFORE re-raising the runner's error (e.g. a bad chat_id
+        # or missing persona). socket.io runs this handler as a fire-and-forget
+        # task, so letting the exception escape surfaces as
+        # "[ERROR] Task exception was never retrieved" with a full traceback in
+        # the server log — even though the client was already told via
+        # ``.failed``. Consume it here (logged at warning) instead of leaking an
+        # unretrieved-task exception; mirrors the try/except-then-ack style of
+        # the sibling ``attempt.chat_response`` handler. The client-facing
+        # ``.failed`` emission (owned by the audit wrapper) is unchanged.
+        logger.warning(
+            "attempt.chat_message failed after .failed emit (%s): %s",
+            type(exc).__name__,
+            exc,
+        )
+        return None
     return result

@@ -12,6 +12,7 @@ contains either a profile_id claim (from default_idp) or an email claim
 
 from __future__ import annotations
 
+import asyncio
 import os
 import socket
 import time
@@ -144,6 +145,12 @@ def _get_jwks() -> list[dict[str, Any]]:
     # Fall back to cached keys if available
     if _jwks_cache["keys"] is not None:
         logger.warning("Failed to refresh JWKS, using cached keys")
+        # Refresh the cache timestamp on fallback. Without this the stale `ts`
+        # keeps `now - ts > _JWKS_TTL` true, so a slow/unavailable Keycloak is
+        # re-hit on *every* request (each one paying the full blocking fetch).
+        # Bumping `ts` bounds the retry to at most once per TTL window — the
+        # TTL value (and thus refresh cadence) is unchanged.
+        _jwks_cache["ts"] = now
         return _jwks_cache["keys"]
 
     raise RuntimeError("Failed to fetch JWKS from all endpoints")
@@ -261,7 +268,14 @@ async def resolve_identity(token: str, pool: asyncpg.Pool) -> Identity:
     from app.infra.server_timing import timed
 
     with timed("jwt_verify"):
-        claims = verify_jwt(token)
+        # verify_jwt is synchronous and `_get_jwks` (which it may call on a
+        # cold/expired cache) does a *blocking* `requests.get` to Keycloak.
+        # Running it inline would freeze the asyncio event loop for the whole
+        # process whenever Keycloak is slow — stalling every concurrent
+        # request, not just this auth call. Offload it to a worker thread so a
+        # slow JWKS fetch can never block the loop. The verification logic
+        # itself (signature/alg-pin/iss checks) is unchanged.
+        claims = await asyncio.to_thread(verify_jwt, token)
 
     # Resolve profile_id
     with timed("profile_lookup"):
