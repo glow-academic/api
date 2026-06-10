@@ -245,7 +245,14 @@ def compute_header_metrics(
             a["completed_chats"] += 1
         if row.completed and row.grade_percent is not None:
             a["graded_chats"] += 1
-        if row.grade_percent is not None:
+        # Numerator must reference the SAME chat set as the denominator: the
+        # `expected`/`graded_chats` gate below treats only completed chats as
+        # earning points, so only completed+graded chats may contribute their
+        # percent here. Without `row.completed`, a graded-but-incomplete chat
+        # would add its percent to the numerator while the denominator
+        # (max(expected_sim_scenarios, chats_in_attempt)) never credits it,
+        # inflating the normalized average-score trend.
+        if row.completed and row.grade_percent is not None:
             a["sum_grade_percent"] += float(row.grade_percent)
 
     attempt_norm_by_date: dict[date, list[float]] = defaultdict(list)
