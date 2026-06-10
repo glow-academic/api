@@ -216,6 +216,42 @@ async def create_attempt_chat_impl(
     bridges the existing attempt_chat into the current attempt.
     """
 
+    # ── Pre-validate caller-supplied attempt-side FKs ─────────────────────────
+    #
+    # ``attempt_id`` is a required client UUID that feeds a hard FK
+    # (``attempt_chat_bridge_entry.attempt_id → attempt_entry``) on BOTH the
+    # main path (bridge insert after create_attempt_chat) and the short-circuit
+    # path (bridge insert of an existing attempt_chat). It was NEVER
+    # existence-checked — only ``chat_id`` was — so a stale/bogus value surfaced
+    # as an uncaught ``asyncpg.ForeignKeyViolationError`` and bubbled out of the
+    # route as a raw 500 (the route maps any Exception → 500). Likewise
+    # ``previous_attempt_chat_id`` (short-circuit only) feeds the bridge's
+    # ``attempt_chat_id`` FK and was never validated. Resolve both via the
+    # existing black-box getters (no raw SQL) and fail with a clean 404 — mirrors
+    # the chat_id guard below and the #299 chat_message fix; placed before either
+    # bridge insert so it covers both paths.
+    from app.tools.entries.attempt.get import get_attempts
+    from app.tools.entries.attempt_chat.get import get_attempt_chats
+
+    # Cache-hedged reads (NOT bypass_cache): a legitimate
+    # ``previous_attempt_chat_id`` is often a freshly-created attempt_chat that
+    # is not yet bridged into any attempt — so it is absent from
+    # ``attempt_chat_mv`` (which JOINs the bridge) but present in the write-back
+    # cache slot ``create_attempt_chat`` populated. An MV-only read would
+    # false-404 that valid "advance to next chat" flow. The hedge finds entries
+    # via cache OR MV while still catching a truly-bogus id (no cache slot AND
+    # not materialized). Mirrors the #299 chat_message getter usage.
+    async with pool.acquire() as conn:
+        attempts = await get_attempts(conn, [request.attempt_id], redis)
+        if not attempts:
+            raise HTTPException(404, "Attempt not found.")
+        if request.previous_attempt_chat_id:
+            prev_chats = await get_attempt_chats(
+                conn, [request.previous_attempt_chat_id], redis
+            )
+            if not prev_chats:
+                raise HTTPException(404, "Previous attempt chat not found.")
+
     # ── Short-circuit: reuse previous attempt_chat ───────────────────────────
 
     if request.previous_attempt_chat_id:
