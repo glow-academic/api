@@ -260,6 +260,65 @@ async def test_wait_for_keycloak_returns_none_when_package_missing(monkeypatch):
     )
 
 
+# ─── FIX 2: KC-sync timing — first resync is immediate, budget is generous ──
+
+
+@pytest.mark.asyncio
+async def test_resync_first_attempt_is_immediate_no_leading_sleep(monkeypatch):
+    """The background re-sync must attempt the sync BEFORE sleeping. A leading
+    sleep meant a guaranteed ~interval blind window on every fresh deploy where
+    glow-client was absent and OIDC login failed with unauthorized_client."""
+    events: list[str] = []
+
+    async def fake_sync(*, department_id=None):
+        events.append("sync")
+        return types.SimpleNamespace(success=False)
+
+    async def fake_sleep(_seconds):
+        events.append("sleep")
+
+    monkeypatch.setattr(keycloak_sync, "perform_keycloak_sync", fake_sync)
+    monkeypatch.setattr(keycloak_sync.asyncio, "sleep", fake_sleep)
+
+    await keycloak_sync._resync_keycloak_until_ready(
+        max_attempts=2, interval_seconds=30.0
+    )
+
+    # First thing that happens is a sync attempt, not a sleep.
+    assert events[0] == "sync"
+    # Two attempts, with exactly one sleep BETWEEN them (none after the last).
+    assert events == ["sync", "sleep", "sync"]
+
+
+@pytest.mark.asyncio
+async def test_resync_stops_immediately_on_first_success(monkeypatch):
+    """A first-attempt success returns without ever sleeping."""
+    events: list[str] = []
+
+    async def fake_sync(*, department_id=None):
+        events.append("sync")
+        return types.SimpleNamespace(success=True)
+
+    async def fake_sleep(_seconds):
+        events.append("sleep")
+
+    monkeypatch.setattr(keycloak_sync, "perform_keycloak_sync", fake_sync)
+    monkeypatch.setattr(keycloak_sync.asyncio, "sleep", fake_sleep)
+
+    await keycloak_sync._resync_keycloak_until_ready(
+        max_attempts=5, interval_seconds=30.0
+    )
+
+    assert events == ["sync"]
+
+
+def test_keycloak_wait_budget_is_generous():
+    """Guard the raised retry budget so KC 26 cold-boot on a loaded host can't
+    exhaust the wait before glow-client is provisioned."""
+    assert keycloak_sync.MAX_RETRIES >= 30
+    assert keycloak_sync.MAX_RETRY_DELAY >= 60.0
+
+
 @pytest.mark.asyncio
 async def test_ensure_department_client_updates_existing_client():
     admin = FakeKCAdmin()
