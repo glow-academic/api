@@ -40,3 +40,34 @@ async def test_sets_mcp_flag(conn, redis_client):
 
     assert result.mcp is True
     assert result.generated is True
+
+
+async def test_stores_sanitized_value_for_malicious_svg(conn, redis_client):
+    """A malicious icon value is sanitized before it reaches the DB."""
+    result = await create_icon(
+        conn,
+        "xss-icon",
+        "desc",
+        '<svg onload="alert(1)"><script>alert(2)</script><path d="M0 0z"/></svg>',
+        redis_client,
+    )
+
+    assert "onload" not in result.value
+    assert "<script" not in result.value
+    assert "alert" not in result.value
+    assert result.value.startswith("<svg")
+    assert "<path" in result.value
+
+
+async def test_stores_valid_svg_intact(conn, redis_client):
+    valid = '<svg viewBox="0 0 24 24"><path d="M0 0z"/></svg>'
+    result = await create_icon(conn, "valid-svg-icon", "desc", valid, redis_client)
+
+    assert result.value.startswith("<svg")
+    assert "<path" in result.value
+
+
+async def test_stores_plain_name_intact(conn, redis_client):
+    result = await create_icon(conn, "name-icon", "desc", "robot", redis_client)
+
+    assert result.value == "robot"
