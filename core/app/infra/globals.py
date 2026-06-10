@@ -7,6 +7,7 @@ stores. Every other module imports from here — never from app.main.
 
 import asyncio
 import datetime
+import functools
 import os
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -216,6 +217,87 @@ sio = socketio.AsyncServer(
         "cookie": False,
     },
 )
+
+
+# ---------------------------------------------------------------------------
+# Centralized ws-handler error containment
+# ---------------------------------------------------------------------------
+# socket.io runs every event handler as a fire-and-forget asyncio task and has
+# NO global ``on_error`` hook. The templated ws handler family
+# (create/update/delete/group/duplicate/get/refresh/...) all end in
+# ``await run_artifact_operation_with_audit(...)``, which emits
+# ``{artifact}.{op}.failed`` to the client and THEN re-raises the underlying
+# error (so HTTP routes, which share the wrapper, can turn it into an HTTP
+# error response). On the ws side nothing catches that re-raise, so every
+# failed mutation surfaces as a noisy "[ERROR] Task exception was never
+# retrieved" + full traceback in the server log — even though the client was
+# already notified via ``.failed``.
+#
+# #308 fixed this for a single handler (``attempt.chat_message``) by wrapping
+# its body in try/except-then-ack. Rather than repeat that in ~300 files, we
+# wrap registration itself: every handler attached via ``@sio.on(...)`` is
+# transparently guarded so an escaped exception is logged at WARNING and
+# swallowed (the audit wrapper's client-facing ``.failed`` emission has already
+# happened by then and is left untouched). This generalizes #308 across the
+# entire ws handler family in one place.
+#
+# ``connect``/``disconnect`` register via ``@sio.event`` (NOT ``sio.on``) and
+# are deliberately left untouched — ``connect`` relies on returning ``False``/
+# raising to reject a socket, which must keep propagating.
+
+def _guard_ws_handler(
+    event: str, handler: Callable[..., Any]
+) -> Callable[..., Any]:
+    """Wrap an async ws handler so a post-``.failed`` re-raise can't leak as an
+    unretrieved-task exception. Non-coroutine handlers are returned unchanged."""
+    if not asyncio.iscoroutinefunction(handler):
+        return handler
+
+    @functools.wraps(handler)
+    async def _guarded(*args: object, **kwargs: object) -> object | None:
+        try:
+            return await handler(*args, **kwargs)  # type: ignore[no-any-return]
+        except Exception as exc:  # noqa: BLE001 — last-resort containment
+            logger.warning(
+                "ws handler %r raised after audit emit (%s): %s — swallowed to "
+                "avoid an unretrieved-task leak",
+                event,
+                type(exc).__name__,
+                exc,
+            )
+            return None
+
+    return _guarded
+
+
+_sio_on = sio.on
+
+
+def _safe_sio_on(
+    event: str,
+    handler: Callable[..., Any] | None = None,
+    namespace: str | None = None,
+) -> Callable[..., Any]:
+    """Drop-in replacement for ``sio.on`` that guards every registered handler.
+
+    Supports both the decorator form (``@sio.on("x")``) and the direct form
+    (``sio.on("x", handler)``). The guarded handler is what gets registered AND
+    what the decorator returns, so the module-level handler name also resolves
+    to the guarded callable.
+    """
+    if handler is None:
+        def _decorator(h: Callable[..., Any]) -> Callable[..., Any]:
+            guarded = _guard_ws_handler(event, h)
+            _sio_on(event, guarded, namespace=namespace)
+            return guarded
+
+        return _decorator
+
+    guarded = _guard_ws_handler(event, handler)
+    return _sio_on(event, guarded, namespace=namespace)  # type: ignore[no-any-return]
+
+
+sio.on = _safe_sio_on  # type: ignore[method-assign]
 
 
 def get_sio_instance() -> socketio.AsyncServer:
