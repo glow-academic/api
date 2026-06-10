@@ -497,7 +497,7 @@ def compute_accolade_winners(
             marathon_runner, "time_spent_minutes", "{value:.0f} min"
         ),
         rapid_riser=_winner(
-            rapid_riser, "improvement_rate_per_day", "{value:.0f} pts/day"
+            rapid_riser, "improvement_rate_per_day", "{value:.1f} pts/day"
         ),
     )
 
@@ -597,21 +597,37 @@ def build_leaderboard_rows_v2(
         ]
         total_time_minutes = sum(time_values) / 60.0 if time_values else None
 
-        # Improvement rate: compare first half vs second half of grade_percents
+        # Improvement rate PER DAY: compare first half vs second half of grade
+        # percents to get the point delta, then divide by the elapsed day span
+        # so the metric is a true per-day rate. The field is
+        # `improvement_rate_per_day` and powers the "Rapid Riser" accolade
+        # (fastest riser). Before this fix the raw point delta was surfaced
+        # unchanged, so a student who gained 40 pts in 2 days tied one who
+        # gained 40 pts over 100 days — the time span was ignored.
         improvement_rate: float | None = None
         if len(grade_values) >= 2:
-            # Use sorted_items order (chronological) for grade values
-            chrono_grades = [
-                item.grade_percent
-                for item in sorted_items
-                if item.grade_percent is not None
+            # Chronological graded items (they carry attempt_date → day span).
+            chrono_graded = [
+                item for item in sorted_items if item.grade_percent is not None
             ]
-            if len(chrono_grades) >= 2:
+            if len(chrono_graded) >= 2:
+                chrono_grades = [item.grade_percent for item in chrono_graded]
                 mid_g = len(chrono_grades) // 2
                 first_half = chrono_grades[:mid_g]
                 second_half = chrono_grades[mid_g:]
                 if first_half and second_half:
-                    improvement_rate = mean(second_half) - mean(first_half)
+                    point_delta = mean(second_half) - mean(first_half)
+                    # Day span between first and last graded attempt. Same-day
+                    # attempts (span 0) or missing dates floor to 1 day so we
+                    # never divide by zero.
+                    first_date = chrono_graded[0].attempt_date
+                    last_date = chrono_graded[-1].attempt_date
+                    span_days = (
+                        max(1, (last_date - first_date).days)
+                        if first_date is not None and last_date is not None
+                        else 1
+                    )
+                    improvement_rate = round(point_delta / span_days, 2)
 
         perfect_score_count = sum(
             1
@@ -787,12 +803,16 @@ def build_leaderboard_rows_v2(
                 hover=f"total={_round_int(total_time_minutes) or 0} min",
             ),
             improvement_rate_per_day=_metric(
-                _round_int(improvement_rate) if improvement_rate is not None else None,
+                # True per-day rate (already rounded to 2 dp in the computation
+                # above). NOT _round_int — flooring to an int would collapse
+                # realistic fractional rates (e.g. 0.4 pts/day) back to 0 and
+                # re-introduce the very ties this metric is meant to break.
+                improvement_rate,
                 method="delta/day",
                 key_field="improvement_rate",
                 trend_data=improvement_trend,
                 data_points=improvement_points,
-                hover="based on best-grade deltas over time",
+                hover="grade-percent delta divided by elapsed days",
             ),
             perfect_score_count=_metric(
                 perfect_score_count,
