@@ -344,7 +344,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[Any]:
         try:
             from app.infra.identity.resolve_identity import _get_jwks
 
-            keys = _get_jwks()
+            # _get_jwks does a blocking `requests.get`; run it off the event
+            # loop so a slow Keycloak doesn't stall lifespan startup.
+            keys = await asyncio.to_thread(_get_jwks)
             logger.info(f"JWKS prewarm: cached {len(keys)} key(s)")
         except Exception as e:
             logger.warning(f"JWKS prewarm failed (non-blocking, lazy fetch will retry): {e}")
