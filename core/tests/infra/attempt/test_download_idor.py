@@ -118,9 +118,23 @@ class _FakePool:
         return _FakeConn()
 
 
-def _wire_owner(monkeypatch, *, upload_id: UUID, session_id: UUID, owner_profile_id: UUID):
+def _wire_owner(
+    monkeypatch,
+    *,
+    upload_id: UUID,
+    session_id: UUID,
+    owner_profile_id: UUID,
+    department_in_scope: bool = True,
+):
     """Patch the helper's late-imported owner-resolution tools so the upload
-    resolves to ``owner_profile_id`` via session."""
+    resolves to ``owner_profile_id`` via session.
+
+    Also stubs the department-scope resolver (``is_profile_in_department_scope``)
+    that the gate consults so these role-hierarchy (#148) tests stay isolated
+    from the orthogonal department dimension. ``department_in_scope`` defaults to
+    True (owner in the caller's department) — the role gate is what is under
+    test here; the department gate has its own dedicated tests below."""
+    import app.infra.dashboard.visibility as visibility
     import app.tools.entries.sessions.get as sessions_get
     import app.tools.entries.uploads.get as uploads_get
 
@@ -132,8 +146,12 @@ def _wire_owner(monkeypatch, *, upload_id: UUID, session_id: UUID, owner_profile
         assert ids == [session_id]
         return [_session_obj(session_id, owner_profile_id)]
 
+    async def fake_in_scope(pool, caller, owner_profiles_id):
+        return department_in_scope
+
     monkeypatch.setattr(uploads_get, "get_upload", fake_get_upload)
     monkeypatch.setattr(sessions_get, "get_sessions", fake_get_sessions)
+    monkeypatch.setattr(visibility, "is_profile_in_department_scope", fake_in_scope)
 
 
 def _real_disk_file(monkeypatch, module, folder_attr: str, filename: str = "owned.pdf"):
@@ -497,3 +515,126 @@ async def test_student_media_stays_gated_alongside_authored_allow(monkeypatch):
             requester=_profile(attacker_id, "member", role_level=1),
         )
     assert ei.value.status_code == 403
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Department scope — media download (mirrors dashboard/leaderboard, #152/#148)
+#
+# The owner-resolution + role gate are exercised above; here we control the
+# department-scope decision (``is_profile_in_department_scope``) directly and
+# assert the media gate THREADS it into ``check_attempt_access`` correctly. The
+# dept-overlap computation itself is unit-tested in dashboard/test_visibility.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+async def test_media_same_department_higher_role_allowed(monkeypatch):
+    """(a) SAME-dept: a higher-role (instructional) caller whose department
+    overlaps the owner's is ALLOWED."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    instructor_id, owner_id = uuid4(), uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    _wire_owner(
+        monkeypatch,
+        upload_id=upload_id,
+        session_id=session_id,
+        owner_profile_id=owner_id,
+        department_in_scope=True,
+    )
+
+    # Should NOT raise.
+    await enforce_attempt_media_access(
+        _FakePool(), object(), upload_id=upload_id,
+        requester=_profile(instructor_id, "instructional", role_level=2),
+    )
+
+
+async def test_media_cross_department_higher_role_denied(monkeypatch):
+    """(b) CROSS-dept (THE critical test): a higher-role caller who shares NO
+    department with the owner is DENIED (403) even though the role hierarchy
+    alone would have allowed it. This proves the cross-department gap is closed."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    instructor_id, owner_id = uuid4(), uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    _wire_owner(
+        monkeypatch,
+        upload_id=upload_id,
+        session_id=session_id,
+        owner_profile_id=owner_id,
+        department_in_scope=False,
+    )
+
+    with pytest.raises(HTTPException) as ei:
+        await enforce_attempt_media_access(
+            _FakePool(), object(), upload_id=upload_id,
+            requester=_profile(instructor_id, "instructional", role_level=2),
+        )
+    assert ei.value.status_code == 403
+
+
+async def test_media_self_allowed_regardless_of_department(monkeypatch):
+    """(c) SELF: the owner downloads their own media — allowed even when the
+    dept resolver would say out-of-scope (self short-circuits + the resolver is
+    never consulted for own media)."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    owner_id = uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    # department_in_scope=False proves self bypasses the dept gate entirely.
+    _wire_owner(
+        monkeypatch,
+        upload_id=upload_id,
+        session_id=session_id,
+        owner_profile_id=owner_id,
+        department_in_scope=False,
+    )
+
+    await enforce_attempt_media_access(
+        _FakePool(), object(), upload_id=upload_id,
+        requester=_profile(owner_id, "member", role_level=1),
+    )
+
+
+async def test_media_superadmin_allowed_cross_department(monkeypatch):
+    """(d) SUPER-ADMIN: global access — allowed across departments. The role
+    gate short-circuits before department even matters."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    super_id, owner_id = uuid4(), uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    _wire_owner(
+        monkeypatch,
+        upload_id=upload_id,
+        session_id=session_id,
+        owner_profile_id=owner_id,
+        department_in_scope=False,  # ignored for super-admin
+    )
+
+    await enforce_attempt_media_access(
+        _FakePool(), object(), upload_id=upload_id,
+        requester=_profile(super_id, "superadmin", role_level=0),
+    )
+
+
+async def test_media_global_owner_allowed(monkeypatch):
+    """(e) GLOBAL/roleless owner: an owner with no department restriction (the
+    dept resolver returns in-scope=True for globals/roleless) is visible to a
+    higher-role caller."""
+    from app.infra.attempt.permissions import enforce_attempt_media_access
+
+    instructor_id, owner_id = uuid4(), uuid4()
+    upload_id, session_id = uuid4(), uuid4()
+    # is_profile_in_department_scope returns True for a global/roleless owner.
+    _wire_owner(
+        monkeypatch,
+        upload_id=upload_id,
+        session_id=session_id,
+        owner_profile_id=owner_id,
+        department_in_scope=True,
+    )
+
+    await enforce_attempt_media_access(
+        _FakePool(), object(), upload_id=upload_id,
+        requester=_profile(instructor_id, "instructional", role_level=2),
+    )

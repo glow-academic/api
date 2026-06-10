@@ -33,6 +33,60 @@ async def test_role_hierarchy_ordering():
     assert ROLE_HIERARCHY["instructional"] > ROLE_HIERARCHY["member"]
 
 
+# ── Department scope on check_attempt_access (#152/#148) ─────────────────────
+# These pin that the department-overlap decision (department_in_scope), resolved
+# by the caller, is ANDed with the role hierarchy for a non-super, non-self
+# caller — and that self / super-admin are unaffected by it.
+
+
+async def test_same_department_higher_role_allowed():
+    """(a) SAME-dept: higher role + owner in department scope → allowed."""
+    assert check_attempt_access(
+        attempt_profile_id=uuid4(),
+        request_profile_id=uuid4(),
+        request_role="instructional",
+        attempt_role="member",
+        department_in_scope=True,
+    ) is True
+
+
+async def test_cross_department_higher_role_denied():
+    """(b) CROSS-dept (critical): higher role but owner OUT of department scope
+    → denied. The role hierarchy alone would have allowed; the dept gate closes
+    the cross-department gap."""
+    assert check_attempt_access(
+        attempt_profile_id=uuid4(),
+        request_profile_id=uuid4(),
+        request_role="instructional",
+        attempt_role="member",
+        department_in_scope=False,
+    ) is False
+
+
+async def test_self_allowed_regardless_of_department():
+    """(c) SELF: own attempt is allowed even when out of department scope."""
+    pid = uuid4()
+    assert check_attempt_access(
+        attempt_profile_id=pid,
+        request_profile_id=pid,
+        request_role="member",
+        attempt_role="member",
+        department_in_scope=False,
+    ) is True
+
+
+async def test_superadmin_allowed_regardless_of_department():
+    """(d) SUPER-ADMIN: global access — allowed even when out of department
+    scope (the dept gate never applies to super-admins)."""
+    assert check_attempt_access(
+        attempt_profile_id=uuid4(),
+        request_profile_id=uuid4(),
+        request_role="superadmin",
+        attempt_role="member",
+        department_in_scope=False,
+    ) is True
+
+
 def _graded_chat(*, completed: bool, score: float, total_points: float) -> ChatData:
     """Build a minimal ChatData carrying a grade (mirrors get.py attachment)."""
     return ChatData(

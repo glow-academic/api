@@ -58,6 +58,7 @@ from app.infra.attempt.types import (
     TimerData,
     VideoEntry,
 )
+from app.infra.dashboard.visibility import is_profile_in_department_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.utils.cache.cache_key import cache_key
@@ -227,11 +228,27 @@ async def get_attempt_internal(
     if attempt_item.profile_id and attempt_item.profile_id in profile_map:
         attempt_owner_role = None  # role dropped from profiles_resource
 
+    # Department scope (mirrors the dashboard/leaderboard boundary, #152/#148):
+    # a non-super, non-self caller may only read an attempt whose owner shares
+    # one of their departments (or is global/roleless). Skipped for self (the
+    # gate allows own attempts regardless of department) and resolved lazily so
+    # super-admins / self pay no extra query.
+    department_in_scope = True
+    if (
+        requester is not None
+        and attempt_item.profile_id is not None
+        and attempt_item.profile_id != profiles_id
+    ):
+        department_in_scope = await is_profile_in_department_scope(
+            pool, requester, attempt_item.profile_id
+        )
+
     if not check_attempt_access(
         attempt_item.profile_id,
         profiles_id,
         request_role=requester_role,
         attempt_role=attempt_owner_role,
+        department_in_scope=department_in_scope,
     ):
         return AttemptInternalData(
             actor_name=profile_name,
