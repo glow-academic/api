@@ -123,21 +123,26 @@ async def create_grade_impl(
         if not run_id:
             raise ValueError("Cannot determine run_id for grade — not in context and not derivable from test chain")
 
-        call = await create_call(
-            conn,
-            redis, run_id=run_id,
-            session_id=session_id,
-        )
+        # Atomic (A1): the audit call + its grade must commit together —
+        # a mid-failure must not leave an orphan calls_entry with no grade.
+        # DB-only writes (the redis write-backs are fast local cache pushes,
+        # not external/LLM calls), so a single transaction is correct here.
+        async with conn.transaction():
+            call = await create_call(
+                conn,
+                redis, run_id=run_id,
+                session_id=session_id,
+            )
 
-        # Step 6: Create grade
-        result = await create_test_grade(
-            conn,
-            redis, invocation_id=invocation_id,
-            call_id=call.id,
-            time_taken=time_taken_ms,
-            passed=passed,
-            score=score,
-        )
+            # Step 6: Create grade
+            result = await create_test_grade(
+                conn,
+                redis, invocation_id=invocation_id,
+                call_id=call.id,
+                time_taken=time_taken_ms,
+                passed=passed,
+                score=score,
+            )
 
     with timed("refresh"):
         await refresh_test_impl(

@@ -35,6 +35,22 @@ class _FakeAcquire:
         return False
 
 
+class _FakeTransaction:
+    """No-op stand-in for ``conn.transaction()`` (A1 wraps the grade write
+    in a transaction; the fake conn must honor that interface)."""
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeConn:
+    def transaction(self):
+        return _FakeTransaction()
+
+
 class _FakePool:
     def __init__(self, conn):
         self._conn = conn
@@ -81,7 +97,7 @@ async def test_create_grade_does_not_raise_on_null_pass_points(monkeypatch):
     monkeypatch.setattr(grade_mod, "refresh_test_impl", _refresh_test_impl)
     monkeypatch.setattr(grade_mod, "invalidate_tags", _invalidate_tags)
 
-    pool = _FakePool(conn=object())
+    pool = _FakePool(conn=_FakeConn())
 
     # score=5 with pass_points=None: pre-fix this raised TypeError on `None > 0`.
     result = await create_grade_impl(
