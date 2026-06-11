@@ -23,6 +23,7 @@ from app.infra.eval.permissions import (
     compute_can_delete,
     compute_can_duplicate,
     compute_can_edit,
+    has_access,
 )
 from app.infra.eval.types import (
     ListEvalApiEval,
@@ -262,6 +263,25 @@ async def _search_eval_build(
             rubric_artifact_ids_by_model_rubric[r["model_rubric_id"]] = list(
                 r["rubric_ids"] or []
             )
+
+    # ── Step 3b: Actor department-scope clamp ─────────────────────────
+    # The DETAIL sibling (``eval/get.py``) 403s when the caller lacks
+    # ``has_access`` to an eval's departments; the LIST path only used the
+    # caller's role/dept for per-row can_edit/can_delete and let the rows
+    # through, leaking cross-department evals (issue: authz-scope leak). Drop
+    # any eval the actor cannot view — mirroring ``has_access`` exactly
+    # (super-admin global, dept-less evals shared, otherwise dept overlap).
+    # Done post-hydration so the same overlap test the detail path enforces is
+    # applied to the row's actual ``department_ids``; ``total_count`` is
+    # decremented by the rows removed on this page so the count never advertises
+    # hidden evals.
+    pre_clamp_count = len(artifacts)
+    artifacts = [
+        a
+        for a in artifacts
+        if has_access(user_role_level, profile.department_ids, list(a.department_ids or []))
+    ]
+    total_count = max(0, total_count - (pre_clamp_count - len(artifacts)))
 
     # ── Step 4: Parallel hydration + facets ────────────────────────────
 

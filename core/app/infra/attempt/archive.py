@@ -26,6 +26,7 @@ from redis.asyncio import Redis
 from app.infra.activate.activate import activate_rows
 from app.infra.attempt.group import group_attempt_impl
 from app.infra.attempt.permissions import check_attempt_access
+from app.infra.dashboard.visibility import is_profile_in_department_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
@@ -152,17 +153,34 @@ async def archive_attempt_impl(
         # artifact profile_id) — exactly as ``get_attempt_internal`` does.
         requester_profiles_id = requester.profiles_id if requester else None
         requester_role = requester.role if requester else None
-        attempts = [
-            a
-            for a in attempts
-            if requester_profiles_id is not None
-            and check_attempt_access(
-                a.profile_id,
-                requester_profiles_id,
-                request_role=requester_role,
-                attempt_role=None,
-            )
-        ]
+        # Department scope (mirrors the READ path, ``get_attempt_internal``
+        # / ``enforce_attempt_media_access`` — issue #148): an instructional
+        # actor may archive a cross-role attempt ONLY when its owner shares one
+        # of their departments (or is global/roleless). Without it the write
+        # gate was strictly wider than the read gate — a Dept-A instructor
+        # could archive a Dept-B attempt they cannot even view. Resolved per
+        # attempt; self / super-admin short-circuit inside the resolver so they
+        # pay no extra query and keep self / global reach.
+        scoped_attempts = []
+        if requester is not None and requester_profiles_id is not None:
+            for a in attempts:
+                department_in_scope = True
+                if (
+                    a.profile_id is not None
+                    and a.profile_id != requester_profiles_id
+                ):
+                    department_in_scope = await is_profile_in_department_scope(
+                        pool, requester, a.profile_id
+                    )
+                if check_attempt_access(
+                    a.profile_id,
+                    requester_profiles_id,
+                    request_role=requester_role,
+                    attempt_role=None,
+                    department_in_scope=department_in_scope,
+                ):
+                    scoped_attempts.append(a)
+        attempts = scoped_attempts
         if not attempts:
             return ArchiveAttemptsResponse(
                 updated_count=0, profile_ids_to_invalidate=[], idempotency_key=call_id,

@@ -17,6 +17,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
+from app.infra.profile_identity_context import ProfileIdentityContext
 from app.infra.types import ArtifactContext, ResourcePair
 
 # Entry fetchers (raw MV reads)
@@ -61,6 +63,39 @@ async def _resolve_profile_ids(
     return [row["id"] for row in rows]
 
 
+async def _clamp_to_visible(
+    pool: asyncpg.Pool,
+    actor_profile: ProfileIdentityContext | None,
+    effective_profile_ids: list[UUID] | None,
+) -> list[UUID] | None:
+    """Clamp the requested ``profile_ids`` filter to the actor's visible set.
+
+    Mirrors the session-detail gate (``resolve_session_context`` →
+    ``resolve_visible_profile_ids``, issue #144): the org-wide session/activity
+    lists must never return another profile's sessions to a caller who could
+    not view that profile's session detail.
+
+    - When no ``actor_profile`` is supplied (internal/legacy callers), the
+      behaviour is unchanged — the filter passes through untouched.
+    - Super-admins (``role_level == 0``) resolve to the full org set, so the
+      intersection is a no-op and they keep global reach.
+    - When the caller supplies a ``profile_ids`` / department / role filter, we
+      INTERSECT it with the visible set (a Dept-A instructor asking for a
+      Dept-B profile gets an empty result, never a leak).
+    - When NO filter is supplied, we default to the actor's full VISIBLE set
+      (NOT ``None``, which the search tools treat as "all profiles").
+
+    Returns a concrete list of visible profile_ids (possibly empty). Returning
+    ``None`` is reserved for the no-actor passthrough path only.
+    """
+    if actor_profile is None:
+        return effective_profile_ids
+    visible = set(await resolve_visible_profile_ids(pool, actor_profile))
+    if effective_profile_ids is None:
+        return list(visible)
+    return [pid for pid in effective_profile_ids if pid in visible]
+
+
 async def resolve_activity_context(
     pool: asyncpg.Pool,
     redis: Redis,
@@ -68,6 +103,7 @@ async def resolve_activity_context(
     department_ids: list[UUID] | None = None,
     role_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    actor_profile: ProfileIdentityContext | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     bypass_cache: bool = False,
@@ -83,8 +119,12 @@ async def resolve_activity_context(
     # Step 1: Resolve department/role filters to profile_ids
     filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
 
-    # Merge with direct profile_ids filter
-    effective_profile_ids = profile_ids or filter_profile_ids
+    # Merge with direct profile_ids filter, then CLAMP to the actor's visible
+    # set so an empty/cross-scope filter cannot leak org-wide sessions (the
+    # session-detail sibling gates the same way — issue #144).
+    effective_profile_ids = await _clamp_to_visible(
+        pool, actor_profile, profile_ids or filter_profile_ids
+    )
 
     # Step 2: Parallel fetch all entry grains
     async def _fetch_sessions() -> list:
@@ -208,6 +248,7 @@ async def resolve_activity_search_context(
     department_ids: list[UUID] | None = None,
     role_ids: list[UUID] | None = None,
     profile_ids: list[UUID] | None = None,
+    actor_profile: ProfileIdentityContext | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     active: bool | None = None,
@@ -228,9 +269,13 @@ async def resolve_activity_search_context(
       - profiles (display name lookup keyed on profile_id),
         pricing (cost computation)
     """
-    # Step 1: Resolve department/role filters
+    # Step 1: Resolve department/role filters, then CLAMP to the actor's
+    # visible set (mirrors the session-detail gate, issue #144) so an
+    # empty/cross-scope filter cannot leak org-wide sessions.
     filter_profile_ids = await _resolve_profile_ids(pool, department_ids, role_ids)
-    effective_profile_ids = profile_ids or filter_profile_ids
+    effective_profile_ids = await _clamp_to_visible(
+        pool, actor_profile, profile_ids or filter_profile_ids
+    )
 
     page_offset = page * page_size
 

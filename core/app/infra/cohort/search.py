@@ -25,6 +25,7 @@ from app.infra.cohort.permissions import (
     compute_can_duplicate,
     compute_can_edit,
     compute_can_leave,
+    has_access,
 )
 from app.infra.cohort.types import (
     ListCohortApiCohort,
@@ -246,6 +247,25 @@ async def _search_cohort_build(
             simulations=True,
             active=None,
         )
+
+    # -- Step 4b: Actor department-scope clamp --
+    # The DETAIL sibling (``cohort/get.py``) 403s when the caller lacks
+    # ``has_access`` to a cohort's departments; the LIST path only used the
+    # caller's role/dept for per-row can_edit/can_delete and let the rows
+    # through — leaking cross-department cohorts AND their member roster
+    # ``profile_ids`` (collected from these artifacts below). Drop any cohort
+    # the actor cannot view — mirroring ``has_access`` exactly (super-admin
+    # global, dept-less cohorts shared, otherwise dept overlap). Done before
+    # the roster/profile/department IDs are collected so hidden cohorts'
+    # members are never hydrated or returned; ``total_count`` is decremented
+    # by the rows removed on this page.
+    pre_clamp_count = len(artifacts)
+    artifacts = [
+        a
+        for a in artifacts
+        if has_access(user_role_level, user_department_ids, list(a.department_ids or []))
+    ]
+    total_count = max(0, total_count - (pre_clamp_count - len(artifacts)))
 
     # -- Step 5: Parallel hydration + facets --
 
