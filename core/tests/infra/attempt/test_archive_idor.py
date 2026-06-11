@@ -101,11 +101,17 @@ class _FakePool:
         return _FakeConn()
 
 
-def _wire(monkeypatch, *, actor, victim_attempt):
+def _wire(monkeypatch, *, actor, victim_attempt, department_in_scope=True):
     """Patch the impl's composed tools. ``search_attempts`` always returns the
     victim's attempt (simulating the attacker supplying its id); the real
     ``check_attempt_access`` then decides whether it gets archived. Records the
-    attempt_ids actually handed to ``create_attempt_archive``."""
+    attempt_ids actually handed to ``create_attempt_archive``.
+
+    ``department_in_scope`` controls the stubbed
+    ``is_profile_in_department_scope`` result (deps-as-params): the archive
+    write gate now mirrors the READ path's department boundary (#148), so a
+    higher-role actor only archives a cross-role attempt whose owner shares one
+    of their departments. The real ``check_attempt_access`` consumes it."""
     import app.infra.attempt.archive as mod
     import app.infra.profile_identity_context as pic_mod
     from app.infra.attempt.group import GroupAttemptApiResponse
@@ -126,6 +132,9 @@ def _wire(monkeypatch, *, actor, victim_attempt):
         archived_ids.append(attempt_id)
         return CreateAttemptArchiveResponse(id=uuid4())
 
+    async def fake_dept_scope(pool, caller, owner_profiles_id, *a, **k):
+        return department_in_scope
+
     # Patch at the source module so the stub applies whether or not the impl
     # has (re)imported the name — this lets the *blocks* test demonstrate the
     # real BOLA pre-fix (victim's attempt archived) rather than an import error.
@@ -138,6 +147,7 @@ def _wire(monkeypatch, *, actor, victim_attempt):
     monkeypatch.setattr(mod, "search_attempts", fake_search_attempts)
     monkeypatch.setattr(mod, "group_attempt_impl", fake_group)
     monkeypatch.setattr(mod, "create_attempt_archive", fake_create_archive)
+    monkeypatch.setattr(mod, "is_profile_in_department_scope", fake_dept_scope)
     return archived_ids
 
 
@@ -191,14 +201,55 @@ async def test_archive_allows_owner(monkeypatch):
 
 
 async def test_archive_allows_higher_role(monkeypatch):
-    """A strictly-higher role (instructional) archives a student's attempt."""
+    """A strictly-higher role (instructional) archives a SAME-DEPARTMENT
+    student's attempt (owner in the actor's department scope)."""
     instructor_id, owner_id = uuid4(), uuid4()
     victim = _attempt(uuid4(), owner_id)
 
     actor = _profile(instructor_id, "instructional", role_level=2)
-    archived_ids = _wire(monkeypatch, actor=actor, victim_attempt=victim)
+    archived_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=True
+    )
 
     result = await _run(actor_profile_id=instructor_id, victim_attempt=victim)
+
+    assert result.updated_count == 1
+    assert archived_ids == [victim.attempt_id]
+
+
+async def test_archive_blocks_higher_role_cross_department(monkeypatch):
+    """A strictly-higher role whose owner is OUTSIDE its department scope
+    archives 0 rows — the write gate now matches the read gate (#148).
+
+    Pre-fix the write path omitted ``department_in_scope`` (defaulted True), so
+    a Dept-A instructor could archive a Dept-B attempt it cannot even read."""
+    instructor_id, owner_id = uuid4(), uuid4()
+    victim = _attempt(uuid4(), owner_id)
+
+    actor = _profile(instructor_id, "instructional", role_level=2)
+    archived_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=False
+    )
+
+    result = await _run(actor_profile_id=instructor_id, victim_attempt=victim)
+
+    assert result.updated_count == 0
+    assert archived_ids == []
+
+
+async def test_archive_allows_superadmin_global(monkeypatch):
+    """A super-admin archives any attempt regardless of department (global)."""
+    super_id, owner_id = uuid4(), uuid4()
+    victim = _attempt(uuid4(), owner_id)
+
+    actor = _profile(super_id, "superadmin", role_level=0)
+    # Even with department_in_scope=False, the super-admin path inside
+    # check_attempt_access short-circuits to allowed.
+    archived_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=False
+    )
+
+    result = await _run(actor_profile_id=super_id, victim_attempt=victim)
 
     assert result.updated_count == 1
     assert archived_ids == [victim.attempt_id]

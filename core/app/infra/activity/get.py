@@ -135,6 +135,7 @@ async def get_activity_impl_cached(
             redis,
             department_ids=request.department_ids or None,
             role_ids=request.role_ids or None,
+            actor_profile=common.profile,
             date_from=request.date_from,
             date_to=request.date_to,
             bypass_cache=bypass_cache,

@@ -96,6 +96,7 @@ async def _run_search(pool, redis, profile_id, request: ListActivityRequest):
         redis,
         department_ids=request.department_ids or None,
         role_ids=request.role_ids or None,
+        actor_profile=common.profile,
         date_from=request.date_from,
         date_to=request.date_to,
         active=request.active,
