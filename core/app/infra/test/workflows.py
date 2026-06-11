@@ -207,20 +207,25 @@ async def test_grade_complete_impl(
     passed = _extract_grade_passed(tool_results)
     feedback = _extract_grade_feedback(tool_results)
 
+    input_tokens = data.get("input_text_tokens", data.get("input_tokens", 0))
+    output_tokens = data.get("output_text_tokens", data.get("output_tokens", 0))
+
+    # SW1 (no-swallow): the usage/billing token write is load-bearing — a
+    # failure here must SURFACE (re-raise), not be silently swallowed into a
+    # fake "grade complete". Mirrors the E1 run_complete turn-drop fix. The
+    # post-commit score-delivery emit below stays best-effort (a missed UX
+    # emit must not undo or mask the persisted token/grade).
+    if run_id and session_id:
+        async with pool.acquire() as conn:
+            await create_token(
+                conn, redis,
+                run_id=uuid.UUID(run_id),
+                session_id=uuid.UUID(session_id),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+            )
+
     try:
-        input_tokens = data.get("input_text_tokens", data.get("input_tokens", 0))
-        output_tokens = data.get("output_text_tokens", data.get("output_tokens", 0))
-
-        if run_id and session_id:
-            async with pool.acquire() as conn:
-                await create_token(
-                    conn, redis,
-                    run_id=uuid.UUID(run_id),
-                    session_id=uuid.UUID(session_id),
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                )
-
         invocation_id_str = str(invocation_id) if invocation_id else ""
         rooms = (
             [data.get("sid"), f"test_{invocation_id_str}"]
@@ -250,7 +255,7 @@ async def test_grade_complete_impl(
             f"grade_id={grade_id}, score={score}, passed={passed}, profile_id={profile_id}"
         )
     except Exception as e:
-        logger.exception(f"Failed to handle test grade completion: {e}")
+        logger.exception(f"Failed to emit test grade progress: {e}")
 
 
 
@@ -569,32 +574,38 @@ async def test_start_impl(
                 benchmark_id = benchmarks[0].benchmark_id
                 is_dynamic = benchmarks[0].dynamic
 
-            run_id = (
-                await create_run(
+            # Atomic (A3): run + call + test + benchmark-junction must commit
+            # together — a failure after create_test must not leave an orphan
+            # test_entry unlinked from its benchmark. Analogue of the txn'd
+            # attempt_start_impl. DB-only writes (redis write-backs are local
+            # cache pushes), so a single transaction is correct.
+            async with conn.transaction():
+                run_id = (
+                    await create_run(
+                        conn, redis,
+                        group_id=group_id,
+                        session_id=session_id,
+                    )
+                ).id
+                call_id = (await create_call(conn, redis, run_id=run_id, session_id=session_id)).id
+                result = await create_test(
                     conn, redis,
-                    group_id=group_id,
-                    session_id=session_id,
-                )
-            ).id
-            call_id = (await create_call(conn, redis, run_id=run_id, session_id=session_id)).id
-            result = await create_test(
-                conn, redis,
-                call_id=call_id,
-                profiles_id=profiles_id,
-                infinite_mode=infinite_mode,
-                is_dynamic=is_dynamic,
-                soft=soft,
-            )
-            test_id = result.id
-
-            if benchmark_id is not None:
-                await create_benchmark_test(
-                    conn, redis,
-                    benchmark_id=benchmark_id,
-                    test_id=test_id,
-                    session_id=session_id,
+                    call_id=call_id,
+                    profiles_id=profiles_id,
+                    infinite_mode=infinite_mode,
+                    is_dynamic=is_dynamic,
                     soft=soft,
                 )
+                test_id = result.id
+
+                if benchmark_id is not None:
+                    await create_benchmark_test(
+                        conn, redis,
+                        benchmark_id=benchmark_id,
+                        test_id=test_id,
+                        session_id=session_id,
+                        soft=soft,
+                    )
 
             # No pre-seeding of test_invocation_entry rows. Mirrors
             # attempt_start_impl: the test owns the wrapper; the client

@@ -220,25 +220,31 @@ async def create_invocation_impl(
         position = request.position if request.position is not None else tmpl_position
         use_custom = request.use_custom or tmpl_use_custom
 
-        run = await create_run(conn, redis, group_id=group_id, session_id=group_session_id)
-        call = await create_call(conn, redis, run_id=run.id, session_id=group_session_id)
+        # Atomic (A2): run + call + invocation (which itself inserts up to 8
+        # junction tables) must all commit together — a bad FK mid-bundle must
+        # not materialize an invocation with partial junctions + orphan run/call.
+        # Mirrors chat_create's txn. All writes are DB-only (redis write-backs
+        # are local cache pushes), so a single transaction is correct.
+        async with conn.transaction():
+            run = await create_run(conn, redis, group_id=group_id, session_id=group_session_id)
+            call = await create_call(conn, redis, run_id=run.id, session_id=group_session_id)
 
-        result = await create_test_invocation(
-            conn,
-            redis, test_id=request.test_id,
-            call_id=call.id,
-            title=request.title,
-            use_custom=use_custom,
-            position=position,
-            agent_ids=agent_ids,
-            rubric_ids=rubric_ids,
-            quality_ids=quality_ids,
-            department_ids=department_ids,
-            voice_ids=voice_ids,
-            reasoning_level_ids=reasoning_level_ids,
-            temperature_level_ids=temperature_level_ids,
-            modality_ids=modality_ids,
-        )
+            result = await create_test_invocation(
+                conn,
+                redis, test_id=request.test_id,
+                call_id=call.id,
+                title=request.title,
+                use_custom=use_custom,
+                position=position,
+                agent_ids=agent_ids,
+                rubric_ids=rubric_ids,
+                quality_ids=quality_ids,
+                department_ids=department_ids,
+                voice_ids=voice_ids,
+                reasoning_level_ids=reasoning_level_ids,
+                temperature_level_ids=temperature_level_ids,
+                modality_ids=modality_ids,
+            )
 
     with timed("refresh"):
         await refresh_invocation_impl(

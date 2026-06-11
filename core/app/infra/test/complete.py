@@ -67,25 +67,33 @@ async def _mark_all_invocations_complete(
         conn, redis, test_ids=[test_id], limit=1000,
     )
 
+    from app.tools.entries.groups.get import get_groups
+
+    # Atomic (A4): the bulk completion of all N invocations must be
+    # all-or-nothing — each invocation mints run+call+completion (3 writes), and
+    # a failure on the k-th invocation must not leave 1..k-1 committed-complete
+    # with the k-th half-built (orphan run/call, no completion). All writes are
+    # DB-only (redis write-backs are local cache pushes, not external/LLM calls),
+    # so a single transaction around the loop is correct.
     completion_ids: list[UUID] = []
-    for inv in invs:
-        if inv.invocation_completed:
-            continue
-        if inv.group_id is None:
-            continue
-        # Need a call_id for the completion record. Mint a fresh run+call
-        # in the invocation's group, like the legacy proceed path did.
-        from app.tools.entries.groups.get import get_groups
-        groups = await get_groups(conn, [inv.group_id], redis)
-        if not groups or groups[0].session_id is None:
-            continue
-        session_id = groups[0].session_id
-        run = await create_run(conn, redis, group_id=inv.group_id, session_id=session_id)
-        call = await create_call(conn, redis, run_id=run.id, session_id=session_id)
-        completion = await create_test_invocation_completion(
-            conn, redis, invocation_id=inv.invocation_id, call_id=call.id, soft=soft,
-        )
-        completion_ids.append(completion.id)
+    async with conn.transaction():
+        for inv in invs:
+            if inv.invocation_completed:
+                continue
+            if inv.group_id is None:
+                continue
+            # Need a call_id for the completion record. Mint a fresh run+call
+            # in the invocation's group, like the legacy proceed path did.
+            groups = await get_groups(conn, [inv.group_id], redis)
+            if not groups or groups[0].session_id is None:
+                continue
+            session_id = groups[0].session_id
+            run = await create_run(conn, redis, group_id=inv.group_id, session_id=session_id)
+            call = await create_call(conn, redis, run_id=run.id, session_id=session_id)
+            completion = await create_test_invocation_completion(
+                conn, redis, invocation_id=inv.invocation_id, call_id=call.id, soft=soft,
+            )
+            completion_ids.append(completion.id)
 
     return len(completion_ids), completion_ids
 

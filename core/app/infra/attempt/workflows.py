@@ -917,17 +917,22 @@ async def attempt_proceed_impl(
                     limit=1000,
                 )
 
+                # SW2 (no-swallow): each per-scenario completion write is
+                # load-bearing for the all_scenarios_complete claim below.
+                # create_attempt_chat_completion is idempotent (ON CONFLICT DO
+                # UPDATE — never raises on a duplicate), so the only thing a
+                # swallow here hides is a REAL DB/connection failure. Letting it
+                # propagate to the outer handler (which emits attempt.proceed.error)
+                # means we never falsely emit all_scenarios_complete=True when a
+                # scenario completion failed to persist.
                 for bridge in bridges:
                     bridge_chat_id = bridge.attempt_chat_id
                     if bridge_chat_id:
-                        try:
-                            await create_attempt_chat_completion(
-                                conn, redis,
-                                chat_id=bridge_chat_id,
-                                session_id=session_id_uuid,
-                            )
-                        except Exception:
-                            pass
+                        await create_attempt_chat_completion(
+                            conn, redis,
+                            chat_id=bridge_chat_id,
+                            session_id=session_id_uuid,
+                        )
 
                 await refresh_attempt_impl(
                     pool, redis,
