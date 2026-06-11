@@ -85,13 +85,19 @@ async def execute_artifact_search(
 
     where = " AND ".join(conditions) if conditions else "true"
 
+    # Deterministic pagination (P2): every caller's ``order_expr`` (e.g.
+    # ``MIN(nr_sort.name) NULLS LAST``, or the default ``a.created_at DESC``)
+    # is non-unique — tied/NULL sort keys order arbitrarily, so the same row can
+    # appear on two pages or be skipped entirely under LIMIT/OFFSET paging.
+    # Append ``a.id`` (the GROUP BY key, a non-NULL PK, always in scope) as a
+    # unique tiebreaker so the total order is stable across page requests.
     query = f"""
         SELECT a.id, COUNT(*) OVER() AS total_count
         FROM {table} a
         {order_join or ""}
         WHERE {where}
         GROUP BY a.id
-        ORDER BY {order_expr}
+        ORDER BY {order_expr}, a.id
         LIMIT ${idx} OFFSET ${idx + 1}
     """
     params.extend([limit_count, offset_count])

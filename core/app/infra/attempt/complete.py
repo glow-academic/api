@@ -27,6 +27,7 @@ from app.tools.entries.attempt.search import search_attempts
 from app.tools.entries.attempt_completion.create import create_attempt_completion
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.resolve import resolve_soft_call
 
 ARTIFACT = "attempt"
 OPERATION = "complete"
@@ -59,18 +60,39 @@ async def complete_attempt_impl(
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(status_code=404, detail="No pending completion for this call.")
         ids = entry.patch or {}
+        # ── Atomic ack (A3/A4) ────────────────────────────────────────────
+        # One transaction: the conditional terminal-state transition
+        # (resolve_soft_call) + the activate side effect commit together. A
+        # concurrent double-ack loses the race → resolve returns None → we
+        # SKIP activate (no double side effect). A crash before commit rolls
+        # back BOTH the activate and the ledger row (never a half-state where
+        # rows are active but the ledger still says "pending"). The MV refresh
+        # runs only AFTER this commit, so it never snapshots before the ledger
+        # row it describes.
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                resolved = await resolve_soft_call(
+                    conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
+                    operation=OPERATION, artifact_id=entry.artifact_id,
+                    accept=accept,
+                )
+                if resolved is None:
+                    # Already resolved by a concurrent ack — no double side effect.
+                    return {
+                        "success": True,
+                        "completion_id": str(ids.get("completion_id", "")),
+                        "attempt_id": str(ids.get("attempt_id", "")),
+                        "idempotency_key": idempotency_key,
+                    }
+                if accept:
+                    await activate_rows(
+                        conn, table="attempt_completion_entry",
+                        ids=[UUID(ids["completion_id"])],
+                    )
         if accept:
-            async with pool.acquire() as conn:
-                await activate_rows(conn, table="attempt_completion_entry", ids=[UUID(ids["completion_id"])])
             await refresh_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
                 targets=["attempt_completion_mv", "attempt_mv"],
-            )
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
-                operation=OPERATION, artifact_id=entry.artifact_id,
-                status="accepted" if accept else "rejected",
             )
         return {
             "success": True,

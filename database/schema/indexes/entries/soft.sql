@@ -17,3 +17,11 @@ CREATE INDEX idx_soft_calls_entry_target_lookup ON public.soft_calls_entry USING
 
 
 --
+
+-- Name: soft_calls_entry_terminal_call_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX soft_calls_entry_terminal_call_uidx ON public.soft_calls_entry USING btree (call_id) WHERE (status <> 'pending'::text);
+
+
+--
