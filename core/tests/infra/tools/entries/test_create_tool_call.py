@@ -163,6 +163,35 @@ async def test_with_tool_json_has_correct_shape(pool, redis_client, tmp_path):
     assert data["tool_id"] == str(tool.id)
 
 
+async def test_secret_key_redacted_from_receipts(pool, redis_client, tmp_path):
+    """SEC2: a plaintext provider key in arguments must NOT reach the
+    downloadable .json receipt or .txt upload — it is masked."""
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
+
+    secret = "sk-PLAINTEXT-SECRET-do-not-persist"
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_success_tool,
+        arguments={"providers": [{"name": "OpenAI", "key": secret}]},
+        tool_id=tool.id,
+    )
+    await wait_for_pending()
+
+    json_file = list((tmp_path / "call").glob("*.json"))[0]
+    json_text = json_file.read_text()
+    assert secret not in json_text  # plaintext key never persisted
+    data = json.loads(json_text)
+    assert data["arguments"]["providers"][0]["key"] == "***REDACTED***"
+    # Non-secret fields still present for audit usefulness.
+    assert data["arguments"]["providers"][0]["name"] == "OpenAI"
+
+    # And the .txt receipt likewise carries no plaintext secret.
+    txt_file = list((tmp_path / "text").glob("*.txt"))[0]
+    assert secret not in txt_file.read_text()
+
+
 async def test_with_tool_txt_has_output(pool, redis_client, tmp_path):
     profile, session, group, tool = await _committed_deps(
         pool, redis_client, with_tool=True
