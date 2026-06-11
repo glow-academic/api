@@ -230,7 +230,9 @@ async def create_eval_impl(
             )
 
         with timed("benchmark_sync"):
-         for resource_id, item in sync_items:
+         # ``sync_items`` and ``results`` are both built in ``items`` order,
+         # so index i aligns the sync target with its result row.
+         for idx, (resource_id, item) in enumerate(sync_items):
             try:
                 from app.infra.benchmark.sync import sync_benchmark_entries
 
@@ -245,7 +247,27 @@ async def create_eval_impl(
                     flag_ids=item.flag_ids or [],
                 )
             except Exception as sync_err:
-                logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
+                # The eval itself committed earlier, so we don't 500 the whole
+                # create — but a benchmark-sync failure is NOT "non-fatal", it
+                # leaves the eval with no benchmark scaffold. sync is now atomic
+                # (no half-built scaffold to clean up) and idempotent (a later
+                # /eval/update re-runs it safely), so the recovery path is a
+                # retry, not silence. Log at ERROR with the traceback and
+                # surface it on the affected eval's result item so the caller
+                # sees a real signal instead of a pristine 200.
+                logger.error(
+                    "sync_benchmark_entries failed for eval snapshot %s — "
+                    "benchmark scaffold not created; retryable on next "
+                    "/eval/update",
+                    resource_id,
+                    exc_info=True,
+                )
+                if idx < len(results):
+                    results[idx].message = (
+                        f"{results[idx].message} (warning: benchmark "
+                        f"scaffolding failed and was not created — will retry "
+                        f"on next update: {sync_err})"
+                    )
 
     # ── Hydrate full row content for the client ───────────────────────
     # See ``hydrate_eval_list_rows``: returns the same shape ``/eval/search``

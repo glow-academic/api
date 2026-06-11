@@ -1,7 +1,13 @@
 """Eval benchmark entry sync — pre-create benchmark + invocation entries on eval save.
 
-Insert-only. No reads from _entry tables. No deactivation of old entries.
-Uses black-box entry creation tools instead of raw SQL.
+Atomic + idempotent: the whole scaffold (benchmark + every invocation) is
+written in ONE transaction (all-or-nothing), and a re-run for the same eval
+first deactivates that eval's prior generated benchmark rows + their
+invocations before re-creating, so ``/eval/update`` calling this on every save
+REPLACES the scaffold instead of appending duplicates. The clear is scoped to
+the single eval via ``benchmark_evals_connection``; other evals are untouched.
+Uses black-box entry creation tools for the writes; the scoped deactivation is
+a single guarded SQL statement.
 """
 
 import asyncio
@@ -145,44 +151,97 @@ async def sync_benchmark_entries(
             )
 
     # ── Pass 3: Create entries using black-box tools ──
-
-    # Create benchmark entry
-    async with pool.acquire() as conn:
-        benchmark = await create_benchmark(
-            conn, redis,
-            evals_ids=[evals_resource_id],
-            departments_ids=department_ids or [],
-            use_groups=use_groups,
-            dynamic=is_dynamic,
-        )
-
+    #
+    # All writes for this eval's benchmark scaffold run in ONE transaction so
+    # the whole thing is all-or-nothing: if invocation N fails we must not be
+    # left with a benchmark + 1..N-1 invocations committed (a silently broken
+    # half-scaffold). The nested ``create_*`` impls open their own
+    # ``conn.transaction()`` which asyncpg composes as SAVEPOINTs under this
+    # outer one, so they nest correctly.
+    #
+    # The sync is also IDEMPOTENT: ``/eval/update`` re-runs it on every save,
+    # and ``create_benchmark`` is a plain INSERT, so without a clear step each
+    # re-run appended a fresh full benchmark+invocation set → duplicates. We
+    # deactivate THIS eval's prior generated benchmark rows (and their
+    # invocations) first, scoped via ``benchmark_evals_connection`` so other
+    # evals' benchmarks are untouched. Reads gate on ``active = true``
+    # (benchmark_mv), so deactivation removes the stale scaffold from every
+    # consumer; we then create the fresh set inside the same transaction. A
+    # retry is therefore safe — it replaces, never appends.
     entry_count = 0
-
-    # Create invocation entry per model
-    for model_id in model_ids:
-        # Get position value (last position for this model, or 0)
-        position = 0
-        position_resource_ids: list[UUID] = []
-        for pos_id, pos_val in positions_by_model.get(model_id, []):
-            position_resource_ids.append(pos_id)
-            position = pos_val
-
-        rubric_resource_ids = rubrics_by_model.get(model_id, [])
-        flag_resource_ids = flags_by_model.get(model_id, [])
-        model_flag_bools = flag_bools_by_model.get(model_id, {})
-
-        async with pool.acquire() as conn:
-            await create_invocation(
-                conn, redis,
-                benchmark_id=benchmark.id,
-                use_custom=model_flag_bools.get("use_custom", False),
-                position=position,
-                model_ids=[model_id],
-                model_flag_ids=flag_resource_ids,
-                model_rubric_ids=rubric_resource_ids,
-                model_position_ids=position_resource_ids,
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Idempotency clear: soft-delete prior generated benchmarks for
+            # THIS eval and the invocations hanging off them. Scoped to the
+            # single eval via the evals connection; ``generated = true`` keeps
+            # us off any hand-authored benchmark that happens to link this
+            # eval. Deactivating the parent connection row + the benchmark row
+            # + child invocations is enough to drop them from benchmark_mv.
+            await conn.execute(
+                """
+                WITH prior AS (
+                    SELECT be.id
+                    FROM benchmark_entry be
+                    JOIN benchmark_evals_connection bec
+                      ON bec.benchmark_id = be.id AND bec.active = true
+                    WHERE bec.evals_id = $1
+                      AND be.active = true
+                      AND be.generated = true
+                ),
+                deact_inv AS (
+                    UPDATE invocation_entry ie
+                    SET active = false
+                    WHERE ie.benchmark_id IN (SELECT id FROM prior)
+                      AND ie.active = true
+                    RETURNING 1
+                ),
+                deact_conn AS (
+                    UPDATE benchmark_evals_connection bec
+                    SET active = false
+                    WHERE bec.benchmark_id IN (SELECT id FROM prior)
+                      AND bec.active = true
+                    RETURNING 1
+                )
+                UPDATE benchmark_entry be
+                SET active = false
+                WHERE be.id IN (SELECT id FROM prior)
+                """,
+                evals_resource_id,
             )
 
-        entry_count += 1
+            # Create the fresh benchmark entry.
+            benchmark = await create_benchmark(
+                conn, redis,
+                evals_ids=[evals_resource_id],
+                departments_ids=department_ids or [],
+                use_groups=use_groups,
+                dynamic=is_dynamic,
+            )
+
+            # Create one invocation entry per model.
+            for model_id in model_ids:
+                # Get position value (last position for this model, or 0)
+                position = 0
+                position_resource_ids: list[UUID] = []
+                for pos_id, pos_val in positions_by_model.get(model_id, []):
+                    position_resource_ids.append(pos_id)
+                    position = pos_val
+
+                rubric_resource_ids = rubrics_by_model.get(model_id, [])
+                flag_resource_ids = flags_by_model.get(model_id, [])
+                model_flag_bools = flag_bools_by_model.get(model_id, {})
+
+                await create_invocation(
+                    conn, redis,
+                    benchmark_id=benchmark.id,
+                    use_custom=model_flag_bools.get("use_custom", False),
+                    position=position,
+                    model_ids=[model_id],
+                    model_flag_ids=flag_resource_ids,
+                    model_rubric_ids=rubric_resource_ids,
+                    model_position_ids=position_resource_ids,
+                )
+
+                entry_count += 1
 
     return entry_count

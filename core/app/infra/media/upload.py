@@ -22,6 +22,7 @@ from __future__ import annotations
 import os
 import uuid as _uuid
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 import asyncpg
@@ -171,153 +172,82 @@ async def media_upload_impl(
         )
     resource_description = description
 
+    # Files written to disk during this call. The DB write chain below runs
+    # inside ``conn.transaction()`` so a mid-chain failure rolls back every
+    # committed sub-row; but asyncpg can't undo filesystem writes. We track
+    # each path we wrote and ``unlink`` them all if the transaction raises,
+    # so a rolled-back upload never leaves an orphaned blob whose row no
+    # longer exists. The blob is written to its FINAL path (not a temp +
+    # move) so the committed ``uploads_entry.file_path`` matches the file the
+    # download path reads — there is no rename window to get wrong. The
+    # narrow inverse risk (commit succeeds, then the process dies before this
+    # function returns) cannot orphan a file because the row is already
+    # committed pointing at it; only the failure path unlinks.
+    _written_files: list[Path] = []
+
     async with pool.acquire() as conn:
-        if upload_id is None:
-            assert file_bytes is not None
-            upload_uuid = _uuid.uuid4()
-            _, ext = os.path.splitext(filename)
-            if not ext:
-                ext = ".bin"
-            relative_path = f"{modality}/{upload_uuid}{ext}"
-            full_path = folder / f"{upload_uuid}{ext}"
-            folder.mkdir(parents=True, exist_ok=True)
-            with open(full_path, "wb") as f:
-                f.write(file_bytes)
-            file_size = len(file_bytes)
-            mime_type = content_type or "application/octet-stream"
-            upload_row = await create_upload(
-                conn,
-                redis, session_id=session_id,
-                file_path=relative_path,
-                mime_type=mime_type,
-                size=file_size,
-                soft=soft,
-            )
-            upload_id = upload_row.id
-        else:
-            existing = await get_upload(conn, upload_id, redis)
-            if existing is None:
-                raise ValueError(f"Upload {upload_id} not found")
-            relative_path = existing.file_path
-            mime_type = existing.mime_type
-            file_size = existing.size
+        try:
+            async with conn.transaction():
+                if upload_id is None:
+                    assert file_bytes is not None
+                    upload_uuid = _uuid.uuid4()
+                    _, ext = os.path.splitext(filename)
+                    if not ext:
+                        ext = ".bin"
+                    relative_path = f"{modality}/{upload_uuid}{ext}"
+                    full_path = folder / f"{upload_uuid}{ext}"
+                    folder.mkdir(parents=True, exist_ok=True)
+                    with open(full_path, "wb") as f:
+                        f.write(file_bytes)
+                    _written_files.append(full_path)
+                    file_size = len(file_bytes)
+                    mime_type = content_type or "application/octet-stream"
+                    upload_row = await create_upload(
+                        conn,
+                        redis, session_id=session_id,
+                        file_path=relative_path,
+                        mime_type=mime_type,
+                        size=file_size,
+                        soft=soft,
+                    )
+                    upload_id = upload_row.id
+                else:
+                    existing = await get_upload(conn, upload_id, redis)
+                    if existing is None:
+                        raise ValueError(f"Upload {upload_id} not found")
+                    relative_path = existing.file_path
+                    mime_type = existing.mime_type
+                    file_size = existing.size
 
-        if modality == "audio":
-            resource = await create_audio_resource(
-                conn,
-                name=resource_name,
-                description=resource_description,
-                redis=redis,
-                soft=soft,
-            )
-            entry = await create_audio(
-                conn,
-                redis, session_id=session_id,
-                audios_id=resource.id,
-                length_seconds=length_seconds,
-                soft=soft,
-            )
-            junction = await create_audio_upload(
-                conn,
-                redis, audio_id=entry.id,
-                upload_id=upload_id,
-                session_id=session_id,
-                soft=soft,
-            )
-        elif modality == "image":
-            resource = await create_image_resource(
-                conn,
-                name=resource_name,
-                description=resource_description,
-                redis=redis,
-                soft=soft,
-            )
-            entry = await create_image(
-                conn,
-                redis, session_id=session_id,
-                images_id=resource.id,
-                soft=soft,
-            )
-            junction = await create_image_upload(
-                conn,
-                redis, image_id=entry.id,
-                upload_id=upload_id,
-                session_id=session_id,
-                soft=soft,
-            )
-        else:
-            resource = await create_video_resource(
-                conn,
-                name=resource_name,
-                description=resource_description,
-                redis=redis,
-                soft=soft,
-            )
-            entry = await create_video(
-                conn,
-                redis, session_id=session_id,
-                videos_id=resource.id,
-                length_seconds=length_seconds,
-                soft=soft,
-            )
-            junction = await create_video_upload(
-                conn,
-                redis, video_id=entry.id,
-                upload_id=upload_id,
-                session_id=session_id,
-                soft=soft,
-            )
-
-        # Initialize before the conditional so the return-shape path
-        # always has a value, even when no message gets created (manual
-        # upload, no run_id).
-        attributed_message_id: UUID | None = None
-
-        # ── Optional: wire the run_id → message → upload junction so
-        # downstream "what did this run produce" queries can walk the
-        # canonical messages_entry / message_uploads_entry path. Same
-        # shape as create_tool_call's audit-side write; mutually
-        # exclusive with that path (only ONE writer per upload).
-        if run_id is not None and attribute_to_run:
-            summary = (
-                f"Generated {modality} resource: {resource_name}"
-                if not resource_description
-                else f"Generated {modality}: {resource_description}"
-            )
-            text_upload_uuid = _uuid.uuid4()
-            text_rel_path = save_text_upload(
-                summary, text_upload_uuid, UPLOAD_FOLDER,
-            )
-            text_size = (UPLOAD_FOLDER / text_rel_path).stat().st_size
-            text_upload = await create_upload(
-                conn,
-                redis, session_id=session_id,
-                file_path=text_rel_path,
-                mime_type="text/plain",
-                size=text_size,
-            )
-            msg = await create_run_message(
-                conn,
-                redis,
-                run_id=run_id,
-                session_id=session_id,
-                role="assistant",
-                upload_id=text_upload.id,
-                # Caller pre-minted this so the FE's optimistic skeleton
-                # bubble (created on ``image.start`` keyed by this id)
-                # shares the same id as the persisted row. ``None`` falls
-                # back to ``uuidv7()`` on the underlying ``create_message``.
-                id=message_id,
-            )
-            await create_message_upload(
-                conn,
-                redis, message_id=msg.message_id,
-                upload_id=upload_id,
-                session_id=session_id,
-            )
-            # Capture the resolved id (either the caller's pre-mint, or
-            # the fresh uuidv7 the INSERT generated) for the response.
-            attributed_message_id = msg.message_id
+                entry, resource, junction, attributed_message_id = (
+                    await _persist_modality_chain(
+                        conn,
+                        redis,
+                        modality=modality,
+                        session_id=session_id,
+                        upload_id=upload_id,
+                        resource_name=resource_name,
+                        resource_description=resource_description,
+                        length_seconds=length_seconds,
+                        soft=soft,
+                        run_id=run_id,
+                        attribute_to_run=attribute_to_run,
+                        message_id=message_id,
+                        written_files=_written_files,
+                    )
+                )
+        except BaseException:
+            # The DB transaction rolled back — every committed sub-row is
+            # gone. Remove any on-disk blob we staged so it doesn't dangle
+            # without a backing row (the provider was already billed, but a
+            # broken half-state is strictly worse than a clean failure the
+            # caller can retry).
+            for _p in _written_files:
+                try:
+                    _p.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            raise
 
     await invalidate_tags(
         ["uploads", "entries", f"{modality}s", "resources"], redis=redis,
@@ -359,3 +289,152 @@ async def media_upload_impl(
         file_size=file_size,
         message_id=attributed_message_id,
     )
+
+
+async def _persist_modality_chain(
+    conn: asyncpg.Connection,
+    redis: Redis,
+    *,
+    modality: str,
+    session_id: UUID,
+    upload_id: UUID,
+    resource_name: str,
+    resource_description: str,
+    length_seconds: int,
+    soft: bool,
+    run_id: UUID | None,
+    attribute_to_run: bool,
+    message_id: UUID | None,
+    written_files: list[Path],
+) -> tuple[Any, Any, Any, UUID | None]:
+    """Build resource → entry → junction (+ optional run bridge) on ``conn``.
+
+    Runs entirely inside the caller's ``conn.transaction()``; the nested
+    ``create_*`` impls open their own ``conn.transaction()`` which asyncpg
+    composes as SAVEPOINTs under the outer one. Any text-upload blob written
+    in the run-attribution branch is appended to ``written_files`` so the
+    caller can unlink it on rollback. Returns ``(entry, resource, junction,
+    attributed_message_id)``.
+    """
+    if modality == "audio":
+        resource = await create_audio_resource(
+            conn,
+            name=resource_name,
+            description=resource_description,
+            redis=redis,
+            soft=soft,
+        )
+        entry = await create_audio(
+            conn,
+            redis, session_id=session_id,
+            audios_id=resource.id,
+            length_seconds=length_seconds,
+            soft=soft,
+        )
+        junction = await create_audio_upload(
+            conn,
+            redis, audio_id=entry.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            soft=soft,
+        )
+    elif modality == "image":
+        resource = await create_image_resource(
+            conn,
+            name=resource_name,
+            description=resource_description,
+            redis=redis,
+            soft=soft,
+        )
+        entry = await create_image(
+            conn,
+            redis, session_id=session_id,
+            images_id=resource.id,
+            soft=soft,
+        )
+        junction = await create_image_upload(
+            conn,
+            redis, image_id=entry.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            soft=soft,
+        )
+    else:
+        resource = await create_video_resource(
+            conn,
+            name=resource_name,
+            description=resource_description,
+            redis=redis,
+            soft=soft,
+        )
+        entry = await create_video(
+            conn,
+            redis, session_id=session_id,
+            videos_id=resource.id,
+            length_seconds=length_seconds,
+            soft=soft,
+        )
+        junction = await create_video_upload(
+            conn,
+            redis, video_id=entry.id,
+            upload_id=upload_id,
+            session_id=session_id,
+            soft=soft,
+        )
+
+    # Initialize before the conditional so the return-shape path
+    # always has a value, even when no message gets created (manual
+    # upload, no run_id).
+    attributed_message_id: UUID | None = None
+
+    # ── Optional: wire the run_id → message → upload junction so
+    # downstream "what did this run produce" queries can walk the
+    # canonical messages_entry / message_uploads_entry path. Same
+    # shape as create_tool_call's audit-side write; mutually
+    # exclusive with that path (only ONE writer per upload).
+    if run_id is not None and attribute_to_run:
+        summary = (
+            f"Generated {modality} resource: {resource_name}"
+            if not resource_description
+            else f"Generated {modality}: {resource_description}"
+        )
+        text_upload_uuid = _uuid.uuid4()
+        text_rel_path = save_text_upload(
+            summary, text_upload_uuid, UPLOAD_FOLDER,
+        )
+        # Track the text blob too: it's written outside the txn (above) but
+        # its ``uploads_entry`` row is created inside it, so a rollback must
+        # unlink it just like the media blob.
+        written_files.append(UPLOAD_FOLDER / text_rel_path)
+        text_size = (UPLOAD_FOLDER / text_rel_path).stat().st_size
+        text_upload = await create_upload(
+            conn,
+            redis, session_id=session_id,
+            file_path=text_rel_path,
+            mime_type="text/plain",
+            size=text_size,
+        )
+        msg = await create_run_message(
+            conn,
+            redis,
+            run_id=run_id,
+            session_id=session_id,
+            role="assistant",
+            upload_id=text_upload.id,
+            # Caller pre-minted this so the FE's optimistic skeleton
+            # bubble (created on ``image.start`` keyed by this id)
+            # shares the same id as the persisted row. ``None`` falls
+            # back to ``uuidv7()`` on the underlying ``create_message``.
+            id=message_id,
+        )
+        await create_message_upload(
+            conn,
+            redis, message_id=msg.message_id,
+            upload_id=upload_id,
+            session_id=session_id,
+        )
+        # Capture the resolved id (either the caller's pre-mint, or
+        # the fresh uuidv7 the INSERT generated) for the response.
+        attributed_message_id = msg.message_id
+
+    return entry, resource, junction, attributed_message_id
