@@ -24,7 +24,7 @@ from app.tools.entries.uploads.create import create_upload
 
 
 async def create_tool_call(
-    conn: asyncpg.Connection,
+    pool: asyncpg.Pool,
     redis: Redis,
     group_id: UUID,
     session_id: UUID,
@@ -48,38 +48,57 @@ async def create_tool_call(
     """Execute a tool and persist the full entry chain + files.
 
     1. Creates run + call entry chain (so call_id is available to tool_fn).
-    2. Executes tool_fn(conn, call_id=call_id, **arguments) to get output.
+    2. Executes tool_fn(None, call_id=call_id, **arguments) to get output.
     3. Writes .txt (always) and .json receipt (when tool_id is provided).
     4. Creates upload DB rows + junctions.
+
+    PERF1: the pre-runner ``create_run``/``create_call`` inserts borrow a
+    pool connection for a *short* scope that is released BEFORE ``tool_fn``
+    runs. ``tool_fn`` is the runner — for generate/orchestration it is the
+    full LLM completion loop (seconds–tens of seconds) and it manages its
+    own connections; holding a pooled connection idle across that network
+    round-trip starves the pool under concurrent load. The downstream audit
+    persistence (``_persist_audit_writes``) likewise acquires its own
+    short-lived connection in a background task.
     """
     from app.infra.server_timing import timed
-    # 1. Create or reuse run, create call upfront (call_id available before execution)
-    if run_id is not None:
-        # Reuse existing run (e.g. main generation run)
-        effective_run_id = run_id
-    else:
-        with timed("run_insert"):
-            run = await create_run(
-                conn, redis,
-                group_id=group_id,
-                session_id=session_id,
-                mcp=mcp,
-            )
-        effective_run_id = run.id
-
+    # 1. Create or reuse run, create call upfront (call_id available before
+    #    execution). Borrow a connection for ONLY these pre-runner inserts and
+    #    release it before invoking the runner (PERF1 — no pooled conn is held
+    #    across the LLM/runner network call).
     call_id: UUID | None = None
-    if tool_id is not None:
-        with timed("call_insert"):
-            call_result = await create_call(
-                conn, redis,
-                run_id=effective_run_id,
-                session_id=session_id,
-                tool_id=tool_id,
-                operation_key=operation_key,
-                mcp=mcp,
-                id=pre_minted_call_id,
-            )
-        call_id = call_result.id
+    with timed("setup_pool_acquire"):
+        _setup_cm = pool.acquire()
+        setup_conn = await _setup_cm.__aenter__()
+    try:
+        if run_id is not None:
+            # Reuse existing run (e.g. main generation run)
+            effective_run_id = run_id
+        else:
+            with timed("run_insert"):
+                run = await create_run(
+                    setup_conn, redis,
+                    group_id=group_id,
+                    session_id=session_id,
+                    mcp=mcp,
+                )
+            effective_run_id = run.id
+
+        if tool_id is not None:
+            with timed("call_insert"):
+                call_result = await create_call(
+                    setup_conn, redis,
+                    run_id=effective_run_id,
+                    session_id=session_id,
+                    tool_id=tool_id,
+                    operation_key=operation_key,
+                    mcp=mcp,
+                    id=pre_minted_call_id,
+                )
+            call_id = call_result.id
+    finally:
+        # Release the pre-runner connection back to the pool BEFORE tool_fn.
+        await _setup_cm.__aexit__(None, None, None)
 
     # 1b. Notify caller that call record exists (for emitting "started" events)
     if on_call_created is not None:
@@ -97,7 +116,11 @@ async def create_tool_call(
     try:
         spread_args = {k: v for k, v in arguments.items() if k != "call_id"}
         with timed("tool_fn"):
-            raw_result = await tool_fn(conn, call_id=call_id, **spread_args)
+            # No pooled connection is held across the runner (PERF1). The
+            # runner closure manages its own short-lived acquisitions for any
+            # transactional post-call writes (e.g. the run-turn persist E1,
+            # media persist E2), each in its own scope.
+            raw_result = await tool_fn(None, call_id=call_id, **spread_args)
     except Exception as exc:
         # Capture the full failure trail into the call receipt. The
         # ``message`` + ``error_type`` fields stay shape-compatible with

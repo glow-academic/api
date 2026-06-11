@@ -524,8 +524,12 @@ async def run_artifact_operation_with_audit(
 
     if can_audit:
         async def _tool_fn(
-            _conn: asyncpg.Connection, *, call_id: UUID | None = None, **_arguments: Any
+            _conn: "asyncpg.Connection | None" = None,
+            *, call_id: UUID | None = None, **_arguments: Any
         ) -> Any:
+            # ``_conn`` is intentionally ignored — the runner manages its own
+            # connections. PERF1: create_tool_call now passes None here (no
+            # pooled connection is held across the runner/LLM call).
             result = await _invoke_runner(call_id=call_id)
             if hasattr(result, "model_dump"):
                 return result.model_dump(mode="json")
@@ -540,32 +544,30 @@ async def run_artifact_operation_with_audit(
             return
 
         with timed("audit_write"):
-            with timed("audit_pool_acquire"):
-                _aw_cm = pool.acquire()
-                conn = await _aw_cm.__aenter__()
-            try:
-                audit_result = await create_tool_call(
-                    conn,
-                    redis,
-                    group_id=effective_group_id,  # type: ignore[arg-type]
-                    session_id=effective_session_id,  # type: ignore[arg-type]
-                    profile_id=effective_profiles_id,  # type: ignore[arg-type]
-                    upload_folder=effective_upload_folder,
-                    tool_fn=_tool_fn,
-                    arguments=arguments,
-                    tool_id=tool_id,
-                    run_id=run_id,
-                    operation_key=operation_key,
-                    role=role,
-                    mcp=mcp,
-                    instruction_template=instruction_template,
-                    raise_on_error=False,
-                    on_call_created=_on_call_created,
-                    pre_minted_call_id=emit_call_id,
-                    started_at=started_at,
-                )
-            finally:
-                await _aw_cm.__aexit__(None, None, None)
+            # PERF1: pass the POOL, not a held connection. ``create_tool_call``
+            # borrows a connection only for the short pre-runner run/call
+            # inserts and releases it before the runner (LLM) executes — no
+            # pooled connection is pinned across the provider network call.
+            audit_result = await create_tool_call(
+                pool,
+                redis,
+                group_id=effective_group_id,  # type: ignore[arg-type]
+                session_id=effective_session_id,  # type: ignore[arg-type]
+                profile_id=effective_profiles_id,  # type: ignore[arg-type]
+                upload_folder=effective_upload_folder,
+                tool_fn=_tool_fn,
+                arguments=arguments,
+                tool_id=tool_id,
+                run_id=run_id,
+                operation_key=operation_key,
+                role=role,
+                mcp=mcp,
+                instruction_template=instruction_template,
+                raise_on_error=False,
+                on_call_created=_on_call_created,
+                pre_minted_call_id=emit_call_id,
+                started_at=started_at,
+            )
         result_data = audit_result.result
         call_upload_id = audit_result.call_upload_id
 

@@ -78,23 +78,24 @@ async def _committed_deps(pool, redis_client, *, with_tool=False):
 
 async def _call(pool, redis_client, *, group, session, profile, tmp_path,
                 tool_fn, arguments, tool_id=None, raise_on_error=False):
-    """Invoke create_tool_call on a committed pool conn, routing the
+    """Invoke create_tool_call with the POOL (PERF1 — create_tool_call borrows
+    its own short-lived connection for the pre-runner inserts and releases it
+    before the runner; it no longer takes a caller-held conn), routing the
     background audit task at the test's on-loop pool/redis."""
-    async with pool.acquire() as conn:
-        return await create_tool_call(
-            conn,
-            redis_client,
-            group_id=group.id,
-            session_id=session.id,
-            profile_id=profile.id,
-            upload_folder=tmp_path,
-            tool_fn=tool_fn,
-            arguments=arguments,
-            tool_id=tool_id,
-            raise_on_error=raise_on_error,
-            audit_pool=pool,
-            audit_redis=redis_client,
-        )
+    return await create_tool_call(
+        pool,
+        redis_client,
+        group_id=group.id,
+        session_id=session.id,
+        profile_id=profile.id,
+        upload_folder=tmp_path,
+        tool_fn=tool_fn,
+        arguments=arguments,
+        tool_id=tool_id,
+        raise_on_error=raise_on_error,
+        audit_pool=pool,
+        audit_redis=redis_client,
+    )
 
 
 # -- with tool_id --------------------------------------------------------------
@@ -378,6 +379,96 @@ async def test_composite_rolls_back_on_late_db_failure(
         assert len(upload_rows) == 0, (
             f"orphaned upload(s) survived rollback: {len(upload_rows)}"
         )
+
+
+# -- PERF1: no pooled connection held across the runner -----------------------
+
+
+async def test_runner_receives_no_held_conn(pool, redis_client, tmp_path):
+    """PERF1: ``tool_fn`` (the runner — for generate/orchestration the LLM
+    completion loop) must NOT be handed a caller-held pool connection. The
+    pre-runner run/call inserts borrow a connection in a short scope that is
+    released before the runner executes.
+    """
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
+
+    seen = {}
+
+    async def _probe_tool(conn, **kwargs):
+        # The runner is invoked with no held connection (None).
+        seen["conn"] = conn
+        return json.dumps({"success": True})
+
+    await _call(
+        pool, redis_client, group=group, session=session, profile=profile,
+        tmp_path=tmp_path, tool_fn=_probe_tool,
+        arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+    )
+
+    assert "conn" in seen, "runner was never invoked"
+    assert seen["conn"] is None, (
+        "runner was handed a held pool connection — it would sit idle and "
+        "pinned across the LLM/network call (pool starvation, PERF1)"
+    )
+
+
+async def test_pool_not_starved_by_concurrent_slow_runners(
+    pool, redis_client, tmp_path
+):
+    """PERF1: N concurrent in-flight (slow) runners must NOT each pin a pool
+    connection for their whole duration. With max_size connections in the pool,
+    we launch MORE than that many concurrent slow runners; if a connection were
+    held across each runner the pool would be exhausted and at least one
+    pre-runner insert would block until a runner finished. We assert all
+    runners reach their slow body CONCURRENTLY (the barrier releases only once
+    every runner is in-flight), which is only possible if no connection is held
+    across the runner body.
+    """
+    import asyncio
+
+    profile, session, group, tool = await _committed_deps(
+        pool, redis_client, with_tool=True
+    )
+
+    # More concurrent runners than the pool has connections.
+    n = pool.get_max_size() + 3
+    in_flight = asyncio.Semaphore(0)
+    release = asyncio.Event()
+    entered = {"count": 0}
+
+    async def _slow_tool(conn, **kwargs):
+        # Held conn would mean we never all get here at once.
+        assert conn is None
+        entered["count"] += 1
+        in_flight.release()
+        await release.wait()
+        return json.dumps({"success": True})
+
+    async def _one():
+        return await _call(
+            pool, redis_client, group=group, session=session, profile=profile,
+            tmp_path=tmp_path, tool_fn=_slow_tool,
+            arguments={"name": "Dr. Smith"}, tool_id=tool.id,
+        )
+
+    tasks = [asyncio.create_task(_one()) for _ in range(n)]
+
+    # Wait until ALL runners are simultaneously in-flight. If a connection were
+    # held across the runner, only ~max_size could start (the rest blocked on
+    # the pre-runner acquire) and this would time out.
+    async def _await_all_in_flight():
+        for _ in range(n):
+            await in_flight.acquire()
+
+    await asyncio.wait_for(_await_all_in_flight(), timeout=10)
+    assert entered["count"] == n
+
+    # Let them finish.
+    release.set()
+    await asyncio.gather(*tasks)
+    await wait_for_pending()
 
 
 async def test_raise_on_error_persists_then_reraises(pool, redis_client, tmp_path):
