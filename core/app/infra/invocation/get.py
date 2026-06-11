@@ -429,6 +429,7 @@ async def get_invocation_impl(
         actor_name=common.profile.name,
         test_id=test_id,
         invocation_id=invocation_id,
+        use_custom=bool(ctx.entries.get("use_custom", False)),
         profile_has_access=True,
         can_edit=True,
         disabled_reason=None,
