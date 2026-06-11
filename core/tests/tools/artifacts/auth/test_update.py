@@ -5,6 +5,7 @@ from tests.helpers import unique_tag
 
 from app.tools.artifacts.auth.create import create_auth
 from app.tools.artifacts.auth.get import get_auths
+from app.tools.artifacts.auth.search import search_auths
 from app.tools.artifacts.auth.update import update_auth
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.flags.create import create_flag
@@ -127,3 +128,37 @@ async def test_multi_none_means_no_change(conn, redis_client):
 
     items = await get_auths(conn, [aid], departments=True)
     assert set(items[0].department_ids) == {d1, d2}
+
+
+async def test_soft_then_active_true_round_trips_back_to_searchable(conn, redis_client):
+    """A1 round-trip: soft-update deactivates; accept (active=True) re-activates.
+
+    Real DB round-trip (no mocks): a ``soft=True`` write flips ``active=False``,
+    which removes the row from ``search_auths`` (defaults ``active_only=True``).
+    The accept path then calls ``update_auth(..., active=True, soft=False)`` — this
+    MUST flip the row back to active and make it searchable again. Before the A1
+    fix the accept passed no ``active`` (→ ``_UNSET``), the row stayed inactive,
+    and the accepted change was permanently invisible.
+    """
+    tag = _u()
+    name = await create_name(conn, f"acceptable-{tag}", redis_client)
+    created = await create_auth(conn, name_id=name.id)
+    aid = created.id
+
+    # Freshly created → active and searchable (scope by the unique name text).
+    found_before, _ = await search_auths(conn, search=f"acceptable-{tag}")
+    assert aid in found_before
+
+    # Soft (propose) write forces active=False → vanishes from search.
+    await update_auth(conn, aid, soft=True)
+    row = await get_auths(conn, [aid], active=None)
+    assert row[0].active is False
+    found_soft, _ = await search_auths(conn, search=f"acceptable-{tag}")
+    assert aid not in found_soft
+
+    # Accept re-activates (the A1 fix: explicit active=True, soft=False).
+    await update_auth(conn, aid, active=True, soft=False)
+    row_after = await get_auths(conn, [aid], active=None)
+    assert row_after[0].active is True
+    found_after, _ = await search_auths(conn, search=f"acceptable-{tag}")
+    assert aid in found_after
