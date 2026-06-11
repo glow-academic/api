@@ -380,11 +380,16 @@ class TestSimulationRoute:
             json={},
         )
 
+        # #331 (cache-tag fix): a simulation mutation (e.g. a rename) affects
+        # the home/practice cards of every student who sees that sim, but those
+        # reads carry no ``simulations``/``artifacts`` tag. ``refresh_simulation_impl``
+        # now also busts the GLOBAL ``home``/``practice`` tags.
+        expected_tags = ["simulations", "artifacts", "home", "practice"]
         assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "simulations,artifacts"
+        assert response.headers["X-Invalidate-Tags"] == ",".join(expected_tags)
         payload = response.json()
         assert payload["success"] is True
-        assert set(payload["invalidated_tags"]) == {"simulations", "artifacts"}
+        assert payload["invalidated_tags"] == expected_tags
 
     async def _create_simulation_via_route(
         self,
