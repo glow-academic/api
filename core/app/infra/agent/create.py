@@ -230,6 +230,7 @@ async def create_agent_impl(
                     # derivation and keeps new agents discoverable
                     # through the prompts section.
                     prompt_ids=[item.prompt_id] if item.prompt_id else None,
+                    quality_ids=item.quality_ids,
                     agent_ids=[snapshot_ids[idx]] if snapshot_ids else None,
                     soft=soft,
                 )

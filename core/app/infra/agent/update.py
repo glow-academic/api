@@ -297,8 +297,11 @@ async def update_agent_impl(
                 description_id=item.description_id,
                 department_ids=item.department_ids,
                 model_id=item.model_id,
+                rubric_id=item.rubric_ids[0] if item.rubric_ids else None,
                 tool_ids=item.tool_ids,
                 voice_ids=item.voice_ids,
+                prompt_id=item.prompt_id,
+                instruction_ids=item.instruction_ids,
             )
 
         # Artifact update inside transaction
@@ -321,6 +324,9 @@ async def update_agent_impl(
                     tool_ids=item.tool_ids,
                     voice_ids=item.voice_ids,
                     agent_ids=[agents_resource_id],
+                    rubric_ids=item.rubric_ids,
+                    prompt_ids=[item.prompt_id] if item.prompt_id else None,
+                    quality_ids=item.quality_ids,
                     soft=soft,
                 )
 

@@ -124,6 +124,29 @@ async def resolve_tool_values(
         conn, getattr(item, "department_ids", None)
     )
 
+    # --- Unified per-arg drafts (Arguments step card) ---
+    # The client (Tool.tsx) sends ``args_drafts`` on create AND update as the
+    # canonical source for arguments. Resolve it the same way ``/tool/draft``
+    # does — create/link each arg + nested outputs + position — and fold the
+    # resulting ids into the flat triple the junction writers consume.
+    # Without this, create/update silently dropped ``args_drafts`` (the field
+    # didn't even exist on the models), so tools were saved with zero args.
+    args_drafts = getattr(item, "args_drafts", None)
+    if args_drafts:
+        from app.infra.tool.arg_drafts import resolve_arg_drafts
+
+        merged_arg_ids, merged_output_ids, merged_pos_ids = await resolve_arg_drafts(
+            conn,
+            redis,
+            args_drafts,
+            arg_ids=item.args_ids,
+            output_ids=item.args_outputs_ids,
+            position_ids=item.arg_positions_ids,
+        )
+        item.args_ids = merged_arg_ids
+        item.args_outputs_ids = merged_output_ids
+        item.arg_positions_ids = merged_pos_ids
+
     # --- Validate required fields (create only) ---
 
     if is_create:

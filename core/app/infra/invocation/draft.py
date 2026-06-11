@@ -285,9 +285,13 @@ async def patch_invocation_draft_impl(
                 department_ids=request.department_ids,
                 key_ids=[request.key_id] if request.key_id else None,
                 endpoint_ids=[request.endpoint_id] if request.endpoint_id else None,
-                temperature_level_ids=[request.temperature_level_id] if request.temperature_level_id else None,
+                temperature_level_ids=request.temperature_level_ids
+                if request.temperature_level_ids
+                else ([request.temperature_level_id] if request.temperature_level_id else None),
                 pricing_ids=[request.pricing_id] if request.pricing_id else None,
-                reasoning_level_ids=[request.reasoning_level_id] if request.reasoning_level_id else None,
+                reasoning_level_ids=request.reasoning_level_ids
+                if request.reasoning_level_ids
+                else ([request.reasoning_level_id] if request.reasoning_level_id else None),
                 voice_ids=request.voice_ids,
                 modality_ids=request.modality_ids,
                 quality_ids=request.quality_ids,
