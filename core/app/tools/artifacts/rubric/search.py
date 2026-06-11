@@ -154,9 +154,12 @@ async def search_rubrics(
             f"EXISTS ("
             f"SELECT 1 FROM scenario_rubrics_resource srr "
             f"JOIN simulation_scenario_rubrics_junction ssr ON ssr.scenario_rubrics_id = srr.id "
+            f"AND ssr.active = true "
             f"JOIN simulation_scenarios_junction ss ON ss.simulation_id = ssr.simulation_id "
             f"AND ss.scenarios_id = srr.scenario_id "
+            f"AND ss.active = true "
             f"WHERE srr.rubric_id = a.id "
+            f"AND srr.active = true "
             f"AND ss.simulation_id = ANY(${idx})"
             f")"
         )

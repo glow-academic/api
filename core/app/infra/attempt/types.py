@@ -966,7 +966,13 @@ class SearchAttemptApiRequest(BaseModel):
     sort_by: str = "date"
     sort_order: str = "desc"
     page: int = 0
-    page_size: int = 20
+    # Cap page_size (B1): the WS attempt.search path deserializes into this infra
+    # model, which previously had no upper bound — a request with a huge
+    # page_size flowed unclamped into search_attempts' LIMIT (limit + offset +
+    # 1000), causing an unbounded scan + in-memory row materialization (OOM /
+    # box-hang). The HTTP route's inline model already caps at le=200; mirror it
+    # here so the socket path can no longer request an unbounded LIMIT.
+    page_size: int = Field(20, ge=1, le=200)
 
 
 # Alias for ws handler compatibility

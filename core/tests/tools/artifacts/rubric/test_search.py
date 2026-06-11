@@ -5,9 +5,14 @@ from tests.helpers import unique_tag
 
 from app.tools.artifacts.rubric.create import create_rubric
 from app.tools.artifacts.rubric.search import search_rubrics
+from app.tools.artifacts.simulation.create import create_simulation
+from app.tools.artifacts.simulation.update import update_simulation
 from app.tools.resources.departments.create import create_department
 from app.tools.resources.descriptions.create import create_description
 from app.tools.resources.names.create import create_name
+from app.tools.resources.rubrics.create import create_rubric as create_rubric_resource
+from app.tools.resources.scenario_rubrics.create import create_scenario_rubric
+from app.tools.resources.scenarios.create import create_scenario as create_scenario_resource
 
 pytestmark = pytest.mark.asyncio
 
@@ -123,3 +128,44 @@ async def test_active_only_false_includes_inactive(conn, redis_client):
 
     ids, _total = await search_rubrics(conn, search=name.name, active_only=False)
     assert r.id in ids
+
+
+async def test_simulation_filter_excludes_soft_removed_link(conn, redis_client):
+    """L1: a soft-removed scenario↔rubric link must not leak into the
+    simulation-filtered rubric search.
+
+    Chain: rubric ← scenario_rubrics_resource (srr) → scenario, and a simulation
+    linking that scenario + that srr (via simulation_scenario_rubrics_junction).
+    While the junction is active the rubric matches simulation_ids=[sim]. After
+    the rubric link is removed (update_simulation deactivates the junction) the
+    rubric must no longer match — search must agree with the simulation detail
+    view, which filters active junctions.
+    """
+    # scenario_rubrics_resource.rubric_id FKs rubrics_resource, and the
+    # simulation-filter join matches rubric_artifact.id; build both the resource
+    # row and the artifact row under the same id so the rubric is searchable.
+    rubric_res = await create_rubric_resource(
+        conn, redis_client, name=f"sim-rubric-{_u()}"
+    )
+    await create_rubric(conn, id=rubric_res.id)
+    scenario_res = await create_scenario_resource(
+        conn, redis_client, name=f"sim-scenario-{_u()}"
+    )
+    srr = await create_scenario_rubric(
+        conn, scenario_id=scenario_res.id, rubric_id=rubric_res.id, redis=redis_client
+    )
+    sim = await create_simulation(
+        conn,
+        scenario_ids=[scenario_res.id],
+        scenario_rubric_ids=[srr.id],
+    )
+
+    # Active link: rubric is reachable via the simulation filter.
+    ids, _total = await search_rubrics(conn, simulation_ids=[sim.id])
+    assert rubric_res.id in ids
+
+    # Soft-remove the rubric link (deactivates simulation_scenario_rubrics_junction).
+    await update_simulation(conn, sim.id, scenario_rubric_ids=[])
+
+    ids_after, _total_after = await search_rubrics(conn, simulation_ids=[sim.id])
+    assert rubric_res.id not in ids_after  # soft-removed link no longer leaks

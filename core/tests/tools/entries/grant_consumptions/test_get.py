@@ -37,9 +37,12 @@ async def test_returns_by_id(conn, redis_client, profile_id):
 
 
 async def test_returns_multiple(conn, redis_client, profile_id):
-    grant = await _grant(conn, redis_client, profile_id)
-    r1 = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
-    r2 = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
+    # Distinct grants: a single grant may have at most one active consumption
+    # (grant_consumptions_entry_grant_uidx), so two consumptions need two grants.
+    grant1 = await _grant(conn, redis_client, profile_id)
+    grant2 = await _grant(conn, redis_client, profile_id)
+    r1 = await create_grant_consumption(conn, redis_client, grant_id=grant1.id)
+    r2 = await create_grant_consumption(conn, redis_client, grant_id=grant2.id)
     await refresh_grant_consumptions(conn)
 
     items = await get_grant_consumptions(conn, [r1.id, r2.id], redis_client)
