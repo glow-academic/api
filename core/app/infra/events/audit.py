@@ -735,7 +735,17 @@ async def run_artifact_operation_with_audit(
                 json.dumps(receipt, indent=2, default=str), encoding="utf-8",
             )
         except Exception as e:
-            logger.debug(f"Best-effort receipt timing update failed: {e}")
+            # O3: this write IS the signal meant to flag "audit lifecycle
+            # didn't finish" — so a systematic failure here (disk full, perms,
+            # corrupt receipt) silently degrades the forensic tool. Warn with
+            # the call_upload_id so the gap is visible and attributable.
+            logger.warning(
+                "Best-effort receipt timing update failed for "
+                "call_upload_id=%s (%s): %s",
+                call_upload_id,
+                type(e).__name__,
+                e,
+            )
 
     if response_model is not None:
         with timed("serialize"):

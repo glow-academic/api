@@ -25,6 +25,7 @@ the litellm provider stream so the agentic loop runs deterministically:
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 import pytest
@@ -440,6 +441,95 @@ async def test_h4_cancel_marker_cleared_on_clean_success(
     # No stale marker, and the active-run pointer is cleared too.
     assert await redis_client.exists(f"cancel_run:{run.id}") == 0
     assert await redis_client.exists(f"active_run:{group.id}") == 0
+
+
+# ---------------------------------------------------------------------------
+# O1 — a provider stream that completes WITHOUT a usage frame must WARN
+#      (token/cost undercount made visible, not silently recorded as 0)
+# ---------------------------------------------------------------------------
+
+
+_O1_LOGGER = "app.infra.generation.execute"
+
+
+async def test_o1_missing_usage_frame_warns(
+    conn, redis_client, profile_id, pool, monkeypatch, caplog
+):
+    """A turn whose stream ends with a real answer but NO message_complete/usage
+    frame (the self-hosted/vLLM case) must emit a WARNING naming run/model so the
+    $0 undercount is visible — not silently swallowed."""
+    session, group, run = await _run_deps(conn, redis_client, profile_id)
+    dispatch = _make_dispatch(with_tool=False)
+    prepared = _make_prepared(session, group, run, profile_id, [dispatch])
+
+    # Stream yields text but NEVER a message_complete with a usage dict.
+    no_usage_events = [
+        {"type": "text_delta", "delta": "answer with no usage frame"},
+    ]
+    _patch_stream(monkeypatch, [no_usage_events])
+    monkeypatch.setattr(execute_mod, "get_internal_sio", lambda: _FakeBus())
+
+    async def _noop_run_complete(*a, **k):
+        return None
+    import app.infra.websocket.run_complete_impl as _rcmod
+    monkeypatch.setattr(_rcmod, "run_complete_impl", _noop_run_complete)
+
+    with caplog.at_level(logging.WARNING, logger=_O1_LOGGER):
+        result = await _execute_agent_dispatch(
+            pool, redis_client,
+            dispatch=dispatch, prepared=prepared, sid="sid-o1",
+            tool_soft=True, max_iterations=15, internal_sio=_FakeBus(),
+        )
+
+    # The undercount is surfaced as a WARNING (not a silent 0).
+    warnings = [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING and "no usage frame" in r.getMessage()
+    ]
+    assert warnings, "missing usage frame must emit a WARNING"
+    msg = warnings[0].getMessage()
+    assert str(run.id) in msg
+    assert "test-model" in msg
+    # Tokens are still recorded (as 0) — billing logic is unchanged, only made
+    # observable.
+    assert result.total_input_tokens == 0
+    assert result.total_output_tokens == 0
+
+
+async def test_o1_present_usage_frame_does_not_warn(
+    conn, redis_client, profile_id, pool, monkeypatch, caplog
+):
+    """Control: a stream that DOES deliver a usage frame must not trip the
+    missing-usage WARNING."""
+    session, group, run = await _run_deps(conn, redis_client, profile_id)
+    dispatch = _make_dispatch(with_tool=False)
+    prepared = _make_prepared(session, group, run, profile_id, [dispatch])
+
+    answer_events = [
+        {"type": "text_delta", "delta": "done"},
+        {"type": "message_complete", "usage": {"prompt_tokens": 7, "completion_tokens": 3}},
+    ]
+    _patch_stream(monkeypatch, [answer_events])
+    monkeypatch.setattr(execute_mod, "get_internal_sio", lambda: _FakeBus())
+
+    async def _noop_run_complete(*a, **k):
+        return None
+    import app.infra.websocket.run_complete_impl as _rcmod
+    monkeypatch.setattr(_rcmod, "run_complete_impl", _noop_run_complete)
+
+    with caplog.at_level(logging.WARNING, logger=_O1_LOGGER):
+        result = await _execute_agent_dispatch(
+            pool, redis_client,
+            dispatch=dispatch, prepared=prepared, sid="sid-o1ok",
+            tool_soft=True, max_iterations=15, internal_sio=_FakeBus(),
+        )
+
+    assert not [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING and "no usage frame" in r.getMessage()
+    ]
+    assert result.total_input_tokens == 7
+    assert result.total_output_tokens == 3
 
 
 async def test_s1_multi_agent_all_ok_still_aggregates(

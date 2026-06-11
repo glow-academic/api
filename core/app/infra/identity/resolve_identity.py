@@ -125,7 +125,17 @@ def _get_jwks() -> list[dict[str, Any]]:
                 logger.debug(f"Fetched {len(keys)} keys from {jwks_url}")
                 break
         except Exception as e:
-            logger.debug(f"Failed to fetch JWKS from {jwks_url}: {e}")
+            # O2: a JWKS fetch failure means the auth subsystem is degrading
+            # (Keycloak unreachable / endpoint down). This loop is TTL-gated
+            # (at most once per _JWKS_TTL window), not hot-path noise, so log at
+            # WARNING with the URL + error class so the degradation is visible to
+            # operators rather than buried at debug.
+            logger.warning(
+                "JWKS fetch failed from %s (%s): %s",
+                jwks_url,
+                type(e).__name__,
+                e,
+            )
             continue
 
     # Also include the built-in default-idp keys from the canonical infra module.
@@ -135,7 +145,11 @@ def _get_jwks() -> list[dict[str, Any]]:
         default_keys = get_default_idp_jwks().get("keys", [])
         all_keys.extend(default_keys)
     except Exception as e:
-        logger.debug(f"Failed to get default-idp JWKS: {e}")
+        # O2: the built-in default-idp keys are the fallback verification path;
+        # losing them is also auth-subsystem degradation, so warn (not debug).
+        logger.warning(
+            "Failed to load default-idp JWKS (%s): %s", type(e).__name__, e
+        )
 
     if all_keys:
         _jwks_cache["keys"] = all_keys
@@ -144,7 +158,15 @@ def _get_jwks() -> list[dict[str, Any]]:
 
     # Fall back to cached keys if available
     if _jwks_cache["keys"] is not None:
-        logger.warning("Failed to refresh JWKS, using cached keys")
+        # O2: surface that we're running on stale cached keys, and from where.
+        # During a key rotation this is the window where newly-issued tokens
+        # start failing verification, so operators need this to be visible (not
+        # a context-free message).
+        logger.warning(
+            "Failed to refresh JWKS from %s — falling back to cached keys "
+            "(auth verification may fail for tokens signed by rotated keys)",
+            ", ".join(urls_to_try) or "<no reachable endpoints>",
+        )
         # Refresh the cache timestamp on fallback. Without this the stale `ts`
         # keeps `now - ts > _JWKS_TTL` true, so a slow/unavailable Keycloak is
         # re-hit on *every* request (each one paying the full blocking fetch).
