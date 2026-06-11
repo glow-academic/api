@@ -340,14 +340,26 @@ class TestAttemptRoute:
             json={},
         )
 
+        # #331 (cache-tag fix): attempt complete/grade/refresh must also bust
+        # the per-profile home/practice read-caches, which carry no
+        # ``artifacts`` tag. ``refresh_attempt_impl`` appends
+        # ``home:profile:{pid}`` / ``practice:profile:{pid}`` (pid = the acting
+        # profile) on top of the static ``["attempt", "artifacts"]`` set.
+        pid = str(attempt_route_actor.profile_id)
+        expected_tags = [
+            "attempt",
+            "artifacts",
+            f"home:profile:{pid}",
+            f"practice:profile:{pid}",
+        ]
         assert response.status_code == 200, response.text
-        assert response.headers["X-Invalidate-Tags"] == "attempt,artifacts"
+        assert response.headers["X-Invalidate-Tags"] == ",".join(expected_tags)
         payload = response.json()
         assert payload["success"] is True
         # refresh now enqueues the full attempt view set; attempt_mv is
         # always among the refreshed views.
         assert "attempt_mv" in payload["refreshed_views"]
-        assert payload["invalidated_tags"] == ["attempt", "artifacts"]
+        assert payload["invalidated_tags"] == expected_tags
 
     async def test_attempt_archive_route_creates_archive_entries(
         self,
