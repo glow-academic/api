@@ -193,7 +193,16 @@ async def run_complete_impl(
                     output_tokens=output_tokens,
                 )
     except Exception as e:
+        # The turn (reasoning + answer + token/cost row) is LOAD-BEARING: it is
+        # the model's persisted history and the billing record. Swallowing the
+        # failure here and falling through to Step 2 would resolve + report the
+        # run as *complete* while the DB holds neither the assistant text nor the
+        # usage row — lost history and undercounted billing, surfaced as success
+        # (E1). Re-raise so the run is NOT reported complete: the blocking route
+        # 5xxs and the runner emits ``<artifact>.generate.failed``. The
+        # transaction has already rolled the partial turn back atomically.
         logger.exception(f"Failed to save run_complete for {artifact_type}: {e}")
+        raise
 
     # Step 2: Check if all agents are done (DB-based, no Redis)
     group_id_uuid = uuid.UUID(group_id_str) if group_id_str else None

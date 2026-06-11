@@ -87,7 +87,9 @@ async def test_mid_turn_failure_rolls_back_reasoning_trace(
     conn, redis_client, profile_id, tmp_path, monkeypatch
 ):
     """Inject a failure on the answer write — the already-written reasoning
-    trace must roll back, leaving NO orphaned reasoning row in the DB."""
+    trace must roll back, leaving NO orphaned reasoning row in the DB, AND the
+    failure must NOT be swallowed (E1): run_complete_impl re-raises so the run
+    is not falsely reported complete."""
     session, group, run = await _run_deps(conn, redis_client, profile_id)
 
     real_persist = rc_module.persist_run_message
@@ -101,25 +103,27 @@ async def test_mid_turn_failure_rolls_back_reasoning_trace(
 
     monkeypatch.setattr(rc_module, "persist_run_message", _flaky_persist)
 
-    # run_complete_impl swallows the write failure (logs it) and continues.
-    await run_complete_impl(
-        {
-            "sid": "sid-fail",
-            "run_id": str(run.id),
-            "group_id": str(group.id),
-            "session_id": str(session.id),
-            "artifact_type": "persona",
-            "modality": "text",
-            "reasoning_output": "thinking that should not survive",
-            "assistant_output": "answer that fails to write",
-            "input_text_tokens": 5,
-            "output_text_tokens": 7,
-        },
-        emit=_emit_noop(),
-        conn=conn,
-        redis=redis_client,
-        upload_folder=tmp_path,
-    )
+    # E1: run_complete_impl must surface the load-bearing turn-persist failure
+    # (re-raise), not swallow-and-continue to report the run complete.
+    with pytest.raises(RuntimeError, match="injected answer-write failure"):
+        await run_complete_impl(
+            {
+                "sid": "sid-fail",
+                "run_id": str(run.id),
+                "group_id": str(group.id),
+                "session_id": str(session.id),
+                "artifact_type": "persona",
+                "modality": "text",
+                "reasoning_output": "thinking that should not survive",
+                "assistant_output": "answer that fails to write",
+                "input_text_tokens": 5,
+                "output_text_tokens": 7,
+            },
+            emit=_emit_noop(),
+            conn=conn,
+            redis=redis_client,
+            upload_folder=tmp_path,
+        )
 
     total, reasoning = await _count_messages(conn, run.id)
     token_count = await conn.fetchval(

@@ -982,17 +982,22 @@ async def _execute_agent_dispatch(
         "tool_results": all_tool_results,
         "metadata": dispatch.metadata or {},
     }
-    try:
-        async with pool.acquire() as conn:
-            await run_complete_impl(
-                run_complete_payload,
-                emit=make_emit(),
-                conn=conn,
-                redis=redis,
-                upload_folder=UPLOAD_FOLDER,
-            )
-    except Exception as exc:
-        logger.exception(f"run_complete_impl failed for run {run_id}: {exc}")
+    # ``run_complete_impl`` persists the load-bearing turn (assistant text +
+    # reasoning + token/cost row) before any post-persist emits. It now re-raises
+    # on a turn-persist failure (post-persist emit failures stay swallowed inside
+    # ``_chat_post_complete``). Do NOT swallow-and-return a populated result here:
+    # that would report the run complete (route 200s) while the DB is missing the
+    # turn + usage — lost history and undercounted billing surfaced as success
+    # (E1). Let it propagate to ``runner._run``, which emits
+    # ``{artifact}.generate.failed`` so the failure is visible.
+    async with pool.acquire() as conn:
+        await run_complete_impl(
+            run_complete_payload,
+            emit=make_emit(),
+            conn=conn,
+            redis=redis,
+            upload_folder=UPLOAD_FOLDER,
+        )
 
     return ExecuteGenerationResult(
         run_id=run_id,
