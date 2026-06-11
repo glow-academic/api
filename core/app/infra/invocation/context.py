@@ -339,5 +339,9 @@ async def resolve_invocation_context(
             "draft_name": draft.name if draft else None,
             "pending_ids": pending_ids,
             "invocation_exists": base_invocation is not None or draft is not None,
+            # Same source the materialized GetTestInvocationResponse uses:
+            # test_invocation_entry.use_custom (surfaced via test_invocation_mv,
+            # read into base_invocation by get_test_invocations).
+            "use_custom": bool(base_invocation.use_custom) if base_invocation else False,
         },
     )

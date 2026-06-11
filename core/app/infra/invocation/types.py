@@ -286,6 +286,15 @@ class GetSuiteResponse(BaseModel):
     actor_name: str | None = Field(None, description="Display name of the acting user")
     test_id: UUID | None = Field(None, description="Owning test identifier")
     invocation_id: UUID | None = Field(None, description="Invocation identifier")
+    use_custom: bool = Field(
+        False,
+        description=(
+            "Whether this invocation template opts into custom (caller-supplied) "
+            "config. Mirrors GetTestInvocationResponse.use_custom — read from the "
+            "underlying test_invocation_entry.use_custom column so the client can "
+            "honor the custom-invocation / lobby gate before materialization."
+        ),
+    )
     profile_has_access: bool = Field(False, description="Whether profile has access")
     can_edit: bool | None = Field(None, description="Whether the actor can edit this invocation draft")
     disabled_reason: str | None = Field(None, description="Reason editing is disabled, if any")

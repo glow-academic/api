@@ -1,8 +1,70 @@
 """Tests for get_invocation_impl — get orchestration."""
-from unittest.mock import AsyncMock
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 import pytest
 pytestmark = pytest.mark.asyncio
+
+
+def _empty_artifact_context(group_id, *, use_custom):
+    """Build a minimal ArtifactContext the way resolve_invocation_context would.
+
+    Carries empty resource pairs for every section plus the `use_custom` entry
+    sourced from the underlying template invocation row (base_invocation.use_custom).
+    """
+    from app.infra.types import ArtifactContext, ResourcePair
+    from app.infra.invocation.get import SECTIONS
+
+    return ArtifactContext(
+        artifact_id=uuid4(),
+        active=True,
+        group_id=group_id,
+        resources={s: ResourcePair(selected=[], suggestions=[]) for s in SECTIONS},
+        entries={
+            "draft_name": None,
+            "pending_ids": set(),
+            "invocation_exists": True,
+            "use_custom": use_custom,
+        },
+    )
+
+
+@pytest.mark.parametrize("use_custom", [True, False])
+async def test_get_suite_response_carries_use_custom_from_template(use_custom):
+    """GetSuiteResponse exposes use_custom read from the template's underlying row.
+
+    Mirrors the materialized GetTestInvocationResponse.use_custom source
+    (test_invocation_entry.use_custom). A custom template must report
+    use_custom=True; a non-custom template use_custom=False — so the client
+    can honor the lobby / custom-invocation gate pre-materialization.
+    """
+    import app.infra.invocation.get as mod
+
+    group_id = uuid4()
+    invocation_id = uuid4()
+    common = SimpleNamespace(
+        profile=SimpleNamespace(name="Tester", department_ids=[])
+    )
+
+    with patch.object(mod, "resolve_common_context", AsyncMock(return_value=common)), \
+         patch.object(mod, "resolve_invocation_context",
+                      AsyncMock(return_value=_empty_artifact_context(group_id, use_custom=use_custom))), \
+         patch("app.infra.test.group.group_test_impl",
+               AsyncMock(return_value=SimpleNamespace(group_id=group_id))):
+        result = await mod.get_invocation_impl(
+            AsyncMock(),  # pool — never touched (context resolvers are patched)
+            AsyncMock(),  # redis
+            profile_id=uuid4(),
+            invocation_id=invocation_id,
+        )
+
+    assert result.use_custom is use_custom
+
+
+async def test_get_suite_response_use_custom_defaults_false():
+    """Absent a template row, the gate field defaults to the non-custom path."""
+    from app.infra.invocation.types import GetSuiteResponse
+    assert GetSuiteResponse().use_custom is False
 
 async def test_get_function_is_async():
     import app.infra.invocation.get as mod
