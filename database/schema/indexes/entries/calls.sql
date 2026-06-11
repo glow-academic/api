@@ -33,3 +33,14 @@ CREATE INDEX tool_calls_created_at_idx ON public.calls_entry USING btree (create
 
 
 --
+
+-- Name: idx_calls_entry_operation_key; Type: INDEX; Schema: public; Owner: -
+-- Idempotency replay gate — base-table lookup on operation_key.
+-- Mirrors database/migrate/add/20260520_add_operation_key_indexes.sql so fresh
+-- (schema.sql) deploys match migrated instances. Keep the two in sync.
+--
+
+CREATE INDEX idx_calls_entry_operation_key ON public.calls_entry USING btree (operation_key);
+
+
+--
