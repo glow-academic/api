@@ -335,6 +335,113 @@ async def test_s1_multi_agent_error_does_not_report_success(
         )
 
 
+async def test_g3_cancel_persists_completed_iteration_usage_and_clears_marker(
+    conn, redis_client, profile_id, pool, monkeypatch
+):
+    """G3/H4: a Stop mid-run must (1) persist the token/cost the COMPLETED
+    iterations already consumed (not drop billing), and (2) clear the
+    ``cancel_run`` marker so a reused run_id isn't instant-killed.
+
+    The partial-usage flush runs on its OWN ``pool.acquire()`` connection (real
+    production path), which can't see the rolled-back ``conn`` fixture's
+    uncommitted run row — a real ``create_token`` would FK-fail on a run that
+    was never committed. So we spy on the token writer to assert the accumulated
+    usage is flushed with the right numbers, and assert the marker cleanup on
+    Redis directly."""
+    session, group, run = await _run_deps(conn, redis_client, profile_id)
+    dispatch = _make_dispatch(with_tool=True)
+    prepared = _make_prepared(session, group, run, profile_id, [dispatch])
+
+    async def _fake_exec_infra(ctx, spec):
+        return []
+
+    monkeypatch.setattr(execute_mod, "execute_infra_operation", _fake_exec_infra)
+
+    # Spy the partial-usage writers at their source modules (the cancel flush
+    # imports them locally). Assert the COMPLETED iteration's usage is flushed.
+    token_calls: list[dict] = []
+
+    async def _spy_create_token(conn_, redis_, *, run_id, session_id, input_tokens=0, output_tokens=0, **kw):
+        token_calls.append({"input": input_tokens, "output": output_tokens, "run_id": run_id})
+
+    async def _spy_persist_msg(*a, **k):
+        return None
+
+    import app.tools.entries.tokens.create as _tok_mod
+    import app.infra.websocket.persist_run_message as _msg_mod
+    monkeypatch.setattr(_tok_mod, "create_token", _spy_create_token)
+    monkeypatch.setattr(_msg_mod, "persist_run_message", _spy_persist_msg)
+
+    # Iter 1 completes a tool-heavy turn (5 in/2 out tokens), then Stop lands;
+    # the iteration-boundary check at the top of iter 2 raises. The usage from
+    # iter 1 must survive.
+    iters = {"n": 0}
+
+    async def _fake_call(*a, **k):
+        return object()
+
+    async def _fake_stream(_stream):
+        iters["n"] += 1
+        for e in _tool_heavy_events():
+            yield e
+        # Stop pressed right after iter 1's stream drains.
+        await redis_client.setex(f"cancel_run:{run.id}", 300, "1")
+
+    monkeypatch.setattr(execute_mod, "_call_responses_api", _fake_call)
+    monkeypatch.setattr(execute_mod, "_call_chat_completions_api", _fake_call)
+    monkeypatch.setattr(execute_mod, "stream_litellm_events", _fake_stream)
+    monkeypatch.setattr(execute_mod, "get_internal_sio", lambda: _FakeBus())
+
+    with pytest.raises(RuntimeError, match="stopped by user"):
+        await _execute_agent_dispatch(
+            pool, redis_client,
+            dispatch=dispatch, prepared=prepared, sid="sid-g3",
+            tool_soft=True, max_iterations=15, internal_sio=_FakeBus(),
+        )
+
+    # (G3) The completed iteration's usage (5 in / 2 out) was flushed on cancel,
+    # not dropped — exactly once, keyed to this run.
+    assert len(token_calls) == 1, "completed-iteration usage must be flushed on cancel"
+    assert token_calls[0]["input"] == 5
+    assert token_calls[0]["output"] == 2
+    assert token_calls[0]["run_id"] == run.id
+
+    # (H4) The cancel marker is gone, so a reused run_id won't be instant-killed.
+    assert await redis_client.exists(f"cancel_run:{run.id}") == 0
+
+
+async def test_h4_cancel_marker_cleared_on_clean_success(
+    conn, redis_client, profile_id, pool, monkeypatch
+):
+    """A clean run also leaves no ``cancel_run`` marker behind (the finally
+    cleanup runs on every exit), so a later run reusing the id is safe."""
+    session, group, run = await _run_deps(conn, redis_client, profile_id)
+    dispatch = _make_dispatch(with_tool=False)
+    prepared = _make_prepared(session, group, run, profile_id, [dispatch])
+
+    answer_events = [
+        {"type": "text_delta", "delta": "done"},
+        {"type": "message_complete", "usage": {"prompt_tokens": 1, "completion_tokens": 1}},
+    ]
+    _patch_stream(monkeypatch, [answer_events])
+    monkeypatch.setattr(execute_mod, "get_internal_sio", lambda: _FakeBus())
+
+    async def _noop_run_complete(*a, **k):
+        return None
+    import app.infra.websocket.run_complete_impl as _rcmod
+    monkeypatch.setattr(_rcmod, "run_complete_impl", _noop_run_complete)
+
+    await _execute_agent_dispatch(
+        pool, redis_client,
+        dispatch=dispatch, prepared=prepared, sid="sid-h4ok",
+        tool_soft=True, max_iterations=15, internal_sio=_FakeBus(),
+    )
+
+    # No stale marker, and the active-run pointer is cleared too.
+    assert await redis_client.exists(f"cancel_run:{run.id}") == 0
+    assert await redis_client.exists(f"active_run:{group.id}") == 0
+
+
 async def test_s1_multi_agent_all_ok_still_aggregates(
     conn, redis_client, profile_id, pool, monkeypatch
 ):

@@ -89,13 +89,36 @@ async def resolve_run_completion(
             completed_agents=0, agent_results=[],
         )
 
-    # Step 2: Completed agents = assistant messages for this run
-    messages, _msg_total = await search_messages(
-        conn, redis,
-        run_ids=[run_id],
-        role="assistant",
-        limit=100,
-    )
+    # Step 2: Completed agents = assistant messages for this run.
+    #
+    # S3: this MUST read EVERY assistant row for the run, not a capped page.
+    # A single ``limit=100`` fetch silently truncated the count once a run
+    # accumulated >100 assistant rows (a wide multi-agent fan-out, or a run_id
+    # reused across grading / multi-turn): the answer-row count came up short
+    # forever → ``all_done`` never flipped → completion stalled (same hang as
+    # S1), and conversely a path persisting >1 answer per agent over-counted
+    # and fired early. Paginate fully via the search's own ``total`` so the
+    # count reflects the real number of completed agents regardless of size.
+    # ``search_messages`` stays hedged (write-back cache ∪ MV), so a freshly
+    # persisted answer row still counts before the MV refresh catches up.
+    PAGE = 200
+    messages: list = []
+    offset = 0
+    while True:
+        page, msg_total = await search_messages(
+            conn, redis,
+            run_ids=[run_id],
+            role="assistant",
+            limit=PAGE,
+            offset=offset,
+        )
+        messages.extend(page)
+        offset += PAGE
+        # Stop when we've read the full set (``total`` is the unpaginated count)
+        # or a short page signals exhaustion. The bound also guards against a
+        # pathological total so we never loop unboundedly.
+        if offset >= msg_total or len(page) < PAGE or offset >= 10_000:
+            break
 
     # Count unique agents from messages (if agent_ids populated)
     completed_agent_ids: set[UUID] = set()

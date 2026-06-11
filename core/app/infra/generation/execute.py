@@ -59,6 +59,23 @@ except ImportError:
 
 logger = get_logger(__name__)
 
+# Cancellation message — kept identical across every Stop raise site so the
+# runner's ``.generate.failed`` emit and existing ``match="stopped by user"``
+# expectations stay stable. Raised as its own ``RuntimeError`` subclass (G3)
+# so the dispatch wrapper can tell a user-Stop apart from a real error and
+# persist the token/cost already consumed by the iterations that DID complete
+# before the Stop landed, instead of dropping that billing on the floor.
+_CANCEL_MESSAGE = "Generation stopped by user (/attempt/stop)"
+
+
+class _GenerationCancelled(RuntimeError):
+    """Raised when the cooperative ``cancel_run:{run_id}`` marker is observed.
+
+    A ``RuntimeError`` subclass so it propagates through ``runner._run`` exactly
+    like the old bare ``RuntimeError`` (same ``.generate.failed`` terminal),
+    while letting ``_execute_agent_dispatch`` flush partial usage on the way out.
+    """
+
 
 # ---------------------------------------------------------------------------
 # Tool → (artifact, operation) route resolution
@@ -491,609 +508,691 @@ async def _execute_agent_dispatch(
     # ``created_at`` to render a real "Thought for Xs" duration.
     final_reasoning_started_at: "datetime | None" = None
 
+    async def _persist_partial_usage_on_cancel() -> None:
+        """Flush token/cost + partial text for the iterations that DID complete
+        before a Stop landed (G3).
+
+        The Stop raise propagates out of the agentic loop ABOVE the normal
+        ``run_complete_impl`` persist, so without this the provider cost already
+        consumed by the completed iterations (real input/output tokens) and the
+        partial assistant/reasoning text the client already streamed would be
+        dropped — under-counted billing + lost history on every cancelled run.
+        This records ONLY the usage + partial turn (a plain ``create_token`` +
+        ``persist_run_message``), NOT the full ``run_complete_impl``
+        coordination: a cancelled run must NOT flip ``all_done`` / fire the
+        attempt lifecycle as if it finished. Best-effort — a failure here must
+        not mask the cancellation itself, which still re-raises.
+        """
+        if not (total_input_tokens or total_output_tokens
+                or final_assistant_output or final_reasoning_output):
+            return
+        from app.infra.websocket.persist_run_message import persist_run_message
+        from app.tools.entries.tokens.create import create_token
+        try:
+            async with pool.acquire() as cancel_conn:
+                async with cancel_conn.transaction():
+                    if final_reasoning_output:
+                        await persist_run_message(
+                            cancel_conn, redis,
+                            run_id=run_id, session_id=session_id,
+                            role="assistant", content=final_reasoning_output,
+                            reasoning=True,
+                            created_at=final_reasoning_started_at,
+                            agent_ids=(
+                                [dispatch.agent_id] if dispatch.agent_id else None
+                            ),
+                        )
+                    if final_assistant_output:
+                        await persist_run_message(
+                            cancel_conn, redis,
+                            run_id=run_id, session_id=session_id,
+                            role="assistant", content=final_assistant_output,
+                            agent_ids=(
+                                [dispatch.agent_id] if dispatch.agent_id else None
+                            ),
+                        )
+                    if total_input_tokens or total_output_tokens:
+                        await create_token(
+                            cancel_conn, redis,
+                            run_id=run_id, session_id=session_id,
+                            input_tokens=total_input_tokens,
+                            output_tokens=total_output_tokens,
+                        )
+        except Exception:
+            logger.exception(
+                "Failed to persist partial usage on cancel for run_id=%s", run_id,
+            )
+
     iteration = 0
     # Tracks whether the loop exited because the model stopped requesting
     # tools (graceful) vs. because it hit ``max_iterations`` still mid-tool-loop
     # (G2 — truncated turn, must be surfaced, not reported as clean success).
     hit_iteration_cap = False
-    while iteration < max_iterations:
-        iteration += 1
+    # H4: the cooperative ``cancel_run:{run_id}`` marker is set with a 300s TTL
+    # and used to be left behind, so a run_id reused within that window (the
+    # grading pipeline / a client-supplied ``client_run_id``) would have its
+    # very first cancel-poll instant-kill it — a run nobody stopped. Delete the
+    # marker on EVERY exit (success, cancel, error) so it can't leak across
+    # runs. ``remove_active_run`` (previously dead code) is wired up here too to
+    # clear the ``active_run:{group_id}`` pointer in the same breath.
+    try:
+        while iteration < max_iterations:
+            iteration += 1
 
-        # Iteration-boundary cancellation check (G1). The in-stream poll below
-        # only fires every ~12 events, so a tool-heavy iteration (a short
-        # stream of ~5 events) would never reach it — Stop would be a no-op for
-        # exactly the turns users most want to abort, and the loop would issue
-        # the NEXT provider call + dispatch more tools after Stop. Checking the
-        # ``cancel_run`` marker once per iteration (one Redis EXISTS) makes Stop
-        # reliable regardless of stream length, before any further model cost or
-        # tool dispatch is incurred.
-        if await is_run_cancelled(str(run_id)):
-            raise RuntimeError("Generation stopped by user (/attempt/stop)")
+            # Iteration-boundary cancellation check (G1). The in-stream poll below
+            # only fires every ~12 events, so a tool-heavy iteration (a short
+            # stream of ~5 events) would never reach it — Stop would be a no-op for
+            # exactly the turns users most want to abort, and the loop would issue
+            # the NEXT provider call + dispatch more tools after Stop. Checking the
+            # ``cancel_run`` marker once per iteration (one Redis EXISTS) makes Stop
+            # reliable regardless of stream length, before any further model cost or
+            # tool dispatch is incurred.
+            if await is_run_cancelled(str(run_id)):
+                raise _GenerationCancelled(_CANCEL_MESSAGE)
 
-        # Call LLM
-        try:
-            if api_mode == "responses":
-                stream = await _call_responses_api(
-                    model=llm_config["model"],
-                    responses_input=responses_input,
-                    tools=responses_tools,
-                    tool_choice=tool_choice,
-                    api_key=api_key,
-                    base_url=llm_config.get("base_url"),
-                    temperature=llm_config.get("temperature") or 0.0,
-                    extra_body=None,
-                )
-            else:
-                stream = await _call_chat_completions_api(
-                    model=llm_config["model"],
-                    messages=chat_messages,
-                    tools=openai_tools,
-                    tool_choice=tool_choice,
-                    api_key=api_key,
-                    base_url=llm_config.get("base_url"),
-                    temperature=llm_config.get("temperature") or 0.0,
-                    reasoning=llm_config.get("reasoning"),
-                    extra_body=None,
-                )
-        except Exception as e:
-            if api_mode == "responses":
-                logger.warning(f"Responses API failed, falling back to Chat Completions: {e}")
-                api_mode = "chat_completions"
-                stream = await _call_chat_completions_api(
-                    model=llm_config["model"],
-                    messages=chat_messages,
-                    tools=openai_tools,
-                    tool_choice=tool_choice,
-                    api_key=api_key,
-                    base_url=llm_config.get("base_url"),
-                    temperature=llm_config.get("temperature") or 0.0,
-                    reasoning=llm_config.get("reasoning"),
-                    extra_body=None,
-                )
-            else:
-                raise
-
-        # Process stream events
-        assistant_output = ""
-        reasoning_output = ""
-        input_tokens = 0
-        output_tokens = 0
-        tool_call_states: dict[str, dict[str, Any]] = {}
-        tool_results: list[dict[str, Any]] = []
-        output_items: list[dict[str, Any]] = []
-
-        cancel_poll = 0
-        async for event in stream_litellm_events(stream):
-            # Cooperative cancellation: poll the Stop marker periodically
-            # (every ~12 events — a redis hit per token would be wasteful).
-            # ``/attempt/stop`` sets ``cancel_run:{run_id}`` via the
-            # ``active_run:{group_id}`` registered above. Raising here
-            # propagates to runner._run's except, which emits
-            # ``{artifact}.generate.failed`` (carrying run_id) → the watcher
-            # sees its terminal frame and the streaming reply truncates cleanly.
-            cancel_poll += 1
-            if cancel_poll % 12 == 0 and await is_run_cancelled(str(run_id)):
-                raise RuntimeError("Generation stopped by user (/attempt/stop)")
-            event_type = event.get("type")
-
-            if event_type == "text_delta":
-                delta = event.get("delta", "")
-                if delta:
-                    assistant_output += delta
-                    await internal_sio.emit(
-                        f"{artifact_type}.generate.text.progress",
-                        {
-                            "sid": sid,
-                            "rooms": [str(profile_id)],
-                            "artifact_type": artifact_type,
-                            "run_id": str(run_id),
-                            "group_id": str(group_id),
-                            "agent_id": str(dispatch.agent_id),
-                            "delta": delta,
-                        },
+            # Call LLM
+            try:
+                if api_mode == "responses":
+                    stream = await _call_responses_api(
+                        model=llm_config["model"],
+                        responses_input=responses_input,
+                        tools=responses_tools,
+                        tool_choice=tool_choice,
+                        api_key=api_key,
+                        base_url=llm_config.get("base_url"),
+                        temperature=llm_config.get("temperature") or 0.0,
+                        extra_body=None,
                     )
-
-            elif event_type == "text_complete":
-                assistant_output = event.get("text", assistant_output)
-                await internal_sio.emit(
-                    f"{artifact_type}.generate.text.complete",
-                    {
-                        "sid": sid,
-                        "rooms": [str(profile_id)],
-                        "artifact_type": artifact_type,
-                        "run_id": str(run_id),
-                        "group_id": str(group_id),
-                        "role": "assistant",
-                        "text": assistant_output,
-                    },
-                )
-
-            elif event_type == "reasoning_delta":
-                # Chain-of-thought channel. Accumulated separately from
-                # assistant_output so we can persist it as a distinct
-                # ``messages_entry`` row with reasoning=True. As of vLLM
-                # 0.19.0+nv26.04 these events do not fire — Gemma 4's
-                # <|channel>thought blocks leak into the regular text
-                # stream (vLLM issue #38855). Handler is wired up so
-                # reasoning will start persisting automatically once
-                # upstream emits a proper channel.
-                delta = event.get("delta", "")
-                if delta:
-                    if final_reasoning_started_at is None:
-                        final_reasoning_started_at = datetime.now(UTC)
-                    reasoning_output += delta
-                    await internal_sio.emit(
-                        f"{artifact_type}.generate.reasoning.progress",
-                        {
-                            "sid": sid,
-                            "rooms": [str(profile_id)],
-                            "artifact_type": artifact_type,
-                            "run_id": str(run_id),
-                            "group_id": str(group_id),
-                            "agent_id": str(dispatch.agent_id),
-                            "delta": delta,
-                        },
+                else:
+                    stream = await _call_chat_completions_api(
+                        model=llm_config["model"],
+                        messages=chat_messages,
+                        tools=openai_tools,
+                        tool_choice=tool_choice,
+                        api_key=api_key,
+                        base_url=llm_config.get("base_url"),
+                        temperature=llm_config.get("temperature") or 0.0,
+                        reasoning=llm_config.get("reasoning"),
+                        extra_body=None,
                     )
-
-            elif event_type == "reasoning_complete":
-                reasoning_output = event.get("text", reasoning_output)
-                await internal_sio.emit(
-                    f"{artifact_type}.generate.reasoning.complete",
-                    {
-                        "sid": sid,
-                        "rooms": [str(profile_id)],
-                        "artifact_type": artifact_type,
-                        "run_id": str(run_id),
-                        "group_id": str(group_id),
-                        "role": "assistant",
-                        "text": reasoning_output,
-                    },
-                )
-
-            elif event_type in ("tool_call_start", "tool_call_delta"):
-                raw_id = cast(str, event.get("tool_call_id"))
-                tool_call_id = (
-                    raw_id[:40] if api_mode == "chat_completions" and len(raw_id) > 40
-                    else raw_id
-                )
-                st = tool_call_states.setdefault(
-                    tool_call_id,
-                    {
-                        "raw_id": raw_id,
-                        "responses_call_id": event.get("responses_call_id") or raw_id,
-                        "tool_call_id": tool_call_id,
-                        "tool_name": event.get("tool_name"),
-                        "arguments": "",
-                        # Pre-mint the DB call row id now so every downstream
-                        # event — progress, audit .started/.completed — shares
-                        # the same handle. create_call will reuse this id.
-                        "call_id": uuid.uuid4(),
-                    },
-                )
-                if event_type == "tool_call_start":
-                    await internal_sio.emit(
-                        f"{artifact_type}.generate.call.start",
-                        {
-                            "sid": sid,
-                            "rooms": [str(profile_id)],
-                            "artifact_type": artifact_type,
-                            "run_id": str(run_id),
-                            "group_id": str(group_id),
-                            # ``call_id`` carries the pre-minted DB row id so
-                            # the audit lifecycle (``{artifact}.{op}.started``)
-                            # and this pipeline event share one handle on the
-                            # client — natural dedup keys to one bubble per
-                            # logical tool call. ``tool_call_id`` stays as
-                            # the provider's own string id for provenance.
-                            "call_id": str(st["call_id"]),
-                            "tool_call_id": tool_call_id,
-                            "tool_name": st.get("tool_name"),
-                        },
+            except Exception as e:
+                if api_mode == "responses":
+                    logger.warning(f"Responses API failed, falling back to Chat Completions: {e}")
+                    api_mode = "chat_completions"
+                    stream = await _call_chat_completions_api(
+                        model=llm_config["model"],
+                        messages=chat_messages,
+                        tools=openai_tools,
+                        tool_choice=tool_choice,
+                        api_key=api_key,
+                        base_url=llm_config.get("base_url"),
+                        temperature=llm_config.get("temperature") or 0.0,
+                        reasoning=llm_config.get("reasoning"),
+                        extra_body=None,
                     )
-                    # ``{artifact}.{op}.started`` is now emitted by the
-                    # audit framework (``run_artifact_operation_with_audit``)
-                    # once args are parsed and the impl is about to run.
-                    # The audit emit carries the ``tool`` envelope,
-                    # ``operation_key``, etc. — a richer payload than this
-                    # pre-args pipeline emit could produce. Firing here
-                    # too produced duplicate ``<artifact>.<op>.started``
-                    # events on the wire (same ``call_id``, deduped to one
-                    # bubble client-side, but visible noise in the SSE
-                    # log). Single source of truth: the audit framework.
-                if event_type == "tool_call_delta":
-                    delta = event.get("delta", "") or ""
-                    if event.get("tool_name") and not st["tool_name"]:
-                        st["tool_name"] = event["tool_name"]
-                    st["arguments"] += delta
+                else:
+                    raise
 
-                    # Per-tool progress event: if the tool resolves to a
-                    # single (artifact, operation) pair, emit a scoped
-                    # ``{artifact}.{operation}.progress`` event carrying
-                    # the *parsed* partial args so consumers can read
-                    # fields (e.g. ``text``) directly. Multi-op tools
-                    # skip this emit (op isn't known until finalize).
-                    route = _resolve_tool_route(
-                        tool_def_by_name.get(st.get("tool_name") or "")
-                    )
-                    if route is not None:
-                        route_artifact, route_op = route
-                        parsed_args = parse_partial_json(st["arguments"]) or {}
+            # Process stream events
+            assistant_output = ""
+            reasoning_output = ""
+            input_tokens = 0
+            output_tokens = 0
+            tool_call_states: dict[str, dict[str, Any]] = {}
+            tool_results: list[dict[str, Any]] = []
+            output_items: list[dict[str, Any]] = []
+
+            cancel_poll = 0
+            async for event in stream_litellm_events(stream):
+                # Cooperative cancellation: poll the Stop marker periodically
+                # (every ~12 events — a redis hit per token would be wasteful).
+                # ``/attempt/stop`` sets ``cancel_run:{run_id}`` via the
+                # ``active_run:{group_id}`` registered above. Raising here
+                # propagates to runner._run's except, which emits
+                # ``{artifact}.generate.failed`` (carrying run_id) → the watcher
+                # sees its terminal frame and the streaming reply truncates cleanly.
+                cancel_poll += 1
+                if cancel_poll % 12 == 0 and await is_run_cancelled(str(run_id)):
+                    raise _GenerationCancelled(_CANCEL_MESSAGE)
+                event_type = event.get("type")
+
+                if event_type == "text_delta":
+                    delta = event.get("delta", "")
+                    if delta:
+                        assistant_output += delta
                         await internal_sio.emit(
-                            f"{route_artifact}.{route_op}.progress",
+                            f"{artifact_type}.generate.text.progress",
                             {
                                 "sid": sid,
                                 "rooms": [str(profile_id)],
                                 "artifact_type": artifact_type,
                                 "run_id": str(run_id),
                                 "group_id": str(group_id),
-                                # ``call_id`` is the unified handle across
-                                # streaming progress and audit .started/
-                                # .completed. Provider ``tool_call_id`` is
-                                # server-internal (kept on tool_call_states)
-                                # and not exposed to the client.
-                                "call_id": str(st["call_id"]),
-                                "tool_name": st.get("tool_name"),
-                                "arguments": parsed_args,
+                                "agent_id": str(dispatch.agent_id),
                                 "delta": delta,
-                                # Unpack args to top-level so consumers read
-                                # ``data.text`` / ``data.chat_id`` directly,
-                                # matching the audit .started/.completed shape.
-                                **{k: v for k, v in parsed_args.items() if isinstance(k, str)},
                             },
                         )
 
-            elif event_type == "tool_call_complete":
-                raw_id = cast(str, event.get("tool_call_id"))
-                tool_call_id = (
-                    raw_id[:40] if api_mode == "chat_completions" and len(raw_id) > 40
-                    else raw_id
-                )
-                tool_name = (
-                    event.get("name")
-                    or tool_call_states.get(tool_call_id, {}).get("tool_name")
-                    or ""
-                )
-                st = tool_call_states.get(tool_call_id, {})
-                arguments_str = event.get("arguments") or st.get("arguments", "")
+                elif event_type == "text_complete":
+                    assistant_output = event.get("text", assistant_output)
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.text.complete",
+                        {
+                            "sid": sid,
+                            "rooms": [str(profile_id)],
+                            "artifact_type": artifact_type,
+                            "run_id": str(run_id),
+                            "group_id": str(group_id),
+                            "role": "assistant",
+                            "text": assistant_output,
+                        },
+                    )
 
-                try:
-                    arguments_dict = json.loads(arguments_str) if arguments_str else {}
-                except json.JSONDecodeError:
-                    arguments_dict = {}
-
-                # Execute tool via infra path (audit emits artifact events).
-                # call_success tracks the structured outcome separately from
-                # the LLM-facing string so a templated render (markdown / plain
-                # text, not valid JSON) doesn't get re-parsed and falsely
-                # downgraded to success=False on the WS emit.
-                td = tool_def_by_name.get(tool_name)
-                call_success: bool
-
-                # Eval runs dispatch live (no replay tape). The
-                # ``soft=True`` + ``eval=True`` flags on InfraContext
-                # below stage every write as dormant + tag the
-                # soft_calls ledger so the UI filters eval entries
-                # out of normal listings.
-                if not td:
-                    tool_result_str = json.dumps({
-                        "success": False,
-                        "message": f"Tool not found: {tool_name}",
-                    })
-                    call_success = False
-                else:
-                    # Pre-dispatch cancellation check (G1). A tool-heavy turn
-                    # can emit several tool_call_complete events inside one
-                    # short stream; honour Stop before dispatching each tool so
-                    # a Stop arriving mid-turn doesn't run further (possibly
-                    # write-staging) tool operations.
-                    if await is_run_cancelled(str(run_id)):
-                        raise RuntimeError(
-                            "Generation stopped by user (/attempt/stop)"
+                elif event_type == "reasoning_delta":
+                    # Chain-of-thought channel. Accumulated separately from
+                    # assistant_output so we can persist it as a distinct
+                    # ``messages_entry`` row with reasoning=True. As of vLLM
+                    # 0.19.0+nv26.04 these events do not fire — Gemma 4's
+                    # <|channel>thought blocks leak into the regular text
+                    # stream (vLLM issue #38855). Handler is wired up so
+                    # reasoning will start persisting automatically once
+                    # upstream emits a proper channel.
+                    delta = event.get("delta", "")
+                    if delta:
+                        if final_reasoning_started_at is None:
+                            final_reasoning_started_at = datetime.now(UTC)
+                        reasoning_output += delta
+                        await internal_sio.emit(
+                            f"{artifact_type}.generate.reasoning.progress",
+                            {
+                                "sid": sid,
+                                "rooms": [str(profile_id)],
+                                "artifact_type": artifact_type,
+                                "run_id": str(run_id),
+                                "group_id": str(group_id),
+                                "agent_id": str(dispatch.agent_id),
+                                "delta": delta,
+                            },
                         )
+
+                elif event_type == "reasoning_complete":
+                    reasoning_output = event.get("text", reasoning_output)
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.reasoning.complete",
+                        {
+                            "sid": sid,
+                            "rooms": [str(profile_id)],
+                            "artifact_type": artifact_type,
+                            "run_id": str(run_id),
+                            "group_id": str(group_id),
+                            "role": "assistant",
+                            "text": reasoning_output,
+                        },
+                    )
+
+                elif event_type in ("tool_call_start", "tool_call_delta"):
+                    raw_id = cast(str, event.get("tool_call_id"))
+                    tool_call_id = (
+                        raw_id[:40] if api_mode == "chat_completions" and len(raw_id) > 40
+                        else raw_id
+                    )
+                    st = tool_call_states.setdefault(
+                        tool_call_id,
+                        {
+                            "raw_id": raw_id,
+                            "responses_call_id": event.get("responses_call_id") or raw_id,
+                            "tool_call_id": tool_call_id,
+                            "tool_name": event.get("tool_name"),
+                            "arguments": "",
+                            # Pre-mint the DB call row id now so every downstream
+                            # event — progress, audit .started/.completed — shares
+                            # the same handle. create_call will reuse this id.
+                            "call_id": uuid.uuid4(),
+                        },
+                    )
+                    if event_type == "tool_call_start":
+                        await internal_sio.emit(
+                            f"{artifact_type}.generate.call.start",
+                            {
+                                "sid": sid,
+                                "rooms": [str(profile_id)],
+                                "artifact_type": artifact_type,
+                                "run_id": str(run_id),
+                                "group_id": str(group_id),
+                                # ``call_id`` carries the pre-minted DB row id so
+                                # the audit lifecycle (``{artifact}.{op}.started``)
+                                # and this pipeline event share one handle on the
+                                # client — natural dedup keys to one bubble per
+                                # logical tool call. ``tool_call_id`` stays as
+                                # the provider's own string id for provenance.
+                                "call_id": str(st["call_id"]),
+                                "tool_call_id": tool_call_id,
+                                "tool_name": st.get("tool_name"),
+                            },
+                        )
+                        # ``{artifact}.{op}.started`` is now emitted by the
+                        # audit framework (``run_artifact_operation_with_audit``)
+                        # once args are parsed and the impl is about to run.
+                        # The audit emit carries the ``tool`` envelope,
+                        # ``operation_key``, etc. — a richer payload than this
+                        # pre-args pipeline emit could produce. Firing here
+                        # too produced duplicate ``<artifact>.<op>.started``
+                        # events on the wire (same ``call_id``, deduped to one
+                        # bubble client-side, but visible noise in the SSE
+                        # log). Single source of truth: the audit framework.
+                    if event_type == "tool_call_delta":
+                        delta = event.get("delta", "") or ""
+                        if event.get("tool_name") and not st["tool_name"]:
+                            st["tool_name"] = event["tool_name"]
+                        st["arguments"] += delta
+
+                        # Per-tool progress event: if the tool resolves to a
+                        # single (artifact, operation) pair, emit a scoped
+                        # ``{artifact}.{operation}.progress`` event carrying
+                        # the *parsed* partial args so consumers can read
+                        # fields (e.g. ``text``) directly. Multi-op tools
+                        # skip this emit (op isn't known until finalize).
+                        route = _resolve_tool_route(
+                            tool_def_by_name.get(st.get("tool_name") or "")
+                        )
+                        if route is not None:
+                            route_artifact, route_op = route
+                            parsed_args = parse_partial_json(st["arguments"]) or {}
+                            await internal_sio.emit(
+                                f"{route_artifact}.{route_op}.progress",
+                                {
+                                    "sid": sid,
+                                    "rooms": [str(profile_id)],
+                                    "artifact_type": artifact_type,
+                                    "run_id": str(run_id),
+                                    "group_id": str(group_id),
+                                    # ``call_id`` is the unified handle across
+                                    # streaming progress and audit .started/
+                                    # .completed. Provider ``tool_call_id`` is
+                                    # server-internal (kept on tool_call_states)
+                                    # and not exposed to the client.
+                                    "call_id": str(st["call_id"]),
+                                    "tool_name": st.get("tool_name"),
+                                    "arguments": parsed_args,
+                                    "delta": delta,
+                                    # Unpack args to top-level so consumers read
+                                    # ``data.text`` / ``data.chat_id`` directly,
+                                    # matching the audit .started/.completed shape.
+                                    **{k: v for k, v in parsed_args.items() if isinstance(k, str)},
+                                },
+                            )
+
+                elif event_type == "tool_call_complete":
+                    raw_id = cast(str, event.get("tool_call_id"))
+                    tool_call_id = (
+                        raw_id[:40] if api_mode == "chat_completions" and len(raw_id) > 40
+                        else raw_id
+                    )
+                    tool_name = (
+                        event.get("name")
+                        or tool_call_states.get(tool_call_id, {}).get("tool_name")
+                        or ""
+                    )
+                    st = tool_call_states.get(tool_call_id, {})
+                    arguments_str = event.get("arguments") or st.get("arguments", "")
+
                     try:
-                        spec = resolve_tool_spec(td, arguments_dict)
-                        ctx = InfraContext(
-                            pool=pool,
-                            redis=redis,
-                            profile_id=profile_id,
-                            session_id=session_id,
-                            group_id=group_id,
-                            run_id=run_id,
-                            sid=sid,
-                            soft=tool_soft,
-                            eval=prepared.eval,
-                            operation_key=uuid.uuid4(),
-                            instruction_template=td.get("_instruction_template"),
-                            call_id=st.get("call_id"),
-                        )
-                        results = await execute_infra_operation(ctx, spec)
-                        # Layer 3 output render — shared with MCP dispatch.
-                        from app.infra.tools.render_result import (
-                            render_tool_result_with_meta,
-                        )
+                        arguments_dict = json.loads(arguments_str) if arguments_str else {}
+                    except json.JSONDecodeError:
+                        arguments_dict = {}
 
-                        meta = render_tool_result_with_meta(td, results)
-                        tool_result_str = meta.rendered
-                        call_success = meta.success
-                    except Exception as e:
+                    # Execute tool via infra path (audit emits artifact events).
+                    # call_success tracks the structured outcome separately from
+                    # the LLM-facing string so a templated render (markdown / plain
+                    # text, not valid JSON) doesn't get re-parsed and falsely
+                    # downgraded to success=False on the WS emit.
+                    td = tool_def_by_name.get(tool_name)
+                    call_success: bool
+
+                    # Eval runs dispatch live (no replay tape). The
+                    # ``soft=True`` + ``eval=True`` flags on InfraContext
+                    # below stage every write as dormant + tag the
+                    # soft_calls ledger so the UI filters eval entries
+                    # out of normal listings.
+                    if not td:
                         tool_result_str = json.dumps({
                             "success": False,
-                            "message": str(e),
+                            "message": f"Tool not found: {tool_name}",
                         })
                         call_success = False
+                    else:
+                        # Pre-dispatch cancellation check (G1). A tool-heavy turn
+                        # can emit several tool_call_complete events inside one
+                        # short stream; honour Stop before dispatching each tool so
+                        # a Stop arriving mid-turn doesn't run further (possibly
+                        # write-staging) tool operations.
+                        if await is_run_cancelled(str(run_id)):
+                            raise _GenerationCancelled(_CANCEL_MESSAGE)
+                        try:
+                            spec = resolve_tool_spec(td, arguments_dict)
+                            ctx = InfraContext(
+                                pool=pool,
+                                redis=redis,
+                                profile_id=profile_id,
+                                session_id=session_id,
+                                group_id=group_id,
+                                run_id=run_id,
+                                sid=sid,
+                                soft=tool_soft,
+                                eval=prepared.eval,
+                                operation_key=uuid.uuid4(),
+                                instruction_template=td.get("_instruction_template"),
+                                call_id=st.get("call_id"),
+                            )
+                            results = await execute_infra_operation(ctx, spec)
+                            # Layer 3 output render — shared with MCP dispatch.
+                            from app.infra.tools.render_result import (
+                                render_tool_result_with_meta,
+                            )
 
-                try:
-                    tool_result = json.loads(tool_result_str)
-                except json.JSONDecodeError:
-                    # Rendered template output is plain text/markdown — not a
-                    # parse failure of a real JSON payload. Preserve the true
-                    # call_success here; the dict shape is only kept around so
-                    # downstream code that expects ``result`` as a dict (e.g.
-                    # the Responses-API tool_result feedback) still works.
-                    tool_result = {"success": call_success, "message": tool_result_str}
+                            meta = render_tool_result_with_meta(td, results)
+                            tool_result_str = meta.rendered
+                            call_success = meta.success
+                        except Exception as e:
+                            tool_result_str = json.dumps({
+                                "success": False,
+                                "message": str(e),
+                            })
+                            call_success = False
 
-                tool_results.append({
-                    "tool_call_id": tool_call_id,
-                    "raw_id": raw_id,
-                    "responses_call_id": st.get("responses_call_id", raw_id),
-                    "tool_name": tool_name,
-                    "arguments": arguments_dict,
-                    "arguments_str": arguments_str,
-                    "result": tool_result,
-                    "result_str": tool_result_str,
-                    # Server-side ``calls_entry.id`` for this tool dispatch —
-                    # used as ``idempotency_key`` by the FE to promote/reject
-                    # the soft write via ``/<artifact>/create``.
-                    "call_id": str(st["call_id"]) if st.get("call_id") else None,
-                })
+                    try:
+                        tool_result = json.loads(tool_result_str)
+                    except json.JSONDecodeError:
+                        # Rendered template output is plain text/markdown — not a
+                        # parse failure of a real JSON payload. Preserve the true
+                        # call_success here; the dict shape is only kept around so
+                        # downstream code that expects ``result`` as a dict (e.g.
+                        # the Responses-API tool_result feedback) still works.
+                        tool_result = {"success": call_success, "message": tool_result_str}
 
-                # Emit call complete — use the structured success state from
-                # render_tool_result_with_meta, NOT the parsed string. Templated
-                # renders return markdown/plain-text that's not JSON, so the
-                # legacy `tool_result.get("success")` path was reading the
-                # JSONDecodeError fallback and emitting success=False for
-                # every templated tool, even on healthy runs.
-                await internal_sio.emit(
-                    f"{artifact_type}.generate.call.complete",
-                    {
-                        "sid": sid,
-                        "rooms": [str(profile_id)],
-                        "artifact_type": artifact_type,
-                        "run_id": str(run_id),
-                        "group_id": str(group_id),
-                        # See ``generate.call.start`` for the ``call_id`` rationale —
-                        # same pre-minted DB row id, used for client-side dedup
-                        # against the audit lifecycle.
-                        "call_id": str(st["call_id"]) if st.get("call_id") else None,
+                    tool_results.append({
                         "tool_call_id": tool_call_id,
+                        "raw_id": raw_id,
+                        "responses_call_id": st.get("responses_call_id", raw_id),
                         "tool_name": tool_name,
-                        "success": call_success,
-                    },
-                )
+                        "arguments": arguments_dict,
+                        "arguments_str": arguments_str,
+                        "result": tool_result,
+                        "result_str": tool_result_str,
+                        # Server-side ``calls_entry.id`` for this tool dispatch —
+                        # used as ``idempotency_key`` by the FE to promote/reject
+                        # the soft write via ``/<artifact>/create``.
+                        "call_id": str(st["call_id"]) if st.get("call_id") else None,
+                    })
 
-            elif event_type == "output_item":
-                item = event.get("item")
-                if item:
-                    output_items.append(item)
-
-            elif event_type == "message_complete":
-                usage_data = event.get("usage")
-                if isinstance(usage_data, dict):
-                    input_tokens = usage_data.get("prompt_tokens", 0) or 0
-                    output_tokens = usage_data.get("completion_tokens", 0) or 0
-
-        # End of stream
-
-        total_input_tokens += input_tokens
-        total_output_tokens += output_tokens
-        all_tool_results.extend(tool_results)
-        final_assistant_output = assistant_output
-        final_reasoning_output = reasoning_output
-
-        if not tool_results:
-            break
-
-        # The model still wants to call tools but we've reached the iteration
-        # cap → the turn is being truncated mid-tool-loop (G2). Flag it so the
-        # post-loop code surfaces an explicit terminal state instead of
-        # persisting/reporting whatever partial (often empty) ``final_assistant_output``
-        # the last tool-only iteration left as a clean success.
-        if iteration >= max_iterations:
-            hit_iteration_cap = True
-            break
-
-        # Update conversation state for next iteration
-        if api_mode == "responses":
-            for item in output_items:
-                # Defensive filter: vLLM 0.19's Responses API rejects
-                # bare assistant messages with empty output_text content
-                # (no union variant matches — see stream_litellm_events
-                # comment). Should already be skipped at emit time, but
-                # keep the check here so a stray item from any other
-                # source can't 400 the whole next iteration.
-                if (
-                    isinstance(item, dict)
-                    and item.get("type") == "message"
-                    and item.get("role") == "assistant"
-                ):
-                    content = item.get("content") or []
-                    has_text = any(
-                        isinstance(c, dict)
-                        and c.get("type") in ("output_text", "input_text")
-                        and (c.get("text") or "").strip()
-                        for c in content
+                    # Emit call complete — use the structured success state from
+                    # render_tool_result_with_meta, NOT the parsed string. Templated
+                    # renders return markdown/plain-text that's not JSON, so the
+                    # legacy `tool_result.get("success")` path was reading the
+                    # JSONDecodeError fallback and emitting success=False for
+                    # every templated tool, even on healthy runs.
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.call.complete",
+                        {
+                            "sid": sid,
+                            "rooms": [str(profile_id)],
+                            "artifact_type": artifact_type,
+                            "run_id": str(run_id),
+                            "group_id": str(group_id),
+                            # See ``generate.call.start`` for the ``call_id`` rationale —
+                            # same pre-minted DB row id, used for client-side dedup
+                            # against the audit lifecycle.
+                            "call_id": str(st["call_id"]) if st.get("call_id") else None,
+                            "tool_call_id": tool_call_id,
+                            "tool_name": tool_name,
+                            "success": call_success,
+                        },
                     )
-                    if not has_text:
-                        continue
-                responses_input.append(item)
-            for tr in tool_results:
-                responses_input.append({
-                    "type": "function_call_output",
-                    "call_id": tr.get("responses_call_id", tr["raw_id"]),
-                    "output": tr["result_str"],
-                })
-        else:
-            assistant_tool_calls = [
-                {
-                    "id": tr["tool_call_id"],
-                    "type": "function",
-                    "function": {
-                        "name": tr["tool_name"],
-                        "arguments": tr["arguments_str"],
-                    },
-                }
-                for tr in tool_results
-            ]
-            chat_messages.append({
-                "role": "assistant",
-                "content": assistant_output or "",
-                "tool_calls": assistant_tool_calls,
-            })
-            for tr in tool_results:
-                chat_messages.append({
-                    "tool_call_id": tr["tool_call_id"],
-                    "role": "tool",
-                    "name": tr["tool_name"],
-                    "content": tr["result_str"],
-                })
 
-        if tool_choice == "required":
-            tool_choice = "auto"
+                elif event_type == "output_item":
+                    item = event.get("item")
+                    if item:
+                        output_items.append(item)
 
-    # Max-iterations terminal state (G2). The loop fell through the cap while
-    # the model was still requesting tools, so it never produced a closing
-    # answer this turn — ``final_assistant_output`` is whatever the last
-    # tool-only iteration left, typically "". Surfacing this matters: without
-    # it ``run_complete_impl`` skips the empty assistant row (``if
-    # assistant_output``) and the route returns a clean 200, so the user sees
-    # an empty reply with no signal the loop was capped. Make it terminal:
-    #   - no usable answer  → raise, so ``runner._run`` emits
-    #     ``{artifact}.generate.failed`` (a clear terminal frame the watcher
-    #     sees) rather than a silent empty-success turn.
-    #   - partial answer    → keep it but prepend an explicit truncation notice
-    #     so it is never presented as a normal, complete reply.
-    if hit_iteration_cap:
-        logger.warning(
-            "Agentic loop hit max_iterations=%d for run_id=%s agent=%s "
-            "(model still requesting tools) — surfacing truncation",
-            max_iterations, run_id, dispatch.agent_id,
-        )
-        if not final_assistant_output.strip():
-            raise RuntimeError(
-                f"Generation stopped: reached the maximum of {max_iterations} "
-                "tool-use iterations without a final answer."
-            )
-        final_assistant_output = (
-            f"[Note: stopped after the maximum of {max_iterations} tool-use "
-            "iterations; this answer may be incomplete.]\n\n"
-            f"{final_assistant_output}"
-        )
+                elif event_type == "message_complete":
+                    usage_data = event.get("usage")
+                    if isinstance(usage_data, dict):
+                        input_tokens = usage_data.get("prompt_tokens", 0) or 0
+                        output_tokens = usage_data.get("completion_tokens", 0) or 0
 
-    # Per-agent completion event — fires once per agent inside the
-    # shared run. Lets the FE start grading / promoting a single
-    # candidate before the full pool finishes. Carries this agent's
-    # eval slot when the agent was rubric-bearing.
-    invocation_slot = None
-    if prepared.eval_setup is not None:
-        for slot in prepared.eval_setup.invocations:
-            if slot.agent_id == dispatch.agent_id:
-                invocation_slot = slot
+            # End of stream
+
+            total_input_tokens += input_tokens
+            total_output_tokens += output_tokens
+            all_tool_results.extend(tool_results)
+            final_assistant_output = assistant_output
+            final_reasoning_output = reasoning_output
+
+            if not tool_results:
                 break
 
-    dispatch_total = len(prepared.dispatches)
-    dispatch_index = next(
-        (i for i, d in enumerate(prepared.dispatches) if d.agent_id == dispatch.agent_id),
-        0,
-    )
+            # The model still wants to call tools but we've reached the iteration
+            # cap → the turn is being truncated mid-tool-loop (G2). Flag it so the
+            # post-loop code surfaces an explicit terminal state instead of
+            # persisting/reporting whatever partial (often empty) ``final_assistant_output``
+            # the last tool-only iteration left as a clean success.
+            if iteration >= max_iterations:
+                hit_iteration_cap = True
+                break
 
-    # Pull this agent's soft-write call_ids straight off ``all_tool_results``.
-    # Each entry's ``call_id`` is the ``calls_entry.id`` minted at dispatch
-    # time, which doubles as the ``idempotency_key`` the FE uses to
-    # promote/reject via ``/<artifact>/create``.
-    agent_call_ids = [
-        tr["call_id"] for tr in all_tool_results if tr.get("call_id")
-    ]
+            # Update conversation state for next iteration
+            if api_mode == "responses":
+                for item in output_items:
+                    # Defensive filter: vLLM 0.19's Responses API rejects
+                    # bare assistant messages with empty output_text content
+                    # (no union variant matches — see stream_litellm_events
+                    # comment). Should already be skipped at emit time, but
+                    # keep the check here so a stray item from any other
+                    # source can't 400 the whole next iteration.
+                    if (
+                        isinstance(item, dict)
+                        and item.get("type") == "message"
+                        and item.get("role") == "assistant"
+                    ):
+                        content = item.get("content") or []
+                        has_text = any(
+                            isinstance(c, dict)
+                            and c.get("type") in ("output_text", "input_text")
+                            and (c.get("text") or "").strip()
+                            for c in content
+                        )
+                        if not has_text:
+                            continue
+                    responses_input.append(item)
+                for tr in tool_results:
+                    responses_input.append({
+                        "type": "function_call_output",
+                        "call_id": tr.get("responses_call_id", tr["raw_id"]),
+                        "output": tr["result_str"],
+                    })
+            else:
+                assistant_tool_calls = [
+                    {
+                        "id": tr["tool_call_id"],
+                        "type": "function",
+                        "function": {
+                            "name": tr["tool_name"],
+                            "arguments": tr["arguments_str"],
+                        },
+                    }
+                    for tr in tool_results
+                ]
+                chat_messages.append({
+                    "role": "assistant",
+                    "content": assistant_output or "",
+                    "tool_calls": assistant_tool_calls,
+                })
+                for tr in tool_results:
+                    chat_messages.append({
+                        "tool_call_id": tr["tool_call_id"],
+                        "role": "tool",
+                        "name": tr["tool_name"],
+                        "content": tr["result_str"],
+                    })
 
-    await internal_sio.emit(
-        f"{artifact_type}.generate.agent_completed",
-        {
-            "sid": sid,
-            "rooms": [str(profile_id)],
-            "artifact_type": artifact_type,
-            "run_id": str(run_id),
-            "group_id": str(group_id),
-            "agent_id": str(dispatch.agent_id),
-            "test_id": (
-                str(prepared.eval_setup.test_id)
-                if prepared.eval_setup is not None
-                else None
-            ),
-            "invocation": invocation_slot.model_dump(mode="json")
-            if invocation_slot is not None
-            else None,
-            "call_ids": agent_call_ids,
-            "progress": {
-                "index": dispatch_index,
-                "total": dispatch_total,
-            },
-        },
-    )
+            if tool_choice == "required":
+                tool_choice = "auto"
 
-    # Finalize: persist assistant text + tokens, run multi-agent coordination
-    # then emit the final completion channel.
-    # ``run_complete_impl`` is called directly (not via an internal event)
-    # so nothing top-level needs to exist to carry the workflow.
-    from app.infra.globals import UPLOAD_FOLDER
-    from app.infra.websocket.run_complete_impl import run_complete_impl
+        # Max-iterations terminal state (G2). The loop fell through the cap while
+        # the model was still requesting tools, so it never produced a closing
+        # answer this turn — ``final_assistant_output`` is whatever the last
+        # tool-only iteration left, typically "". Surfacing this matters: without
+        # it ``run_complete_impl`` skips the empty assistant row (``if
+        # assistant_output``) and the route returns a clean 200, so the user sees
+        # an empty reply with no signal the loop was capped. Make it terminal:
+        #   - no usable answer  → raise, so ``runner._run`` emits
+        #     ``{artifact}.generate.failed`` (a clear terminal frame the watcher
+        #     sees) rather than a silent empty-success turn.
+        #   - partial answer    → keep it but prepend an explicit truncation notice
+        #     so it is never presented as a normal, complete reply.
+        if hit_iteration_cap:
+            logger.warning(
+                "Agentic loop hit max_iterations=%d for run_id=%s agent=%s "
+                "(model still requesting tools) — surfacing truncation",
+                max_iterations, run_id, dispatch.agent_id,
+            )
+            if not final_assistant_output.strip():
+                raise RuntimeError(
+                    f"Generation stopped: reached the maximum of {max_iterations} "
+                    "tool-use iterations without a final answer."
+                )
+            final_assistant_output = (
+                f"[Note: stopped after the maximum of {max_iterations} tool-use "
+                "iterations; this answer may be incomplete.]\n\n"
+                f"{final_assistant_output}"
+            )
 
-    run_complete_payload: dict[str, Any] = {
-        "sid": sid,
-        "run_id": str(run_id),
-        "group_id": str(group_id),
-        "session_id": str(session_id),
-        "profile_id": str(profile_id),
-        "profiles_id": str(prepared.profiles_id),
-        # Dispatching agent (H2). Attribute the persisted assistant +
-        # reasoning rows to THIS agent so a multi-agent run's next turn
-        # can scope each agent's history to its own turns (see
-        # fetch_group_history) instead of pulling every agent's replies.
-        "agent_id": str(dispatch.agent_id) if dispatch.agent_id else None,
-        "artifact_type": artifact_type,
-        "modality": "text",
-        "input_text_tokens": total_input_tokens,
-        "output_text_tokens": total_output_tokens,
-        "assistant_output": final_assistant_output,
-        "reasoning_output": final_reasoning_output,
-        "reasoning_started_at": (
-            final_reasoning_started_at.isoformat()
-            if final_reasoning_started_at is not None
-            else None
-        ),
-        "tool_results": all_tool_results,
-        "metadata": dispatch.metadata or {},
-    }
-    # ``run_complete_impl`` persists the load-bearing turn (assistant text +
-    # reasoning + token/cost row) before any post-persist emits. It now re-raises
-    # on a turn-persist failure (post-persist emit failures stay swallowed inside
-    # ``_chat_post_complete``). Do NOT swallow-and-return a populated result here:
-    # that would report the run complete (route 200s) while the DB is missing the
-    # turn + usage — lost history and undercounted billing surfaced as success
-    # (E1). Let it propagate to ``runner._run``, which emits
-    # ``{artifact}.generate.failed`` so the failure is visible.
-    async with pool.acquire() as conn:
-        await run_complete_impl(
-            run_complete_payload,
-            emit=make_emit(),
-            conn=conn,
-            redis=redis,
-            upload_folder=UPLOAD_FOLDER,
+        # Per-agent completion event — fires once per agent inside the
+        # shared run. Lets the FE start grading / promoting a single
+        # candidate before the full pool finishes. Carries this agent's
+        # eval slot when the agent was rubric-bearing.
+        invocation_slot = None
+        if prepared.eval_setup is not None:
+            for slot in prepared.eval_setup.invocations:
+                if slot.agent_id == dispatch.agent_id:
+                    invocation_slot = slot
+                    break
+
+        dispatch_total = len(prepared.dispatches)
+        dispatch_index = next(
+            (i for i, d in enumerate(prepared.dispatches) if d.agent_id == dispatch.agent_id),
+            0,
         )
 
-    return ExecuteGenerationResult(
-        run_id=run_id,
-        total_input_tokens=total_input_tokens,
-        total_output_tokens=total_output_tokens,
-        tool_results=all_tool_results,
-        assistant_output=final_assistant_output,
-        reasoning_output=final_reasoning_output,
-    )
+        # Pull this agent's soft-write call_ids straight off ``all_tool_results``.
+        # Each entry's ``call_id`` is the ``calls_entry.id`` minted at dispatch
+        # time, which doubles as the ``idempotency_key`` the FE uses to
+        # promote/reject via ``/<artifact>/create``.
+        agent_call_ids = [
+            tr["call_id"] for tr in all_tool_results if tr.get("call_id")
+        ]
+
+        await internal_sio.emit(
+            f"{artifact_type}.generate.agent_completed",
+            {
+                "sid": sid,
+                "rooms": [str(profile_id)],
+                "artifact_type": artifact_type,
+                "run_id": str(run_id),
+                "group_id": str(group_id),
+                "agent_id": str(dispatch.agent_id),
+                "test_id": (
+                    str(prepared.eval_setup.test_id)
+                    if prepared.eval_setup is not None
+                    else None
+                ),
+                "invocation": invocation_slot.model_dump(mode="json")
+                if invocation_slot is not None
+                else None,
+                "call_ids": agent_call_ids,
+                "progress": {
+                    "index": dispatch_index,
+                    "total": dispatch_total,
+                },
+            },
+        )
+
+        # Finalize: persist assistant text + tokens, run multi-agent coordination
+        # then emit the final completion channel.
+        # ``run_complete_impl`` is called directly (not via an internal event)
+        # so nothing top-level needs to exist to carry the workflow.
+        from app.infra.globals import UPLOAD_FOLDER
+        from app.infra.websocket.run_complete_impl import run_complete_impl
+
+        run_complete_payload: dict[str, Any] = {
+            "sid": sid,
+            "run_id": str(run_id),
+            "group_id": str(group_id),
+            "session_id": str(session_id),
+            "profile_id": str(profile_id),
+            "profiles_id": str(prepared.profiles_id),
+            # Dispatching agent (H2). Attribute the persisted assistant +
+            # reasoning rows to THIS agent so a multi-agent run's next turn
+            # can scope each agent's history to its own turns (see
+            # fetch_group_history) instead of pulling every agent's replies.
+            "agent_id": str(dispatch.agent_id) if dispatch.agent_id else None,
+            "artifact_type": artifact_type,
+            "modality": "text",
+            "input_text_tokens": total_input_tokens,
+            "output_text_tokens": total_output_tokens,
+            "assistant_output": final_assistant_output,
+            "reasoning_output": final_reasoning_output,
+            "reasoning_started_at": (
+                final_reasoning_started_at.isoformat()
+                if final_reasoning_started_at is not None
+                else None
+            ),
+            "tool_results": all_tool_results,
+            "metadata": dispatch.metadata or {},
+        }
+        # ``run_complete_impl`` persists the load-bearing turn (assistant text +
+        # reasoning + token/cost row) before any post-persist emits. It now re-raises
+        # on a turn-persist failure (post-persist emit failures stay swallowed inside
+        # ``_chat_post_complete``). Do NOT swallow-and-return a populated result here:
+        # that would report the run complete (route 200s) while the DB is missing the
+        # turn + usage — lost history and undercounted billing surfaced as success
+        # (E1). Let it propagate to ``runner._run``, which emits
+        # ``{artifact}.generate.failed`` so the failure is visible.
+        async with pool.acquire() as conn:
+            await run_complete_impl(
+                run_complete_payload,
+                emit=make_emit(),
+                conn=conn,
+                redis=redis,
+                upload_folder=UPLOAD_FOLDER,
+            )
+
+        return ExecuteGenerationResult(
+            run_id=run_id,
+            total_input_tokens=total_input_tokens,
+            total_output_tokens=total_output_tokens,
+            tool_results=all_tool_results,
+            assistant_output=final_assistant_output,
+            reasoning_output=final_reasoning_output,
+        )
+    except _GenerationCancelled:
+        # Stop landed mid-loop. Flush the usage + partial text the
+        # completed iterations produced (G3) BEFORE re-raising, so billing
+        # and history aren't silently dropped. Re-raise unchanged so
+        # ``runner._run`` still emits ``{artifact}.generate.failed`` and the
+        # route surfaces the cancellation.
+        await _persist_partial_usage_on_cancel()
+        raise
+    finally:
+        # Always clear the cancel marker + active-run pointer (H4) so a
+        # reused run_id within the 300s TTL isn't instant-killed by a stale
+        # Stop nobody pressed. Best-effort — never mask the real result.
+        try:
+            await redis.delete(f"cancel_run:{run_id}")
+        except Exception:
+            logger.debug("cancel_run marker cleanup failed for run_id=%s", run_id)
+        try:
+            from app.infra.websocket.remove_active_run import remove_active_run
+            await remove_active_run(str(group_id), redis_client=redis)
+        except Exception:
+            logger.debug("active_run cleanup failed for group_id=%s", group_id)

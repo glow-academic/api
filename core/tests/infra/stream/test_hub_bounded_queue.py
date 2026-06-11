@@ -26,10 +26,10 @@ from app.infra.stream.types import EventEnvelope
 pytestmark = pytest.mark.asyncio
 
 
-def _event(group_id, *, seq: int) -> EventEnvelope:
+def _event(group_id, *, seq: int, event_type: str = "simulation.generate.progress") -> EventEnvelope:
     return EventEnvelope(
         id=f"evt-{seq}",
-        event_type="simulation.generate.progress",
+        event_type=event_type,
         artifact="simulation",
         operation="generate",
         created_at=datetime.now(UTC),
@@ -101,6 +101,63 @@ async def test_publish_does_not_block_on_full_subscriber():
     finally:
         unsubscribe(slow)
         unsubscribe(fast)
+
+
+class _RacyQueue(asyncio.Queue):
+    """Queue whose ``put_nowait`` raises QueueFull for the first ``fail_puts``
+    calls regardless of room — simulates another producer refilling the freed
+    slot in the publish() shed-then-put race (the exact window S4 drops in)."""
+
+    def __init__(self, *a, fail_puts: int = 0, **k):
+        super().__init__(*a, **k)
+        self._fail_puts = fail_puts
+
+    def put_nowait(self, item):  # type: ignore[override]
+        if self._fail_puts > 0:
+            self._fail_puts -= 1
+            raise asyncio.QueueFull
+        return super().put_nowait(item)
+
+
+async def test_terminal_frame_is_not_dropped_under_producer_race():
+    """S4: a run-terminal frame must reach the consumer even when the
+    shed-then-put race keeps losing the freed slot — otherwise a run-scoped
+    watcher hangs forever with no EOF."""
+    group_id = uuid4()
+    # Pre-fill so the queue is full, then make the next 3 puts race-fail.
+    q = _RacyQueue(maxsize=_QUEUE_MAXSIZE, fail_puts=3)
+    for seq in range(_QUEUE_MAXSIZE):
+        asyncio.Queue.put_nowait(q, _event(group_id, seq=seq))
+    hub._SUBSCRIPTIONS.append(hub._Subscription(queue=q, group_id=group_id))
+    try:
+        terminal = _event(
+            group_id, seq=9001, event_type="simulation.generate.completed"
+        )
+        await publish(terminal)
+        drained = [q.get_nowait() for _ in range(q.qsize())]
+        # The terminal frame survived the race and is in the buffer.
+        assert any(e.payload["seq"] == 9001 for e in drained)
+    finally:
+        hub._SUBSCRIPTIONS[:] = [s for s in hub._SUBSCRIPTIONS if s.queue is not q]
+
+
+async def test_non_terminal_frame_is_dropped_on_lost_race():
+    """A mid-run (non-terminal) frame keeps the original best-effort drop: when
+    the re-put loses the race it is dropped, not retried (fan-out stays cheap)."""
+    group_id = uuid4()
+    q = _RacyQueue(maxsize=_QUEUE_MAXSIZE, fail_puts=2)
+    for seq in range(_QUEUE_MAXSIZE):
+        asyncio.Queue.put_nowait(q, _event(group_id, seq=seq))
+    hub._SUBSCRIPTIONS.append(hub._Subscription(queue=q, group_id=group_id))
+    try:
+        progress = _event(
+            group_id, seq=9002, event_type="simulation.generate.progress"
+        )
+        await publish(progress)  # must not raise / hang
+        drained = [q.get_nowait() for _ in range(q.qsize())]
+        assert all(e.payload["seq"] != 9002 for e in drained)
+    finally:
+        hub._SUBSCRIPTIONS[:] = [s for s in hub._SUBSCRIPTIONS if s.queue is not q]
 
 
 async def test_unsubscribe_cleanup_intact():
