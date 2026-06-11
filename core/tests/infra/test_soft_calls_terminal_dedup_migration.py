@@ -76,6 +76,34 @@ async def _drop_index_if_exists(conn) -> None:
     )
 
 
+# Canonical definition from database/schema/indexes/entries/soft.sql — the
+# backstop index the live schema ships (and the migration recreates with the
+# identical predicate).
+_CANONICAL_INDEX_SQL = (
+    "CREATE UNIQUE INDEX IF NOT EXISTS soft_calls_entry_terminal_call_uidx "
+    "ON public.soft_calls_entry USING btree (call_id) "
+    "WHERE (status <> 'pending'::text)"
+)
+
+
+async def _restore_shared_db(conn, call_id) -> None:
+    """Restore the SHARED session DB to its pristine state after a test.
+
+    These migration tests run against the shared session database via the
+    autocommitting ``pool`` fixture (NOT the rollback-wrapped ``conn``
+    fixture), so any DDL/data they leave behind LEAKS into every later test in
+    the run. Leaving the backstop index dropped previously poisoned
+    ``test_resolve.py::test_partial_unique_index_blocks_second_terminal``,
+    which asserts the index rejects a second terminal row (the ``infra/``
+    suite is collected before ``tools/``). Re-create the canonical index and
+    delete the seed rows so the DB is exactly as the schema load left it.
+    """
+    await conn.execute(
+        "DELETE FROM soft_calls_entry WHERE call_id = $1", call_id
+    )
+    await conn.execute(_CANONICAL_INDEX_SQL)
+
+
 async def _bypass_fks(conn) -> None:
     """Bypass FK triggers for synthetic seed rows (see _insert_soft_call)."""
     await conn.execute("SET session_replication_role = replica")
@@ -157,12 +185,9 @@ async def test_migration_dedups_then_creates_index_on_dirty_instance(pool):
             exc_info.value
         ) or "unique" in str(exc_info.value).lower()
 
-        # cleanup
+        # Restore the shared session DB (autocommit pool — state leaks).
         await _restore_fks(conn)
-        await _drop_index_if_exists(conn)
-        await conn.execute(
-            "DELETE FROM soft_calls_entry WHERE call_id = $1", call_id
-        )
+        await _restore_shared_db(conn, call_id)
 
 
 async def test_migration_keeps_active_terminal_over_inactive(pool):
@@ -197,10 +222,7 @@ async def test_migration_keeps_active_terminal_over_inactive(pool):
             "dedup must keep the active terminal row (what the MV surfaces)"
         )
 
-        await _drop_index_if_exists(conn)
-        await conn.execute(
-            "DELETE FROM soft_calls_entry WHERE call_id = $1", call_id
-        )
+        await _restore_shared_db(conn, call_id)
 
 
 async def test_migration_idempotent_on_clean_instance(pool):
@@ -230,7 +252,4 @@ async def test_migration_idempotent_on_clean_instance(pool):
         assert len(survivors) == 1
         assert survivors[0]["id"] == only_terminal["id"]
 
-        await _drop_index_if_exists(conn)
-        await conn.execute(
-            "DELETE FROM soft_calls_entry WHERE call_id = $1", call_id
-        )
+        await _restore_shared_db(conn, call_id)
