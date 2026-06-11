@@ -69,7 +69,7 @@ async def create_cohort_impl(
       3. Per-item value resolution (raw → ID, required field enforcement)
       4. Single transaction: create_cohort_artifact + denormalized snapshot per item
       5. invalidate_tags
-      6. sync_home_practice_entries (non-fatal)
+      6. sync_home_practice_entries (idempotent + atomic, surfaced-on-result)
     """
     from app.infra.cohort.permissions import compute_can_create
 
@@ -136,7 +136,11 @@ async def create_cohort_impl(
             return error_results
 
         results: list[CohortResultItem] = []
-        sync_items: list[tuple[UUID, object]] = []
+        # (snapshot_resource_id, cohort_artifact_id, item, result_index) — the
+        # artifact id is ``result.id`` (item.id is an OPTIONAL preset, often
+        # None on create), the sync scopes its idempotency clear by the stable
+        # artifact id, and the index lets a sync failure surface on its row.
+        sync_items: list[tuple[UUID, UUID, object, int]] = []
 
         snapshot_ids: list[UUID] = []
         if not soft_value:
@@ -197,7 +201,7 @@ async def create_cohort_impl(
                 )
             )
             if not soft_value:
-                sync_items.append((snapshot_ids[idx], item))
+                sync_items.append((snapshot_ids[idx], result.id, item, len(results) - 1))
 
         if soft_value and operation_key is not None:
             async with pool.acquire() as conn:
@@ -211,12 +215,18 @@ async def create_cohort_impl(
                 soft_value=soft_value,
             )
 
+        # Idempotent + atomic sync. The cohort already committed above, so a
+        # sync failure doesn't fail the whole create — but it is NOT "non-fatal"
+        # silence: it leaves the new cohort with no practice scaffold and is
+        # retryable on the next /cohort/update. Mirror the E3 benchmark-sync fix
+        # (eval/create): log at ERROR + surface on the affected result row,
+        # rather than a pristine "created successfully".
         if not soft_value:
             with timed("home_practice_sync"):
-             for resource_id, item in sync_items:
-                try:
-                    from app.infra.home_practice_sync import sync_home_practice_entries
+             for resource_id, artifact_id, item, result_idx in sync_items:
+                from app.infra.home_practice_sync import sync_home_practice_entries
 
+                try:
                     await sync_home_practice_entries(
                         pool=pool,
                         cohorts_resource_id=resource_id,
@@ -226,9 +236,23 @@ async def create_cohort_impl(
                         department_ids=item.department_ids or [],
                         profile_ids=item.profile_ids or [],
                         profile_persona_ids=item.profile_persona_ids or [],
+                        cohort_artifact_id=artifact_id,
                     )
                 except Exception as sync_err:
-                    logger.warning(f"sync_home_practice_entries failed (non-fatal): {sync_err}")
+                    logger.error(
+                        "sync_home_practice_entries failed for cohort %s — "
+                        "practice scaffold not created; retryable on next "
+                        "/cohort/update",
+                        artifact_id,
+                        exc_info=True,
+                    )
+                    if 0 <= result_idx < len(results):
+                        results[result_idx].success = False
+                        results[result_idx].message = (
+                            f"{results[result_idx].message} (warning: practice "
+                            f"scaffold failed and was not created — will retry "
+                            f"on next update: {sync_err})"
+                        )
 
         return results
 

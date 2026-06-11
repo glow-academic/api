@@ -73,7 +73,7 @@ async def update_cohort_impl(
       3. Per-item: resolve_cohort_permissions_context → exists + compute_can_edit
       4. Per-item value resolution (raw → ID, no required field enforcement)
       5. Single transaction: update_cohort_artifact + denormalized snapshot per item
-      6. sync_home_practice_entries (non-fatal, non-soft only)
+      6. sync_home_practice_entries (idempotent + atomic, non-soft only)
       7. refresh_cohort_impl
     """
     from app.infra.cohort.permissions import (
@@ -343,7 +343,10 @@ async def update_cohort_impl(
     # ── Step 4: Single transaction ─────────────────────────────────────
 
     results: list[CohortResultItem] = []
-    sync_items: list[tuple[UUID, object]] = []
+    # (snapshot_resource_id, cohort_artifact_id, item, result_index) — the sync
+    # scopes its idempotency clear by the stable artifact id (item.id), and the
+    # index lets a sync failure surface on the matching result row.
+    sync_items: list[tuple[UUID, UUID, object, int]] = []
 
     with timed("db_write"):
      for item in items:
@@ -404,16 +407,22 @@ async def update_cohort_impl(
             )
         )
         if not soft and cohorts_resource_id is not None:
-            sync_items.append((cohorts_resource_id, item))
+            sync_items.append((cohorts_resource_id, item.id, item, len(results) - 1))
 
-    # ── Step 5: Sync entry rows (non-fatal, non-soft only) ────────────
-
+    # ── Step 5: Sync entry rows (idempotent + atomic, non-soft only) ──
+    # The sync is now idempotent (this cohort's prior generated tree is cleared
+    # before recreate) + atomic (clear+recreate in one transaction). The cohort
+    # metadata already committed above, so a sync failure does NOT fail the
+    # whole update — but it is NOT "non-fatal" silence either: it leaves the
+    # cohort's practice scaffold stale and is retryable on the next save. Mirror
+    # the E3 benchmark-sync fix: log at ERROR with traceback and surface the
+    # failure on the affected result row, not a pristine "updated successfully".
     if not soft:
       with timed("home_practice_sync"):
-        for resource_id, item in sync_items:
-            try:
-                from app.infra.home_practice_sync import sync_home_practice_entries
+        for resource_id, artifact_id, item, result_idx in sync_items:
+            from app.infra.home_practice_sync import sync_home_practice_entries
 
+            try:
                 await sync_home_practice_entries(
                     pool=pool,
                     cohorts_resource_id=resource_id,
@@ -423,11 +432,22 @@ async def update_cohort_impl(
                     department_ids=item.department_ids or [],
                     profile_ids=item.profile_ids or [],
                     profile_persona_ids=item.profile_persona_ids or [],
+                    cohort_artifact_id=artifact_id,
                 )
             except Exception as sync_err:
-                logger.warning(
-                    f"sync_home_practice_entries failed (non-fatal): {sync_err}"
+                logger.error(
+                    "sync_home_practice_entries failed for cohort %s — practice "
+                    "scaffold not refreshed; retryable on next /cohort/update",
+                    artifact_id,
+                    exc_info=True,
                 )
+                if 0 <= result_idx < len(results):
+                    results[result_idx].success = False
+                    results[result_idx].message = (
+                        f"{results[result_idx].message} (warning: practice "
+                        f"scaffold failed to refresh — will retry on next "
+                        f"update: {sync_err})"
+                    )
 
     if soft and idempotency_key is not None:
         async with pool.acquire() as conn:

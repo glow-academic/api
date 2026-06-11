@@ -1,7 +1,25 @@
 """Home/practice entry sync — pre-create home/practice + chat entries on cohort save.
 
-Insert-only. No reads from _entry tables. No deactivation of old entries.
-Uses black-box entry creation tools instead of raw SQL.
+Atomic + idempotent (mirrors ``benchmark/sync.py``): the whole scaffold
+(session + every home/practice entry + every chat + the bridge rows) is
+written in ONE transaction (all-or-nothing), and a re-run for the same cohort
+first deactivates that cohort's prior *generated* home/practice/chat tree
+before re-creating, so ``/cohort/update`` calling this on every save REPLACES
+the scaffold instead of appending duplicates.
+
+The clear is scoped to a single cohort via its stable ``cohort_artifact`` id:
+each ``/cohort/update`` mints a fresh ``cohorts_resource`` *snapshot*, so the
+prior tree hangs off an older snapshot id, not the current one. We therefore
+walk ``cohort_cohorts_junction`` (artifact → all its snapshots, active or not)
+to find every snapshot this cohort has ever had, then deactivate the generated
+home/practice entries (+ their chats and bridge rows) that link any of those
+snapshots. Other cohorts are untouched. Reads gate on ``active = true``
+(home_mv / practice_mv), so deactivation drops the stale scaffold from every
+consumer; the fresh set is created inside the same transaction → a retry
+REPLACES, never appends.
+
+Uses black-box entry creation tools for the writes; the scoped deactivation is
+a single guarded SQL statement.
 """
 
 import asyncio
@@ -58,6 +76,7 @@ async def sync_home_practice_entries(
     department_ids: list[UUID],
     profile_ids: list[UUID],
     profile_persona_ids: list[UUID],
+    cohort_artifact_id: UUID | None = None,
 ) -> int:
     """Sync cohort entries by pre-creating home/practice + chat entries.
 
@@ -65,6 +84,11 @@ async def sync_home_practice_entries(
     1. Fetch simulations to get scenario_ids and sub-resource IDs
     2. Parallel fetch all sub-resources
     3. Build data structures and call entry creation tools
+
+    Idempotent when ``cohort_artifact_id`` is supplied: this cohort's prior
+    generated home/practice/chat tree is deactivated inside the write
+    transaction before the fresh set is created (see module docstring). When
+    omitted (e.g. a brand-new cohort with no prior tree) the clear is a no-op.
     """
     from app.infra.globals import get_redis_client
     from app.tools.entries.chat.create import create_chat
@@ -514,6 +538,110 @@ async def sync_home_practice_entries(
     redis = get_redis_client()
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # ── Idempotency clear (scoped to this cohort) ──
+            # ``/cohort/update`` re-runs this on every save and the create
+            # tools are plain INSERTs, so without a clear each re-run appended
+            # a fresh full home/practice/chat tree → duplicates. Deactivate
+            # THIS cohort's prior generated tree first, scoped via the stable
+            # ``cohort_artifact`` id: walk ``cohort_cohorts_junction`` to every
+            # snapshot this cohort has ever had (a fresh snapshot is minted per
+            # update, so the prior tree links an OLDER snapshot, not
+            # ``cohorts_resource_id``), find the generated home/practice entries
+            # that link any of those snapshots, and soft-delete the entries,
+            # their chats, the home/practice↔chat bridge rows, and the cohorts
+            # connections. ``generated = true`` keeps us off any hand-authored
+            # entry. Reads gate on ``active = true`` (home_mv/practice_mv), so
+            # this drops the stale scaffold from every consumer; the fresh set
+            # is created below in the same transaction → replace, never append.
+            if cohort_artifact_id is not None:
+                await conn.execute(
+                    """
+                    WITH snaps AS (
+                        SELECT ccj.cohorts_id
+                        FROM cohort_cohorts_junction ccj
+                        WHERE ccj.cohort_id = $1
+                    ),
+                    prior_home AS (
+                        SELECT DISTINCT he.id
+                        FROM home_entry he
+                        JOIN home_cohorts_connection hcc
+                          ON hcc.home_id = he.id
+                        WHERE hcc.cohorts_id IN (SELECT cohorts_id FROM snaps)
+                          AND he.active = true
+                          AND he.generated = true
+                    ),
+                    prior_practice AS (
+                        SELECT DISTINCT pe.id
+                        FROM practice_entry pe
+                        JOIN practice_cohorts_connection pcc
+                          ON pcc.practice_id = pe.id
+                        WHERE pcc.cohorts_id IN (SELECT cohorts_id FROM snaps)
+                          AND pe.active = true
+                          AND pe.generated = true
+                    ),
+                    home_chats AS (
+                        SELECT hce.id AS bridge_id, hce.chat_id
+                        FROM home_chat_entry hce
+                        WHERE hce.home_id IN (SELECT id FROM prior_home)
+                          AND hce.active = true
+                    ),
+                    practice_chats AS (
+                        SELECT pce.id AS bridge_id, pce.chat_id
+                        FROM practice_chat_entry pce
+                        WHERE pce.practice_id IN (SELECT id FROM prior_practice)
+                          AND pce.active = true
+                    ),
+                    deact_chats AS (
+                        UPDATE chat_entry ce
+                        SET active = false
+                        WHERE ce.id IN (
+                                SELECT chat_id FROM home_chats
+                                UNION
+                                SELECT chat_id FROM practice_chats
+                            )
+                          AND ce.active = true
+                          AND ce.generated = true
+                        RETURNING 1
+                    ),
+                    deact_home_bridge AS (
+                        UPDATE home_chat_entry hce
+                        SET active = false
+                        WHERE hce.id IN (SELECT bridge_id FROM home_chats)
+                        RETURNING 1
+                    ),
+                    deact_practice_bridge AS (
+                        UPDATE practice_chat_entry pce
+                        SET active = false
+                        WHERE pce.id IN (SELECT bridge_id FROM practice_chats)
+                        RETURNING 1
+                    ),
+                    deact_home_conn AS (
+                        UPDATE home_cohorts_connection hcc
+                        SET active = false
+                        WHERE hcc.home_id IN (SELECT id FROM prior_home)
+                          AND hcc.active = true
+                        RETURNING 1
+                    ),
+                    deact_practice_conn AS (
+                        UPDATE practice_cohorts_connection pcc
+                        SET active = false
+                        WHERE pcc.practice_id IN (SELECT id FROM prior_practice)
+                          AND pcc.active = true
+                        RETURNING 1
+                    ),
+                    deact_home AS (
+                        UPDATE home_entry he
+                        SET active = false
+                        WHERE he.id IN (SELECT id FROM prior_home)
+                        RETURNING 1
+                    )
+                    UPDATE practice_entry pe
+                    SET active = false
+                    WHERE pe.id IN (SELECT id FROM prior_practice)
+                    """,
+                    cohort_artifact_id,
+                )
+
             session = await create_session(conn, redis)
 
             for sim_data in sim_data_list:
