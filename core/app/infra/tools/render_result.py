@@ -55,9 +55,13 @@ def render_tool_result_with_meta(
     template = (td or {}).get("_instruction_template")
     if template:
         try:
-            from jinja2 import Environment, Undefined
+            from jinja2 import Undefined
 
-            env = Environment(undefined=Undefined)
+            from app.utils.templates.sandbox import make_sandboxed_env
+
+            # Sandboxed — ``template`` is the persisted, user-authored
+            # ``_instruction_template``; a plain env would allow SSTI→RCE.
+            env = make_sandboxed_env(autoescape=False, undefined=Undefined)
             template_ctx = {**wrapped, "result": wrapped}
             rendered = env.from_string(template).render(**template_ctx).strip()
             if rendered:

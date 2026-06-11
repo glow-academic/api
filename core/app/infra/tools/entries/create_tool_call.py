@@ -249,8 +249,13 @@ async def _persist_audit_writes(
     rendered_output: str | None = None
     if instruction_template:
         try:
-            from jinja2 import Environment, Undefined
-            env = Environment(undefined=Undefined, autoescape=False)
+            from jinja2 import Undefined
+
+            from app.utils.templates.sandbox import make_sandboxed_env
+
+            # Sandboxed — ``instruction_template`` is the persisted,
+            # user-authored tool template; a plain env would allow SSTI→RCE.
+            env = make_sandboxed_env(autoescape=False, undefined=Undefined)
             tmpl = env.from_string(instruction_template)
             template_ctx = {"success": True, "results": [{"result": raw_result_dict}]}
             rendered = tmpl.render(**template_ctx).strip()
