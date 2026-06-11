@@ -21,6 +21,7 @@ that records lock/receipt key state.
 from __future__ import annotations
 
 import json
+import logging
 from uuid import uuid4
 
 import pytest
@@ -245,6 +246,132 @@ async def test_non_audit_op_same_key_different_body_is_409(monkeypatch):
 # ---------------------------------------------------------------------------
 # A2 — audit path: receipt-based replay still dedups (unchanged behavior)
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# O3 — best-effort receipt-timing update failure must be VISIBLE (WARNING),
+#      not swallowed at debug. This write IS the "lifecycle finished" signal,
+#      so a systematic failure (disk full / perms / missing receipt) silently
+#      degrading the forensic trail used to be invisible.
+# ---------------------------------------------------------------------------
+
+
+class _FakeAuditResult:
+    """Stands in for create_tool_call's return — audit.py reads only these."""
+
+    def __init__(self, *, result, call_upload_id):
+        self.result = result
+        self.call_upload_id = call_upload_id
+        self.error = None
+        self.call_id = call_upload_id
+
+
+async def test_o3_receipt_timing_failure_logs_warning(monkeypatch, tmp_path, caplog):
+    """The final receipt-timing merge fails (the receipt file doesn't exist at
+    the upload folder), and that failure must surface as a WARNING naming the
+    call_upload_id — not a silent debug line."""
+    _wire_common_deps(monkeypatch, with_tool=True)
+
+    call_upload_id = uuid4()
+
+    # No prior calls_entry receipt → no replay; the runner executes.
+    async def mock_search_calls(conn, redis, **kw):
+        return []
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    # Mock create_tool_call to return success + a call_upload_id WITHOUT writing
+    # any receipt file. The final timing-merge block then tries to read
+    # ``{upload_folder}/call/{call_upload_id}.json`` which does not exist →
+    # FileNotFoundError → the elevated WARNING.
+    async def mock_create_tool_call(pool, redis, **kw):
+        return _FakeAuditResult(
+            result={"success": True, "value": "ok"},
+            call_upload_id=call_upload_id,
+        )
+
+    monkeypatch.setattr(audit_mod, "create_tool_call", mock_create_tool_call)
+
+    # Tool-wire resolution hits the DB; stub it (no tool_payload needed here).
+    async def mock_get_tools(pool, ids, redis):
+        return []
+
+    monkeypatch.setattr(audit_mod, "get_tools", mock_get_tools)
+
+    redis = _FakeRedis()
+    pool = _FakePool()
+
+    async def runner():
+        return {"success": True, "value": "ok"}
+
+    with caplog.at_level(logging.DEBUG, logger="app.infra.events.audit"):
+        result = await run_artifact_operation_with_audit(
+            pool, redis, artifact="auth", profile_id=uuid4(), operation="update",
+            runner=runner, arguments={"foo": "bar"}, operation_key=uuid4(),
+            upload_folder=tmp_path, group_id=uuid4(),
+        )
+
+    # The op still SUCCEEDS (receipt-timing write is best-effort) ...
+    assert result == {"success": True, "value": "ok"}
+    # ... but the failure to record timings is now VISIBLE at WARNING.
+    timing_warnings = [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING
+        and "receipt timing update failed" in r.getMessage()
+    ]
+    assert timing_warnings, "receipt-timing failure must log at WARNING"
+    assert str(call_upload_id) in timing_warnings[0].getMessage()
+
+
+async def test_o3_receipt_timing_success_does_not_warn(monkeypatch, tmp_path, caplog):
+    """Control: when the receipt file exists the timing merge succeeds and emits
+    no failure WARNING."""
+    _wire_common_deps(monkeypatch, with_tool=True)
+
+    call_upload_id = uuid4()
+
+    # Stage the receipt file so the timing-merge read/write succeeds.
+    (tmp_path / "call").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "call" / f"{call_upload_id}.json").write_text(
+        json.dumps({"arguments": {"foo": "bar"}}), encoding="utf-8"
+    )
+
+    async def mock_search_calls(conn, redis, **kw):
+        return []
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    async def mock_create_tool_call(pool, redis, **kw):
+        return _FakeAuditResult(
+            result={"success": True, "value": "ok"},
+            call_upload_id=call_upload_id,
+        )
+
+    monkeypatch.setattr(audit_mod, "create_tool_call", mock_create_tool_call)
+
+    async def mock_get_tools(pool, ids, redis):
+        return []
+
+    monkeypatch.setattr(audit_mod, "get_tools", mock_get_tools)
+
+    redis = _FakeRedis()
+    pool = _FakePool()
+
+    async def runner():
+        return {"success": True, "value": "ok"}
+
+    with caplog.at_level(logging.DEBUG, logger="app.infra.events.audit"):
+        await run_artifact_operation_with_audit(
+            pool, redis, artifact="auth", profile_id=uuid4(), operation="update",
+            runner=runner, arguments={"foo": "bar"}, operation_key=uuid4(),
+            upload_folder=tmp_path, group_id=uuid4(),
+        )
+
+    assert not [
+        r for r in caplog.records
+        if r.levelno == logging.WARNING
+        and "receipt timing update failed" in r.getMessage()
+    ]
 
 
 async def test_audit_path_replays_from_calls_entry_receipt(monkeypatch, tmp_path):

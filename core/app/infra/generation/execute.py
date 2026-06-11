@@ -638,6 +638,13 @@ async def _execute_agent_dispatch(
             reasoning_output = ""
             input_tokens = 0
             output_tokens = 0
+            # O1: track whether the provider stream actually delivered a usage
+            # frame this iteration. Some providers (notably self-hosted/vLLM and
+            # any stream that omits a final usage chunk) complete WITHOUT one, in
+            # which case input/output_tokens stay 0 and the call is silently
+            # recorded as free — undercounting token/cost accounting with no
+            # operator signal. We surface a WARNING below instead of swallowing it.
+            usage_frame_seen = False
             tool_call_states: dict[str, dict[str, Any]] = {}
             tool_results: list[dict[str, Any]] = []
             output_items: list[dict[str, Any]] = []
@@ -959,8 +966,27 @@ async def _execute_agent_dispatch(
                     if isinstance(usage_data, dict):
                         input_tokens = usage_data.get("prompt_tokens", 0) or 0
                         output_tokens = usage_data.get("completion_tokens", 0) or 0
+                        usage_frame_seen = True
 
             # End of stream
+
+            # O1: the provider stream completed without delivering any usage
+            # frame, so this iteration's billable tokens default to 0 and would
+            # be persisted as a free call. Surface a WARNING (with run/provider/
+            # model/api_mode context) so the undercount is VISIBLE and
+            # attributable instead of silently recorded as $0. Billing logic is
+            # unchanged — we only make the gap observable.
+            if not usage_frame_seen:
+                logger.warning(
+                    "LLM stream completed with no usage frame — token/cost "
+                    "undercounted as 0 for this turn (run_id=%s model=%s "
+                    "api_mode=%s iteration=%s); billing accounting will "
+                    "under-report this call",
+                    run_id,
+                    llm_config.get("model"),
+                    api_mode,
+                    iteration,
+                )
 
             total_input_tokens += input_tokens
             total_output_tokens += output_tokens
