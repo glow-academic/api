@@ -139,6 +139,18 @@ async def run_complete_impl(
             reasoning_started_at = None
     input_tokens = data.get("input_text_tokens", 0)
     output_tokens = data.get("output_text_tokens", 0)
+    # Dispatching agent (H2). When set, the assistant + reasoning rows
+    # are linked to this agent in ``messages_agents_connection`` so a
+    # multi-agent run's next turn can scope each agent's history to its
+    # own replies. Absent (single-agent / legacy callers) leaves the
+    # rows unattributed, which the history reader treats as "shared".
+    agent_id_raw = data.get("agent_id")
+    persist_agent_ids: list[uuid.UUID] | None = None
+    if isinstance(agent_id_raw, str) and agent_id_raw:
+        try:
+            persist_agent_ids = [uuid.UUID(agent_id_raw)]
+        except ValueError:
+            persist_agent_ids = None
 
     # Step 1: Save assistant message + token counts. When the model
     # emitted a chain-of-thought trace, persist it as its OWN
@@ -171,6 +183,7 @@ async def run_complete_impl(
                     upload_folder=upload_folder,
                     reasoning=True,
                     created_at=reasoning_started_at,
+                    agent_ids=persist_agent_ids,
                 )
 
             if assistant_output:
@@ -182,6 +195,7 @@ async def run_complete_impl(
                     role="assistant",
                     content=assistant_output,
                     upload_folder=upload_folder,
+                    agent_ids=persist_agent_ids,
                 )
 
             if input_tokens or output_tokens:

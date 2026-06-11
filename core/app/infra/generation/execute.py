@@ -1053,6 +1053,11 @@ async def _execute_agent_dispatch(
         "session_id": str(session_id),
         "profile_id": str(profile_id),
         "profiles_id": str(prepared.profiles_id),
+        # Dispatching agent (H2). Attribute the persisted assistant +
+        # reasoning rows to THIS agent so a multi-agent run's next turn
+        # can scope each agent's history to its own turns (see
+        # fetch_group_history) instead of pulling every agent's replies.
+        "agent_id": str(dispatch.agent_id) if dispatch.agent_id else None,
         "artifact_type": artifact_type,
         "modality": "text",
         "input_text_tokens": total_input_tokens,
