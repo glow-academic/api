@@ -195,6 +195,21 @@ async def duplicate_parameter_impl(
 
     original = originals[0]
 
+    # -- Department-subset guard --
+    # Non-top-level users must belong to ALL of the original's
+    # departments, else a Dept-A actor could clone a Dept-B parameter
+    # they cannot even view (mirrors ``scenario.duplicate``).
+    if not compute_can_duplicate(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        parameter_department_ids=original.department_ids,
+        user_department_ids=profile.department_ids,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to duplicate this parameter.",
+        )
+
     # -- Step 4: Create new name resource ---------------------------------------
 
     async with pool.acquire() as conn:

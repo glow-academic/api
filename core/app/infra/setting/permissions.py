@@ -228,6 +228,7 @@ def compute_can_delete(
     role_level: int,
     role_permissions: list[tuple[str, str]],
     setting_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -237,15 +238,59 @@ def compute_can_delete(
     """
     if not setting_department_ids and role_level > 0:
         return False
-    return has_permission(role_permissions, "setting", "delete")
+    if not has_permission(role_permissions, "setting", "delete"):
+        return False
+
+    # Department-subset guard: a non-top-level actor must belong to ALL
+    # of the setting's departments, else they could delete a setting in a
+    # department they cannot even view (mirrors ``eval.compute_can_delete``).
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and setting_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in setting_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(
     role_level: int,
     role_permissions: list[tuple[str, str]],
+    setting_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
-    """Compute can_duplicate permission."""
-    return has_permission(role_permissions, "setting", "duplicate")
+    """Compute can_duplicate permission.
+
+    Business logic:
+    - Must have setting:duplicate permission
+    - Non-top-level users must belong to ALL of the setting's departments
+      (mirrors ``scenario.compute_can_duplicate`` — duplicate must not
+      bypass the department scope ``has_access`` enforces, else a Dept-A
+      user could clone a Dept-B setting they cannot even view, inheriting
+      its department scope into the copy).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the duplicate path passes it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
+    """
+    if not has_permission(role_permissions, "setting", "duplicate"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and setting_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in setting_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_draft(

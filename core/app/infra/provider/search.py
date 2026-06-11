@@ -20,6 +20,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.infra.provider.permissions import (
@@ -263,8 +264,16 @@ async def _search_provider_build(
     else:
         artifacts = all_artifacts
 
+    # ── Step 4b: Actor department-scope clamp ──────────────────────────
+    # Mirror the provider DETAIL ``get`` ``has_access`` gate on the LIST path
+    # so cross-department providers the caller could not open in detail are not
+    # leaked here; ``total_count`` is decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
+
     if not artifacts:
-        return _empty_response(actor_name, total_count=0)
+        return _empty_response(actor_name, total_count=total_count)
 
     # ── Step 5: Parallel hydration + facets ────────────────────────────
 

@@ -20,6 +20,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.infra.rubric.permissions import (
@@ -219,6 +220,15 @@ async def _search_rubric_build(
             rubrics=True,
             active=None,
         )
+
+    # -- Actor department-scope clamp --
+    # Mirror this artifact's DETAIL ``get`` ``has_access`` gate on the LIST
+    # path so cross-department rows the caller could not open in detail are
+    # not leaked here; ``total_count`` is decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
+
 
     # Build per-rubric eval_ids map (eval_artifact ids referencing this rubric).
     # Path: rubric_artifact → rubrics_resource (a.rubric_ids) → model_rubrics_resource

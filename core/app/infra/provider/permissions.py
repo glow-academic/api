@@ -221,6 +221,7 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     provider_department_ids: list[str] | list[UUID] | None,
     active_model_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -238,16 +239,59 @@ def compute_can_delete(
         return False
 
     # Permission check
-    return has_permission(role_permissions, "provider", "delete")
+    if not has_permission(role_permissions, "provider", "delete"):
+        return False
+
+    # Department-subset guard: a non-top-level actor must belong to ALL
+    # of the provider's departments, else they could delete a provider in a
+    # department they cannot even view (mirrors ``eval.compute_can_delete``).
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and provider_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in provider_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
-def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+    provider_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only users with provider duplicate permission can duplicate
+    - Must have provider:duplicate permission
+    - Non-top-level users must belong to ALL of the provider's departments
+      (mirrors ``scenario.compute_can_duplicate`` — duplicate must not
+      bypass the department scope ``has_access`` enforces, else a Dept-A
+      user could clone a Dept-B provider they cannot even view, inheriting
+      its department scope into the copy).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the duplicate path passes it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
     """
-    return has_permission(role_permissions, "provider", "duplicate")
+    if not has_permission(role_permissions, "provider", "duplicate"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and provider_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in provider_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
