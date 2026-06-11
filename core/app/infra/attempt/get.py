@@ -990,7 +990,7 @@ async def get_attempt_impl(
     redis: Redis,
     *,
     profile_id: UUID,
-    attempt_id: UUID,
+    attempt_id: UUID | None = None,
     bypass_cache: bool = False,
     cache_key_path: str | None = None,
     session_id: UUID | None = None,
@@ -998,6 +998,26 @@ async def get_attempt_impl(
 ) -> GetAttemptDetailResponse:
     """Resolve the canonical attempt detail response with shared caching."""
     tags = ["attempt"]
+    # ``attempt_id`` is optional at the signature level so this impl mirrors
+    # every sibling ``*_Get`` (get_agent_impl, get_persona_impl,
+    # get_scenario_impl, … all take ``<entity>_id: UUID | None = None``).
+    # The HTTP/WS adapters always pass a request-validated ``attempt_id``,
+    # but the agent-run tool dispatch (``execute_infra_operation`` kwargs
+    # path) calls this impl directly with only the LLM's rendered args. When
+    # the model invokes "Attempt Get" under ``tool_choice=required`` without
+    # supplying the (required-in-schema) ``attempt_id``, the rendered value
+    # is an empty string that ``sanitize_model_kwargs`` strips — so the impl
+    # was called with no ``attempt_id`` at all. A keyword-only arg with no
+    # default turned that into an unhandled ``TypeError`` that failed the
+    # whole run (``get_attempt_impl() missing 1 required keyword-only
+    # argument: 'attempt_id'``). Returning the canonical "no attempt"
+    # response instead lets the agent loop see a clean tool result and
+    # recover, exactly as the sibling get-tools already do for a missing id.
+    if attempt_id is None:
+        return GetAttemptDetailResponse(
+            attempt_exists=False,
+            access_denied=False,
+        )
     # Scope the cache entry to the actor: the response is built per
     # profile_id (``get_attempt_internal`` runs ``check_attempt_access`` and
     # gates owner-vs-other display fields on ``is_own_attempt``), but the
