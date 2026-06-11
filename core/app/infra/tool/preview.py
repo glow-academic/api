@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import asyncpg
-from jinja2 import Environment, TemplateError, TemplateSyntaxError, meta, nodes
+from jinja2 import TemplateError, TemplateSyntaxError, meta, nodes
 from redis.asyncio import Redis
 
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -22,6 +22,7 @@ from app.infra.tool.types import (
     ToolPreviewArgHint,
     ToolPreviewOutputResult,
 )
+from app.utils.templates.sandbox import make_sandboxed_env
 
 
 def _coerce_mock(value: str, field_type: str) -> Any:
@@ -90,7 +91,9 @@ async def preview_tool_impl(
         raw = request.mock.get(arg.name, arg.default_value or "")
         mock_context[arg.name] = _coerce_mock(raw, arg.field_type or "string")
 
-    env = Environment(autoescape=False, keep_trailing_newline=False)
+    # Sandboxed: ``template_str`` is fully client-supplied. A plain
+    # Environment would let ``{{ ...__globals__... }}`` reach os.popen (RCE).
+    env = make_sandboxed_env(autoescape=False, keep_trailing_newline=False)
 
     # Per-arg accumulators.
     used_args: set[str] = set()

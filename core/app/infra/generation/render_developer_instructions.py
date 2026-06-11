@@ -7,9 +7,10 @@ resource context. Used by persona/generate.py and other resource handlers.
 import json
 from typing import Any
 
-from jinja2 import Environment, TemplateError
+from jinja2 import TemplateError
 
 from app.utils.logging.db_logger import get_logger
+from app.utils.templates.sandbox import make_sandboxed_env
 
 logger = get_logger(__name__)
 
@@ -62,8 +63,9 @@ def render_developer_instructions(
             )
             context_dict = {}
 
-    # Create Jinja environment with security settings
-    env = Environment(
+    # Sandboxed — ``templates`` are raw, user-authored developer instructions;
+    # a plain env would allow SSTI→RCE.
+    env = make_sandboxed_env(
         autoescape=True,
         trim_blocks=True,
         lstrip_blocks=True,

@@ -17,14 +17,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from jinja2 import Environment
-
 from app.infra.tools.execute_infra_operation import (
     InfraOperationSpec,
     InfraTarget,
 )
+from app.utils.templates.sandbox import make_sandboxed_env
 
-_jinja_env = Environment(
+# Sandboxed — routing ``template`` strings come from persisted, user-authored
+# tool ``args_outputs``; a plain env would allow SSTI→RCE.
+_jinja_env = make_sandboxed_env(
     autoescape=True,
     trim_blocks=True,
     lstrip_blocks=True,

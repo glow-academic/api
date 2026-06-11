@@ -4,13 +4,14 @@ import uuid
 from typing import Any
 
 import asyncpg
-from jinja2 import Environment, TemplateError, TemplateSyntaxError
+from jinja2 import TemplateError, TemplateSyntaxError
 from jinja2.environment import Template as JinjaTemplate
 from redis.asyncio import Redis
 
 from app.tools.resources.args_outputs.get import get_args_outputs
 from app.tools.resources.tools.get import get_tools
 from app.utils.logging.db_logger import get_logger
+from app.utils.templates.sandbox import make_sandboxed_env
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ def validate_jinja_template(template_expr: str) -> tuple[bool, str | None]:
         return True, None
 
     try:
-        env = Environment(
+        env = make_sandboxed_env(
             autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True,
@@ -80,8 +81,9 @@ async def render_tool_template(
         if ao.name and ao.active
     ]
 
-    # Create Jinja2 environment with autoescape enabled for security
-    env = Environment(
+    # Sandboxed Jinja2 env — ``ao.template`` is persisted, user-authored;
+    # a plain env would allow SSTI→RCE. autoescape kept on for HTML safety.
+    env = make_sandboxed_env(
         autoescape=True,
         trim_blocks=True,
         lstrip_blocks=True,

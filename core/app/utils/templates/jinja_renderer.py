@@ -2,11 +2,12 @@
 
 from typing import Any
 
-from jinja2 import Environment, TemplateError
+from jinja2 import TemplateError
 from jinja2.environment import Template as JinjaTemplate
 
 from app.utils.logging.db_logger import get_logger
 from app.utils.settings.theme import ThemeTokens
+from app.utils.templates.sandbox import make_sandboxed_env
 
 logger = get_logger(__name__)
 
@@ -170,8 +171,9 @@ def render_template(
         # Inject CSS variables into HTML before rendering
         html_with_theme = inject_theme_css_variables(html, theme_tokens)
 
-        # Create Jinja2 environment with autoescape enabled for security
-        env = Environment(
+        # Sandboxed — ``html`` is a user-authored artifact/setting template;
+        # a plain env would allow SSTI→RCE. autoescape on for HTML safety.
+        env = make_sandboxed_env(
             autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True,

@@ -37,7 +37,7 @@ from typing import Any
 from uuid import UUID
 
 import asyncpg
-from jinja2 import Environment, TemplateError
+from jinja2 import TemplateError
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
@@ -51,6 +51,7 @@ from app.registry.operations import (
     resolve_request_class,
 )
 from app.utils.logging.db_logger import get_logger
+from app.utils.templates.sandbox import make_sandboxed_env
 
 logger = get_logger(__name__)
 
@@ -156,8 +157,11 @@ class InfraOperationError(Exception):
 # Jinja rendering
 # ---------------------------------------------------------------------------
 
-_jinja_env = Environment(
-    autoescape=False,  # Internal tool arg rendering, not HTML — no escaping needed
+# Sandboxed — ``template_str`` in render_output_map comes from persisted,
+# user-authored tool ``output_map`` templates; a plain env would allow
+# SSTI→RCE. autoescape off because this renders into JSON, not HTML.
+_jinja_env = make_sandboxed_env(
+    autoescape=False,
     trim_blocks=True,
     lstrip_blocks=True,
 )
