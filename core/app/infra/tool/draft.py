@@ -103,6 +103,7 @@ async def _maybe_auto_accept_tool_draft(
     async with pool.acquire() as conn:
         await refresh_soft_calls(conn)
     return True
+from app.infra.tool.arg_drafts import resolve_arg_drafts
 from app.tools.resources.arg_positions.create import create_arg_position
 from app.tools.resources.args.create import create_arg
 from app.tools.resources.args_outputs.create import create_args_output
@@ -266,60 +267,15 @@ async def _resolve_creatable_values(
     # position. Saved rows (id present) are re-linked unchanged — saved-row
     # immutability matches the Roles pattern.
     if request.args_drafts and not errors:
-        merged_arg_ids: list[UUID] = list(request.arg_ids or [])
-        merged_output_ids: list[UUID] = list(
-            request.args_output_ids or request.args_outputs_ids or []
-        )
-        merged_pos_ids: list[UUID] = list(request.arg_position_ids or [])
-
         async with pool.acquire() as conn:
-            for index, arg_draft in enumerate(request.args_drafts):
-                # Resolve the arg row (create or re-link).
-                if arg_draft.id is not None:
-                    resolved_arg_id: UUID = arg_draft.id
-                else:
-                    new_arg = await create_arg(
-                        conn,
-                        name=arg_draft.name,
-                        field_type=arg_draft.field_type,
-                        redis=redis,
-                        description=arg_draft.description,
-                        required=arg_draft.required,
-                        default_value=arg_draft.default_value,
-                    )
-                    resolved_arg_id = new_arg.id
-                    arg_draft.id = resolved_arg_id
-                if resolved_arg_id not in merged_arg_ids:
-                    merged_arg_ids.append(resolved_arg_id)
-
-                # Resolve nested outputs.
-                for output_draft in arg_draft.outputs or []:
-                    if output_draft.id is not None:
-                        if output_draft.id not in merged_output_ids:
-                            merged_output_ids.append(output_draft.id)
-                        continue
-                    new_output = await create_args_output(
-                        conn,
-                        args_id=resolved_arg_id,
-                        name=output_draft.name,
-                        redis=redis,
-                        template=output_draft.template,
-                    )
-                    output_draft.id = new_output.id
-                    if new_output.id not in merged_output_ids:
-                        merged_output_ids.append(new_output.id)
-
-                # Resolve the (args_id, value=index) position row. We always
-                # create — saved rows would have come back via arg_position_ids
-                # already; the unified UI never re-uses positions.
-                new_position = await create_arg_position(
-                    conn,
-                    args_id=resolved_arg_id,
-                    value=index,
-                    redis=redis,
-                )
-                if new_position.id not in merged_pos_ids:
-                    merged_pos_ids.append(new_position.id)
+            merged_arg_ids, merged_output_ids, merged_pos_ids = await resolve_arg_drafts(
+                conn,
+                redis,
+                request.args_drafts,
+                arg_ids=request.arg_ids,
+                output_ids=request.args_output_ids or request.args_outputs_ids,
+                position_ids=request.arg_position_ids,
+            )
 
         request.arg_ids = merged_arg_ids
         request.args_output_ids = merged_output_ids

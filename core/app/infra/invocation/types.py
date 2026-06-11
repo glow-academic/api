@@ -344,8 +344,10 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     endpoint_id: UUID | None = Field(None, description="Selected endpoint identifier")
     modality_ids: list[UUID] | None = Field(None, description="Selected modality identifiers")
     temperature_level_id: UUID | None = Field(None, description="Selected temperature level identifier")
+    temperature_level_ids: list[UUID] | None = Field(None, description="Selected temperature level identifiers (plural; takes precedence over temperature_level_id)")
     pricing_id: UUID | None = Field(None, description="Selected pricing identifier")
     reasoning_level_id: UUID | None = Field(None, description="Selected reasoning level identifier")
+    reasoning_level_ids: list[UUID] | None = Field(None, description="Selected reasoning level identifiers (plural; takes precedence over reasoning_level_id)")
     quality_ids: list[UUID] | None = Field(None, description="Selected quality identifiers")
     voice_ids: list[UUID] | None = Field(None, description="Selected voice identifiers")
     model_flag_ids: list[UUID] | None = Field(None, description="Selected model flag identifiers (junction-row ids)")
@@ -375,8 +377,10 @@ class PatchInvocationDraftApiRequest(ScopedItem):
         "endpoint_id": "endpoints",
         "modality_ids": "modalities",
         "temperature_level_id": "temperature_levels",
+        "temperature_level_ids": "temperature_levels",
         "pricing_id": "pricing",
         "reasoning_level_id": "reasoning_levels",
+        "reasoning_level_ids": "reasoning_levels",
         "quality_ids": "qualities",
         "voice_ids": "voices",
         "model_flag_ids": "model_flags",

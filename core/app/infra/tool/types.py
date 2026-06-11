@@ -225,6 +225,38 @@ class ToolResultItem(BaseModel):
 # ========== Create Endpoint Types ==========
 
 
+class ToolArgOutputDraftValue(BaseModel):
+    """Output-template draft value for an inline-creatable args_outputs row.
+
+    id null → server creates an args_outputs_resource row scoped to the
+    enclosing arg's resolved id. id set → row is re-linked unchanged
+    (saved rows are immutable on this surface).
+    """
+
+    id: UUID | None = Field(None, description="Existing args_outputs_resource id when re-linking")
+    name: str = Field(..., description="Output name")
+    template: str = Field("", description="Jinja template — variables drawn from the arg's name and any other selected args")
+
+
+class ToolArgDraftValue(BaseModel):
+    """Unified per-arg draft value for the Arguments step card.
+
+    Each entry maps 1:1 to one row of the Arguments list. Position is the
+    *index* of the entry — the resolver creates/finds an arg_positions_resource
+    row matching (args_id, value=index). Outputs nest under their owning arg.
+    Saved rows (id set) stay immutable; the client surfaces them as chips and
+    cloning into a fresh draft to edit (Roles pattern).
+    """
+
+    id: UUID | None = Field(None, description="Existing args_resource id when re-linking")
+    name: str = Field(..., description="Argument name")
+    field_type: str = Field("string", description="Argument type (string, number, boolean, array)")
+    description: str = Field("", description="Argument description")
+    required: bool = Field(False, description="Whether the argument is required")
+    default_value: str = Field("", description="Default value")
+    outputs: list[ToolArgOutputDraftValue] = Field(default_factory=list, description="Per-arg jinja output templates")
+
+
 class CreateToolItem(ScopedItem):
     """Single tool item for create — no tool_id.
 
@@ -246,6 +278,10 @@ class CreateToolItem(ScopedItem):
     arg_positions_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
+    args_drafts: list[ToolArgDraftValue] | None = Field(
+        None,
+        description="Unified per-arg drafts (Arguments step card). When present, the server resolver creates/links each arg + nested outputs + position and fills in args_ids/args_outputs_ids/arg_positions_ids. Mirrors the /tool/draft contract.",
+    )
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
@@ -310,6 +346,10 @@ class UpdateToolItem(ScopedItem):
     arg_positions_ids: list[UUID] | None = Field(None, description="Argument position identifiers")
     args_ids: list[UUID] | None = Field(None, description="Argument identifiers")
     args_outputs_ids: list[UUID] | None = Field(None, description="Argument output identifiers")
+    args_drafts: list[ToolArgDraftValue] | None = Field(
+        None,
+        description="Unified per-arg drafts (Arguments step card). When present, the server resolver creates/links each arg + nested outputs + position and fills in args_ids/args_outputs_ids/arg_positions_ids. Mirrors the /tool/draft contract.",
+    )
     permission_ids: list[UUID] | None = Field(None, description="Permission identifiers")
     instruction_id: UUID | None = Field(None, description="Response template instruction resource UUID")
     tool_ids: list[UUID] | None = Field(None, description="Related tool identifiers")
@@ -490,38 +530,6 @@ class CreateArgsOutputInput(BaseModel):
     args_id: UUID = Field(..., description="Argument resource ID this output belongs to")
     name: str = Field(..., description="Output name")
     template: str = Field("", description="Output template")
-
-
-class ToolArgOutputDraftValue(BaseModel):
-    """Output-template draft value for an inline-creatable args_outputs row.
-
-    id null → server creates an args_outputs_resource row scoped to the
-    enclosing arg's resolved id. id set → row is re-linked unchanged
-    (saved rows are immutable on this surface).
-    """
-
-    id: UUID | None = Field(None, description="Existing args_outputs_resource id when re-linking")
-    name: str = Field(..., description="Output name")
-    template: str = Field("", description="Jinja template — variables drawn from the arg's name and any other selected args")
-
-
-class ToolArgDraftValue(BaseModel):
-    """Unified per-arg draft value for the Arguments step card.
-
-    Each entry maps 1:1 to one row of the Arguments list. Position is the
-    *index* of the entry — the resolver creates/finds an arg_positions_resource
-    row matching (args_id, value=index). Outputs nest under their owning arg.
-    Saved rows (id set) stay immutable; the client surfaces them as chips and
-    cloning into a fresh draft to edit (Roles pattern).
-    """
-
-    id: UUID | None = Field(None, description="Existing args_resource id when re-linking")
-    name: str = Field(..., description="Argument name")
-    field_type: str = Field("string", description="Argument type (string, number, boolean, array)")
-    description: str = Field("", description="Argument description")
-    required: bool = Field(False, description="Whether the argument is required")
-    default_value: str = Field("", description="Default value")
-    outputs: list[ToolArgOutputDraftValue] = Field(default_factory=list, description="Per-arg jinja output templates")
 
 
 class PatchToolDraftApiRequest(ScopedItem):
