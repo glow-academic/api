@@ -59,6 +59,18 @@ internal_sio = get_internal_sio()
 _IDEM_LOCK_TTL_SECONDS = 300
 _IDEM_LOCK_PREFIX = "idem:op:"
 
+# Lightweight replay receipt for the NON-audit branch (can_audit=False — no
+# registered tool, or missing session/group/profiles_id). The audited branch
+# persists a full ``calls_entry`` + JSON receipt that ``search_calls`` replays;
+# the non-audit branch has no such row, so without this a successful op left no
+# trace. Combined with always releasing the lock in a ``finally``, this makes
+# replay correctness independent of ``can_audit``: a retry within the TTL finds
+# the stored result and replays it instead of re-executing (duplicate write) or
+# 409-ing on a stuck lock. Holds the arg-fingerprint (same-key/different-body
+# → 409) and the JSON-able result. TTL matches the lock window.
+_IDEM_RECEIPT_PREFIX = "idem:receipt:"
+_IDEM_RECEIPT_TTL_SECONDS = 300
+
 
 def _fingerprint_arguments(arguments: dict[str, Any]) -> str:
     """Stable hash of an operation's arguments — backs same-key/different-body
@@ -219,7 +231,16 @@ async def run_artifact_operation_with_audit(
     # — the gate must never break a request that would otherwise succeed. A 409
     # is intentional (reused key with a different body, or in-flight duplicate)
     # and is re-raised.
-    if operation_key is not None and not bypass_cache and not _is_bare_ack(arguments):
+    # ``_idem_lock_key`` is set when (and only when) we won the lock below, so
+    # the post-execution ``finally`` can release it. Releasing unconditionally
+    # is the core A2 fix: the non-audit branch writes no ``calls_entry`` receipt,
+    # so a held lock that's never released turned a SUCCEEDED op into a 300s 409
+    # lockout (retry <TTL) then a duplicate execution (retry >TTL).
+    _idem_lock_key: str | None = None
+    _idem_gate_active = (
+        operation_key is not None and not bypass_cache and not _is_bare_ack(arguments)
+    )
+    if _idem_gate_active:
         try:
             with timed("idempotency"):
                 async with pool.acquire() as _idem_conn:
@@ -256,22 +277,102 @@ async def run_artifact_operation_with_audit(
                         return response_model.model_validate(_cached)
                     return _cached  # type: ignore[return-value]
             else:
-                # No completed receipt yet → serialize concurrent first-runs.
+                # No persisted ``calls_entry`` receipt. Before serializing,
+                # consult the lightweight Redis receipt the NON-audit branch
+                # leaves behind — that branch never writes a ``calls_entry``,
+                # so this is the only replay signal for can_audit=False ops.
+                _redis_receipt_raw = await redis.get(
+                    f"{_IDEM_RECEIPT_PREFIX}{operation_key}"
+                )
+                if _redis_receipt_raw is not None:
+                    _rr = json.loads(
+                        _redis_receipt_raw.decode()
+                        if isinstance(_redis_receipt_raw, bytes)
+                        else _redis_receipt_raw
+                    )
+                    if _rr.get("fingerprint") != _fingerprint_arguments(arguments):
+                        raise HTTPException(
+                            status_code=409,
+                            detail="Idempotency key reused with a different request payload.",
+                        )
+                    _cached = _rr.get("raw_output")
+                    _is_error = (
+                        isinstance(_cached, dict) and _cached.get("success") is False
+                    )
+                    if _cached is not None and not _is_error:
+                        logger.info(
+                            "IDEM_REPLAY(redis) %s.%s operation_key=%s",
+                            artifact, operation, operation_key,
+                        )
+                        if response_model is not None:
+                            return response_model.model_validate(_cached)
+                        return _cached  # type: ignore[return-value]
+
+                # No receipt anywhere yet → serialize concurrent first-runs.
+                _lock_key = f"{_IDEM_LOCK_PREFIX}{operation_key}"
                 _got_lock = await redis.set(
-                    f"{_IDEM_LOCK_PREFIX}{operation_key}", "1",
-                    nx=True, ex=_IDEM_LOCK_TTL_SECONDS,
+                    _lock_key, "1", nx=True, ex=_IDEM_LOCK_TTL_SECONDS,
                 )
                 if not _got_lock:
                     raise HTTPException(
                         status_code=409,
                         detail="An operation with this idempotency key is already in progress.",
                     )
+                _idem_lock_key = _lock_key
         except HTTPException:
             raise
         except Exception:
             logger.warning(
                 "IDEM_GATE_SKIP %s.%s operation_key=%s — gate error, falling through",
                 artifact, operation, operation_key, exc_info=True,
+            )
+
+    async def _release_idem_lock() -> None:
+        """Drop the in-flight lock once execution is done (success OR failure).
+
+        The lock only serialized concurrent first-runs; with the receipt now
+        written (calls_entry for can_audit, Redis receipt otherwise) it has done
+        its job. Leaving it held is the A2 bug. Best-effort — a Redis hiccup
+        here must never mask the real result; the TTL is the backstop.
+        """
+        if _idem_lock_key is None:
+            return
+        try:
+            await redis.delete(_idem_lock_key)
+        except Exception:
+            logger.debug("IDEM_LOCK_RELEASE_FAIL key=%s (TTL backstop)", _idem_lock_key)
+
+    async def _write_redis_receipt(raw_output: Any) -> None:
+        """Persist the lightweight replay receipt for the NON-audit branch.
+
+        can_audit=False ops have no ``calls_entry``; this is their only replay
+        signal. Skip caching server errors so a retry truly retries (mirrors the
+        ``calls_entry`` replay path). Best-effort."""
+        if not _idem_gate_active or operation_key is None:
+            return
+        _is_err = isinstance(raw_output, dict) and raw_output.get("success") is False
+        if _is_err:
+            return
+        try:
+            _serialisable = (
+                raw_output.model_dump(mode="json")
+                if hasattr(raw_output, "model_dump")
+                else raw_output
+            )
+            await redis.set(
+                f"{_IDEM_RECEIPT_PREFIX}{operation_key}",
+                json.dumps(
+                    {
+                        "fingerprint": _fingerprint_arguments(arguments),
+                        "raw_output": _serialisable,
+                    },
+                    default=str,
+                ),
+                ex=_IDEM_RECEIPT_TTL_SECONDS,
+            )
+        except Exception:
+            logger.debug(
+                "IDEM_RECEIPT_WRITE_FAIL operation_key=%s", operation_key
             )
 
     # Opt-in mint: routes for create-the-group operations (e.g. /X/group)
@@ -506,6 +607,9 @@ async def run_artifact_operation_with_audit(
                     failed_payload,
                     effective_upload_folder,
                 )
+            # Release the in-flight lock so the retry can re-run (a failed op
+            # writes no receipt; leaving the lock held would 409 the retry).
+            await _release_idem_lock()
             raise
 
     # --- Failed ---
@@ -538,6 +642,10 @@ async def run_artifact_operation_with_audit(
                 effective_upload_folder,
             )
 
+        # Release the in-flight lock — the can_audit branch's failed result is
+        # not cached for replay (we skip success=False receipts), so a retry
+        # must be free to re-run rather than hit a stuck-lock 409.
+        await _release_idem_lock()
         raise tool_error
 
     # --- Completed ---
@@ -595,6 +703,16 @@ async def run_artifact_operation_with_audit(
             "ledger_artifact": ledger_artifact,
             "ledger_artifact_id": ledger_artifact_id,
         })
+
+    # Idempotency bookkeeping on success.
+    #   • can_audit=True: ``create_tool_call`` already persisted the calls_entry
+    #     receipt that ``search_calls`` replays — nothing extra to write.
+    #   • can_audit=False: persist the lightweight Redis receipt so a retry
+    #     replays instead of re-executing (the A2 duplicate-write fix).
+    # Either way, drop the in-flight lock now that the receipt exists.
+    if not can_audit:
+        await _write_redis_receipt(result_data)
+    await _release_idem_lock()
 
     # Final receipt update — merge full per-phase timings + completed_at
     # into the .json receipt for forensic post-mortem by call_id.

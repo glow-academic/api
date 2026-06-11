@@ -157,3 +157,71 @@ async def test_update_surfaces_failed_keycloak_idp_sync(monkeypatch):
     # The swallowed sync failure must now be visible to the caller.
     assert "did not complete" in item.message.lower()
     assert item.message != "Auth updated successfully"
+
+
+async def test_accept_reactivates_the_soft_updated_row(monkeypatch):
+    """A1 regression: accepting a soft auth-update must re-activate the row.
+
+    The soft (propose) write forces ``active=False`` (``soft=True`` does), which
+    hides the row from ``search_auth`` (filters ``a.active = true``). Before the
+    fix the accept path called ``update_auth_artifact(conn, target_id, soft=False)``
+    with NO ``active`` arg → the tool's ``active`` defaulted to ``_UNSET`` → the
+    else-branch only touched ``updated_at``/``mcp`` and the row stayed
+    ``active=False`` FOREVER (the accepted change permanently invisible).
+
+    This test captures the kwargs the accept path hands to the artifact tool and
+    asserts ``active=True`` is now passed. (The old test mocked the tool and only
+    checked the no-op default, which is exactly why A1 slipped through.)
+    """
+    from app.tools.artifacts.auth.types import UpdateAuthResponse
+    from app.tools.entries.soft_calls.types import GetSoftCallResponse
+    from datetime import datetime, timezone
+
+    auth_id = uuid4()
+    idem_key = uuid4()
+    captured: dict = {}
+
+    async def mock_get_soft_call(conn, call_id, redis, *, artifact=None):
+        return GetSoftCallResponse(
+            id=uuid4(),
+            call_id=call_id,
+            artifact="auth",
+            operation="update",
+            status="pending",
+            artifact_id=auth_id,
+            patch=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def mock_update_artifact(conn, _id, **kw):
+        captured["id"] = _id
+        captured["kwargs"] = kw
+        return UpdateAuthResponse(id=auth_id)
+
+    async def mock_create_soft_call(conn, redis, **kw):
+        return None
+
+    async def mock_refresh_soft_calls(conn):
+        return None
+
+    async def mock_refresh(pool, redis, **kw):
+        return None
+
+    monkeypatch.setattr("app.infra.auth.update.get_soft_call", mock_get_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.update_auth_artifact", mock_update_artifact)
+    monkeypatch.setattr("app.infra.auth.update.create_soft_call", mock_create_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.refresh_soft_calls", mock_refresh_soft_calls)
+    monkeypatch.setattr("app.infra.auth.update.refresh_auth_impl", mock_refresh)
+
+    result = await update_auth_impl(
+        _FakePoolU(), None, profile_id=uuid4(),
+        request=UpdateAuthApiRequest(),
+        idempotency_key=idem_key,
+        accept=True,
+    )
+
+    assert result.results[0].success is True
+    assert captured["id"] == auth_id
+    # The crux of A1: accept must re-activate the row, not leave active=_UNSET.
+    assert captured["kwargs"].get("active") is True
+    assert captured["kwargs"].get("soft") is False

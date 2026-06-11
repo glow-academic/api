@@ -81,7 +81,16 @@ async def update_auth_impl(
         if accept:
             async with pool.acquire() as conn:
                 async with conn.transaction():
-                    await update_auth_artifact(conn, target_id, soft=False)
+                    # Re-activate the row. The soft (propose) write flipped
+                    # ``active=False`` (soft forces it), which hides the row
+                    # from ``search_auth`` (filters ``a.active = true``). The
+                    # accept must explicitly set ``active=True`` — without it
+                    # the tool's else-branch only touches ``updated_at``/``mcp``
+                    # and the accepted change stays invisible forever. Mirrors
+                    # the attempt start/complete ack reactivation paths.
+                    await update_auth_artifact(
+                        conn, target_id, active=True, soft=False
+                    )
 
         async with pool.acquire() as conn:
             await create_soft_call(
