@@ -29,6 +29,7 @@ from app.infra.globals import (
     sio,
     socket_path,
 )
+from app.infra.shared_types import MAX_JSON_BODY_BYTES
 
 logger = logging.getLogger(__name__)
 
@@ -606,8 +607,42 @@ class DBLoggingMiddleware(BaseHTTPMiddleware):
         )
 
         if request.method in ("POST", "PUT", "PATCH") and not is_binary_content:
+            # Body-size guard (memory-exhaustion DoS): the 64 MiB upload cap
+            # only covers binary file bytes — non-binary (JSON) bodies bypassed
+            # it entirely, yet this middleware fully buffers + json.loads every
+            # such body before routing. Reject oversized bodies up front so an
+            # arbitrarily large JSON payload can never be materialized in
+            # memory here. The declared Content-Length is checked first (cheap,
+            # rejects before any read); a missing/chunked length falls through
+            # to the post-read size check below, which still bounds the buffer
+            # because Starlette caps the body it will assemble.
+            declared_len = request.headers.get("Content-Length")
+            if declared_len is not None:
+                try:
+                    if int(declared_len) > MAX_JSON_BODY_BYTES:
+                        return ORJSONResponse(
+                            status_code=413,
+                            content={
+                                "detail": (
+                                    f"Request body exceeds the maximum size of "
+                                    f"{MAX_JSON_BODY_BYTES // (1024 * 1024)} MiB."
+                                )
+                            },
+                        )
+                except ValueError:
+                    pass
             try:
                 body = await request.body()
+                if len(body) > MAX_JSON_BODY_BYTES:
+                    return ORJSONResponse(
+                        status_code=413,
+                        content={
+                            "detail": (
+                                f"Request body exceeds the maximum size of "
+                                f"{MAX_JSON_BODY_BYTES // (1024 * 1024)} MiB."
+                            )
+                        },
+                    )
                 if body:
                     body_json = json.loads(body)
                     profile_id = (

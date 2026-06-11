@@ -8,10 +8,10 @@ from typing import ClassVar  # used by RESOURCE_TYPE_MAP
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.persona_drafts.types import GetPersonaDraftResponse
 from app.tools.resources.fields.types import GetFieldResponse
 from app.tools.resources.parameters.types import GetParameterResponse
@@ -476,7 +476,7 @@ class CreatePersonaItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of an existing name resource")
-    name: str | None = Field(None, description="Display name text (creates new resource if name_id not provided)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name text (creates new resource if name_id not provided)")
     color_id: UUID | None = Field(None, description="UUID of an existing color resource")
     color: str | None = Field(None, description="Hex color code, e.g. '#FF5733' (creates new resource if color_id not provided)")
     icon_id: UUID | None = Field(None, description="UUID of an existing icon resource")
@@ -486,7 +486,7 @@ class CreatePersonaItem(ScopedItem):
     instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Persona description text (creates new resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Persona description text (creates new resource if description_id not provided)")
     # Canonical flag state — ids of selected flag-resource rows. Denormalized
     # booleans (`active`) are resolved to a flag_ids entry server-side.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
@@ -569,7 +569,7 @@ class UpdatePersonaItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the persona to update (required)")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of an existing name resource to select")
-    name: str | None = Field(None, description="Display name text (creates new resource if name_id not provided)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name text (creates new resource if name_id not provided)")
     color_id: UUID | None = Field(None, description="UUID of an existing color resource to select")
     color: str | None = Field(None, description="Hex color code (creates new resource if color_id not provided)")
     icon_id: UUID | None = Field(None, description="UUID of an existing icon resource to select")
@@ -578,7 +578,7 @@ class UpdatePersonaItem(ScopedItem):
     instructions_id: UUID | None = Field(None, description="UUID of an existing instruction resource to select")
     instructions: str | None = Field(None, description="System instruction template (creates new resource if instructions_id not provided)")
     description_id: UUID | None = Field(None, description="UUID of an existing description resource to select")
-    description: str | None = Field(None, description="Persona description text (creates new resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Persona description text (creates new resource if description_id not provided)")
     # Canonical flag state — ids of selected flag-resource rows. Denormalized
     # booleans (`active`) are resolved to a flag_ids entry server-side.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
@@ -781,9 +781,9 @@ class PatchPersonaDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft UUID to patch (omit to create a new draft)")
 
     # Single-select — provide value or ID
-    name: str | None = Field(None, description="Display name text (creates new name resource)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name text (creates new name resource)")
     name_id: UUID | None = Field(None, description="UUID of an existing name resource to select")
-    description: str | None = Field(None, description="Description text (creates new description resource)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text (creates new description resource)")
     description_id: UUID | None = Field(None, description="UUID of an existing description resource to select")
     color: str | None = Field(None, description="Hex color code (creates new resource if color_id not provided)")
     color_id: UUID | None = Field(None, description="UUID of a color resource to select")

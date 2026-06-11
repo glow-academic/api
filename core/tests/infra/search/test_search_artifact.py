@@ -5,13 +5,26 @@ themselves are artifact-agnostic.
 """
 
 import pytest
-from tests.helpers import unique_tag
 
 from app.infra.search.search_artifact import (
     add_junction_filter,
     add_text_search,
     execute_artifact_search,
 )
+from app.infra.shared_types import MAX_SEARCH_LIMIT
+from tests.helpers import unique_tag
+
+
+class _RecordingConn:
+    """Minimal asyncpg.Connection stand-in that records the LIMIT/OFFSET
+    bind params the query was executed with (no DB round-trip)."""
+
+    def __init__(self) -> None:
+        self.last_args: tuple = ()
+
+    async def fetch(self, _query: str, *args: object):
+        self.last_args = args
+        return []
 
 pytestmark = pytest.mark.asyncio
 
@@ -356,6 +369,39 @@ async def test_execute_limit_zero_returns_empty(conn):
         limit_count=0,
     )
     assert result == ([], 0)
+
+
+async def test_execute_clamps_oversized_limit():
+    """A non-model code path requesting a huge LIMIT is clamped to
+    MAX_SEARCH_LIMIT (defense-in-depth against a full-table-scan / OOM DoS)."""
+    rc = _RecordingConn()
+    await execute_artifact_search(
+        rc,  # type: ignore[arg-type]
+        table="persona_artifact",
+        conditions=[],
+        params=[],
+        idx=1,
+        limit_count=10_000_000,
+    )
+    # Last two bind params are (limit, offset). Limit must be clamped.
+    assert rc.last_args[-2] == MAX_SEARCH_LIMIT
+    assert rc.last_args[-1] == 0
+
+
+async def test_execute_preserves_within_bound_limit():
+    """A limit within the ceiling is passed through unchanged."""
+    rc = _RecordingConn()
+    await execute_artifact_search(
+        rc,  # type: ignore[arg-type]
+        table="persona_artifact",
+        conditions=[],
+        params=[],
+        idx=1,
+        limit_count=25,
+        offset_count=5,
+    )
+    assert rc.last_args[-2] == 25
+    assert rc.last_args[-1] == 5
 
 
 async def test_execute_pagination(conn):

@@ -7,11 +7,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.parameter_drafts.types import GetParameterDraftResponse
 
 # ---------------------------------------------------------------------------
@@ -252,10 +252,10 @@ class CreateParameterItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of an existing name resource")
-    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`) — display name text (creates new resource if name_id not provided)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="REQUIRED FOR CREATE (or pass `name_id`) — display name text (creates new resource if name_id not provided)")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Description text value (creates new resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value (creates new resource if description_id not provided)")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -313,9 +313,9 @@ class UpdateParameterItem(ScopedItem):
     id: UUID = Field(..., description="Target parameter identifier to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Optional multi-select — provide IDs or values
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -421,9 +421,9 @@ class PatchParameterDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft ID to update")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
     # Non-creatable — ID-only

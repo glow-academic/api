@@ -15,6 +15,7 @@ from app.infra.auth.search import search_auth_impl
 from app.infra.auth.types import ListAuthApiResponse
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
+from app.infra.shared_types import MAX_SEARCH_LIMIT
 from app.utils.error.handle_route_error import handle_route_error
 
 router = APIRouter()
@@ -29,7 +30,7 @@ class SearchAuthApiRequest(BaseModel):
     # Facet search text
     department_search: str | None = None
     # Pagination
-    page_size: int | None = 1000
+    page_size: int | None = Field(1000, ge=1, le=MAX_SEARCH_LIMIT)
     page_offset: int | None = 0
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 

@@ -9,11 +9,11 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import BaseResourceSection, ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.simulation_drafts.types import (
     GetSimulationDraftResponse,
 )
@@ -624,10 +624,10 @@ class CreateSimulationItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Canonical flag list — server derives semantics by flag type/value
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     # Multi-select IDs
@@ -674,9 +674,9 @@ class UpdateSimulationItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the simulation to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Canonical flag list — server derives semantics by flag type/value
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     # Multi-select IDs
@@ -974,9 +974,9 @@ class PatchSimulationDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Legacy alias for the input draft UUID")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     # Non-creatable — ID-only

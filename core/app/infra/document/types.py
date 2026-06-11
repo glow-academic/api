@@ -7,11 +7,11 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.document_drafts.types import GetDocumentDraftResponse
 from app.tools.resources.parameters.types import GetParameterResponse
 
@@ -376,10 +376,10 @@ class CreateDocumentItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value for resolution")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value for resolution")
     # Canonical multi-select flag ids + denormalized boolean for document_active.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     active: bool | None = Field(None, description="Denormalized document_active flag state; resolved to a flag_ids entry server-side")
@@ -426,9 +426,9 @@ class UpdateDocumentItem(ScopedItem):
     id: UUID = Field(..., description="Document UUID to update")  # Required — which document to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value for resolution")
     # Canonical multi-select flag ids + denormalized boolean for document_active.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     active: bool | None = Field(None, description="Denormalized document_active flag state; resolved to a flag_ids entry server-side")
@@ -646,9 +646,9 @@ class PatchDocumentDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to create a resource")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to create a resource")
     name_id: UUID | None = Field(None, description="Existing name resource UUID")
-    description: str | None = Field(None, description="Description value to create a resource")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
     # Creatable multi-select (merged mode) — values create resources, IDs merged

@@ -7,11 +7,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.eval_drafts.types import GetEvalDraftResponse
 
 
@@ -323,10 +323,10 @@ class CreateEvalItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource")
-    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`): display name text — creates a new name resource if `name_id` is not provided")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="REQUIRED FOR CREATE (or pass `name_id`): display name text — creates a new name resource if `name_id` is not provided")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value for resolution")
     # Multi-select — IDs only (matching get.py junctions)
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
@@ -379,9 +379,9 @@ class UpdateEvalItem(ScopedItem):
     id: UUID = Field(..., description="Eval UUID to update")  # Required — which eval to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value for resolution")
     # Multi-select — IDs only (matching get.py junctions)
     flag_ids: list[UUID] | None = Field(None, description="Flag option UUIDs")
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs")
@@ -588,9 +588,9 @@ class PatchEvalDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to create a resource")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to create a resource")
     name_id: UUID | None = Field(None, description="Existing name resource UUID")
-    description: str | None = Field(None, description="Description value to create a resource")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
     # Non-creatable — ID-only

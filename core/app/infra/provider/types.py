@@ -7,11 +7,11 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.provider_drafts.types import GetProviderDraftResponse
 
 
@@ -218,11 +218,12 @@ class CreateProviderItem(ScopedItem):
     )
     name: str | None = Field(
         None,
+        max_length=MAX_TEXT_FIELD_LEN,
         description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
     )
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized provider_active flag state")
@@ -236,7 +237,7 @@ class CreateProviderItem(ScopedItem):
     # Direct value fields (for denormalized snapshot)
     endpoint: str | None = Field(None, description="Provider API endpoint URL")
     key: str | None = Field(None, description="Provider API key")
-    value: str | None = Field(None, description="Provider identifier value")
+    value: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Provider identifier value")
 
     RESOURCE_TYPE_MAP: ClassVar[dict[str, str]] = {
         "name_id": "names",
@@ -285,9 +286,9 @@ class UpdateProviderItem(ScopedItem):
     id: UUID = Field(..., description="Target provider identifier to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized provider_active flag state")
@@ -473,9 +474,9 @@ class PatchProviderDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Legacy alias for existing draft ID to update")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
     # Canonical flag ids + denormalized bool resolved server-side
@@ -491,7 +492,7 @@ class PatchProviderDraftApiRequest(ScopedItem):
     key_description: str | None = Field(None, description="Provider key description")
     key_id: UUID | None = Field(None, description="Key resource identifier")
     key_ids: list[UUID] | None = Field(None, description="API key resource identifiers")
-    value: str | None = Field(None, description="Provider identifier value")
+    value: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Provider identifier value")
     value_id: UUID | None = Field(None, description="Value resource identifier")
     pending_ids: list[UUID] | None = Field(None, description="Pending resource identifiers to preserve")
     idempotency_key: UUID | None = Field(None, description="Operation key for ack semantics")

@@ -8,6 +8,8 @@ from uuid import UUID
 
 import asyncpg
 
+from app.infra.shared_types import MAX_SEARCH_LIMIT
+
 
 def add_junction_filter(
     conditions: list[str],
@@ -73,6 +75,13 @@ async def execute_artifact_search(
     """Execute the final search query and return (matching artifact IDs, total_count)."""
     if limit_count <= 0:
         return ([], 0)
+
+    # Defense-in-depth: clamp the LIMIT to the absolute search ceiling. The
+    # request models reject oversized ``page_size`` with a 422, but clamping
+    # here means even a non-model code path that calls this helper directly
+    # cannot turn the query into a full-table dump (full-table-scan / OOM DoS).
+    if limit_count > MAX_SEARCH_LIMIT:
+        limit_count = MAX_SEARCH_LIMIT
 
     where = " AND ".join(conditions) if conditions else "true"
 

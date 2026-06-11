@@ -13,6 +13,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_TEXT_FIELD_LEN
 from app.tools.entries.invocation_drafts.types import (
     GetInvocationDraftResponse,
 )
@@ -341,9 +342,9 @@ class PatchInvocationDraftApiRequest(ScopedItem):
     draft_id: UUID | None = Field(None, description="Existing draft identifier to update")
     input_draft_id: UUID | None = Field(None, description="Legacy alias for draft_id")
 
-    name: str | None = Field(None, description="Name value to create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to create")
     name_id: UUID | None = Field(None, description="Selected name identifier")
-    description: str | None = Field(None, description="Description value to create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to create")
     description_id: UUID | None = Field(None, description="Selected description identifier")
 
     value_id: UUID | None = Field(None, description="Selected value identifier")

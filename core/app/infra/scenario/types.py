@@ -9,11 +9,11 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField, SectionFilter
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.scenario_drafts.types import GetScenarioDraftResponse
 
 # =============================================================================
@@ -509,9 +509,9 @@ class CreateScenarioItem(ScopedItem):
 
     # Dual-mode: provide ID or raw value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
     # Canonical flag list — server derives semantics by flag type/value
@@ -576,9 +576,9 @@ class UpdateScenarioItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the scenario to update")
     # Dual-mode: provide ID or raw value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
     # Canonical flag list — server derives semantics by flag type/value
@@ -889,9 +889,9 @@ class PatchScenarioDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="UUID of the input draft")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     problem_statement: str | None = Field(None, description="Problem statement text value")
     problem_statement_id: UUID | None = Field(None, description="UUID of the problem statement resource")

@@ -3,11 +3,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.rubric_drafts.types import GetRubricDraftResponse
 
 
@@ -235,10 +235,10 @@ class CreateRubricItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource")
-    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource if name_id not provided)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource if name_id not provided)")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Rubric description text (creates new resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Rubric description text (creates new resource if description_id not provided)")
     # Canonical flag state — ids of selected flag-resource rows spanning
     # rubric_active, simulation_rubric, video_rubric. Denormalized booleans
     # below are resolved to flag_ids entries server-side.
@@ -291,9 +291,9 @@ class UpdateRubricItem(ScopedItem):
     id: UUID = Field(..., description="Rubric UUID to update")  # Required — which rubric to update
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="Name resource UUID")
-    name: str | None = Field(None, description="Name value for resolution")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value for resolution")
     description_id: UUID | None = Field(None, description="Description resource UUID")
-    description: str | None = Field(None, description="Description value for resolution")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value for resolution")
     # Canonical flag state — ids of selected flag-resource rows spanning
     # rubric_active, simulation_rubric, video_rubric. Denormalized booleans
     # below are resolved to flag_ids entries server-side.
@@ -526,9 +526,9 @@ class PatchRubricDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to patch")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to create a resource")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to create a resource")
     name_id: UUID | None = Field(None, description="Existing name resource UUID")
-    description: str | None = Field(None, description="Description value to create a resource")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to create a resource")
     description_id: UUID | None = Field(None, description="Existing description resource UUID")
 
     # Canonical flag state — ids of the selected flag-resource rows (may span

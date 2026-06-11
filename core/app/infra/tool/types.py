@@ -7,11 +7,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.tool_drafts.types import GetToolDraftResponse
 
 
@@ -268,10 +268,10 @@ class CreateToolItem(ScopedItem):
 
     # Dual-mode: name — REQUIRED FOR CREATE (or pass `tool_id`)
     name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`): UUID of an existing name resource")
-    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource)")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="REQUIRED FOR CREATE (or pass `name_id`): display name text (creates new resource)")
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Description text value (creates new resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value (creates new resource if description_id not provided)")
     # ID-only fields
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
@@ -336,10 +336,10 @@ class UpdateToolItem(ScopedItem):
     id: UUID = Field(..., description="Target tool identifier to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # ID-only fields
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     flag_ids: list[UUID] | None = Field(None, description="Flag option identifiers")
@@ -539,9 +539,9 @@ class PatchToolDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Existing draft ID to update")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
 
     # Match / ID-backed fields

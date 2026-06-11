@@ -33,7 +33,7 @@ class SearchTestApiRequest(BaseModel):
     eval_search: str | None = None
     department_search: str | None = None
     # Pagination
-    page_size: int = 20
+    page_size: int = Field(20, ge=1, le=200)
     page_offset: int = 0
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
