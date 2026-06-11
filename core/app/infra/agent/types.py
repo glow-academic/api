@@ -8,11 +8,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.agent_drafts.types import GetAgentDraftResponse
 
 
@@ -279,10 +279,10 @@ class CreateAgentItem(ScopedItem):
 
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
@@ -328,10 +328,10 @@ class UpdateAgentItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the agent to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Associated department UUIDs")
     departments: list[str] | None = Field(None, description="Department names for matching")
@@ -539,9 +539,9 @@ class PatchAgentDraftApiRequest(ScopedItem):
     accept: bool | None = Field(None, description="Whether pending changes should be accepted")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     # Canonical flag ids + denormalized bool resolved server-side

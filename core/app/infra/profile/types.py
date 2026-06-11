@@ -7,11 +7,14 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.resource_type_filter import ScopedItem
-from app.infra.shared_types import QGetProfileContextV4RoleResource
+from app.infra.shared_types import (
+    MAX_BULK_ITEMS,
+    MAX_TEXT_FIELD_LEN,
+    QGetProfileContextV4RoleResource,
+)
 from app.tools.entries.profile_drafts.types import GetProfileDraftResponse
 from app.utils.settings.theme import ThemeTokens
 
@@ -286,6 +289,7 @@ class CreateProfileItem(ScopedItem):
     )
     name: str | None = Field(
         None,
+        max_length=MAX_TEXT_FIELD_LEN,
         description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
     )
     # Canonical flag ids + denormalized bool
@@ -336,7 +340,7 @@ class UpdateProfileItem(ScopedItem):
     profile_id: UUID = Field(..., description="UUID of the profile to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized profile_active flag state")
@@ -533,7 +537,7 @@ class PatchProfileDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
     email: str | None = Field(None, description="Email value to resolve or create")
     emails: list[str] | None = Field(None, description="Email values to resolve or create")

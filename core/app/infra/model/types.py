@@ -7,11 +7,11 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.model_drafts.types import GetModelDraftResponse
 
 # =============================================================================
@@ -319,6 +319,7 @@ class CreateModelItem(ScopedItem):
     )
     name: str | None = Field(
         None,
+        max_length=MAX_TEXT_FIELD_LEN,
         description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
     )
     # Strongly recommended for create (model isn't callable without
@@ -329,6 +330,7 @@ class CreateModelItem(ScopedItem):
     )
     value: str | None = Field(
         None,
+        max_length=MAX_TEXT_FIELD_LEN,
         description="Direct model value/identifier (e.g. the actual API model name like 'gpt-4o'). Strongly recommended on create alongside ``provider_id`` so the model is callable.",
     )
     provider_id: UUID | None = Field(
@@ -337,7 +339,7 @@ class CreateModelItem(ScopedItem):
     )
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="UUID of an existing description resource")
-    description: str | None = Field(None, description="Description text value (creates a new description resource if description_id not provided)")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value (creates a new description resource if description_id not provided)")
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -400,10 +402,10 @@ class UpdateModelItem(ScopedItem):
     id: UUID = Field(..., description="Target model identifier to update")
     # Dual-mode: name
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     # Dual-mode: description
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     # Dual-mode: departments (match by name)
     department_ids: list[UUID] | None = Field(None, description="Department identifiers")
     departments: list[str] | None = Field(None, description="Department names to match")
@@ -647,11 +649,11 @@ class PatchModelDraftApiRequest(ScopedItem):
     accept: bool | None = Field(None, description="Accept or reject when idempotency_key is supplied")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Display name value")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Display name value")
     name_id: UUID | None = Field(None, description="Name resource identifier")
-    description: str | None = Field(None, description="Description text value")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description text value")
     description_id: UUID | None = Field(None, description="Description resource identifier")
-    value: str | None = Field(None, description="Direct model value")
+    value: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Direct model value")
     value_id: UUID | None = Field(None, description="Value resource identifier")
     provider: str | None = Field(None, description="Provider name to match")
     provider_id: UUID | None = Field(None, description="Provider identifier")

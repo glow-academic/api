@@ -27,6 +27,58 @@ from pydantic import BaseModel
 MAX_BULK_ITEMS = 500
 
 # ---------------------------------------------------------------------------
+# Pagination guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on ``page_size`` for every artifact ``/search`` endpoint. Each
+# search builds a SQL ``LIMIT $n`` directly from the requested page size, so an
+# unbounded value lets one authenticated request ask for a full-table dump —
+# a window-function COUNT(*) OVER() across the whole table plus materializing
+# every matching row into memory (full-table-scan / OOM / box-hang DoS).
+# Mirrors the ``le=200`` cap #317 applied to ``/attempt/search`` + benchmark.
+# 200 is far above any real page a UI renders while bounding rows-per-request.
+# Enforced two ways: the request models declare ``Field(..., ge=1, le=200)``
+# (Pydantic rejects oversized values with a 422 before any DB work), and the
+# shared ``execute_artifact_search`` helper clamps ``limit_count`` as
+# defense-in-depth so even a non-model code path can't exceed it.
+MAX_PAGE_SIZE = 200
+
+# Absolute hard ceiling on the SQL ``LIMIT`` any artifact search may run. A few
+# searches (e.g. ``/auth/search``) legitimately default to a larger
+# "fetch-the-whole-reference-list" page (no client-side pagination), so their
+# request model caps at this higher bound rather than ``MAX_PAGE_SIZE``. This is
+# also the backstop the shared ``execute_artifact_search`` helper clamps to:
+# 1000 bounded rows + a COUNT(*) OVER() is still safe, while the real DoS
+# (``page_size=10_000_000`` → full-table dump) is well above it and rejected.
+MAX_SEARCH_LIMIT = 1000
+
+# ---------------------------------------------------------------------------
+# Free-text field guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on the length of user-supplied free-text fields that get
+# persisted to the DB (artifact name/description/slug/protocol/etc.). These
+# had no ``max_length``, so one authenticated request could submit a
+# multi-megabyte string per field (and, via the bulk endpoints, up to
+# ``MAX_BULK_ITEMS`` of them) — buffered, parsed, and written out
+# (memory-exhaustion box-hang). 8 KiB is generous for any legitimate name,
+# slug, or description while bounding per-field memory. Pydantic rejects
+# oversized strings with a 422 before any DB work runs.
+MAX_TEXT_FIELD_LEN = 8192
+
+# ---------------------------------------------------------------------------
+# JSON request-body guard rail
+# ---------------------------------------------------------------------------
+# Upper bound on the byte size of a non-binary (JSON) request body. The
+# request-logging middleware buffers and ``json.loads`` the entire body of
+# every POST/PUT/PATCH before routing, and the 64 MiB upload cap only covers
+# file bytes — JSON bodies bypassed it entirely, so an authenticated client
+# could stream an arbitrarily large JSON body and exhaust server memory during
+# the buffer+parse (memory-exhaustion box-hang). 8 MiB is comfortably above the
+# largest legitimate JSON payload: a ``MAX_BULK_ITEMS`` (500) list of normal
+# artifact items, each with ``MAX_TEXT_FIELD_LEN`` text fields, stays well
+# under it. Requests over the cap are rejected 413 before the body is read.
+MAX_JSON_BODY_BYTES = 8 * 1024 * 1024
+
+# ---------------------------------------------------------------------------
 # CSV-import parse guard rail
 # ---------------------------------------------------------------------------
 # Upper bound on the number of rows a single uploaded CSV may carry. The CSV

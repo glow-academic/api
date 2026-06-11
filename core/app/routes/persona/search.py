@@ -38,7 +38,7 @@ class SearchPersonaApiRequest(BaseModel):
     voice_search: str | None = Field(None, description="Search text for voice facet")
     instruction_search: str | None = Field(None, description="Search text for instruction facet")
     # Pagination
-    page_size: int | None = Field(12, description="Number of results per page")
+    page_size: int | None = Field(12, ge=1, le=200, description="Number of results per page")
     page_offset: int | None = Field(0, description="Pagination offset")
 
 

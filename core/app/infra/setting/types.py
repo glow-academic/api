@@ -7,11 +7,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.setting_drafts.types import GetSettingDraftResponse
 
 
@@ -470,10 +470,10 @@ class CreateSettingItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="REQUIRED FOR CREATE (or pass `name`). UUID of an existing name resource")
-    name: str | None = Field(None, description="REQUIRED FOR CREATE (or pass `name_id`). Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="REQUIRED FOR CREATE (or pass `name_id`). Name value to resolve or create")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     # Canonical flag state — ids of selected flag-resource rows. Server derives
     # semantics by flag type/value.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
@@ -557,9 +557,9 @@ class UpdateSettingItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the setting to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     # Canonical flag state — ids of selected flag-resource rows. Server derives
     # semantics by flag type/value.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
@@ -676,9 +676,9 @@ class PatchSettingDraftApiRequest(ScopedItem):
     soft: bool = Field(False, description="Stage the draft dormant (active=False) — propose; the ack ({idempotency_key, accept}) promotes/rejects it")
     accept: bool | None = Field(None, description="Accept or reject pending draft state when used with idempotency_key")
 
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     active: bool | None = Field(None, description="Denormalized setting_active flag state; resolved to a flag_ids entry server-side")

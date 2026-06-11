@@ -8,12 +8,13 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.identity.settings import SettingsThemeResult
 from app.infra.resource_type_filter import ScopedItem
 from app.infra.shared_types import (
+    MAX_BULK_ITEMS,
+    MAX_TEXT_FIELD_LEN,
     QGetAgentsV4Item,
     QGetProfileContextV4ThemeTokens,
     QGetSettingsV4Item,
@@ -389,13 +390,14 @@ class CreateAuthItem(ScopedItem):
     )
     name: str | None = Field(
         None,
+        max_length=MAX_TEXT_FIELD_LEN,
         description="REQUIRED FOR CREATE (or pass ``name_id``). Display name text — creates a new name resource on the fly.",
     )
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     slug_id: UUID | None = Field(None, description="UUID of the slug resource")
-    slug: str | None = Field(None, description="Slug value to resolve or create")
+    slug: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Slug value to resolve or create")
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized auth_active flag state")
@@ -403,7 +405,7 @@ class CreateAuthItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     protocol_ids: list[UUID] | None = Field(None, description="Protocol resource UUIDs")
-    protocol: str | None = Field(None, description="Protocol value to resolve")
+    protocol: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Protocol value to resolve")
     item_ids: list[UUID] | None = Field(None, description="Auth item UUIDs")
     auth_resource_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs")
 
@@ -451,11 +453,11 @@ class UpdateAuthItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the auth provider to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     slug_id: UUID | None = Field(None, description="UUID of the slug resource")
-    slug: str | None = Field(None, description="Slug value to resolve or create")
+    slug: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Slug value to resolve or create")
     # Canonical flag ids + denormalized bool
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs")
     active: bool | None = Field(None, description="Denormalized auth_active flag state")
@@ -463,7 +465,7 @@ class UpdateAuthItem(ScopedItem):
     department_ids: list[UUID] | None = Field(None, description="Department UUIDs to assign")
     departments: list[str] | None = Field(None, description="Department names to resolve")
     protocol_ids: list[UUID] | None = Field(None, description="Protocol resource UUIDs")
-    protocol: str | None = Field(None, description="Protocol value to resolve")
+    protocol: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Protocol value to resolve")
     item_ids: list[UUID] | None = Field(None, description="Auth item UUIDs")
     auth_resource_ids: list[UUID] | None = Field(None, description="Auth resource UUIDs")
 
@@ -650,9 +652,9 @@ class PatchAuthDraftApiRequest(ScopedItem):
     accept: bool | None = Field(None, description="Whether to accept a pending draft when acknowledging")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     # Canonical flag ids + denormalized bools resolved server-side

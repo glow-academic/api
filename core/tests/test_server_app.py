@@ -260,6 +260,102 @@ async def test_db_logging_middleware_records_profile_and_request_duration():
     assert recorded_profile_ids[-1] is None
 
 
+def _noop_middleware_app(handler_path: str = "/echo"):
+    """Build a tiny app wrapped in DBLoggingMiddleware with no-op recorders."""
+
+    async def record_request(_duration_ms: float) -> None:
+        return None
+
+    async def record_error() -> None:
+        return None
+
+    def set_profile_id(_profile_id: str | None) -> None:
+        return None
+
+    test_app = FastAPI()
+
+    @test_app.post(handler_path)
+    async def echo(request: Request) -> dict[str, str]:  # noqa: ANN202
+        return {"ok": "yes"}
+
+    test_app.add_middleware(
+        DBLoggingMiddleware,
+        record_error_fn=record_error,
+        record_request_fn=record_request,
+        set_profile_id_fn=set_profile_id,
+    )
+    return test_app
+
+
+@pytest.mark.asyncio
+async def test_db_logging_middleware_rejects_oversized_content_length():
+    """An oversized declared Content-Length is rejected 413 before the body
+    is ever buffered/parsed (memory-exhaustion DoS guard, I1)."""
+    from app.infra.shared_types import MAX_JSON_BODY_BYTES
+
+    test_app = _noop_middleware_app()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app, raise_app_exceptions=False),
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            "/echo",
+            content=b"{}",
+            headers={
+                "Content-Type": "application/json",
+                "Content-Length": str(MAX_JSON_BODY_BYTES + 1),
+            },
+        )
+
+    assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_db_logging_middleware_rejects_oversized_body_without_content_length():
+    """An oversized actual body (no/under-declared Content-Length) is still
+    rejected 413 after the bounded read — the chunked/missing-length path."""
+    from app.infra.shared_types import MAX_JSON_BODY_BYTES
+
+    test_app = _noop_middleware_app()
+    big = b'{"x":"' + b"a" * (MAX_JSON_BODY_BYTES + 100) + b'"}'
+
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app, raise_app_exceptions=False),
+        base_url="http://testserver",
+    ) as client:
+        # Stream the body so httpx omits an exact Content-Length, exercising
+        # the post-read size check rather than the header check.
+        async def _gen():
+            yield big
+
+        response = await client.post(
+            "/echo",
+            content=_gen(),
+            headers={"Content-Type": "application/json"},
+        )
+
+    assert response.status_code == 413
+
+
+@pytest.mark.asyncio
+async def test_db_logging_middleware_allows_normal_and_bulk_bodies():
+    """A normal-sized JSON body passes through untouched (no false 413)."""
+    test_app = _noop_middleware_app()
+    # A 500-item bulk list of normal items — well under the JSON-body cap.
+    bulk = {"auths": [{"name": f"item-{i}", "description": "d" * 100} for i in range(500)]}
+
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app, raise_app_exceptions=False),
+        base_url="http://testserver",
+    ) as client:
+        normal = await client.post("/echo", json={"profile_id": "p", "name": "ok"})
+        bulk_resp = await client.post("/echo", json=bulk)
+
+    assert normal.status_code == 200
+    assert bulk_resp.status_code == 200
+
+
 @pytest.mark.asyncio
 async def test_db_logging_middleware_records_errors_for_failing_requests():
     recorded_profile_ids: list[str | None] = []

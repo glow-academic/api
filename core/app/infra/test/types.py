@@ -14,6 +14,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.infra.api_types import ListFilterSection
+
 # Reuse the canonical rubric/grade shapes from attempt — same data, same
 # client consumer (TableRubric). Keeps benchmark and attempt's graded
 # view aligned without forking a second set of Pydantic models.

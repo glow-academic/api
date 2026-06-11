@@ -7,11 +7,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-from app.infra.shared_types import MAX_BULK_ITEMS
 
 from app.infra.api_types import ListFilterSection
 from app.infra.persona.types import ImportField
 from app.infra.resource_type_filter import ScopedItem
+from app.infra.shared_types import MAX_BULK_ITEMS, MAX_TEXT_FIELD_LEN
 from app.tools.entries.field_drafts.types import GetFieldDraftResponse
 
 
@@ -234,10 +234,10 @@ class CreateFieldItem(ScopedItem):
 
     # Required single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     # Optional single-select — provide ID or value
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     # Canonical multi-select flag ids + denormalized boolean for field_active.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     active: bool | None = Field(None, description="Denormalized field_active flag state; resolved to a flag_ids entry server-side")
@@ -278,9 +278,9 @@ class UpdateFieldItem(ScopedItem):
     id: UUID = Field(..., description="UUID of the field to update")
     # Optional single-select — provide ID or value
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     # Canonical multi-select flag ids + denormalized boolean for field_active.
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")
     active: bool | None = Field(None, description="Denormalized field_active flag state; resolved to a flag_ids entry server-side")
@@ -389,9 +389,9 @@ class PatchFieldDraftApiRequest(ScopedItem):
     input_draft_id: UUID | None = Field(None, description="Existing draft UUID to update")
 
     # Creatable single-select — provide value or ID
-    name: str | None = Field(None, description="Name value to resolve or create")
+    name: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Name value to resolve or create")
     name_id: UUID | None = Field(None, description="UUID of the name resource")
-    description: str | None = Field(None, description="Description value to resolve or create")
+    description: str | None = Field(None, max_length=MAX_TEXT_FIELD_LEN, description="Description value to resolve or create")
     description_id: UUID | None = Field(None, description="UUID of the description resource")
 
     flag_ids: list[UUID] | None = Field(None, description="Selected flag option UUIDs — canonical; server derives semantics by flag type/value")

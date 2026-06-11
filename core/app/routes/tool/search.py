@@ -30,7 +30,7 @@ class SearchToolApiRequest(BaseModel):
     # Facet search text
     department_search: str | None = None
     # Pagination
-    page_size: int | None = 12
+    page_size: int | None = Field(12, ge=1, le=200)
     page_offset: int | None = 0
     snapshot_key: str | None = Field(None, description="Cache snapshot key for consistent reads across related requests")
 
