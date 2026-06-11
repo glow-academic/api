@@ -128,7 +128,13 @@ class ChatItem(BaseModel):
             and self.grade_total_points is not None
             and self.grade_total_points > 0
         ):
-            return round((self.grade_score / self.grade_total_points) * 100, 2)
+            # Clamp to [0, 100] so a bonus-inflated raw score (score >
+            # total_points) reports the same capped percent as the benchmark
+            # path (core/app/infra/benchmark/get.py:_score_percent), not >100%.
+            return round(
+                max(0.0, min(100.0, (self.grade_score / self.grade_total_points) * 100)),
+                2,
+            )
         return None
 
     @property
