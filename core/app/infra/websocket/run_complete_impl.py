@@ -232,18 +232,45 @@ async def run_complete_impl(
     # Step 4: Chat/attempt post-processing — refresh attempt MVs + emit
     # attempt_chat_started / attempt_grade_complete before the final completion
     # event so downstream UI sees consistent state.
+    #
+    # Fire-once across a parallel multi-agent run (S2). In an A/B / test
+    # fan-out, both dispatches call ``run_complete_impl`` concurrently on
+    # separate connections; ``resolve_run_completion`` is a read-only
+    # count-vs-threshold, so if both reads observe the full set of committed
+    # answer rows (count >= expected) BOTH pass ``all_done`` and BOTH would
+    # run ``_chat_post_complete`` → double ``refresh_attempt_impl``, double
+    # ``invalidate_tags``, duplicate ``attempt.chat_create.completed`` /
+    # ``chat_grade.completed`` on the wire (double MV refresh is also a
+    # box-hang-under-load amplifier). Gate the post-complete transition on an
+    # atomic Redis claim keyed by run_id so exactly one dispatch fires it.
+    # Consistent with the B1 supersede / soft-call atomicity claims already
+    # in place. ``set + nx + ex`` is one round-trip; the TTL self-expires.
     if artifact_type in ("chat", "attempt"):
-        profile_id_str = data.get("profile_id")
-        profile_id_uuid = uuid.UUID(profile_id_str) if profile_id_str else None
-        await _chat_post_complete(
-            emit=emit,
-            redis=redis,
-            sid=sid,
-            artifact_type=artifact_type,
-            metadata=metadata,
-            profile_id=profile_id_uuid,
-            session_id=session_id,
-        )
+        claimed = True
+        try:
+            claimed = bool(
+                await redis.set(
+                    f"run_complete_fired:{run_id}", "1", nx=True, ex=300
+                )
+            )
+        except Exception:
+            # Redis hiccup: fall back to firing (preserve liveness — a rare
+            # double-fire is recoverable; a never-fire stalls the attempt).
+            logger.warning(
+                "run_complete_fired claim failed for run_id=%s; firing", run_id
+            )
+        if claimed:
+            profile_id_str = data.get("profile_id")
+            profile_id_uuid = uuid.UUID(profile_id_str) if profile_id_str else None
+            await _chat_post_complete(
+                emit=emit,
+                redis=redis,
+                sid=sid,
+                artifact_type=artifact_type,
+                metadata=metadata,
+                profile_id=profile_id_uuid,
+                session_id=session_id,
+            )
 
     # Step 7: ``<artifact>.generate.completed`` is emitted by the audit
     # framework wrapping the ``/X/generate`` route — see
