@@ -347,7 +347,10 @@ async def update_eval_impl(
             )
 
         with timed("benchmark_sync"):
-         for resource_id, item in sync_items:
+         # Non-soft path only: ``sync_items`` and ``results`` are appended in
+         # lockstep inside the per-item loop above, so index i aligns the sync
+         # target with its result row.
+         for idx, (resource_id, item) in enumerate(sync_items):
             try:
                 from app.infra.benchmark.sync import sync_benchmark_entries
 
@@ -362,7 +365,24 @@ async def update_eval_impl(
                     flag_ids=item.flag_ids or [],
                 )
             except Exception as sync_err:
-                logger.warning(f"sync_benchmark_entries failed (non-fatal): {sync_err}")
+                # Not "non-fatal": the eval update committed but its benchmark
+                # scaffold did not refresh. sync is atomic+idempotent now, so
+                # this is safely retryable on the next /eval/update. Log at
+                # ERROR with traceback and surface it on the result row rather
+                # than returning a clean 200 that hides the broken scaffold.
+                logger.error(
+                    "sync_benchmark_entries failed for eval snapshot %s — "
+                    "benchmark scaffold not refreshed; retryable on next "
+                    "/eval/update",
+                    resource_id,
+                    exc_info=True,
+                )
+                if idx < len(results):
+                    results[idx].message = (
+                        f"{results[idx].message} (warning: benchmark "
+                        f"scaffolding failed to refresh — will retry on next "
+                        f"update: {sync_err})"
+                    )
 
     # ── Hydrate full row content for the client ───────────────────────
     # See ``hydrate_eval_list_rows``: returns the same shape ``/eval/search``
