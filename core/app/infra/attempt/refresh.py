@@ -7,12 +7,16 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.attempt.cache_tags import build_attempt_profile_cache_tags
 from app.infra.refresh.queue import enqueue_refreshes
 from app.infra.refresh.types import RefreshResponse
 
 ARTIFACT_TYPE = "attempt"
 
-# Tags to invalidate — artifact cache + resource caches
+# Tags to invalidate — artifact cache + resource caches. Per-profile
+# home/practice tags are appended at call time (they're profile-scoped):
+# those reads carry NO ``artifacts`` tag, so without busting them an
+# attempt complete/grade leaves the home/practice cards stale for 300s.
 _TAGS = ["attempt", "artifacts"]
 
 # Views refreshed by this endpoint
@@ -46,6 +50,10 @@ async def refresh_attempt_impl(
     """
     effective_targets = targets or ALL_TARGETS
     effective_op_key = operation_key or idempotency_key
+    # Bust the per-profile home/practice read-caches too: they register under
+    # ``home:profile:{pid}`` / ``practice:profile:{pid}`` and carry no
+    # ``artifacts`` tag, so the static ``_TAGS`` alone never reaches them.
+    effective_tags = _TAGS + build_attempt_profile_cache_tags(profile_id)
     return await enqueue_refreshes(
         pool, redis,
         profile_id=profile_id,
@@ -53,7 +61,7 @@ async def refresh_attempt_impl(
         artifact_type=ARTIFACT_TYPE,
         targets=effective_targets,
         idempotency_key=effective_op_key,
-        tags=_TAGS,
+        tags=effective_tags,
         soft=soft,
         accept=accept,
     )
