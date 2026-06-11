@@ -19,6 +19,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.setting.permissions import (
     compute_can_delete,
@@ -178,6 +179,16 @@ async def _search_setting_build(
             systems=True,
             active=None,
         )
+
+    # -- Actor department-scope clamp --
+    # Mirror the setting DETAIL ``get`` ``has_access`` gate on the LIST path so
+    # cross-department settings the caller could not open in detail are not
+    # leaked here. (This response carries no ``total_count``, so only the row
+    # list is clamped.)
+    artifacts, _ = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, 0
+    )
+
 
     # ── Step 4: Parallel hydration + keys fetch ────────────────────────
 

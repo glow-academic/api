@@ -281,26 +281,76 @@ def compute_list_can_edit(
 def compute_can_delete(
     role_level: int, role_permissions: list[tuple[str, str]],
     active_settings_count: int,
+    agent_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
     Business logic:
     - Agents linked to active settings cannot be deleted
     - Only users with agent delete permission can delete
+    - Non-top-level users must belong to ALL of the agent's departments
+      (mirrors ``eval.compute_can_delete`` — delete must not bypass the
+      department scope an ``has_access`` ``get`` enforces, else a Dept-A user
+      could delete a Dept-B agent they cannot even view).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the delete path passes it). List/get rendering callers that omit
+    it keep the historical permission-only behaviour.
     """
     if not has_permission(role_permissions, "agent", "delete"):
         return False
 
-    return active_settings_count == 0
+    if active_settings_count != 0:
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and agent_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in agent_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
-def compute_can_duplicate(role_level: int, role_permissions: list[tuple[str, str]]) -> bool:
+def compute_can_duplicate(
+    role_level: int,
+    role_permissions: list[tuple[str, str]],
+    agent_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
+) -> bool:
     """Compute can_duplicate permission.
 
     Business logic:
-    - Only users with agent duplicate permission can duplicate
+    - Must have agent:duplicate permission
+    - Non-top-level users must belong to ALL of the agent's departments
+      (mirrors ``scenario.compute_can_duplicate`` — duplicate must not
+      bypass the department scope ``has_access`` enforces, else a Dept-A
+      user could clone a Dept-B agent they cannot even view, inheriting
+      its department scope into the copy).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the duplicate path passes it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
     """
-    return has_permission(role_permissions, "agent", "duplicate")
+    if not has_permission(role_permissions, "agent", "duplicate"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and agent_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in agent_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 # ========== Save/Create Endpoint Permission Functions ==========

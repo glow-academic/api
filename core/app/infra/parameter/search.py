@@ -19,6 +19,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.parameter.permissions import (
     compute_can_delete,
     compute_can_duplicate,
@@ -229,6 +230,15 @@ async def _search_parameter_build(
             parameters=True,
             active=None,
         )
+
+    # -- Actor department-scope clamp --
+    # Mirror this artifact's DETAIL ``get`` ``has_access`` gate on the LIST
+    # path so cross-department rows the caller could not open in detail are
+    # not leaked here; ``total_count`` is decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
+
 
     # -- Step 4: Parallel hydration + facets + usage counts --
 

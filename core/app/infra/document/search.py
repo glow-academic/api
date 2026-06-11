@@ -19,6 +19,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.document.permissions import (
     compute_can_delete,
     compute_can_duplicate,
@@ -248,6 +249,16 @@ async def _search_document_build(
             documents=True,
             active=None,
         )
+
+    # -- Step 3a: Actor department-scope clamp --
+    # Mirror the document DETAIL ``get`` ``has_access`` gate on the LIST path,
+    # BEFORE content pointers (file_id/text_id) are collected below, so
+    # cross-department documents (and their content pointers) the caller could
+    # not open in detail are never hydrated or returned; ``total_count`` is
+    # decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
 
     # -- Step 3b: Resolve canonical content ids (file_id / text_id) --
     # A document's content (the file or HTML/text the viewer renders) lives on

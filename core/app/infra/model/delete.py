@@ -192,6 +192,7 @@ async def delete_model_impl(
                 role_level=profile.role_level,
                 role_permissions=profile.role_permissions,
                 model_department_ids=ctx.department_ids,
+                user_department_ids=profile.department_ids,
                 active_agent_count=ctx.active_agent_count,
             ):
                 if all:

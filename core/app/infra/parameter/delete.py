@@ -229,6 +229,7 @@ async def delete_parameter_impl(
             if not compute_can_delete(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 parameter_department_ids=ctx.department_ids,
+                user_department_ids=profile.department_ids,
                 active_scenario_count=ctx.active_scenario_count,
             ):
                 if all:

@@ -28,6 +28,7 @@ from app.infra.agent.types import (
     ListAgentApiResponse,
 )
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.artifacts.agent.get import get_agents
@@ -217,6 +218,14 @@ async def _search_agent_build(
             models=True,
             active=None,
         )
+
+    # -- Step 4b: Actor department-scope clamp --
+    # Mirror the agent DETAIL ``get`` ``has_access`` gate on the LIST path so
+    # cross-department agents the caller could not open in detail are not
+    # leaked here; ``total_count`` is decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
 
     # -- Step 5: Parallel hydration + facets --
 

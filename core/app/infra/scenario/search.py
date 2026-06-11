@@ -19,6 +19,7 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra.api_types import ListFilterOption, ListFilterSection
+from app.infra.artifact_scope import clamp_artifacts_to_actor_scope
 from app.infra.persona.types import ImportField
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.scenario.permissions import (
@@ -325,6 +326,15 @@ async def _search_scenario_build(
             scenarios=True,
             active=None,
         )
+
+    # -- Step 4b: Actor department-scope clamp --
+    # Mirror the scenario DETAIL ``get`` ``has_access`` gate on the LIST path,
+    # BEFORE linked persona/content IDs are collected below, so cross-department
+    # scenarios the caller could not open in detail are never hydrated or
+    # returned; ``total_count`` is decremented by the rows removed.
+    artifacts, total_count = clamp_artifacts_to_actor_scope(
+        artifacts, user_role_level, profile.department_ids, total_count
+    )
 
     # -- Step 5: Parallel hydration + facets --
 

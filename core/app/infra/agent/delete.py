@@ -227,6 +227,8 @@ async def delete_agent_impl(
             if not compute_can_delete(
                 role_level=profile.role_level, role_permissions=profile.role_permissions,
                 active_settings_count=active_settings_count or 0,
+                agent_department_ids=ctx.department_ids,
+                user_department_ids=profile.department_ids,
             ):
                 if all:
                     skipped_results.append(DeleteAgentResult(

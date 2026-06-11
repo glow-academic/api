@@ -130,6 +130,21 @@ async def duplicate_rubric_impl(
 
     original = originals[0]
 
+    # -- Department-subset guard --
+    # Non-top-level users must belong to ALL of the original's
+    # departments, else a Dept-A actor could clone a Dept-B rubric
+    # they cannot even view (mirrors ``scenario.duplicate``).
+    if not compute_can_duplicate(
+        role_level=profile.role_level,
+        role_permissions=profile.role_permissions,
+        rubric_department_ids=original.department_ids,
+        user_department_ids=profile.department_ids,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to duplicate this rubric.",
+        )
+
     async with pool.acquire() as conn:
         original_name = "Unknown"
         if original.name_ids:

@@ -178,6 +178,7 @@ def compute_can_delete(
     role_permissions: list[tuple[str, str]],
     rubric_department_ids: list[str] | None,
     active_simulation_count: int,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
     """Compute can_delete permission.
 
@@ -192,15 +193,59 @@ def compute_can_delete(
     if active_simulation_count > 0:
         return False
 
-    return has_permission(role_permissions, "rubric", "delete")
+    if not has_permission(role_permissions, "rubric", "delete"):
+        return False
+
+    # Department-subset guard: a non-top-level actor must belong to ALL
+    # of the rubric's departments, else they could delete a rubric in a
+    # department they cannot even view (mirrors ``eval.compute_can_delete``).
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and rubric_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in rubric_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 def compute_can_duplicate(
     role_level: int,
     role_permissions: list[tuple[str, str]],
+    rubric_department_ids: list[str] | list[UUID] | None = None,
+    user_department_ids: list[str] | list[UUID] | None = None,
 ) -> bool:
-    """Compute can_duplicate permission."""
-    return has_permission(role_permissions, "rubric", "duplicate")
+    """Compute can_duplicate permission.
+
+    Business logic:
+    - Must have rubric:duplicate permission
+    - Non-top-level users must belong to ALL of the rubric's departments
+      (mirrors ``scenario.compute_can_duplicate`` — duplicate must not
+      bypass the department scope ``has_access`` enforces, else a Dept-A
+      user could clone a Dept-B rubric they cannot even view, inheriting
+      its department scope into the copy).
+
+    The department-subset check only runs when ``user_department_ids`` is
+    supplied (the duplicate path passes it). List/get rendering callers that
+    omit it keep the historical permission-only behaviour.
+    """
+    if not has_permission(role_permissions, "rubric", "duplicate"):
+        return False
+
+    if (
+        user_department_ids is not None
+        and role_level > 0
+        and rubric_department_ids
+    ):
+        user_dept_set = {str(d) for d in user_department_ids}
+        artifact_dept_set = {str(d) for d in rubric_department_ids}
+        if not artifact_dept_set.issubset(user_dept_set):
+            return False
+
+    return True
 
 
 # ========== Save/Create Endpoint Permission Functions ==========
