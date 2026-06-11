@@ -12,6 +12,7 @@ from app.infra.attempt.archive import (
     MissingFilterError,
     archive_attempt_impl,
 )
+from app.infra.attempt.cache_tags import build_attempt_profile_cache_tags
 from app.infra.attempt.group import group_attempt_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_pool, get_redis_client, get_upload_folder
@@ -42,10 +43,11 @@ def build_attempt_archive_invalidation_tags(
     """
     tags = ["attempts", "dashboard", "artifacts"]
     for pid in profile_ids or []:
+        # home:profile:{pid} + practice:profile:{pid} via the shared helper
+        # (same construction the complete/grade/refresh path now busts).
+        tags.extend(build_attempt_profile_cache_tags(pid))
         tags.extend([
-            f"home:profile:{pid}",
             f"reports:profile:{pid}",
-            f"practice:profile:{pid}",
             f"history:profile:{pid}",
         ])
     return tags

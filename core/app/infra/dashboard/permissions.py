@@ -639,7 +639,15 @@ def compute_header_metrics_v2(
             a["completed_chats"] += 1
         if item.completed and item.grade_percent is not None:
             a["graded_chats"] += 1
-        if item.grade_percent is not None:
+        # Numerator must reference the SAME chat set as the denominator: the
+        # `expected`/`graded_chats` gate below treats only completed chats as
+        # earning points, so only completed+graded chats may contribute their
+        # percent here. Without `item.completed`, a graded-but-incomplete chat
+        # would add its percent to the numerator while the denominator
+        # (max(expected_sim_scenarios, chats_in_attempt)) never credits it,
+        # inflating the normalized average-score trend (mirrors the v1 #322
+        # fix; this v2 path is the live dashboard/record bundle).
+        if item.completed and item.grade_percent is not None:
             a["sum_grade_percent"] += float(item.grade_percent)
 
     # Normalized avg score per attempt, grouped by date
