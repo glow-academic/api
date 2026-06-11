@@ -341,9 +341,29 @@ async def execute_generation(
                 *[_run_one(dispatch) for dispatch in prepared.dispatches],
                 return_exceptions=True,
             )
+            first_agent_error: BaseException | None = None
             for agent_result in agent_results:
                 if isinstance(agent_result, Exception):
+                    # S1: a per-agent exception in the parallel fan-out used to
+                    # be swallowed (log + continue), yet the run still returned
+                    # the OTHER agent's result and the route reported SUCCESS.
+                    # The trap: completion is decided by counting persisted
+                    # answer rows vs. ``expected_count``. An errored agent never
+                    # persists an answer, so the count stays short forever →
+                    # ``all_done`` never trips → ``_chat_post_complete`` (attempt
+                    # MV refresh + ``attempt.chat_create.completed`` /
+                    # ``chat_grade.completed`` lifecycle emits) NEVER fires, while
+                    # the HTTP route still 200s. Any consumer keyed on the
+                    # attempt lifecycle hangs "in-progress" behind a phantom
+                    # success, and the attempt MVs go stale. Capture the error
+                    # and re-raise after the loop so the run reaches a real
+                    # terminal state: ``runner._run`` emits a single
+                    # ``{artifact}.generate.failed`` (carrying run_id) and the
+                    # blocking route 5xxs — mirroring the single-agent error
+                    # path, never reporting success while skipping the lifecycle.
                     logger.error(f"Agent dispatch failed: {agent_result}")
+                    if first_agent_error is None:
+                        first_agent_error = agent_result
                     continue
                 if agent_result is None:
                     continue
@@ -352,6 +372,9 @@ async def execute_generation(
                 total_result.tool_results.extend(agent_result.tool_results)
                 total_result.assistant_output = agent_result.assistant_output
                 total_result.reasoning_output = agent_result.reasoning_output
+
+            if first_agent_error is not None:
+                raise first_agent_error
         elif prepared.dispatches:
             agent_result = await _run_one(prepared.dispatches[0])
             if agent_result is not None:
@@ -469,8 +492,23 @@ async def _execute_agent_dispatch(
     final_reasoning_started_at: "datetime | None" = None
 
     iteration = 0
+    # Tracks whether the loop exited because the model stopped requesting
+    # tools (graceful) vs. because it hit ``max_iterations`` still mid-tool-loop
+    # (G2 — truncated turn, must be surfaced, not reported as clean success).
+    hit_iteration_cap = False
     while iteration < max_iterations:
         iteration += 1
+
+        # Iteration-boundary cancellation check (G1). The in-stream poll below
+        # only fires every ~12 events, so a tool-heavy iteration (a short
+        # stream of ~5 events) would never reach it — Stop would be a no-op for
+        # exactly the turns users most want to abort, and the loop would issue
+        # the NEXT provider call + dispatch more tools after Stop. Checking the
+        # ``cancel_run`` marker once per iteration (one Redis EXISTS) makes Stop
+        # reliable regardless of stream length, before any further model cost or
+        # tool dispatch is incurred.
+        if await is_run_cancelled(str(run_id)):
+            raise RuntimeError("Generation stopped by user (/attempt/stop)")
 
         # Call LLM
         try:
@@ -743,6 +781,15 @@ async def _execute_agent_dispatch(
                     })
                     call_success = False
                 else:
+                    # Pre-dispatch cancellation check (G1). A tool-heavy turn
+                    # can emit several tool_call_complete events inside one
+                    # short stream; honour Stop before dispatching each tool so
+                    # a Stop arriving mid-turn doesn't run further (possibly
+                    # write-staging) tool operations.
+                    if await is_run_cancelled(str(run_id)):
+                        raise RuntimeError(
+                            "Generation stopped by user (/attempt/stop)"
+                        )
                     try:
                         spec = resolve_tool_spec(td, arguments_dict)
                         ctx = InfraContext(
@@ -846,6 +893,15 @@ async def _execute_agent_dispatch(
         if not tool_results:
             break
 
+        # The model still wants to call tools but we've reached the iteration
+        # cap → the turn is being truncated mid-tool-loop (G2). Flag it so the
+        # post-loop code surfaces an explicit terminal state instead of
+        # persisting/reporting whatever partial (often empty) ``final_assistant_output``
+        # the last tool-only iteration left as a clean success.
+        if iteration >= max_iterations:
+            hit_iteration_cap = True
+            break
+
         # Update conversation state for next iteration
         if api_mode == "responses":
             for item in output_items:
@@ -903,6 +959,35 @@ async def _execute_agent_dispatch(
 
         if tool_choice == "required":
             tool_choice = "auto"
+
+    # Max-iterations terminal state (G2). The loop fell through the cap while
+    # the model was still requesting tools, so it never produced a closing
+    # answer this turn — ``final_assistant_output`` is whatever the last
+    # tool-only iteration left, typically "". Surfacing this matters: without
+    # it ``run_complete_impl`` skips the empty assistant row (``if
+    # assistant_output``) and the route returns a clean 200, so the user sees
+    # an empty reply with no signal the loop was capped. Make it terminal:
+    #   - no usable answer  → raise, so ``runner._run`` emits
+    #     ``{artifact}.generate.failed`` (a clear terminal frame the watcher
+    #     sees) rather than a silent empty-success turn.
+    #   - partial answer    → keep it but prepend an explicit truncation notice
+    #     so it is never presented as a normal, complete reply.
+    if hit_iteration_cap:
+        logger.warning(
+            "Agentic loop hit max_iterations=%d for run_id=%s agent=%s "
+            "(model still requesting tools) — surfacing truncation",
+            max_iterations, run_id, dispatch.agent_id,
+        )
+        if not final_assistant_output.strip():
+            raise RuntimeError(
+                f"Generation stopped: reached the maximum of {max_iterations} "
+                "tool-use iterations without a final answer."
+            )
+        final_assistant_output = (
+            f"[Note: stopped after the maximum of {max_iterations} tool-use "
+            "iterations; this answer may be incomplete.]\n\n"
+            f"{final_assistant_output}"
+        )
 
     # Per-agent completion event — fires once per agent inside the
     # shared run. Lets the FE start grading / promoting a single
