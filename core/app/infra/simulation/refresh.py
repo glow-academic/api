@@ -23,8 +23,15 @@ ALL_TARGETS = [
     "group_names_mv",
 ]
 
-# Tags to invalidate
-_TAGS = ["simulations", "artifacts"]
+# Tags to invalidate. Includes the GLOBAL ``home``/``practice`` tags: the
+# home/practice cards render per-simulation data (name, practice flag,
+# availability), and a simulation mutation (e.g. a rename) affects every
+# student who sees that sim — but those reads register under
+# ``["home"/"practice", "get"]`` + a per-profile tag and carry no
+# ``simulations``/``artifacts`` tag, so without busting the global
+# ``home``/``practice`` tags here a rename leaves stale card names across all
+# students for the full 300s TTL.
+_TAGS = ["simulations", "artifacts", "home", "practice"]
 
 
 # ---------------------------------------------------------------------------

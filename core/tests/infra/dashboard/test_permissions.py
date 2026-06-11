@@ -830,3 +830,59 @@ def test_avg_score_trend_excludes_graded_but_incomplete_chat():
 
     # aligned numerator/denominator: (80) / 2 expected == 40.0, NOT (80+90)/2 == 85.0
     assert metrics.average_score.current_value == 40.0
+
+
+def test_avg_score_trend_excludes_graded_but_incomplete_chat_v2():
+    """Regression (#322, LIVE PATH): the v2 normalized average-score trend must
+    count the SAME chat set in its numerator (``sum_grade_percent``) as its
+    denominator.
+
+    ``compute_header_metrics_v2`` is the function the live dashboard
+    (``dashboard/get.py``) and record (``record/get.py``) bundles call;
+    ``compute_header_metrics`` (v1) is dead code. The #322 fix originally
+    landed only in v1, so a graded-but-incomplete chat still inflated the live
+    metric. An attempt with one completed+graded chat (80) and one graded-but-
+    incomplete chat (90) over 2 expected scenarios produced an inflated norm of
+    (80 + 90) / 2 = 85.0; gated, the incomplete chat earns nothing, so the norm
+    is the correctly-scored 80 / 2 = 40.0.
+    """
+    sim_id = str(uuid4())
+    attempt_id = uuid4()
+    profile_id = uuid4()
+    rows = [
+        _ns(  # completed + graded — earns points
+            attempt_date=date(2026, 1, 1),
+            attempt_id=attempt_id,
+            simulation_id=sim_id,
+            completed=True,
+            grade_percent=80,
+            profile_id=profile_id,
+            chat_id=uuid4(),
+            passed=True,
+            num_messages_total=6,
+            avg_response_sec=8,
+            time_taken_seconds=1200,
+        ),
+        _ns(  # graded but NOT completed — must contribute 0 to the numerator
+            attempt_date=date(2026, 1, 1),
+            attempt_id=attempt_id,
+            simulation_id=sim_id,
+            completed=False,
+            grade_percent=90,
+            profile_id=profile_id,
+            chat_id=uuid4(),
+            passed=False,
+            num_messages_total=4,
+            avg_response_sec=12,
+            time_taken_seconds=1200,
+        ),
+    ]
+
+    metrics = compute_header_metrics_v2(
+        rows,
+        simulation_scenario_counts={sim_id: 2},
+        thresholds={"success": 90, "warning": 75, "danger": 60},
+    )
+
+    # aligned numerator/denominator: (80) / 2 expected == 40.0, NOT (80+90)/2 == 85.0
+    assert metrics.average_score.current_value == 40.0
