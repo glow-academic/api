@@ -49,6 +49,7 @@ async def connect(
 ) -> bool:
     """Handle WebSocket connection with token-based auth."""
     identity = None
+    token = None
 
     if auth and auth.get("token"):
         try:
@@ -74,7 +75,10 @@ async def connect(
     profile_id = str(identity.profile_id)
     session_id = str(identity.session_id)
 
-    await store_socket_identity(sid, identity)
+    # Persist the bearer + its exp alongside the identity so the socket can be
+    # re-validated per-event (SEC1): expired/revoked/logged-out sockets are
+    # rejected instead of keeping connect-time privileges for the 24h TTL.
+    await store_socket_identity(sid, identity, token=token)
 
     # Multi-socket: add this sid to the profile's set. The helper returns
     # True iff this is the first socket for the profile — only then do

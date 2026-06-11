@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 
 from app.infra.tools.entries.build_call_payload import build_call_payload
 from app.infra.tools.entries.create_run_message import create_run_message
+from app.infra.tools.entries.redact_secrets import redact_secret_arguments
 from app.infra.tools.entries.save_call_upload import save_call_upload
 from app.infra.tools.entries.save_text_upload import save_text_upload
 from app.infra.tools.entries.types import CreateToolSetupResponse
@@ -140,7 +141,10 @@ async def create_tool_call(
                 "session_id": str(session_id),
                 "operation_key": str(operation_key) if operation_key else None,
                 "instruction_template_present": bool(instruction_template),
-                "arguments": arguments,
+                # Redacted: this context dict is serialized into the
+                # downloadable receipt on the error path, so it must not
+                # carry a plaintext secret either (SEC2).
+                "arguments": redact_secret_arguments(arguments),
             },
         }
 
@@ -287,9 +291,17 @@ async def _persist_audit_writes(
         except Exception:
             pass  # Fall back to raw output
 
+    # Redact secrets out of the arguments BEFORE they land in either the
+    # ``.txt`` upload or the ``.json`` call receipt. The persisted receipt is
+    # downloadable (call_download family), so a plaintext provider API key in
+    # ``arguments`` (e.g. provider.create's ``providers[].key``) would be a
+    # secret-at-rest leak (SEC2). The live ``arguments`` used to execute the
+    # tool above are untouched — only this audit copy is sanitized.
+    safe_arguments = redact_secret_arguments(arguments)
+
     # Build text + receipt payloads (CPU-only).
     if rendered_output:
-        args_lines = [f"  {k}: {v}" for k, v in arguments.items() if v is not None]
+        args_lines = [f"  {k}: {v}" for k, v in safe_arguments.items() if v is not None]
         args_section = "\n".join(args_lines) if args_lines else "  (none)"
         text_content = f"INPUT:\n{args_section}\n\nOUTPUT:\n{rendered_output}"
     else:
@@ -301,7 +313,7 @@ async def _persist_audit_writes(
         call_payload = build_call_payload(
             call_id=call_upload_id,
             tool_id=tool_id,
-            arguments=arguments,
+            arguments=safe_arguments,
             output=output_for_json,
             raw_output=raw_result_dict,
         )
