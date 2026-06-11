@@ -223,3 +223,54 @@ def test_start_beyond_file_size_returns_416():
         assert resp.headers["Content-Range"] == "bytes */5"
     finally:
         os.unlink(path)
+
+
+def test_nosniff_header_on_full_200_response():
+    """Every full (200) download carries X-Content-Type-Options: nosniff.
+
+    Defense-in-depth against stored XSS on download: the browser must never
+    MIME-sniff a client-typed upload into text/html and execute it.
+    """
+    path = _make_temp_file(b"<html><script>alert(1)</script></html>")
+    try:
+        resp = create_range_response(
+            file_path=path,
+            content_type="text/html",
+            content_disposition="attachment",
+        )
+        assert resp.status_code == 200
+        assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    finally:
+        os.unlink(path)
+
+
+def test_nosniff_header_on_partial_206_response():
+    """Range (206) responses also carry X-Content-Type-Options: nosniff."""
+    path = _make_temp_file(b"0123456789")
+    try:
+        resp = create_range_response(
+            file_path=path,
+            content_type="text/html",
+            content_disposition="attachment",
+            range_header="bytes=0-4",
+        )
+        assert resp.status_code == 206
+        assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    finally:
+        os.unlink(path)
+
+
+def test_nosniff_header_on_416_response():
+    """Unsatisfiable-range (416) responses also carry nosniff."""
+    path = _make_temp_file(b"short")
+    try:
+        resp = create_range_response(
+            file_path=path,
+            content_type="text/html",
+            content_disposition="attachment",
+            range_header="bytes=5000-6000",
+        )
+        assert resp.status_code == 416
+        assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    finally:
+        os.unlink(path)

@@ -75,8 +75,13 @@ async def download_file(
         )
 
         encoded = urllib.parse.quote(result.filename, safe="")
+        # User-uploaded content: force a download (attachment) so a malicious
+        # .html/SVG with a client-chosen text/html mime can never be rendered
+        # inline in the app origin (stored XSS on download). The client never
+        # relies on inline disposition — its viewers fetch the bytes and
+        # render from a blob URL, so attachment does not break preview.
         content_disposition = (
-            f"inline; filename=\"{encoded}\"; filename*=UTF-8''{encoded}"
+            f"attachment; filename=\"{encoded}\"; filename*=UTF-8''{encoded}"
         )
 
         return create_range_response(

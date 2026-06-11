@@ -94,6 +94,10 @@ def create_range_response(
                     "Content-Range": f"bytes */{file_size}",
                     "Accept-Ranges": "bytes",
                     "Content-Disposition": content_disposition,
+                    # Never let a browser MIME-sniff a download into an
+                    # executable type (defense-in-depth against stored XSS
+                    # on download). Applies to ALL download routes.
+                    "X-Content-Type-Options": "nosniff",
                 },
             )
         if parsed is not None:
@@ -112,5 +116,9 @@ def create_range_response(
             "Content-Length": str(content_length),
             "Content-Range": f"bytes {start}-{end}/{file_size}",
             "Cache-Control": "private, max-age=0, must-revalidate",
+            # Never let a browser MIME-sniff a download into an executable
+            # type (defense-in-depth against stored XSS on download).
+            # Applies to ALL download routes.
+            "X-Content-Type-Options": "nosniff",
         },
     )
