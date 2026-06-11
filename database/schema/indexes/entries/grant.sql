@@ -17,3 +17,11 @@ CREATE INDEX idx_grant_consumptions_entry_grant_id ON public.grant_consumptions_
 
 
 --
+
+-- Name: grant_consumptions_entry_grant_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX grant_consumptions_entry_grant_uidx ON public.grant_consumptions_entry USING btree (grant_id) WHERE (active = true);
+
+
+--

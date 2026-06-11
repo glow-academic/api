@@ -27,7 +27,6 @@ from app.infra.identity.keycloak_sync import get_idp_public_url
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.emulations.search import search_emulations
 from app.tools.entries.grant_consumptions.create import create_grant_consumption
-from app.tools.entries.grant_consumptions.search import search_grant_consumptions
 from app.tools.entries.grants.get import get_grants
 
 # OIDC state storage — Redis-backed so auth codes / pending sessions / KC id
@@ -359,13 +358,18 @@ async def resolve_authorization(
             if grant.expires_at <= datetime.now(UTC):
                 raise AuthorizationError(403, "Grant expired.")
 
-            consumptions = await search_grant_consumptions(
-                conn, redis, grant_ids=[emulation_grant], limit=1
+            # Atomic single-use consume: the conditional INSERT (backed by the
+            # grant_consumptions_entry_grant_uidx partial-unique index) is the
+            # authoritative gate. A no-row result means the grant already has an
+            # active consumption — either a prior use or the race-loser of two
+            # concurrent logins carrying the same login_hint grant — so reject
+            # to prevent impersonation replay. The prior SELECT was a TOCTOU gap
+            # (two concurrent requests both saw no consumption and both inserted).
+            consumption = await create_grant_consumption(
+                conn, redis, grant_id=emulation_grant
             )
-            if consumptions:
+            if consumption is None:
                 raise AuthorizationError(403, "Grant already used.")
-
-            await create_grant_consumption(conn, redis, grant_id=emulation_grant)
             actor_profile_id = grant.profiles_id
 
             emulations = await search_emulations(

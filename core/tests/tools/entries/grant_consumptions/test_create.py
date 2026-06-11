@@ -52,3 +52,31 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id):
 
     assert len(items) == 1
     assert items[0].mcp is True
+
+
+async def test_single_use_second_consume_rejected(conn, redis_client, profile_id):
+    """I1: a single-use grant is consumed exactly once — the race-loser is rejected.
+
+    Two consumes of the same grant: the first wins (returns a response), the
+    second hits the partial-unique index (ON CONFLICT DO NOTHING) and returns
+    None. This is the atomic gate that prevents emulation-grant replay.
+    """
+    grant = await _grant(conn, redis_client, profile_id)
+
+    first = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
+    second = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
+
+    assert first is not None
+    assert first.id is not None
+    assert second is None  # race-loser denied — grant consumed exactly once
+
+
+async def test_soft_consume_not_blocked_by_active(conn, redis_client, profile_id):
+    """Soft (inactive) consumptions are exempt from the WHERE active predicate."""
+    grant = await _grant(conn, redis_client, profile_id)
+
+    active = await create_grant_consumption(conn, redis_client, grant_id=grant.id)
+    soft = await create_grant_consumption(conn, redis_client, grant_id=grant.id, soft=True)
+
+    assert active is not None
+    assert soft is not None  # inactive row does not conflict with the active one
