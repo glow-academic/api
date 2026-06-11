@@ -17,7 +17,9 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.activate.activate import activate_rows
+from app.infra.attempt.permissions import enforce_attempt_access_by_chat
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.attempt_chat_completion.create import (
     create_attempt_chat_completion,
@@ -77,6 +79,14 @@ async def chat_complete_attempt_impl(
         chat_id = UUID(chat_id)
     if not chat_id:
         raise ValueError("chat_id is required")
+
+    # Authorization (was MISSING — keyed solely by caller-supplied chat_id, this
+    # flips a chat to terminal ``completed`` with no actor scope, the A2-class
+    # sibling of attempt/complete + the dept-blind archive). Route through the
+    # shared chat-keyed gate: resolve chat → owner and enforce
+    # self/super-admin/strictly-higher-role-in-department.
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+    await enforce_attempt_access_by_chat(pool, redis, chat_id=chat_id, requester=requester)
 
     with timed("db_write"):
         async with pool.acquire() as conn:

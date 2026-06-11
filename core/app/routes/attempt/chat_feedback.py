@@ -75,7 +75,7 @@ async def chat_feedback(
         operation="chat_feedback",
         primary_table="attempt_feedback_entry",
         mv_target="attempt_feedback_mv",
-        profile_id=profile_id, session_id=session_id,
+        profile_id=profile_id, session_id=session_id, chat_id=request.chat_id,
         idempotency_key=request.idempotency_key, soft=request.soft, accept=request.accept,
         arguments=request.model_dump(mode="json"),
         create_fn=_create,

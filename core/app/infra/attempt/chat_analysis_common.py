@@ -36,9 +36,11 @@ from redis.asyncio import Redis
 
 from app.infra.activate.activate import activate_rows
 from app.infra.attempt.group import group_attempt_impl
+from app.infra.attempt.permissions import enforce_attempt_access_by_chat
 from app.infra.attempt.refresh import refresh_attempt_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_upload_folder
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 
@@ -64,6 +66,7 @@ async def run_chat_analysis_write(
     mv_target: str,
     profile_id: UUID,
     session_id: UUID,
+    chat_id: UUID,
     idempotency_key: UUID | None,
     soft: bool,
     accept: bool | None,
@@ -71,6 +74,17 @@ async def run_chat_analysis_write(
     create_fn: CreateFn,
 ) -> ChatAnalysisWriteResult:
     """Canonical bulk stage-inactive write for a chat AI-analysis op."""
+    # Authorization (was MISSING on every chat-analysis route — analyses,
+    # feedback, hints, improvements, strengths — each keyed solely by the
+    # caller-supplied chat_id, so any authenticated profile could annotate ANY
+    # student's graded chat). This is the single shared gate for the whole HTTP
+    # path: resolve chat → owner and enforce the same self/super-admin/
+    # strictly-higher-role-in-department rule chat_grade + archive use (issue
+    # #148). Enforced here (before group resolution and any write, incl. the
+    # soft/accept ack) so the class can't regress per-route.
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+    await enforce_attempt_access_by_chat(pool, redis, chat_id=chat_id, requester=requester)
+
     group_result = await group_attempt_impl(
         pool, redis, profile_id=profile_id, session_id=session_id, id_only=True,
     )
