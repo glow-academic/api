@@ -144,3 +144,13 @@ def test_ungraded_chat_contributes_no_points():
     chats = [ChatData(id=uuid4(), completed=True, grade=None)]
     assert compute_attempt_aggregates(chats)["total_score"] == 0.0
     assert compute_total_possible_points(chats) == 0.0
+
+
+def test_pct_clamped_to_100_on_bonus_inflation():
+    """B4: a bonus-inflated raw score (score > total) clamps to 100, matching
+    the benchmark percent path (benchmark/get.py:_score_percent) — never >100."""
+    # 12/10 raw == 120%, must report 100.0 like the benchmark path.
+    assert compute_percentage(12.0, 10.0) == 100.0
+    assert compute_percentage(12.0, 10.0) <= 100.0
+    # Normal sub-100 grade is unaffected.
+    assert compute_percentage(7.0, 10.0) == 70.0

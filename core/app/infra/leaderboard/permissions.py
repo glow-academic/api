@@ -432,6 +432,27 @@ def _pick_max(rows: list[LeaderboardDataRow], key: str) -> LeaderboardDataRow | 
     )
 
 
+def _pick_max_positive(
+    rows: list[LeaderboardDataRow], key: str
+) -> LeaderboardDataRow | None:
+    """Like _pick_max, but only over rows whose metric is strictly positive.
+
+    Used for count-style accolades ("Perfect Score" = perfect_score_count,
+    "The Persistent" = total_attempts) that require real qualifying data: a
+    plain _pick_max returns max-of-all-zeros (still a row with value 0) when
+    nobody qualifies, so the accolade was awarded on a zero predicate. Mirrors
+    _pick_min_positive's `> 0` gate.
+    """
+    with_values = [
+        r
+        for r in rows
+        if _metric_value(r, key) is not None and float(_metric_value(r, key) or 0) > 0
+    ]
+    if not with_values:
+        return None
+    return max(with_values, key=lambda r: float(_metric_value(r, key) or 0))
+
+
 def _pick_min_positive(
     rows: list[LeaderboardDataRow], key: str
 ) -> LeaderboardDataRow | None:
@@ -468,11 +489,11 @@ def compute_accolade_winners(
 ) -> LeaderboardAccoladeWinners:
     """Compute deterministic accolade winners from normalized leaderboard rows."""
     highest_scorer = _pick_max(rows, "highest_score_avg")
-    perfect_score = _pick_max(rows, "perfect_score_count")
+    perfect_score = _pick_max_positive(rows, "perfect_score_count")
     longest_convo = _pick_max(rows, "messages_per_session")
     response_times = _pick_min_positive(rows, "persona_response_seconds")
     quickest_pass = _pick_min_positive(rows, "quickest_pass_minutes")
-    the_persistent = _pick_max(rows, "total_attempts")
+    the_persistent = _pick_max_positive(rows, "total_attempts")
     marathon_runner = _pick_max(rows, "time_spent_minutes")
     rapid_riser = _pick_max(rows, "improvement_rate_per_day")
 

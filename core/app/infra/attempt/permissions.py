@@ -383,7 +383,10 @@ def compute_percentage(total_score: float, total_possible: float) -> float:
         Percentage (0-100), or 0.0 if total_possible is 0
     """
     if total_possible > 0:
-        return round((total_score / total_possible) * 100, 2)
+        # Clamp to [0, 100] — bonus-inflated raw scores (total_score >
+        # total_possible) must report the documented 0-100 contract, matching
+        # the benchmark path (core/app/infra/benchmark/get.py:_score_percent).
+        return round(max(0.0, min(100.0, (total_score / total_possible) * 100)), 2)
     return 0.0
 
 

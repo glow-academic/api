@@ -64,7 +64,12 @@ def _compute_history_aggregates(chats: list[GetAttemptChatResponse]) -> dict[str
 
     score_percent: float | None = None
     if total_possible > 0:
-        score_percent = round((total_score / total_possible) * 100, 2)
+        # Clamp to [0, 100] — consistent with the benchmark percent path
+        # (core/app/infra/benchmark/get.py:_score_percent) so a bonus-inflated
+        # raw score never reports >100%.
+        score_percent = round(
+            max(0.0, min(100.0, (total_score / total_possible) * 100)), 2
+        )
 
     return {
         "num_scenarios": len(scenario_ids_set),
@@ -129,7 +134,13 @@ def _transform_history_item(
     pass_pct = compute_pass_pct(
         aggregates.get("rubric_total_points"), aggregates.get("rubric_pass_points")
     )
-    score_status = compute_score_status(score_percent, pass_threshold)
+    # score_status must use the rubric's real pass bar (pass_pct), not a
+    # hardcoded 70 — otherwise the same attempt's score_status and pass_pct
+    # disagree. Mirrors benchmark/get.py: the rubric-derived pass percent is the
+    # threshold, with the supplied default only as a fallback when the attempt
+    # has no rubric points to derive a bar from.
+    score_threshold = float(pass_pct) if pass_pct is not None else pass_threshold
+    score_status = compute_score_status(score_percent, score_threshold)
     score = round(score_percent) if score_percent is not None else None
 
     is_practice_view = practice is True

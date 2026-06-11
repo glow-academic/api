@@ -643,6 +643,7 @@ CREATE MATERIALIZED VIEW public.attempt_analysis_mv AS
     content,
     created_at
    FROM public.attempt_analysis_entry ae
+  WHERE (active = true)
   WITH NO DATA;
 
 

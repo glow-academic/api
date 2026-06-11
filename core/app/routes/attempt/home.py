@@ -101,7 +101,12 @@ def _aggregate_personal_stats(
             and item.grade_total_points
             and item.grade_total_points > 0
         ):
-            grade_percent = float(item.grade_score) / item.grade_total_points * 100
+            # Clamp to [0, 100] — match the benchmark percent path
+            # (core/app/infra/benchmark/get.py:_score_percent) so bonus-inflated
+            # raw scores don't report a >100% highest score.
+            grade_percent = max(
+                0.0, min(100.0, float(item.grade_score) / item.grade_total_points * 100)
+            )
             if (
                 s["highest_score_percent"] is None
                 or grade_percent > s["highest_score_percent"]
