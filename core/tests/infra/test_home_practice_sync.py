@@ -138,3 +138,210 @@ async def test_sync_is_atomic_on_midway_failure(
         "practice_simulations_connection junction row leaked after a "
         "mid-sequence failure (writes were not wrapped in a transaction)"
     )
+
+
+# ── Idempotency (T1, twin of E3 benchmark sync) ──────────────────────────────
+
+
+async def _link_cohort_artifact(conn, artifact_id, snapshot_id) -> None:
+    """Wire a cohort_artifact → cohorts_resource (snapshot) link.
+
+    Mirrors what ``update_cohort_artifact`` writes (``cohort_cohorts_junction``)
+    — the join the idempotency clear walks to find this cohort's every prior
+    snapshot.
+    """
+    await conn.execute(
+        "INSERT INTO cohort_artifact (id, active, generated, mcp) "
+        "VALUES ($1, true, false, false) ON CONFLICT (id) DO NOTHING",
+        artifact_id,
+    )
+    await conn.execute(
+        "INSERT INTO cohort_cohorts_junction (cohort_id, cohorts_id, active, generated) "
+        "VALUES ($1, $2, true, false) "
+        "ON CONFLICT ON CONSTRAINT cohort_cohorts_junction_pkey DO NOTHING",
+        artifact_id,
+        snapshot_id,
+    )
+
+
+async def _active_practice_count_for_snapshot(pool, snapshot_id) -> int:
+    """Count active generated practice_entry rows linked to a snapshot."""
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            """
+            SELECT count(DISTINCT pe.id)
+            FROM practice_entry pe
+            JOIN practice_cohorts_connection pcc ON pcc.practice_id = pe.id
+            WHERE pcc.cohorts_id = $1
+              AND pcc.active = true
+              AND pe.active = true
+              AND pe.generated = true
+            """,
+            snapshot_id,
+        )
+
+
+async def _active_chat_count_for_snapshot(pool, snapshot_id) -> int:
+    """Count active generated chat_entry rows reachable from a snapshot's practices."""
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            """
+            SELECT count(DISTINCT ce.id)
+            FROM chat_entry ce
+            JOIN practice_chat_entry pce ON pce.chat_id = ce.id AND pce.active = true
+            JOIN practice_entry pe ON pe.id = pce.practice_id AND pe.active = true
+            JOIN practice_cohorts_connection pcc
+              ON pcc.practice_id = pe.id AND pcc.active = true
+            WHERE pcc.cohorts_id = $1
+              AND ce.active = true
+              AND ce.generated = true
+            """,
+            snapshot_id,
+        )
+
+
+async def test_sync_is_idempotent_no_duplicate_trees_on_rerun(
+    pool, redis_client, sync_fixture
+):
+    """A second sync for the same cohort REPLACES — it must not append duplicates.
+
+    Before the T1 fix (insert-only, no clear) a second ``/cohort/update`` ran
+    this again and appended a fresh full practice+chat tree → N edits gave N
+    active trees. With the scoped clear-before-recreate, re-running leaves
+    exactly one active generated tree for the cohort's snapshot.
+    """
+    from uuid import uuid4
+
+    artifact_id = uuid4()
+    snapshot_id = sync_fixture["cohort_id"]
+    async with pool.acquire() as conn:
+        await _link_cohort_artifact(conn, artifact_id, snapshot_id)
+
+    kwargs = dict(
+        pool=pool,
+        cohorts_resource_id=snapshot_id,
+        simulation_ids=[sync_fixture["simulation_id"]],
+        simulation_position_ids=[],
+        simulation_availability_ids=[],
+        department_ids=[],
+        profile_ids=[sync_fixture["profile_id"]],
+        profile_persona_ids=[],
+        cohort_artifact_id=artifact_id,
+    )
+
+    await sync_home_practice_entries(**kwargs)
+    assert await _active_practice_count_for_snapshot(pool, snapshot_id) == 1
+    assert await _active_chat_count_for_snapshot(pool, snapshot_id) == 1
+
+    # Second run — must replace, not append.
+    await sync_home_practice_entries(**kwargs)
+    assert await _active_practice_count_for_snapshot(pool, snapshot_id) == 1, (
+        "second sync appended a duplicate active practice tree (non-idempotent)"
+    )
+    assert await _active_chat_count_for_snapshot(pool, snapshot_id) == 1, (
+        "second sync appended a duplicate active chat tree (non-idempotent)"
+    )
+
+    # And a third, for good measure.
+    await sync_home_practice_entries(**kwargs)
+    assert await _active_practice_count_for_snapshot(pool, snapshot_id) == 1
+    assert await _active_chat_count_for_snapshot(pool, snapshot_id) == 1
+
+
+async def test_sync_clear_is_scoped_to_this_cohort(pool, redis_client, sync_fixture):
+    """Re-running one cohort's sync must NOT deactivate another cohort's tree."""
+    from uuid import uuid4
+
+    from app.tools.resources.cohorts.create import create_cohort
+
+    artifact_a = uuid4()
+    snapshot_a = sync_fixture["cohort_id"]
+
+    # A second, independent cohort sharing the same simulation/scenario graph.
+    async with pool.acquire() as conn:
+        other_snapshot = await create_cohort(conn, redis_client)
+        artifact_b = uuid4()
+        await _link_cohort_artifact(conn, artifact_a, snapshot_a)
+        await _link_cohort_artifact(conn, artifact_b, other_snapshot.id)
+
+    base = dict(
+        pool=pool,
+        simulation_ids=[sync_fixture["simulation_id"]],
+        simulation_position_ids=[],
+        simulation_availability_ids=[],
+        department_ids=[],
+        profile_ids=[sync_fixture["profile_id"]],
+        profile_persona_ids=[],
+    )
+
+    await sync_home_practice_entries(
+        cohorts_resource_id=snapshot_a, cohort_artifact_id=artifact_a, **base
+    )
+    await sync_home_practice_entries(
+        cohorts_resource_id=other_snapshot.id, cohort_artifact_id=artifact_b, **base
+    )
+
+    assert await _active_practice_count_for_snapshot(pool, snapshot_a) == 1
+    assert await _active_practice_count_for_snapshot(pool, other_snapshot.id) == 1
+
+    # Re-run cohort A only — cohort B's tree must survive untouched.
+    await sync_home_practice_entries(
+        cohorts_resource_id=snapshot_a, cohort_artifact_id=artifact_a, **base
+    )
+    assert await _active_practice_count_for_snapshot(pool, snapshot_a) == 1
+    assert await _active_practice_count_for_snapshot(pool, other_snapshot.id) == 1, (
+        "re-running cohort A's sync wrongly deactivated cohort B's tree "
+        "(clear not scoped to the acting cohort)"
+    )
+
+
+async def test_sync_clear_rolls_back_with_recreate_on_failure(
+    pool, redis_client, sync_fixture, monkeypatch
+):
+    """The clear and the recreate are one atomic unit.
+
+    If the recreate fails mid-way, the clear of the prior tree must roll back
+    too — the cohort keeps its old (working) scaffold rather than ending up
+    with the old one deactivated and no replacement (a silently empty cohort).
+    """
+    from uuid import uuid4
+
+    artifact_id = uuid4()
+    snapshot_id = sync_fixture["cohort_id"]
+    async with pool.acquire() as conn:
+        await _link_cohort_artifact(conn, artifact_id, snapshot_id)
+
+    kwargs = dict(
+        pool=pool,
+        cohorts_resource_id=snapshot_id,
+        simulation_ids=[sync_fixture["simulation_id"]],
+        simulation_position_ids=[],
+        simulation_availability_ids=[],
+        department_ids=[],
+        profile_ids=[sync_fixture["profile_id"]],
+        profile_persona_ids=[],
+        cohort_artifact_id=artifact_id,
+    )
+
+    # Seed a working prior tree.
+    await sync_home_practice_entries(**kwargs)
+    assert await _active_practice_count_for_snapshot(pool, snapshot_id) == 1
+
+    # Inject a failure during the recreate (after the clear has run inside the
+    # same transaction).
+    import app.tools.entries.chat.create as chat_create_mod
+
+    async def _boom(*args, **kwargs):
+        raise RuntimeError("injected failure during recreate")
+
+    monkeypatch.setattr(chat_create_mod, "create_chat", _boom)
+
+    with pytest.raises(RuntimeError, match="injected failure"):
+        await sync_home_practice_entries(**kwargs)
+
+    # The prior tree must still be active — the clear rolled back with the
+    # failed recreate (not deactivated-with-no-replacement).
+    assert await _active_practice_count_for_snapshot(pool, snapshot_id) == 1, (
+        "the prior tree was deactivated but the recreate failed — the clear "
+        "did not roll back atomically with the recreate"
+    )
