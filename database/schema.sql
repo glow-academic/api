@@ -18996,6 +18996,13 @@ CREATE UNIQUE INDEX calls_mv_call_id_idx ON public.calls_mv USING btree (call_id
 
 
 --
+-- Name: idx_calls_mv_operation_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calls_mv_operation_key ON public.calls_mv USING btree (operation_key);
+
+
+--
 -- Name: chat_drafts_mv_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -27582,6 +27589,13 @@ CREATE INDEX tool_args_tool_id_idx ON public.tool_args_junction USING btree (too
 --
 
 CREATE INDEX tool_calls_created_at_idx ON public.calls_entry USING btree (created_at);
+
+
+--
+-- Name: idx_calls_entry_operation_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_calls_entry_operation_key ON public.calls_entry USING btree (operation_key);
 
 
 --

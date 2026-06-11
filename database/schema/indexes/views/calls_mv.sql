@@ -9,3 +9,14 @@ CREATE UNIQUE INDEX calls_mv_call_id_idx ON public.calls_mv USING btree (call_id
 
 
 --
+
+-- Name: idx_calls_mv_operation_key; Type: INDEX; Schema: public; Owner: -
+-- Idempotency replay gate — read-path lookup on operation_key (search_calls
+-- reads calls_mv). Mirrors database/migrate/add/20260520_add_operation_key_indexes.sql
+-- so fresh (schema.sql) deploys match migrated instances. Keep the two in sync.
+--
+
+CREATE INDEX idx_calls_mv_operation_key ON public.calls_mv USING btree (operation_key);
+
+
+--
