@@ -74,3 +74,68 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id):
     )
     assert row is not None
     assert row["mcp"] is True
+
+
+# --- B1: soft-completion proposal must not permanently wedge the hard path ---
+
+
+async def test_soft_proposal_reports_not_active(conn, redis_client, profile_id):
+    """A soft proposal occupies the unique slot but is MV-invisible — it must
+    report active=False so the caller knows the chat is NOT yet completed."""
+    soft = await _attempt_chat_completion(conn, redis_client, profile_id, soft=True)
+
+    assert soft.active is False
+    db_active = await conn.fetchval(
+        "SELECT active FROM attempt_chat_completion_entry WHERE id = $1", soft.id
+    )
+    assert db_active is False
+
+
+async def test_hard_complete_supersedes_dormant_soft(conn, redis_client, profile_id):
+    """B1 core: soft-then-hard on the same chat. The hard complete must
+    supersede the dormant proposal (active=true), not no-op on the wedged row."""
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    attempt_chat = await create_attempt_chat(
+        conn, redis_client, session_id=session.id, chat_id=chat.id
+    )
+
+    soft = await create_attempt_chat_completion(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id, soft=True
+    )
+    hard = await create_attempt_chat_completion(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id, soft=False
+    )
+
+    assert hard.id == soft.id
+    assert hard.active is True
+    db_active = await conn.fetchval(
+        "SELECT active FROM attempt_chat_completion_entry WHERE id = $1", soft.id
+    )
+    assert db_active is True
+
+
+async def test_hard_complete_does_not_clobber_accepted(conn, redis_client, profile_id):
+    """An already-accepted (active=true) completion must NOT be clobbered by a
+    later hard complete."""
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    attempt_chat = await create_attempt_chat(
+        conn, redis_client, session_id=session.id, chat_id=chat.id
+    )
+
+    first = await create_attempt_chat_completion(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id,
+        soft=False, message="first",
+    )
+    second = await create_attempt_chat_completion(
+        conn, redis_client, chat_id=attempt_chat.id, session_id=session.id,
+        soft=False, message="second",
+    )
+
+    assert second.id == first.id
+    assert second.active is True
+    msg = await conn.fetchval(
+        "SELECT message FROM attempt_chat_completion_entry WHERE id = $1", first.id
+    )
+    assert msg == "first"
