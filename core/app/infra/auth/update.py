@@ -27,6 +27,7 @@ from app.tools.artifacts.auth.update import update_auth as update_auth_artifact
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.tools.entries.soft_calls.resolve import resolve_soft_call
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -78,9 +79,26 @@ async def update_auth_impl(
             )
         target_id = entry.artifact_id
 
-        if accept:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
+        # ── Atomic ack (A3/A4) ────────────────────────────────────────────
+        # One transaction: the conditional terminal-state transition
+        # (resolve_soft_call) + the row re-activation commit together. A
+        # concurrent double-ack loses the race → resolve returns None → we SKIP
+        # the re-activation (no double side effect). A crash before commit
+        # rolls back BOTH the activation and the ledger row. The soft-call MV
+        # refresh + auth refresh run only AFTER the commit.
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                resolved = await resolve_soft_call(
+                    conn,
+                    redis,
+                    call_id=idempotency_key,
+                    artifact=ARTIFACT,
+                    operation="update",
+                    artifact_id=target_id,
+                    accept=accept,
+                )
+                already_resolved = resolved is None
+                if not already_resolved and accept:
                     # Re-activate the row. The soft (propose) write flipped
                     # ``active=False`` (soft forces it), which hides the row
                     # from ``search_auth`` (filters ``a.active = true``). The
@@ -92,25 +110,16 @@ async def update_auth_impl(
                         conn, target_id, active=True, soft=False
                     )
 
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn,
-                redis,
-                call_id=idempotency_key,
-                artifact=ARTIFACT,
-                operation="update",
-                artifact_id=target_id,
-                status="accepted" if accept else "rejected",
-            )
-        async with pool.acquire() as conn:
-            await refresh_soft_calls(conn)
+        if not already_resolved:
+            async with pool.acquire() as conn:
+                await refresh_soft_calls(conn)
 
-        await refresh_auth_impl(
-            pool, redis,
-            profile_id=profile_id,
-            session_id=session_id,
-            operation_key=idempotency_key,
-        )
+            await refresh_auth_impl(
+                pool, redis,
+                profile_id=profile_id,
+                session_id=session_id,
+                operation_key=idempotency_key,
+            )
         return UpdateAuthApiResponse(
             results=[
                 AuthResultItem(

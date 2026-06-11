@@ -40,7 +40,7 @@ async def search_sessions(
           AND ($3::timestamptz IS NULL OR session_created_at <= $3)
           AND ($4::boolean IS NULL OR active = $4)
           AND ($5::boolean IS NULL OR mcp = $5)
-        ORDER BY session_created_at DESC
+        ORDER BY session_created_at DESC, session_id
         LIMIT $6 OFFSET $7
         """,
         profile_ids,
@@ -84,11 +84,22 @@ async def search_sessions(
             return False
         return True
 
+    # Deterministic pagination (P2): the merge-sort tiebreaks on a non-unique
+    # ``created_at`` exactly like the SQL ORDER BY. Without a unique secondary
+    # key, tied timestamps order arbitrarily between calls (cache+MV inputs
+    # arrive in different orders), so a session could dup/skip across pages.
+    # Tiebreak on the id — mirrors ``ORDER BY session_created_at DESC,
+    # session_id`` above so cache rows and MV rows order identically.
+    def _sort_key(row: dict) -> tuple:
+        ts = _parse_ts(row.get("created_at"))
+        return (ts or _dt.min, str(row.get("id") or ""))
+
     merged = await hedged_search(
         redis,
         "sessions",
         mv_rows=mv_dicts,
         matches_filter=matches,
+        sort_key=_sort_key,
         limit=limit,
         offset=offset,
         bypass_cache=bypass_cache,

@@ -201,6 +201,15 @@ async def test_accept_reactivates_the_soft_updated_row(monkeypatch):
     async def mock_create_soft_call(conn, redis, **kw):
         return None
 
+    async def mock_resolve_soft_call(conn, redis, **kw):
+        # Atomic transition won the race (A3/A4) → returns a terminal entry so
+        # the accept side effect (re-activate) proceeds.
+        return GetSoftCallResponse(
+            id=uuid4(), call_id=idem_key, artifact="auth", operation="update",
+            status="accepted", artifact_id=auth_id, patch=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
     async def mock_refresh_soft_calls(conn):
         return None
 
@@ -210,6 +219,7 @@ async def test_accept_reactivates_the_soft_updated_row(monkeypatch):
     monkeypatch.setattr("app.infra.auth.update.get_soft_call", mock_get_soft_call)
     monkeypatch.setattr("app.infra.auth.update.update_auth_artifact", mock_update_artifact)
     monkeypatch.setattr("app.infra.auth.update.create_soft_call", mock_create_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.resolve_soft_call", mock_resolve_soft_call)
     monkeypatch.setattr("app.infra.auth.update.refresh_soft_calls", mock_refresh_soft_calls)
     monkeypatch.setattr("app.infra.auth.update.refresh_auth_impl", mock_refresh)
 
@@ -225,3 +235,146 @@ async def test_accept_reactivates_the_soft_updated_row(monkeypatch):
     # The crux of A1: accept must re-activate the row, not leave active=_UNSET.
     assert captured["kwargs"].get("active") is True
     assert captured["kwargs"].get("soft") is False
+
+
+async def test_double_ack_skips_reactivation(monkeypatch):
+    """A3: a concurrent double-ack (resolve_soft_call returns None) must SKIP the
+    re-activation AND the soft-call / auth refreshes — no double side effect."""
+    from app.tools.entries.soft_calls.types import GetSoftCallResponse
+    from datetime import datetime, timezone
+
+    auth_id = uuid4()
+    idem_key = uuid4()
+    calls = {"update": 0, "refresh_soft": 0, "refresh_auth": 0}
+
+    async def mock_get_soft_call(conn, call_id, redis, *, artifact=None):
+        return GetSoftCallResponse(
+            id=uuid4(), call_id=call_id, artifact="auth", operation="update",
+            status="pending", artifact_id=auth_id, patch=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def mock_resolve_soft_call(conn, redis, **kw):
+        return None  # already resolved by a concurrent ack
+
+    async def mock_update_artifact(conn, _id, **kw):
+        calls["update"] += 1
+
+    async def mock_refresh_soft_calls(conn):
+        calls["refresh_soft"] += 1
+
+    async def mock_refresh(pool, redis, **kw):
+        calls["refresh_auth"] += 1
+
+    monkeypatch.setattr("app.infra.auth.update.get_soft_call", mock_get_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.resolve_soft_call", mock_resolve_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.update_auth_artifact", mock_update_artifact)
+    monkeypatch.setattr("app.infra.auth.update.refresh_soft_calls", mock_refresh_soft_calls)
+    monkeypatch.setattr("app.infra.auth.update.refresh_auth_impl", mock_refresh)
+
+    result = await update_auth_impl(
+        _FakePoolU(), None, profile_id=uuid4(),
+        request=UpdateAuthApiRequest(),
+        idempotency_key=idem_key,
+        accept=True,
+    )
+
+    # Idempotent success, but no second side effect.
+    assert result.results[0].success is True
+    assert calls["update"] == 0
+    assert calls["refresh_soft"] == 0
+    assert calls["refresh_auth"] == 0
+
+
+async def test_ack_resolve_and_activate_share_one_transaction(monkeypatch):
+    """A4: the resolve (ledger write) and the re-activation run inside ONE open
+    transaction; the refreshes run only AFTER it commits."""
+    from app.tools.entries.soft_calls.types import GetSoftCallResponse
+    from datetime import datetime, timezone
+
+    auth_id = uuid4()
+    idem_key = uuid4()
+    order: list[str] = []
+
+    # A conn whose transaction() flips a flag the mocks can observe.
+    class _Tx:
+        def __init__(self, conn):
+            self._c = conn
+
+        async def __aenter__(self):
+            self._c.in_tx = True
+            return None
+
+        async def __aexit__(self, *a):
+            self._c.in_tx = False
+            return False
+
+    class _Conn:
+        in_tx = False
+
+        def transaction(self):
+            return _Tx(self)
+
+    class _PoolConn:
+        def __init__(self, conn):
+            self._c = conn
+
+        async def __aenter__(self):
+            return self._c
+
+        async def __aexit__(self, *a):
+            return False
+
+    class _Pool:
+        def __init__(self):
+            self.conn = _Conn()
+
+        def acquire(self):
+            return _PoolConn(self.conn)
+
+    pool = _Pool()
+
+    async def mock_get_soft_call(conn, call_id, redis, *, artifact=None):
+        return GetSoftCallResponse(
+            id=uuid4(), call_id=call_id, artifact="auth", operation="update",
+            status="pending", artifact_id=auth_id, patch=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def mock_resolve_soft_call(conn, redis, **kw):
+        order.append(f"resolve:in_tx={conn.in_tx}")
+        return GetSoftCallResponse(
+            id=uuid4(), call_id=idem_key, artifact="auth", operation="update",
+            status="accepted", artifact_id=auth_id, patch=None,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def mock_update_artifact(conn, _id, **kw):
+        order.append(f"activate:in_tx={conn.in_tx}")
+
+    async def mock_refresh_soft_calls(conn):
+        order.append(f"refresh_soft:in_tx={conn.in_tx}")
+
+    async def mock_refresh(pool_, redis, **kw):
+        order.append(f"refresh_auth:in_tx={pool.conn.in_tx}")
+
+    monkeypatch.setattr("app.infra.auth.update.get_soft_call", mock_get_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.resolve_soft_call", mock_resolve_soft_call)
+    monkeypatch.setattr("app.infra.auth.update.update_auth_artifact", mock_update_artifact)
+    monkeypatch.setattr("app.infra.auth.update.refresh_soft_calls", mock_refresh_soft_calls)
+    monkeypatch.setattr("app.infra.auth.update.refresh_auth_impl", mock_refresh)
+
+    await update_auth_impl(
+        pool, None, profile_id=uuid4(),
+        request=UpdateAuthApiRequest(),
+        idempotency_key=idem_key,
+        accept=True,
+    )
+
+    # resolve + activate inside the txn; both refreshes after it closed.
+    assert order == [
+        "resolve:in_tx=True",
+        "activate:in_tx=True",
+        "refresh_soft:in_tx=False",
+        "refresh_auth:in_tx=False",
+    ]

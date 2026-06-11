@@ -463,6 +463,104 @@ async def test_execute_pagination(conn):
     assert set(p1 + p2) == set(created)
 
 
+async def test_execute_pagination_tied_names_no_dup_or_skip(conn):
+    """P2: artifacts with IDENTICAL sort names must paginate without dup/skip.
+
+    ``MIN(nr_sort.name)`` is non-unique; without the ``a.id`` tiebreaker the
+    LIMIT/OFFSET order is arbitrary and a row can land on two pages or none.
+    All six personas share the same name → the order is decided purely by the
+    appended ``a.id`` tiebreaker."""
+    tag = _u()
+    same_name = f"tie-{tag}"  # identical sort key for every persona
+    # names_resource.name is UNIQUE — link ALL personas to the SAME name row so
+    # MIN(nr_sort.name) is identical (tied) across all six.
+    nid = await _make_name(conn, same_name)
+    created = []
+    for _ in range(6):
+        pid = await _make_persona(conn)
+        await _link_name(conn, pid, nid)
+        created.append(pid)
+
+    conditions: list[str] = []
+    params: list[object] = []
+    idx = add_text_search(
+        conditions, params, 1,
+        junction_table="persona_names_junction",
+        owner_col="persona_id", resource_col="names_id",
+        resource_table="names_resource", text_col="name", search=same_name,
+    )
+    order_join = (
+        "LEFT JOIN persona_names_junction pnj ON pnj.persona_id = a.id AND pnj.active = true "
+        "LEFT JOIN names_resource nr_sort ON nr_sort.id = pnj.names_id"
+    )
+
+    pages = []
+    for off in (0, 2, 4):
+        page, _tc = await execute_artifact_search(
+            conn, table="persona_artifact",
+            conditions=list(conditions), params=list(params), idx=idx,
+            order_join=order_join, order_expr="MIN(nr_sort.name) NULLS LAST",
+            limit_count=2, offset_count=off,
+        )
+        pages.append(page)
+
+    flat = [pid for page in pages for pid in page]
+    assert len(flat) == 6
+    assert set(flat) == set(created)  # no skips
+    assert len(set(flat)) == 6  # no dups across pages
+
+
+async def test_execute_pagination_deterministic_across_calls(conn):
+    """P2: the same paged query returns the SAME row on repeated calls — the
+    ``a.id`` tiebreaker makes the total order stable for tied/NULL sort keys.
+    (NULL names exercise the NULLS LAST + tiebreaker path.)"""
+    tag = _u()
+    created = []
+    for _ in range(5):
+        pid = await _make_persona(conn)
+        # No name linked → MIN(nr_sort.name) is NULL for all five (tied NULLs).
+        created.append(pid)
+
+    # Scope to just our 5 via a department junction filter.
+    did = await _make_dept(conn)
+    for pid in created:
+        await _link_dept(conn, pid, did)
+
+    order_join = (
+        "LEFT JOIN persona_names_junction pnj ON pnj.persona_id = a.id AND pnj.active = true "
+        "LEFT JOIN names_resource nr_sort ON nr_sort.id = pnj.names_id"
+    )
+
+    def _query():
+        conditions: list[str] = []
+        params: list[object] = []
+        idx = add_junction_filter(
+            conditions, params, 1,
+            junction_table="persona_departments_junction",
+            owner_col="persona_id", resource_col="departments_id", ids=[did],
+        )
+        return conditions, params, idx
+
+    async def _page(off):
+        conditions, params, idx = _query()
+        page, _tc = await execute_artifact_search(
+            conn, table="persona_artifact",
+            conditions=conditions, params=params, idx=idx,
+            order_join=order_join, order_expr="MIN(nr_sort.name) NULLS LAST",
+            limit_count=2, offset_count=off,
+        )
+        return page
+
+    # Same offset, called twice → identical (deterministic) result.
+    assert await _page(0) == await _page(0)
+    assert await _page(2) == await _page(2)
+
+    # And the full walk covers every row exactly once.
+    flat = (await _page(0)) + (await _page(2)) + (await _page(4))
+    assert set(flat) == set(created)
+    assert len(set(flat)) == 5
+
+
 async def test_execute_combined_filters(conn):
     """Multiple conditions (junction + text) combine with AND."""
     tag = _u()

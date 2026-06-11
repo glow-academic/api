@@ -22,6 +22,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.soft_calls.resolve import resolve_soft_call
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -95,9 +96,28 @@ async def attempt_start_impl(
         if entry is None or entry.status != "pending" or entry.operation != "start":
             raise HTTPException(status_code=404, detail="No pending attempt start for this call.")
         ids = entry.patch or {}
-        if accept:
-            async with pool.acquire() as conn:
-                async with conn.transaction():
+        # ── Atomic ack (A3/A4) ────────────────────────────────────────────
+        # One transaction: the conditional terminal-state transition
+        # (resolve_soft_call) + the persona/attempt/junction activations commit
+        # together. A concurrent double-ack loses the race → resolve returns
+        # None → we SKIP the activations. A crash before commit rolls back BOTH
+        # the activations and the ledger row. The MV refresh runs only AFTER
+        # the commit.
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                resolved = await resolve_soft_call(
+                    conn, redis, call_id=idempotency_key, artifact="attempt",
+                    operation="start", artifact_id=entry.artifact_id,
+                    accept=accept,
+                )
+                if resolved is None:
+                    # Already resolved by a concurrent ack — no double activation.
+                    return AttemptStartResponse(
+                        attempt_id=UUID(ids["attempt_id"]),
+                        chat_id=UUID(ids["chat_id"]),
+                        idempotency_key=idempotency_key,
+                    )
+                if accept:
                     await activate_rows(conn, table="personas_entry", ids=[UUID(ids["persona_id"])])
                     await activate_rows(conn, table="attempt_entry", ids=[UUID(ids["attempt_id"])])
                     # junction has no id column → activate by attempt_id
@@ -106,15 +126,10 @@ async def attempt_start_impl(
                         f"UPDATE {jt} SET active = true WHERE attempt_id = $1",
                         UUID(ids["attempt_id"]),
                     )
+        if accept:
             await refresh_attempt_impl(
                 pool, redis, profile_id=profile_id, session_id=session_id,
                 targets=["attempt_mv", "attempt_chat_mv"],
-            )
-        async with pool.acquire() as conn:
-            await create_soft_call(
-                conn, redis, call_id=idempotency_key, artifact="attempt",
-                operation="start", artifact_id=entry.artifact_id,
-                status="accepted" if accept else "rejected",
             )
         return AttemptStartResponse(
             attempt_id=UUID(ids["attempt_id"]),
