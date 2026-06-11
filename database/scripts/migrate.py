@@ -89,32 +89,70 @@ async def _apply(mtype: str) -> None:
 
         applied = 0
         skipped = 0
+        # Track numbers handed out *this run* per version so two same-day dated
+        # files processed in one pass don't both claim the same free number.
+        assigned: dict[str, set[int]] = {}
         for sql_file in files:
             m_v = _VERSIONED_RE.match(sql_file.name)
             m_d = _DATED_RE.match(sql_file.name)
             if m_v:
-                version, number_str = m_v.group(1), m_v.group(2)
-                number = int(number_str)
+                version = m_v.group(1)
+                # Versioned filenames carry an explicit, per-version-unique
+                # ordinal — honor it verbatim.
+                number: int | None = int(m_v.group(2))
             elif m_d:
-                # Use the date as the version slot; number=0 since dated
-                # filenames have no per-day ordinal. (If multiple migrations
-                # land the same day, give them distinct dates.)
+                # Dated filenames have no per-day ordinal; the number is
+                # assigned dynamically below (after the dedup check) so that
+                # multiple migrations sharing a date get DISTINCT numbers.
                 version = m_d.group(1)
-                number = 0
+                number = None
             else:
                 print(f"Skipping {sql_file.name} (unrecognized filename)")
                 continue
 
+            # Dedup on the migration's stable identity — its filename. The old
+            # key was (version, number, type), but every dated file collapsed to
+            # number=0, so the FIRST same-day migration to land permanently
+            # shadowed every other one sharing that date (they matched the
+            # already-applied (date, 0) row and were silently skipped forever).
+            # `name` is unique per migration and is already recorded on every
+            # existing instance, so this is backward-compatible: an already-
+            # applied file is still recognized, a never-applied same-day file is
+            # no longer falsely skipped.
             already = await conn.fetchval(
                 """
                 SELECT 1 FROM migrations.applied
-                WHERE version=$1 AND number=$2 AND type=$3
+                WHERE name=$1 AND type=$2
                 """,
-                version, number, mtype,
+                sql_file.name, mtype,
             )
             if already:
                 skipped += 1
                 continue
+
+            if number is None:
+                # Smallest non-negative ordinal not already recorded for this
+                # (version, type) and not handed out earlier in this run. On a
+                # fresh DB the first same-day file gets 0, the next 1, ...; on an
+                # existing instance the already-recorded same-day file keeps its
+                # number (it's skipped above, never reassigned) and the new file
+                # takes the next free slot — so we never collide with the
+                # migrations_unique (version, number, type) constraint nor mutate
+                # any row that's already there.
+                used = {
+                    r["number"]
+                    for r in await conn.fetch(
+                        """
+                        SELECT number FROM migrations.applied
+                        WHERE version=$1 AND type=$2
+                        """,
+                        version, mtype,
+                    )
+                }
+                used |= assigned.get(version, set())
+                number = 0
+                while number in used:
+                    number += 1
 
             print(f"Applying: {sql_file.name}")
             sql = sql_file.read_text()
@@ -128,6 +166,7 @@ async def _apply(mtype: str) -> None:
                     """,
                     version, number, mtype, sql_file.name,
                 )
+            assigned.setdefault(version, set()).add(number)
             applied += 1
 
         print(f"{mtype} migrations: {applied} applied, {skipped} already applied")
