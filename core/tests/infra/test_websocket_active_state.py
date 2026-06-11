@@ -130,3 +130,45 @@ class TestActiveConnectionHelpers:
 
         await remove_active_connection("chat-6", "sid-b")
         assert await websocket_runtime.exists("active_connection:chat-6") == 0
+
+    @pytest.mark.asyncio
+    async def test_find_chats_by_socket_uses_reverse_index_no_scan(
+        self, websocket_runtime, monkeypatch
+    ):
+        """PERF2: with the reverse index populated, disconnect lookup must be
+        a direct O(1) SMEMBERS — NO unbounded keyspace SCAN."""
+        # Populate several chats for one socket plus unrelated chats that an
+        # old SCAN would have to walk.
+        await set_active_connection("chat-a", "sid-x")
+        await set_active_connection("chat-b", "sid-x")
+        for i in range(20):
+            await set_active_connection(f"noise-{i}", f"other-{i}")
+
+        # Any scan_iter during the lookup is a regression.
+        def _no_scan(*args, **kwargs):
+            raise AssertionError(
+                "find_chats_by_socket issued a SCAN despite a populated "
+                "reverse index (PERF2 regression)"
+            )
+
+        monkeypatch.setattr(websocket_runtime, "scan_iter", _no_scan)
+
+        chats = await find_chats_by_socket("sid-x")
+        assert sorted(chats) == ["chat-a", "chat-b"]
+
+        # Singular finder also avoids the scan.
+        assert await find_chat_by_socket("sid-x") in {"chat-a", "chat-b"}
+
+    @pytest.mark.asyncio
+    async def test_remove_active_connection_prunes_reverse_index(
+        self, websocket_runtime
+    ):
+        """Removing a connection drops it from the reverse index so a later
+        disconnect lookup returns only still-active chats."""
+        await set_active_connection("chat-c", "sid-y")
+        await set_active_connection("chat-d", "sid-y")
+        assert sorted(await find_chats_by_socket("sid-y")) == ["chat-c", "chat-d"]
+
+        await remove_active_connection("chat-c", "sid-y")
+        assert await find_chats_by_socket("sid-y") == ["chat-d"]
+        assert await websocket_runtime.smembers("socket_chats:sid-y") == {b"chat-d"}
