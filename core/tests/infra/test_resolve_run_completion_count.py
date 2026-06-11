@@ -73,6 +73,42 @@ async def test_two_reasoning_agents_not_done_until_both_answer(
     assert state.all_done is True
 
 
+async def test_large_run_counts_past_100_messages_no_stall(
+    conn, redis_client, profile_id, tmp_path
+):
+    """S3: a run whose assistant rows exceed the old ``limit=100`` fetch must
+    still count completion accurately. With 60 expected agents and 60
+    reasoning-turns (120 assistant rows, 60 answers), a capped 100-row read
+    would see only ~50 answers → completed < expected → ``all_done`` never trips
+    → the run stalls forever. The uncapped (paginated) count sees all 60."""
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(
+        conn, redis_client, session_id=session.id, artifact_type="persona"
+    )
+    n = 60
+    agents = [
+        await create_agent(conn, name=f"agent-{i}", redis=redis_client)
+        for i in range(n)
+    ]
+    run = await create_run(
+        conn, redis_client,
+        group_id=group.id, session_id=session.id,
+        agent_ids=[a.id for a in agents],
+    )
+
+    # 60 reasoning-turns → 120 assistant rows (60 reasoning + 60 answers),
+    # well past the old 100-row cap.
+    for _ in range(n):
+        await _persist_reasoning_turn(conn, redis_client, run.id, session.id, tmp_path)
+    await conn.execute("REFRESH MATERIALIZED VIEW messages_mv")
+
+    state = await resolve_run_completion(conn, run_id=run.id, group_id=group.id)
+    assert state.expected_agents == n
+    # The uncapped count sees all 60 answer rows — no truncation-induced stall.
+    assert state.completed_agents == n
+    assert state.all_done is True
+
+
 async def test_single_reasoning_agent_completes(
     conn, redis_client, profile_id, tmp_path
 ):

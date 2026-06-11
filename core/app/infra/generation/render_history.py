@@ -121,19 +121,35 @@ def render_history_for_dispatch(
                     "tool_calls": tool_calls_payload,
                 }
             )
-            # Result text — the Jinja-rendered output. We attach it to
-            # the LAST tool_call_id; if there were multiple calls in
-            # one persisted message, all share this body. Future work:
-            # split the persisted text per-call if it ever becomes
-            # multi-block.
-            if msg.text and tool_calls_payload:
-                out.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_calls_payload[-1]["id"],
-                        "content": msg.text,
-                    }
-                )
+            # One ``role:tool`` result per tool_call_id (G4). The Chat
+            # Completions / Responses contract requires EXACTLY one tool
+            # message for every id in the assistant's ``tool_calls`` array —
+            # an assistant row carrying N>1 calls followed by a single tool
+            # result (bound only to the last id) leaves the other ids
+            # unanswered and 400s the very next provider turn. The persisted
+            # body is a single rendered blob for the whole row (not split
+            # per-call), so attach the full text to the FIRST call and a short
+            # pointer to the rest — every id gets a (non-empty) result, which is
+            # what the API validates. Latent until a path attaches multiple
+            # call_ids to one row (``fetch_group_history`` already supports
+            # ``m.call_ids``); emitting per-id makes that path safe.
+            if tool_calls_payload:
+                body = msg.text or ""
+                for idx, tc_payload in enumerate(tool_calls_payload):
+                    if idx == 0:
+                        content = body
+                    else:
+                        content = (
+                            "(combined tool results reported with the first "
+                            "call above)"
+                        )
+                    out.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc_payload["id"],
+                            "content": content,
+                        }
+                    )
             continue
 
         # Assistant + tool calls + agent does NOT support `call` input →

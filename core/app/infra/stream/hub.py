@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Final
 from uuid import UUID
 
-from app.infra.stream.types import EventEnvelope
+from app.infra.stream.types import EventEnvelope, is_run_terminal
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +73,42 @@ async def publish(event: EventEnvelope) -> None:
             try:
                 queue.put_nowait(event)
             except asyncio.QueueFull:
-                # Lost a race with another producer refilling the slot; the
-                # event is dropped rather than blocking the fan-out.
-                logger.warning(
-                    "SSE subscriber queue full for group %s; dropping event %s",
-                    subscription.group_id,
-                    event.event_type,
-                )
+                # Lost a race with another producer that refilled the freed slot
+                # before our put. For an ordinary mid-run frame this is fine —
+                # drop it and keep the fan-out non-blocking. But a run TERMINAL
+                # frame (``.completed`` / ``.failed`` / ``agent_completed`` …)
+                # is load-bearing: dropping it leaves a run-scoped watcher
+                # (``glow … watch <run_id>``) looping on keep-alives with no
+                # EOF — it hangs forever (S4). Terminal frames are rare (one per
+                # run) and must not be lost, so for them keep shedding the oldest
+                # and retrying until the put lands (bounded by the queue depth so
+                # this can never spin). Non-terminal frames keep the original
+                # best-effort drop.
+                if is_run_terminal(event.event_type):
+                    delivered = False
+                    for _ in range(_QUEUE_MAXSIZE + 1):
+                        try:
+                            queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            pass
+                        try:
+                            queue.put_nowait(event)
+                            delivered = True
+                            break
+                        except asyncio.QueueFull:
+                            continue
+                    if not delivered:
+                        logger.error(
+                            "SSE terminal frame %s undeliverable for group %s "
+                            "after draining queue; watcher may hang",
+                            event.event_type,
+                            subscription.group_id,
+                        )
+                else:
+                    # Lost a race with another producer refilling the slot; the
+                    # event is dropped rather than blocking the fan-out.
+                    logger.warning(
+                        "SSE subscriber queue full for group %s; dropping event %s",
+                        subscription.group_id,
+                        event.event_type,
+                    )

@@ -21,32 +21,20 @@ from uuid import UUID
 from fastapi.responses import StreamingResponse
 
 from app.infra.stream.hub import subscribe, unsubscribe
+from app.infra.stream.types import is_run_terminal as _is_run_terminal
 
 DEFAULT_KEEPALIVE_SEC = 15.0
 
-# Run-level terminal events that close a *run-scoped* stream. Deliberately
-# STRICTER than infra/_watch.py's ``_is_terminal``: the generation lifecycle
-# emits mid-run ``call.complete`` / ``text.complete`` frames (suffix
-# ``.complete`` — no trailing "d"), and matching those would close the stream
-# after the first tool call. We only close on the run's final frame:
-#   - ``<artifact>.generate.completed`` / ``.failed`` / ``.error`` (the audited
-#     run terminal, see ws/output.py + run_complete_impl), and
-#   - ``…agent_completed`` / ``…media_complete`` / ``…media_error`` — the last
-#     frame agent/media runs emit over the SSE bus. These are matched by
-#     SUFFIX, not equality: the event_type is fully-qualified
-#     (``persona.generate.agent_completed``), not the bare token.
-_RUN_TERMINAL_SUFFIXES = (
-    ".completed",
-    ".failed",
-    ".error",
-    "agent_completed",
-    "media_complete",
-    "media_error",
-)
-
-
-def _is_run_terminal(event_type: str) -> bool:
-    return (event_type or "").endswith(_RUN_TERMINAL_SUFFIXES)
+# Hard ceiling on a run-scoped stream's lifetime (S4). The run terminal frame
+# normally closes the stream (see ``_is_run_terminal`` below); the hub now
+# treats those frames as non-droppable so they reach the consumer. This timeout
+# is the belt-and-suspenders fallback: if a terminal frame is STILL lost (the
+# producer crashed before emitting it, a subscriber attached after it fired,
+# etc.), a run-scoped watcher would otherwise loop on keep-alives forever. After
+# this much idle time on a run-scoped stream we close it so the client gets a
+# clean EOF and exits instead of hanging. Generous so a slow but live run is
+# never cut off mid-flight; only a truly stuck/terminal-less stream hits it.
+MAX_RUN_STREAM_IDLE_SEC = 600.0
 
 
 async def build_artifact_stream_impl(
@@ -69,6 +57,13 @@ async def build_artifact_stream_impl(
     queue = subscribe(group_id=group_id)
 
     async def _gen() -> AsyncIterator[str]:
+        # Idle time accrued waiting for the next event on a run-scoped stream.
+        # Reset whenever a matching event for this run is delivered; only pure
+        # keep-alive ticks (no event) accumulate it. The fallback timeout (S4)
+        # fires off this so a slow-but-live run that keeps emitting events for
+        # this run_id never trips it — only a stream that goes terminal-less
+        # idle does.
+        idle_sec = 0.0
         try:
             while True:
                 try:
@@ -77,12 +72,26 @@ async def build_artifact_stream_impl(
                     )
                 except asyncio.TimeoutError:
                     yield ": keep-alive\n\n"
+                    # S4 fallback: a run-scoped watcher whose terminal frame was
+                    # lost (producer crash, dropped despite the hub's
+                    # non-droppable guard, late attach) would otherwise loop on
+                    # keep-alives forever. Cap the idle lifetime so it gets a
+                    # clean EOF instead of hanging.
+                    if run_id is not None:
+                        idle_sec += keepalive_sec
+                        if idle_sec >= MAX_RUN_STREAM_IDLE_SEC:
+                            break
                     continue
 
                 if event.artifact != artifact:
                     continue
                 if run_id is not None and event.run_id != run_id:
                     continue
+
+                # A real event for this run arrived → the stream is live; reset
+                # the idle counter so the S4 fallback only fires on genuine
+                # terminal-less silence, not on a busy run.
+                idle_sec = 0.0
 
                 # All events flow on the default ``message`` channel.
                 # ``event_type`` lives inside the envelope payload so the
