@@ -83,10 +83,14 @@ class _FakePool:
 
 
 def _wire(monkeypatch, *, actor, chat, department_in_scope=True):
-    """Patch the impl's composed tools. ``search_attempt_chats`` always returns
-    the target chat (attacker supplies its id); the real ``check_attempt_access``
-    then decides. Records the chat_ids actually handed to ``create_attempt_grade``."""
+    """Patch the impl's composed tools. Owner resolution + the dept-scope query
+    now live in the SHARED authz path (``app.infra.attempt.permissions``) that
+    chat_grade routes through, so the chat lookup / dept-scope fakes are patched
+    there; the real ``check_attempt_access`` still decides. Records the chat_ids
+    actually handed to ``create_attempt_grade``."""
     import app.infra.attempt.chat_grade as mod
+    import app.infra.attempt.permissions as perm_mod
+    import app.infra.dashboard.visibility as vis_mod
     import app.infra.profile_identity_context as pic_mod
     from app.tools.entries.attempt_grade.types import CreateAttemptGradeResponse
 
@@ -112,8 +116,12 @@ def _wire(monkeypatch, *, actor, chat, department_in_scope=True):
     monkeypatch.setattr(
         mod, "resolve_profile_identity_context", fake_resolve, raising=False
     )
+    # The shared helper imports search_attempt_chats locally — patch at source.
+    import app.tools.entries.attempt_chat.search as chat_search_mod
+    monkeypatch.setattr(chat_search_mod, "search_attempt_chats", fake_search_chats)
+    monkeypatch.setattr(vis_mod, "is_profile_in_department_scope", fake_dept_scope)
+    # chat_grade still fetches the chat itself (for rubric / created_at).
     monkeypatch.setattr(mod, "search_attempt_chats", fake_search_chats)
-    monkeypatch.setattr(mod, "is_profile_in_department_scope", fake_dept_scope)
     monkeypatch.setattr(mod, "create_attempt_grade", fake_create_grade)
     monkeypatch.setattr(mod, "refresh_attempt_impl", fake_refresh)
     return graded_ids

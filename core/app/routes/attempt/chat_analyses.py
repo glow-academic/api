@@ -73,7 +73,7 @@ async def chat_analyses(
         operation="chat_analyses",
         primary_table="attempt_analysis_entry",
         mv_target="attempt_analysis_mv",
-        profile_id=profile_id, session_id=session_id,
+        profile_id=profile_id, session_id=session_id, chat_id=request.chat_id,
         idempotency_key=request.idempotency_key, soft=request.soft, accept=request.accept,
         arguments=request.model_dump(mode="json"),
         create_fn=_create,

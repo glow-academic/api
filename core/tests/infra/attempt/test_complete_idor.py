@@ -102,13 +102,18 @@ class _FakePool:
         return _FakeConn()
 
 
-def _wire(monkeypatch, *, actor, victim_attempt):
-    """Patch the impl's composed tools. ``search_attempts`` always returns the
-    victim's attempt (simulating the attacker supplying its id); the real
-    ``check_attempt_access`` then decides whether the completion is written.
-    Records the attempt_ids actually handed to ``create_attempt_completion``."""
+def _wire(monkeypatch, *, actor, victim_attempt, department_in_scope=True):
+    """Patch the impl's composed tools. Owner resolution + the dept-scope query
+    now live in the SHARED authz path (``app.infra.attempt.permissions``) that
+    complete routes through (the A2 dept-scope fix), so ``search_attempts`` is
+    patched at its source module and ``is_profile_in_department_scope`` at the
+    visibility module; the real ``check_attempt_access`` then decides whether the
+    completion is written. Records the attempt_ids handed to
+    ``create_attempt_completion``."""
     import app.infra.attempt.complete as mod
+    import app.infra.dashboard.visibility as vis_mod
     import app.infra.profile_identity_context as pic_mod
+    import app.tools.entries.attempt.search as attempt_search_mod
     from app.tools.entries.attempt_completion.types import (
         CreateAttemptCompletionResponse,
     )
@@ -121,6 +126,9 @@ def _wire(monkeypatch, *, actor, victim_attempt):
     async def fake_search_attempts(conn, redis, **kwargs):
         return ([victim_attempt], 1)
 
+    async def fake_dept_scope(pool, caller, owner_profiles_id, *a, **k):
+        return department_in_scope
+
     async def fake_create_completion(conn, redis, *, attempt_id, **kwargs):
         completed_ids.append(attempt_id)
         return CreateAttemptCompletionResponse(id=uuid4())
@@ -128,14 +136,13 @@ def _wire(monkeypatch, *, actor, victim_attempt):
     async def fake_refresh(pool, redis, **kwargs):
         return None
 
-    # Patch at the source module too so the stub applies whether or not the impl
-    # has (re)imported the name — this lets the *blocks* test demonstrate the
-    # real BOLA pre-fix (victim's attempt completed) rather than an import error.
     monkeypatch.setattr(pic_mod, "resolve_profile_identity_context", fake_resolve)
     monkeypatch.setattr(
         mod, "resolve_profile_identity_context", fake_resolve, raising=False
     )
-    monkeypatch.setattr(mod, "search_attempts", fake_search_attempts)
+    # The shared helper imports search_attempts locally — patch at source.
+    monkeypatch.setattr(attempt_search_mod, "search_attempts", fake_search_attempts)
+    monkeypatch.setattr(vis_mod, "is_profile_in_department_scope", fake_dept_scope)
     monkeypatch.setattr(mod, "create_attempt_completion", fake_create_completion)
     monkeypatch.setattr(mod, "refresh_attempt_impl", fake_refresh)
     return completed_ids
@@ -187,14 +194,51 @@ async def test_complete_allows_owner(monkeypatch):
 
 
 async def test_complete_allows_higher_role(monkeypatch):
-    """A strictly-higher role (instructional) completes a student's attempt."""
+    """A strictly-higher role (instructional) IN the owner's department completes
+    a student's attempt."""
     instructor_id, owner_id = uuid4(), uuid4()
     victim = _attempt(uuid4(), owner_id)
 
     actor = _profile(instructor_id, "instructional", role_level=2)
-    completed_ids = _wire(monkeypatch, actor=actor, victim_attempt=victim)
+    completed_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=True
+    )
 
     result = await _run(actor_profile_id=instructor_id, victim_attempt=victim)
+
+    assert result["success"] is True
+    assert completed_ids == [victim.attempt_id]
+
+
+async def test_complete_blocks_cross_department_instructor(monkeypatch):
+    """A2: a higher-role instructor whose target is OUTSIDE their department scope
+    is DENIED (403) and writes 0 completions — the dept-blind gap is closed."""
+    instructor_id, owner_id = uuid4(), uuid4()
+    victim = _attempt(uuid4(), owner_id)
+
+    actor = _profile(instructor_id, "instructional", role_level=2)
+    completed_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=False
+    )
+
+    with pytest.raises(HTTPException) as exc:
+        await _run(actor_profile_id=instructor_id, victim_attempt=victim)
+
+    assert exc.value.status_code == 403
+    assert completed_ids == []
+
+
+async def test_complete_allows_superadmin_global(monkeypatch):
+    """A super-admin completes any attempt regardless of department (global)."""
+    super_id, owner_id = uuid4(), uuid4()
+    victim = _attempt(uuid4(), owner_id)
+
+    actor = _profile(super_id, "superadmin", role_level=4)
+    completed_ids = _wire(
+        monkeypatch, actor=actor, victim_attempt=victim, department_in_scope=False
+    )
+
+    result = await _run(actor_profile_id=super_id, victim_attempt=victim)
 
     assert result["success"] is True
     assert completed_ids == [victim.attempt_id]

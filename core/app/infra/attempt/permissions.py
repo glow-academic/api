@@ -219,6 +219,184 @@ async def enforce_attempt_media_access(
         _deny()
 
 
+async def _enforce_attempt_owner_access(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    owner_profiles_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str,
+) -> None:
+    """Core shared attempt-mutation gate (issue #148 / the chat_grade #343 + archive #337 fix).
+
+    Every attempt-scoped *write* (terminal-state flips, grade-annotation writers)
+    must reach the SAME authorization decision the attempt READ path enforces:
+    the actor either owns the attempt (self), is a super-admin (global), or holds
+    a strictly-higher instructional role AND shares a department with the attempt
+    owner. This is the one place that decision is made so the class can't regress
+    per-endpoint — the public ``enforce_attempt_access_by_*`` helpers resolve the
+    owner from their respective key (attempt_id / chat_id / grade_id / message_id)
+    and funnel into this gate.
+
+    Fail-closed: an unresolved requester OR an unresolved owner (e.g. a bogus or
+    not-yet-hydrated id) denies. ``check_attempt_access`` short-circuits self →
+    allowed and super-admin → global, so legitimate self-writes never pay the
+    department-scope query.
+    """
+    from fastapi import HTTPException
+
+    if requester is None or owner_profiles_id is None:
+        raise HTTPException(status_code=403, detail=deny_detail)
+
+    department_in_scope = True
+    if owner_profiles_id != requester.profiles_id:
+        from app.infra.dashboard.visibility import is_profile_in_department_scope
+
+        department_in_scope = await is_profile_in_department_scope(
+            pool, requester, owner_profiles_id
+        )
+
+    if not check_attempt_access(
+        owner_profiles_id,
+        requester.profiles_id,
+        request_role=requester.role,
+        attempt_role=None,
+        department_in_scope=department_in_scope,
+    ):
+        raise HTTPException(status_code=403, detail=deny_detail)
+
+
+async def enforce_attempt_access_by_attempt(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    attempt_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this resource.",
+) -> None:
+    """Authorize an attempt-id-keyed mutation (e.g. ``/attempt/complete``).
+
+    Resolves the attempt owner (``attempt_mv.profile_id`` = the owner's *resource*
+    profiles_id) and applies the shared gate. Mirrors ``archive_attempt_impl``.
+    """
+    from app.tools.entries.attempt.search import search_attempts
+
+    owner_profiles_id: UUID | None = None
+    if attempt_id is not None:
+        async with pool.acquire() as conn:
+            attempts, _ = await search_attempts(
+                conn, redis, attempt_ids=[attempt_id], limit=1, offset=0,
+            )
+        owner_profiles_id = attempts[0].profile_id if attempts else None
+
+    await _enforce_attempt_owner_access(
+        pool, redis,
+        owner_profiles_id=owner_profiles_id,
+        requester=requester,
+        deny_detail=deny_detail,
+    )
+
+
+async def enforce_attempt_access_by_chat(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    chat_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this attempt chat.",
+) -> None:
+    """Authorize a chat-id-keyed mutation (grade / chat_complete / chat-analysis writes).
+
+    Resolves the chat owner (``attempt_chat_mv.profile_id`` = the owner's resource
+    profiles_id) and applies the shared gate. Mirrors ``chat_grade_attempt_impl``.
+    """
+    from app.tools.entries.attempt_chat.search import search_attempt_chats
+
+    owner_profiles_id: UUID | None = None
+    if chat_id is not None:
+        async with pool.acquire() as conn:
+            chats, _ = await search_attempt_chats(
+                conn, redis, attempt_chat_ids=[chat_id], limit=1
+            )
+        owner_profiles_id = chats[0].profile_id if chats else None
+
+    await _enforce_attempt_owner_access(
+        pool, redis,
+        owner_profiles_id=owner_profiles_id,
+        requester=requester,
+        deny_detail=deny_detail,
+    )
+
+
+async def enforce_attempt_access_by_grade(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    grade_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this attempt chat.",
+) -> None:
+    """Authorize a grade-id-keyed annotation write (strengths / improvements / feedback / analyses).
+
+    Resolves grade → chat → owner: ``attempt_grade_mv`` carries the ``chat_id``;
+    the chat carries the owner. Fail-closed if the grade or its chat can't be
+    resolved.
+    """
+    from app.tools.entries.attempt_grade.get import get_attempt_grades
+
+    chat_id: UUID | None = None
+    if grade_id is not None:
+        async with pool.acquire() as conn:
+            grades = await get_attempt_grades(conn, [grade_id], redis)
+        chat_id = grades[0].chat_id if grades else None
+
+    if chat_id is None:
+        # No resolvable chat → no owner to authorize against → fail closed.
+        await _enforce_attempt_owner_access(
+            pool, redis, owner_profiles_id=None, requester=requester,
+            deny_detail=deny_detail,
+        )
+        return
+
+    await enforce_attempt_access_by_chat(
+        pool, redis, chat_id=chat_id, requester=requester, deny_detail=deny_detail,
+    )
+
+
+async def enforce_attempt_access_by_message(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    message_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this attempt chat.",
+) -> None:
+    """Authorize a message-id-keyed write (hints).
+
+    Resolves message → chat → owner: ``attempt_message_mv`` carries the
+    ``chat_id``; the chat carries the owner. Fail-closed if the message or its
+    chat can't be resolved.
+    """
+    from app.tools.entries.attempt_message.get import get_attempt_messages
+
+    chat_id: UUID | None = None
+    if message_id is not None:
+        async with pool.acquire() as conn:
+            messages = await get_attempt_messages(conn, [message_id], redis)
+        chat_id = messages[0].chat_id if messages else None
+
+    if chat_id is None:
+        await _enforce_attempt_owner_access(
+            pool, redis, owner_profiles_id=None, requester=requester,
+            deny_detail=deny_detail,
+        )
+        return
+
+    await enforce_attempt_access_by_chat(
+        pool, redis, chat_id=chat_id, requester=requester, deny_detail=deny_detail,
+    )
+
+
 def compute_content_display(
     message_type: str | None,
     profile_name: str | None,
