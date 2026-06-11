@@ -246,6 +246,7 @@ async def resolve_group_impl(
     include_history: bool = True,
     include_resources: bool = False,
     id_only: bool = False,
+    include_reasoning: bool = True,
     bypass_cache: bool = False,
     **_kwargs,
 ) -> GroupResolveResponse:
@@ -403,7 +404,9 @@ async def resolve_group_impl(
     if include_history and not created_new:
         with timed("hydrate"):
             runs_data, run_items_raw = await _load_history(
-                pool, redis, resolved_group_id, bypass_cache=bypass_cache,
+                pool, redis, resolved_group_id,
+                bypass_cache=bypass_cache,
+                include_reasoning=include_reasoning,
             )
 
     # ── Resolve current title from groups_mv ─────────────────────────
@@ -493,6 +496,7 @@ async def _load_history(
     redis: Redis,
     group_id: UUID,
     bypass_cache: bool = False,
+    include_reasoning: bool = True,
 ) -> tuple[list[GroupRun], list[Any]]:
     """Return runs→messages→calls shaped for GenerationPanel.flattenMessages,
     plus the raw ``run_items`` so the caller can build resource lists
@@ -502,6 +506,14 @@ async def _load_history(
     ``include_resources=True`` path uses it to collect
     ``all_model_ids`` / ``all_agent_ids`` / ``all_profile_ids`` for
     name lookups.
+
+    ``include_reasoning`` controls whether chain-of-thought rows
+    (``messages_entry.reasoning = true``) are surfaced in the transcript
+    (H1). Default ``True`` keeps the instructor / analytics / debug
+    replay (which renders CoT as a collapsed accordion). The
+    student-facing attempt transcript passes ``False`` — the model's
+    private reasoning is not the answer and must not leak into the
+    student's view of their own attempt.
     """
     async with pool.acquire() as conn:
         run_items, _ = await search_runs(
@@ -516,6 +528,15 @@ async def _load_history(
             conn, redis, run_ids=run_ids, sort_order="asc", limit=100000,
         )
         call_items = await search_calls(conn, redis, run_ids=run_ids, limit=100000)
+
+    # Drop chain-of-thought rows for student-facing transcripts (H1). The
+    # model's private reasoning is persisted as its own row
+    # (``reasoning=true``) purely as a hidden side-channel for the
+    # instructor accordion; it is not the assistant's answer and must not
+    # appear in the student's view of their own attempt. Instructor /
+    # analytics callers keep ``include_reasoning=True``.
+    if not include_reasoning:
+        msg_items = [m for m in msg_items if not getattr(m, "reasoning", False)]
 
     # Batch-resolve tool resources via the canonical black box. Calls
     # with no registered tool get ``tool=None`` and the client renders

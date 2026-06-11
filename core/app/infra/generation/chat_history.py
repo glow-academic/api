@@ -280,6 +280,35 @@ def _call_output(call_data: dict[str, Any] | None) -> str:
     return _truncate(str(out)) if out else ""
 
 
+async def _message_agent_owners(
+    conn: asyncpg.Connection,
+    message_ids: list[UUID],
+) -> dict[UUID, set[UUID]]:
+    """Return ``{message_id: {agent_id, ...}}`` for the given messages.
+
+    Reads the ``messages_agents_connection`` junction directly (the
+    canonical message↔agent attribution; ``messages_mv`` doesn't carry
+    it). Messages with no active attribution simply don't appear in the
+    map — callers treat "absent" as "shared / unattributed" and keep
+    them. Used by ``fetch_group_history`` to drop only the assistant
+    rows authored by a DIFFERENT agent in a multi-agent run (H2).
+    """
+    if not message_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        SELECT message_id, agents_id
+        FROM messages_agents_connection
+        WHERE active = true AND message_id = ANY($1::uuid[])
+        """,
+        message_ids,
+    )
+    owners: dict[UUID, set[UUID]] = {}
+    for r in rows:
+        owners.setdefault(r["message_id"], set()).add(r["agents_id"])
+    return owners
+
+
 async def fetch_group_history(
     pool: asyncpg.Pool,
     *,
@@ -332,6 +361,34 @@ async def fetch_group_history(
             limit=limit * 2,
         )
 
+        # 2b. Per-agent assistant scoping (H2). A multi-agent generation
+        # (A/B eval, test fan-out) is ONE run with ``agent_ids=[A,B]``,
+        # so a run-level scope alone still pulls EVERY agent's assistant
+        # turns. Feeding agent B its own history must NOT include agent
+        # A's responses/tool-calls — that flips B's persona/framing
+        # mid-stream (the exact thing this module's docstring promises to
+        # prevent). The student's SHARED turns (user input,
+        # system/developer framing) are common to all agents and must
+        # stay, so we can't just filter the read by ``agent_ids`` (that
+        # would also drop the unattributed shared rows). Instead we
+        # resolve which agent(s) authored each message from
+        # ``messages_agents_connection`` and drop only the assistant rows
+        # attributed to a DIFFERENT agent. Rows with NO attribution
+        # (shared turns, and legacy/single-agent assistant rows written
+        # before write-side attribution existed) are always kept.
+        if agent_id is not None:
+            owners = await _message_agent_owners(
+                conn, [m.message_id for m in messages]
+            )
+            messages = [
+                m
+                for m in messages
+                if not (
+                    owners.get(m.message_id)
+                    and agent_id not in owners[m.message_id]
+                )
+            ]
+
         # 3. Calls on those runs — indexed by call_id for cheap join below.
         calls = await search_calls(
             conn, get_redis_client(), run_ids=run_ids, limit=limit * 2,
@@ -350,6 +407,16 @@ async def fetch_group_history(
         history: list[HistoryMessage] = []
         audit_per_item: list[tuple[bool, bool]] = []
         for m in messages:
+            # Skip chain-of-thought rows (H1). Reasoning is persisted as its
+            # own ``messages_entry`` (``role="assistant", reasoning=True``) as a
+            # hidden side-channel for the FE's collapsed "Thought for Xs"
+            # accordion — it is NOT the assistant's answer. Threading it back
+            # into the next turn would feed the model its own raw private
+            # reasoning as ordinary assistant content (context pollution +
+            # persona/framing confusion). The answer row (``reasoning=False``)
+            # already carries the model-visible turn output.
+            if getattr(m, "reasoning", False):
+                continue
             tool_calls: list[HistoryToolCall] = []
             text_from_call: str = ""
             real_tool_present = False

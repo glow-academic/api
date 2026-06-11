@@ -32,7 +32,16 @@ async def group_attempt_impl(
     redis: Redis,
     **kwargs,
 ) -> GroupAttemptApiResponse:
-    """Resolve/create an attempt group; see resolve_group_impl for full semantics."""
+    """Resolve/create an attempt group; see resolve_group_impl for full semantics.
+
+    The attempt group is the STUDENT-facing transcript of their own
+    conversation, so chain-of-thought rows are excluded (H1): the model's
+    private reasoning is not the answer and must not leak into the
+    student's view. Instructor / analytics replay reads the other
+    artifacts' group endpoints (or this group with ``include_reasoning``)
+    and keeps the CoT accordion.
+    """
+    kwargs.setdefault("include_reasoning", False)
     result = await resolve_group_impl(
         pool, redis, artifact_type=ARTIFACT_TYPE, **kwargs,
     )

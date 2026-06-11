@@ -60,7 +60,9 @@ async def search_messages(
                   AND mac.agents_id = ANY($3)
           ))
           AND ($4::text[] IS NULL OR {source_alias}.role = ANY($4))
-        ORDER BY {source_alias}.message_created_at {order}
+        ORDER BY {source_alias}.message_created_at {order},
+                 {source_alias}.reasoning DESC,
+                 {source_alias}.message_id {order}
         LIMIT $5 OFFSET $6
         """,
         run_ids,
@@ -113,7 +115,7 @@ async def search_messages(
                 return False
         return True
 
-    def _sort_key(row: dict) -> datetime:
+    def _ts(row: dict) -> datetime:
         ts = row.get("message_created_at")
         if ts is None:
             return datetime.min
@@ -121,11 +123,29 @@ async def search_messages(
             return datetime.fromisoformat(ts)
         return ts
 
+    # Deterministic ordering (H3). A reasoning trace and its answer for the
+    # same turn can land at the SAME ``message_created_at`` (the reasoning
+    # row's back-dated ``reasoning_started_at`` is None when reasoning
+    # arrived without a prior delta, so both stamp run-complete "now" in the
+    # same transaction). With only a timestamp sort the two rows tie and can
+    # replay in either order — reasoning AFTER the answer. Break the tie so
+    # reasoning consistently precedes the answer (reasoning row first), then
+    # by ``message_id`` for a fully stable order. This mirrors the SQL
+    # ``ORDER BY message_created_at <ord>, reasoning DESC, message_id <ord>``
+    # above. The ASC key is applied directly; the DESC key is built so the
+    # hedge helper's internal ``reverse=True`` reproduces the same SQL order
+    # (reasoning row first, message_id DESC on the tie).
+    def _sort_key_asc(row: dict) -> tuple[datetime, bool, str]:
+        return (_ts(row), not bool(row.get("reasoning")), str(row.get("message_id") or ""))
+
+    def _sort_key_desc(row: dict) -> tuple[datetime, bool, str]:
+        return (_ts(row), bool(row.get("reasoning")), str(row.get("message_id") or ""))
+
     # ``hedged_search_with_total`` sorts DESC + paginates internally.
     # For ASC requests we fall back to MV-only (helper has no ASC mode);
     # in practice all hot callers use DESC.
     if sort_order.lower() == "asc":
-        mv_dicts.sort(key=_sort_key)
+        mv_dicts.sort(key=_sort_key_asc)
         items_list = mv_dicts[offset : offset + limit]
         return [SearchMessageResponse.model_validate(r) for r in items_list], mv_total
 
@@ -135,7 +155,7 @@ async def search_messages(
         mv_rows=mv_dicts,
         mv_total=mv_total,
         matches_filter=matches,
-        sort_key=_sort_key,
+        sort_key=_sort_key_desc,
         limit=limit,
         offset=offset,
         id_key="message_id",
