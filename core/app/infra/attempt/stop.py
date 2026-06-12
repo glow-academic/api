@@ -20,6 +20,8 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.attempt.permissions import enforce_attempt_access_by_group
+from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.websocket.cancel_active_result import cancel_active_result
 from app.infra.websocket.cancel_active_run import cancel_active_run
 from app.infra.websocket.cancel_realtime_turn import cancel_realtime_turn
@@ -77,6 +79,18 @@ async def stop_attempt_impl(
     call_id: UUID | None = None,
 ) -> AttemptStopResponse:
     """Cancel an active generation by group_id, with soft/accept staging."""
+    # ── Owner/role/department scope (write-IDOR guard, M1) ─────────────────
+    # ``stop`` cancels in-flight generation purely by the caller-supplied
+    # ``group_id`` — with no actor scoping, any authenticated user who learns
+    # another user's active group_id could cancel their generation (targeted
+    # DoS). Route through the shared attempt-mutation gate (group → session →
+    # owner) so this matches the dept-scoped read/complete/archive gate (#148):
+    # the actor must own the attempt group, be a super-admin, or strictly
+    # outrank the owner AND share a department. The ack path re-derives the
+    # group from the staged soft-call (``entry.artifact_id``) and is guarded
+    # there; the soft-propose / immediate paths are guarded against ``group_id``.
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+
     # ── Short-circuit: ack — perform / discard the staged stop ──
     if accept is not None and idempotency_key is not None:
         async with pool.acquire() as conn:
@@ -84,6 +98,9 @@ async def stop_attempt_impl(
         if entry is None or entry.status != "pending" or entry.operation != OPERATION:
             raise HTTPException(status_code=404, detail="No pending stop for this call.")
         if accept:
+            await enforce_attempt_access_by_group(
+                pool, redis, group_id=entry.artifact_id, requester=requester,
+            )
             await _cancel(entry.artifact_id)
         async with pool.acquire() as conn:
             await create_soft_call(
@@ -95,6 +112,9 @@ async def stop_attempt_impl(
 
     # ── Propose (soft): record the intent, do NOT cancel ──
     if soft and call_id is not None and group_id is not None:
+        await enforce_attempt_access_by_group(
+            pool, redis, group_id=group_id, requester=requester,
+        )
         async with pool.acquire() as conn:
             await create_soft_call(
                 conn, redis, call_id=call_id, artifact=ARTIFACT, operation=OPERATION,
@@ -105,5 +125,8 @@ async def stop_attempt_impl(
 
     # ── Immediate (soft=False): cancel now (original behavior) ──
     if group_id is not None:
+        await enforce_attempt_access_by_group(
+            pool, redis, group_id=group_id, requester=requester,
+        )
         await _cancel(group_id)
     return AttemptStopResponse(success=True, idempotency_key=call_id)

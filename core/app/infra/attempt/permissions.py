@@ -297,6 +297,50 @@ async def enforce_attempt_access_by_attempt(
     )
 
 
+async def enforce_attempt_access_by_group(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    group_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this resource.",
+) -> None:
+    """Authorize a group-id-keyed mutation (e.g. ``/attempt/stop``, ``/attempt/title``).
+
+    A ``groups_entry`` has no profile column — it is owned via its
+    ``session_id`` (the session that created it), exactly like attempt media
+    (``enforce_attempt_media_access`` resolves the owner via the upload's
+    session). We resolve ``group_id → session_id → session.profile_id`` (the
+    owner's resource profiles_id, from ``sessions_mv``) and apply the shared
+    attempt-mutation gate.
+
+    Fail-closed: if the group, its session, or the session owner can't be
+    resolved, ``_enforce_attempt_owner_access`` denies (an unresolved owner is
+    ``None``). Authored/seed sessions with no profile link resolve to ``None``
+    and are therefore denied a *mutation* here — group rename/stop are always
+    user-driven on a user-owned group, so this is the correct conservative
+    default (it does not affect the media-READ allowance for seed content).
+    """
+    from app.tools.entries.groups.get import get_groups
+    from app.tools.entries.sessions.get import get_sessions
+
+    owner_profiles_id: UUID | None = None
+    if group_id is not None:
+        async with pool.acquire() as conn:
+            groups = await get_groups(conn, [group_id], redis)
+            session_id = groups[0].session_id if groups else None
+            if session_id is not None:
+                sessions = await get_sessions(conn, [session_id], redis)
+                owner_profiles_id = sessions[0].profile_id if sessions else None
+
+    await _enforce_attempt_owner_access(
+        pool, redis,
+        owner_profiles_id=owner_profiles_id,
+        requester=requester,
+        deny_detail=deny_detail,
+    )
+
+
 async def enforce_attempt_access_by_chat(
     pool: asyncpg.Pool,
     redis: Redis,

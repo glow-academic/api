@@ -19,6 +19,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.media_types import VideoDownloadAttemptApiResult
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -72,6 +73,15 @@ async def video_download_attempt_impl(
         )
 
     video_record = results[0]
+
+    # -- Step 3b: Per-resource ownership check (issue #148 sibling) ------------
+    # has_permission only proves the caller holds the video_download capability;
+    # the video is resolved solely by the caller-supplied video_id, so without
+    # this any holder could download another student's recorded session video by
+    # id (IDOR). Mirrors audio_download / file_download / image_download.
+    await enforce_attempt_media_access(
+        pool, redis, upload_id=video_record.upload_id, requester=profile
+    )
 
     # -- Step 4: Verify file on disk -------------------------------------------
     file_path = os.path.join(UPLOAD_FOLDER, video_record.file_path)
