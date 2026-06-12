@@ -13225,6 +13225,72 @@ ALTER TABLE ONLY public.attempt_completion_entry
 
 
 --
+-- Name: test_completion_entry test_completion_entry_test_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique: at most one completion row per test (C1-B), mirroring
+-- attempt_completion_entry. Backs the ON CONFLICT (test_id) idempotency guard.
+--
+
+ALTER TABLE ONLY public.test_completion_entry
+    ADD CONSTRAINT test_completion_entry_test_unique UNIQUE (test_id);
+
+
+--
+-- Name: file_completion_entry file_completion_entry_file_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.file_completion_entry
+    ADD CONSTRAINT file_completion_entry_file_unique UNIQUE (file_id);
+
+
+--
+-- Name: image_completion_entry image_completion_entry_image_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.image_completion_entry
+    ADD CONSTRAINT image_completion_entry_image_unique UNIQUE (image_id);
+
+
+--
+-- Name: video_completion_entry video_completion_entry_video_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_completion_entry
+    ADD CONSTRAINT video_completion_entry_video_unique UNIQUE (video_id);
+
+
+--
+-- Name: audio_completion_entry audio_completion_entry_audio_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audio_completion_entry
+    ADD CONSTRAINT audio_completion_entry_audio_unique UNIQUE (audio_id);
+
+
+--
+-- Name: text_completion_entry text_completion_entry_text_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.text_completion_entry
+    ADD CONSTRAINT text_completion_entry_text_unique UNIQUE (text_id);
+
+
+--
+-- Name: upload_completion_entry upload_completion_entry_upload_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.upload_completion_entry
+    ADD CONSTRAINT upload_completion_entry_upload_unique UNIQUE (upload_id);
+
+
+--
+-- Name: test_invocation_completion_entry test_invocation_completion_entry_invocation_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.test_invocation_completion_entry
+    ADD CONSTRAINT test_invocation_completion_entry_invocation_unique UNIQUE (invocation_id);
+
+
+--
 -- Name: attempt_completion_entry attempt_completion_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

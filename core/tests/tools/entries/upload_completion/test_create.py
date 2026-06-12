@@ -153,6 +153,28 @@ async def test_honors_explicit_id(conn, redis_client, profile_id):
     assert row.id == explicit_id
 
 
+async def test_duplicate_completion_is_idempotent(conn, redis_client, profile_id):
+    """C1-B: re-completing an upload refreshes the row in place, no 2nd row."""
+    session, upload = await _upload(conn, redis_client, profile_id)
+
+    first = await create_upload_completion(
+        conn, redis_client, upload_id=upload.id, session_id=session.id, message="one"
+    )
+    second = await create_upload_completion(
+        conn, redis_client, upload_id=upload.id, session_id=session.id, message="two"
+    )
+
+    rows = await conn.fetch(
+        "SELECT id, active, message FROM upload_completion_entry WHERE upload_id = $1",
+        upload.id,
+    )
+    assert len(rows) == 1
+    assert rows[0]["active"] is True
+    assert first.id == second.id
+    # The in-place update reflects the latest payload.
+    assert rows[0]["message"] == "two"
+
+
 async def test_created_entry_is_searchable(conn, redis_client, profile_id):
     """A freshly created entry is found by search on its upload link."""
     session, upload = await _upload(conn, redis_client, profile_id)

@@ -24,24 +24,47 @@ async def create_text_completion(
     mcp: bool = False,
     soft: bool = False,
 ) -> CreateTextCompletionResponse:
-    """Create a text_completion entry."""
+    """Create a text_completion entry.
+
+    ``UNIQUE(text_id)`` means at most one completion row per text. A hard
+    completion supersedes a DORMANT soft proposal via ``ON CONFLICT DO UPDATE``;
+    an accepted completion is never clobbered and a duplicate hard completion is
+    idempotent (no 2nd active row) — mirroring the attempt_completion #339 B1
+    fix (C1-B).
+    """
+    incoming_active = not soft
     row = await conn.fetchrow(
         """
         INSERT INTO text_completion_entry (id, text_id, session_id, stop, error, message, active, mcp, generated)
         VALUES (COALESCE($8, uuidv7()), $1, $2, $3, $4, $5, $6, $7, true)
-        RETURNING id, created_at
+        ON CONFLICT (text_id) DO UPDATE
+            SET active = true,
+                session_id = EXCLUDED.session_id,
+                stop = EXCLUDED.stop,
+                error = EXCLUDED.error,
+                message = EXCLUDED.message,
+                mcp = EXCLUDED.mcp
+            WHERE text_completion_entry.active = false
+              AND EXCLUDED.active = true
+        RETURNING id, created_at, active, stop, error, message, mcp, session_id
         """,
         text_id,
         session_id,
         stop,
         error,
         message,
-        not soft,
+        incoming_active,
         mcp,
         id,
     )
     if row is None:
-        raise ValueError("Failed to create text_completion entry")
+        existing = await conn.fetchrow(
+            "SELECT id, active FROM text_completion_entry WHERE text_id = $1",
+            text_id,
+        )
+        return CreateTextCompletionResponse(
+            id=existing["id"], active=existing["active"]
+        )
 
     entry_id = row["id"]
     actual_created_at = row["created_at"]
@@ -49,14 +72,14 @@ async def create_text_completion(
     fresh_row = {
         "id": str(entry_id),
         "text_id": str(text_id),
-        "session_id": str(session_id),
+        "session_id": str(row["session_id"]),
         "created_at": actual_created_at.isoformat(),
-        "active": not soft,
-        "mcp": mcp,
+        "active": row["active"],
+        "mcp": row["mcp"],
         "generated": True,
-        "stop": stop,
-        "error": error,
-        "message": message,
+        "stop": row["stop"],
+        "error": row["error"],
+        "message": row["message"],
     }
     await write_back_row(
         redis,
@@ -66,4 +89,4 @@ async def create_text_completion(
         score_ms=int(actual_created_at.timestamp() * 1000),
     )
 
-    return CreateTextCompletionResponse(id=entry_id)
+    return CreateTextCompletionResponse(id=entry_id, active=row["active"])

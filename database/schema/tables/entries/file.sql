@@ -47,6 +47,16 @@ ALTER TABLE ONLY public.file_completion_entry
 
 --
 
+-- Name: file_completion_entry file_completion_entry_file_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per file (C1-B); backs the ON CONFLICT (file_id) guard.
+--
+
+ALTER TABLE ONLY public.file_completion_entry
+    ADD CONSTRAINT file_completion_entry_file_unique UNIQUE (file_id);
+
+
+--
+
 -- Name: file_uploads_entry file_uploads_entry_file_id_upload_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
