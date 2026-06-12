@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.infra.activate.activate import activate_rows
+from app.infra.attempt.permissions import enforce_attempt_access_by_message
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.attempt_audio.create import create_attempt_audio
@@ -89,6 +90,15 @@ async def attempt_chat_audio_internal_impl(
         raise HTTPException(
             status_code=401, detail="Profile not found. Please sign in again.",
         )
+
+    # Authorization (was MISSING — keyed solely by the caller-supplied
+    # message_id, this plants an audio blob on the resolved message's owner. The
+    # message was only DB-FK-validated, never owner-resolved. Resolve message →
+    # chat → owner and enforce the shared attempt-mutation gate. Mirrors
+    # chat_hints_attempt_impl.)
+    await enforce_attempt_access_by_message(
+        pool, redis, message_id=message_id, requester=profile,
+    )
 
     effective_session_id = session_id or profile.session_id
     if effective_session_id is None:

@@ -569,3 +569,477 @@ async def test_run_chat_analysis_write_blocks_peer_member(monkeypatch):
 
 async def _none():
     return None
+
+
+# ── R1: chat/message data-WRITE family (post / answer / voice / audio) ────────
+#
+# Prior rounds gated the chat-keyed grade/complete writers (A1/A2 above) but
+# never swept the DATA-write chat ops, which only existence/FK-checked the raw
+# id (#299-era "clean 404") then wrote with the caller's own session — injecting
+# into / steering / corrupting another user's conversation. All four now resolve
+# the parent attempt's owner and run the SAME shared gate:
+#   R1a attempt_message  → enforce_attempt_access_by_chat
+#   R1b chat_response    → enforce_attempt_access_by_chat
+#   R1c chat_voice       → enforce_attempt_access_by_chat
+#   R1d chat_audio       → enforce_attempt_access_by_message
+# Deny assertions prove ZERO rows are written (no message / response / audio
+# lands, no conversation opened).
+
+
+def _wire_resolve_profile_for(monkeypatch, actor, mod_names):
+    """Patch resolve_profile_identity_context at the source AND at each impl
+    module that binds its own reference (the R1 impls live outside the A1/A2
+    module set patched by _wire_resolve_profile)."""
+    import importlib
+
+    import app.infra.profile_identity_context as pic_mod
+
+    async def fake_resolve(pool, profile_id, redis, *a, **k):
+        return actor
+
+    monkeypatch.setattr(pic_mod, "resolve_profile_identity_context", fake_resolve)
+    for mod_name in mod_names:
+        m = importlib.import_module(mod_name)
+        if hasattr(m, "resolve_profile_identity_context"):
+            monkeypatch.setattr(m, "resolve_profile_identity_context", fake_resolve)
+
+
+# ── R1a: attempt_message (chat-keyed post) ────────────────────────────────────
+
+
+def _wire_attempt_message(monkeypatch):
+    """Fake the whole post chain at its source modules (the impl `from ...
+    import`s each create/get lazily inside the function). ``written`` records
+    the chat_id passed to the first write — empty on a denied (pre-write) call.
+    """
+    from app.tools.entries.attempt_message.types import CreateAttemptMessageResponse
+
+    written: list[UUID] = []
+    msg_id = uuid4()
+
+    async def fake_create_message(conn, redis, *, chat_id, **kwargs):
+        written.append(chat_id)
+        return CreateAttemptMessageResponse.model_construct(id=msg_id)
+
+    async def fake_noop_create(conn, redis, **kwargs):
+        class _R:
+            id = uuid4()
+        return _R()
+
+    async def fake_search_messages(conn, redis, **kwargs):
+        return ([], 0)
+
+    async def fake_get_chats(conn, ids, redis, **kwargs):
+        from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
+        return [GetAttemptChatResponse.model_construct(chat_id=ids[0], profile_id=uuid4())]
+
+    async def fake_refresh(*a, **k):
+        return None
+
+    import app.tools.entries.attempt_chat.get as chat_get_mod
+    import app.tools.entries.attempt_content.create as content_mod
+    import app.tools.entries.attempt_message.create as msg_create_mod
+    import app.tools.entries.attempt_message.search as msg_search_mod
+    import app.tools.entries.attempt_message_completion.create as compl_mod
+    import app.infra.attempt.refresh as refresh_mod
+
+    monkeypatch.setattr(chat_get_mod, "get_attempt_chats", fake_get_chats)
+    monkeypatch.setattr(msg_create_mod, "create_attempt_message", fake_create_message)
+    monkeypatch.setattr(content_mod, "create_attempt_content", fake_noop_create)
+    monkeypatch.setattr(msg_search_mod, "search_attempt_messages", fake_search_messages)
+    monkeypatch.setattr(compl_mod, "create_attempt_message_completion", fake_noop_create)
+    monkeypatch.setattr(refresh_mod, "refresh_attempt_impl", fake_refresh)
+    return written
+
+
+async def _run_attempt_message(chat_id, actor_id):
+    from app.infra.attempt.message import attempt_message_internal_impl
+
+    return await attempt_message_internal_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        chat_id=chat_id, text="hi", persona_id=uuid4(),
+    )
+
+
+async def test_attempt_message_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(attacker, "member", 1), ["app.infra.attempt.message"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=True,
+    )
+    written = _wire_attempt_message(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_attempt_message(uuid4(), attacker)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_attempt_message_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(instructor, "instructional", 2),
+        ["app.infra.attempt.message"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    written = _wire_attempt_message(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_attempt_message(uuid4(), instructor)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_attempt_message_allows_owner(monkeypatch):
+    owner = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(owner, "member", 1), ["app.infra.attempt.message"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    written = _wire_attempt_message(monkeypatch)
+    result = await _run_attempt_message(uuid4(), owner)
+    assert result.message_id
+    assert len(written) == 1
+
+
+async def test_attempt_message_allows_superadmin_global(monkeypatch):
+    super_id, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(super_id, "superadmin", 4), ["app.infra.attempt.message"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    written = _wire_attempt_message(monkeypatch)
+    result = await _run_attempt_message(uuid4(), super_id)
+    assert result.message_id
+    assert len(written) == 1
+
+
+# ── R1b: chat_response (chat-keyed answer submit) ─────────────────────────────
+
+
+def _wire_chat_response(monkeypatch):
+    import app.infra.attempt.response as mod
+    from app.tools.entries.attempt_responses.types import (
+        CreateAttemptResponsesResponse,
+    )
+
+    written: list[UUID] = []
+
+    async def fake_create(conn, redis, *, chat_id, **kwargs):
+        written.append(chat_id)
+        return CreateAttemptResponsesResponse.model_construct(id=uuid4())
+
+    async def fake_refresh(*a, **k):
+        return None
+
+    # The response impl pulls the pool/redis from globals (not the passed args)
+    # — route both to fakes so the gate + write never touch a real DB.
+    monkeypatch.setattr(mod, "get_pool", lambda: _FakePool())
+    monkeypatch.setattr(mod, "get_redis_client", lambda: object())
+    import app.tools.entries.attempt_responses.create as create_mod
+    monkeypatch.setattr(create_mod, "create_attempt_responses", fake_create)
+    # refresh_attempt_impl is imported lazily inside _run — patch its source.
+    import app.infra.attempt.refresh as refresh_mod
+    monkeypatch.setattr(refresh_mod, "refresh_attempt_impl", fake_refresh)
+    return written
+
+
+async def _run_chat_response(chat_id, actor_id):
+    from app.infra.attempt.response import attempt_response_internal_impl
+
+    return await attempt_response_internal_impl(
+        {
+            "chat_id": str(chat_id),
+            "question_id": str(uuid4()),
+            "option_ids": [str(uuid4())],
+            "profile_id": str(actor_id),
+            "session_id": str(uuid4()),
+        },
+        audit=False,
+    )
+
+
+async def test_chat_response_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(attacker, "member", 1), ["app.infra.attempt.response"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=True,
+    )
+    written = _wire_chat_response(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_response(uuid4(), attacker)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_chat_response_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(instructor, "instructional", 2),
+        ["app.infra.attempt.response"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    written = _wire_chat_response(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_response(uuid4(), instructor)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_chat_response_allows_owner(monkeypatch):
+    owner = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(owner, "member", 1), ["app.infra.attempt.response"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    written = _wire_chat_response(monkeypatch)
+    result = await _run_chat_response(uuid4(), owner)
+    assert result.success
+    assert len(written) == 1
+
+
+async def test_chat_response_allows_in_scope_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(instructor, "instructional", 2),
+        ["app.infra.attempt.response"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=True,
+    )
+    written = _wire_chat_response(monkeypatch)
+    result = await _run_chat_response(uuid4(), instructor)
+    assert result.success
+    assert len(written) == 1
+
+
+# ── R1c: chat_voice (chat-keyed open-conversation) ────────────────────────────
+
+
+def _wire_chat_voice(monkeypatch, owner_chat_id):
+    import app.infra.websocket.attempt.chat.voice as mod
+    from app.tools.entries.attempt_conversations.types import (
+        CreateAttemptConversationsResponse,
+    )
+
+    opened: list[UUID] = []
+
+    class _GroupResult:
+        group_id = uuid4()
+
+    async def fake_group(*a, **k):
+        return _GroupResult()
+
+    async def fake_get_chats(conn, ids, redis, **k):
+        from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
+
+        return [GetAttemptChatResponse.model_construct(
+            chat_id=owner_chat_id, attempt_id=uuid4(), profile_id=uuid4(),
+        )]
+
+    async def fake_create(conn, redis, *, chat_id, **kwargs):
+        opened.append(chat_id)
+        return CreateAttemptConversationsResponse.model_construct(id=uuid4())
+
+    monkeypatch.setattr(mod, "group_attempt_impl", fake_group)
+    monkeypatch.setattr(mod, "get_attempt_chats", fake_get_chats)
+    monkeypatch.setattr(mod, "create_attempt_conversations", fake_create)
+    # The voice impl pulls pool/redis from globals — route to fakes so the gate
+    # + conversation create never touch a real DB.
+    monkeypatch.setattr(mod, "get_pool", lambda: _FakePool())
+    monkeypatch.setattr(mod, "get_redis_client", lambda: object())
+    return opened
+
+
+async def _run_chat_voice(chat_id, actor_id):
+    from app.infra.websocket.attempt.chat.voice import (
+        attempt_chat_voice_internal_impl,
+    )
+
+    return await attempt_chat_voice_internal_impl(
+        {
+            "chat_id": str(chat_id),
+            "profile_id": str(actor_id),
+            "session_id": str(uuid4()),
+        },
+        audit=False,
+    )
+
+
+async def test_chat_voice_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    chat_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(attacker, "member", 1),
+        ["app.infra.websocket.attempt.chat.voice"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=True,
+    )
+    opened = _wire_chat_voice(monkeypatch, chat_id)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_voice(chat_id, attacker)
+    assert exc.value.status_code == 403
+    assert opened == []
+
+
+async def test_chat_voice_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    chat_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(instructor, "instructional", 2),
+        ["app.infra.websocket.attempt.chat.voice"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    opened = _wire_chat_voice(monkeypatch, chat_id)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_voice(chat_id, instructor)
+    assert exc.value.status_code == 403
+    assert opened == []
+
+
+async def test_chat_voice_allows_owner(monkeypatch):
+    owner = uuid4()
+    chat_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(owner, "member", 1),
+        ["app.infra.websocket.attempt.chat.voice"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+    )
+    opened = _wire_chat_voice(monkeypatch, chat_id)
+    result = await _run_chat_voice(chat_id, owner)
+    assert result.conversation_id
+    assert opened == [chat_id]
+
+
+# ── R1d: chat_audio (message-keyed audio attach) ──────────────────────────────
+
+
+def _wire_chat_audio(monkeypatch):
+    import app.infra.attempt.chat_audio as mod
+    from app.tools.entries.attempt_audio.types import CreateAttemptAudioResponse
+
+    written: list[UUID] = []
+
+    async def fake_create(conn, redis, *, message_id, **kwargs):
+        written.append(message_id)
+        return CreateAttemptAudioResponse.model_construct(id=uuid4())
+
+    async def fake_invalidate(*a, **k):
+        return None
+
+    monkeypatch.setattr(mod, "create_attempt_audio", fake_create)
+    monkeypatch.setattr(mod, "invalidate_tags", fake_invalidate)
+    return written
+
+
+async def _run_chat_audio(message_id, actor_id):
+    from app.infra.attempt.chat_audio import attempt_chat_audio_internal_impl
+
+    return await attempt_chat_audio_internal_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        message_id=message_id, audios_id=uuid4(),
+    )
+
+
+async def test_chat_audio_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    message_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(attacker, "member", 1), ["app.infra.attempt.chat_audio"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=True,
+        message=_message(message_id, uuid4()),
+    )
+    written = _wire_chat_audio(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_audio(message_id, attacker)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_chat_audio_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    message_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(instructor, "instructional", 2),
+        ["app.infra.attempt.chat_audio"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+        message=_message(message_id, uuid4()),
+    )
+    written = _wire_chat_audio(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_audio(message_id, instructor)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_chat_audio_fails_closed_on_unresolvable_message(monkeypatch):
+    """A message_id that resolves to no chat → no owner → DENIED (fail-closed)."""
+    actor = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(actor, "instructional", 2),
+        ["app.infra.attempt.chat_audio"],
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=uuid4(), department_in_scope=True,
+        message=None,  # message not found
+    )
+    written = _wire_chat_audio(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_chat_audio(uuid4(), actor)
+    assert exc.value.status_code == 403
+    assert written == []
+
+
+async def test_chat_audio_allows_owner(monkeypatch):
+    owner = uuid4()
+    message_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(owner, "member", 1), ["app.infra.attempt.chat_audio"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+        message=_message(message_id, uuid4()),
+    )
+    written = _wire_chat_audio(monkeypatch)
+    result = await _run_chat_audio(message_id, owner)
+    assert result.success
+    assert written == [message_id]
+
+
+async def test_chat_audio_allows_superadmin_global(monkeypatch):
+    super_id, owner = uuid4(), uuid4()
+    message_id = uuid4()
+    _wire_resolve_profile_for(
+        monkeypatch, _profile(super_id, "superadmin", 4), ["app.infra.attempt.chat_audio"]
+    )
+    _wire_owner_resolution(
+        monkeypatch, owner_profile_id=owner, department_in_scope=False,
+        message=_message(message_id, uuid4()),
+    )
+    written = _wire_chat_audio(monkeypatch)
+    result = await _run_chat_audio(message_id, super_id)
+    assert result.success
+    assert written == [message_id]
