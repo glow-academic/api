@@ -101,6 +101,24 @@ async def attempt_response_internal_impl(
                 response_id=str(response_id or ""), idempotency_key=str(idempotency_key),
             )
 
+        # Authorization (was MISSING — keyed solely by the caller-supplied
+        # chat_id, this forges/corrupts the resolved chat owner's quiz/video
+        # answer record + grade inputs. The chat below was only existence-checked
+        # (search_attempt_chats), never owner-resolved. Resolve chat → owner and
+        # enforce the shared attempt-mutation gate. Mirrors
+        # chat_complete_attempt_impl.)
+        from app.infra.attempt.permissions import enforce_attempt_access_by_chat
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id)), redis,
+        )
+        await enforce_attempt_access_by_chat(
+            get_pool(), redis, chat_id=chat_id, requester=requester,
+        )
+
         downstream_emit = emit or make_emit()
         recorded: list[SocketEvent] = []
 

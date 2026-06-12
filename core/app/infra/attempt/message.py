@@ -15,6 +15,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
+from app.infra.attempt.permissions import enforce_attempt_access_by_chat
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.utils.logging.db_logger import get_logger
@@ -123,6 +124,18 @@ async def attempt_message_internal_impl(
         chat_entries = await get_attempt_chats(conn, [chat_id], redis)
         if not chat_entries:
             raise HTTPException(status_code=404, detail="chat not found")
+
+        # Authorization (was MISSING — keyed solely by the caller-supplied
+        # chat_id, this writes a message into the chat's conversation and steers
+        # the same chat's /attempt/generate, with no actor scope. The existence
+        # check above (#299) proved the chat EXISTS, never that the caller OWNS
+        # it. Run the shared chat-keyed gate AFTER the existence 404 (so a bogus
+        # id still 404s) and BEFORE any write: resolve chat → owner and enforce
+        # self/super-admin/strictly-higher-role-in-department. Mirrors
+        # chat_complete_attempt_impl.)
+        await enforce_attempt_access_by_chat(
+            pool, redis, chat_id=chat_id, requester=profile,
+        )
 
         # Pre-validate the two OTHER client-supplied FK references the same
         # way (#299 only closed chat_id). Both are raw UUIDs off the request:

@@ -109,6 +109,22 @@ async def attempt_chat_voice_internal_impl(
                 idempotency_key=str(idempotency_key),
             )
 
+        # Authorization (was MISSING — keyed solely by the caller-supplied
+        # chat_id, this opens a realtime conversation against the resolved chat's
+        # owner and hands back a conversation_id usable for /attempt/chat/speak +
+        # /attempt/generate. The chat below was only existence-checked, never
+        # owner-resolved. Resolve chat → owner and enforce the shared
+        # attempt-mutation gate. Mirrors chat_complete_attempt_impl.)
+        from app.infra.attempt.permissions import enforce_attempt_access_by_chat
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+
+        requester = await resolve_profile_identity_context(pool, profile_id, redis)
+        await enforce_attempt_access_by_chat(
+            pool, redis, chat_id=chat_id, requester=requester,
+        )
+
         async with pool.acquire() as conn:
             async with conn.transaction():
                 chat_entries = await get_attempt_chats(conn, [chat_id], redis)
