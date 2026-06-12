@@ -21,7 +21,20 @@ async def search_setting_drafts(
     limit: int = 20,
     offset: int = 0,
 ) -> list[GetSettingDraftResponse]:
-    """Search setting_drafts with declarative filters and connection data."""
+    """Search setting_drafts with declarative filters and connection data.
+
+    SECURITY (D1, fail-closed): setting_drafts is the sole draft family with
+    no ``setting_drafts_profiles_connection`` table, so it cannot be clamped on
+    ``profile_ids`` the way every sibling search is. Its only ownership scope is
+    the session. We therefore REQUIRE a non-empty ``session_ids`` filter and
+    return nothing otherwise — a missing/empty scope must NOT collapse the WHERE
+    to TRUE and leak every user's secrets-bearing drafts (the historical
+    read-IDOR). ``profile_ids`` is accepted for signature parity with the
+    sibling searches but is not a usable scope here (no profiles connection).
+    """
+    if not session_ids:
+        # No session scope -> fail closed. Never return cross-session drafts.
+        return []
     rows = await conn.fetch(
         """
         SELECT
@@ -67,7 +80,9 @@ async def search_setting_drafts(
         LEFT JOIN setting_drafts_provider_keys_connection pk ON pk.draft_id = d.id
         LEFT JOIN setting_drafts_thresholds_connection th ON th.draft_id = d.id
         WHERE d.active = true
-          AND ($1::uuid[] IS NULL OR d.session_id = ANY($1))
+          -- D1 fail-closed: session scope is MANDATORY (no IS-NULL collapse).
+          -- The Python guard above already rejects an empty/None session_ids.
+          AND d.session_id = ANY($1)
           AND ($2::text IS NULL OR d.name ILIKE ('%' || $2 || '%'))
           AND ($3::timestamptz IS NULL OR d.created_at >= $3)
           AND ($4::timestamptz IS NULL OR d.created_at <= $4)
