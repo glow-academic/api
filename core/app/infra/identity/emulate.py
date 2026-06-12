@@ -112,12 +112,38 @@ async def resolve_emulation(
     # impersonate a dept-B user. Self and super-admin are unaffected:
     # department_scope_allows returns True for role_level 0, and self
     # short-circuits the whole check.
+    #
+    # CHAINED EMULATION (E1): when this is a second-or-later hop, the
+    # ``requester`` above is the *effective* (already-emulated) profile B —
+    # NOT the real actor A. Gating on B would let A launder into a role/
+    # department it cannot reach directly (A→B→C where B, but not A, may
+    # reach C). The authorization gate must therefore evaluate the REAL
+    # ACTOR's role/departments against the final target, so A can only
+    # emulate what A is directly authorized to reach regardless of hops.
+    # ``actor_profile_id`` is the real JWT profile (set only while already
+    # emulating); when it differs from the requester we resolve it and use
+    # it as the authorizing identity. The grant linkage below stays keyed
+    # on ``requester`` so resolve_emulation_chain can still walk A→B→C.
+    authorizer = requester
+    if actor_profile_id is not None and actor_profile_id != requester_profile_id:
+        actor = await resolve_profile_identity_context(
+            pool, actor_profile_id, redis, bypass_cache=bypass_cache
+        )
+        if not actor:
+            return EmulationResult(
+                allowed=False,
+                reason="Actor profile not found",
+                grant_id=None,
+                expires_at=None,
+            )
+        authorizer = actor
+
     is_self = requester_profile_id == target_profile_id
-    allowed_roles = SIMULATABLE_ROLES.get(requester.role, set())
+    allowed_roles = SIMULATABLE_ROLES.get(authorizer.role, set())
     role_allowed = target.role in allowed_roles
     department_allowed = department_scope_allows(
-        caller_role_level=requester.role_level,
-        caller_department_ids=requester.department_ids,
+        caller_role_level=authorizer.role_level,
+        caller_department_ids=authorizer.department_ids,
         owner_role_level=target.role_level,
         owner_department_ids=target.department_ids,
     )
@@ -178,6 +204,16 @@ async def resolve_emulation(
                 profile_id=target.profiles_id,
                 soft=soft,
             )
+
+    # E2 — attribute the grant to the real actor in the log/audit trail so a
+    # chained emulation reads "A (via B) emulated C", not "B emulated C".
+    logger.info(
+        "Emulation grant %s created: actor=%s requester=%s target=%s",
+        grant_result.id,
+        actor_profile_id or requester_profile_id,
+        requester_profile_id,
+        target_profile_id,
+    )
 
     # Bust the emulation-chain cache for the requester so the next
     # request resolves their new active emulation immediately, not
