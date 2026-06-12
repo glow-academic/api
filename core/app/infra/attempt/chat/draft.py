@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.chat.refresh import refresh_chat_impl
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.attempt.chat.types import (
     ChatDraftFormState,
     PatchChatDraftApiRequest,
@@ -169,6 +170,16 @@ async def patch_chat_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=idempotency_key,
+                    getter=get_chat_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact="attempt",
+                )
                 drafts = await get_chat_drafts(conn, [idempotency_key], redis)
                 async with conn.transaction():
                     if drafts:
@@ -234,6 +245,16 @@ async def patch_chat_draft_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=target_draft_id,
+            getter=get_chat_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact="attempt",
+        )
         async with conn.transaction():
             result = await create_chat_draft(
                 conn,

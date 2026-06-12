@@ -8,6 +8,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.setting.permissions import compute_can_draft
 from app.infra.server_timing import timed
@@ -599,6 +600,16 @@ async def patch_setting_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=target_id,
+                    getter=get_setting_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact=ARTIFACT,
+                )
                 drafts = await get_setting_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
@@ -666,6 +677,16 @@ async def patch_setting_draft_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=target_draft_id,
+            getter=get_setting_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact=ARTIFACT,
+        )
         async with conn.transaction():
             result = await create_setting_draft(
                 conn,

@@ -18,6 +18,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.persona.permissions import compute_can_draft
 from app.infra.persona.refresh import refresh_persona_impl
 from app.infra.server_timing import timed
@@ -521,6 +522,16 @@ async def patch_persona_draft_impl(
 
     with timed("db_write"):
         async with pool.acquire() as conn:
+            await enforce_draft_owner(
+                conn,
+                redis,
+                draft_id=idempotency_key,
+                getter=get_persona_drafts,
+                caller_session_id=session_id,
+                caller_profile_id=profile.profiles_id,
+                role_level=profile.role_level,
+                artifact=ARTIFACT,
+            )
             async with conn.transaction():
                 result = await create_persona_draft(
                     conn,
