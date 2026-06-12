@@ -159,6 +159,24 @@ async def test_complete_internal_impl(
                 idempotency_key=idempotency_key,
             )
 
+        # ── Owner/role/department scope (BOLA + cross-dept guard, T5) ──────
+        # ``_mark_all_invocations_complete`` completes EVERY invocation on the
+        # caller-supplied ``test_id``. Without this, any authenticated profile
+        # could force-complete ANOTHER user's entire test. Resolve
+        # ``test → owner`` and route through the shared attempt-mutation gate.
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+        from app.infra.test.permissions import enforce_test_access_by_test
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id)), get_redis_client(),
+        )
+        await enforce_test_access_by_test(
+            get_pool(), get_redis_client(),
+            test_id=payload.test_id, requester=requester,
+        )
+
         with timed("db_write"):
             async with get_pool().acquire() as conn:
                 count, completion_ids = await _mark_all_invocations_complete(

@@ -59,6 +59,20 @@ async def create_feedback_impl(
     if not standard_group_id:
         raise ValueError("standard_group_id is required")
 
+    # ── Owner/role/department scope (BOLA + cross-dept guard, T6) ──────────
+    # The feedback rows below are keyed on the caller-supplied ``grade_id``.
+    # Without this, any authenticated profile could attach forged feedback to
+    # ANOTHER user's grade, polluting its grade chain. Resolve
+    # ``grade → invocation → owner`` and route through the shared gate
+    # (mirrors ``enforce_attempt_access_by_grade``).
+    from app.infra.profile_identity_context import resolve_profile_identity_context
+    from app.infra.test.permissions import enforce_test_access_by_grade
+
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+    await enforce_test_access_by_grade(
+        pool, redis, grade_id=grade_id, requester=requester,
+    )
+
     with timed("feedback_write"):
       async with pool.acquire() as conn:
         # Step 1: Get standard group → total_points, pass_points + standards.

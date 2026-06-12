@@ -90,6 +90,16 @@ async def test_create_grade_does_not_raise_on_null_pass_points(monkeypatch):
     async def _invalidate_tags(tags, *, redis):
         return None
 
+    # Authz (T1) is exercised in test_test_mutation_authz_class; stub it here so
+    # this arithmetic test isn't coupled to the ownership-resolution chain.
+    async def _resolve(pool, profile_id, redis, *a, **k):
+        return SimpleNamespace(profiles_id=profile_id, role="superadmin")
+
+    async def _enforce(pool, redis, **kwargs):
+        return None
+
+    monkeypatch.setattr(grade_mod, "resolve_profile_identity_context", _resolve)
+    monkeypatch.setattr(grade_mod, "enforce_test_access_by_invocation", _enforce)
     monkeypatch.setattr(grade_mod, "get_test_invocations", _get_test_invocations)
     monkeypatch.setattr(grade_mod, "get_rubrics", _get_rubrics)
     monkeypatch.setattr(grade_mod, "create_call", _create_call)

@@ -65,6 +65,25 @@ async def terminate_invocation(
     redis = get_redis_client()
 
     async def _runner() -> TestRunEndResponse:
+        # ── Owner/role/department scope (BOLA + cross-dept guard, T3) ──────
+        # The runs-completion insert below is keyed solely by the caller-
+        # supplied ``test_invocation_run_id``. Without this, any authenticated
+        # profile could finalize/terminate ANOTHER user's benchmark run (the
+        # run-keyed analogue of the ``stop_attempt`` M1 IDOR). Resolve
+        # run → invocation → owner and route through the shared gate.
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+        from app.infra.test.permissions import enforce_test_access_by_run
+
+        requester = await resolve_profile_identity_context(
+            pool, UUID(str(profile_id)), redis,
+        )
+        await enforce_test_access_by_run(
+            pool, redis,
+            run_id=request.test_invocation_run_id, requester=requester,
+        )
+
         async with pool.acquire() as conn:
             runs = await get_test_invocation_runs(
                 conn, [request.test_invocation_run_id], redis

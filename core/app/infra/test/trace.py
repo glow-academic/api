@@ -200,6 +200,25 @@ async def test_trace_internal_impl(
                 test_invocation_trace_id=trace_id, idempotency_key=idempotency_key,
             )
 
+        # ── Owner/role/department scope (BOLA + cross-dept guard, T4) ──────
+        # Both the soft-propose (stores the intent) and the live perform key
+        # the trace on the caller-supplied ``test_invocation_id``. Without this,
+        # any authenticated profile could open a trace bundle on ANOTHER user's
+        # invocation, polluting its run/trace chain. Resolve invocation → owner
+        # and route through the shared attempt-mutation gate before any write.
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+        from app.infra.test.permissions import enforce_test_access_by_invocation
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id)), redis,
+        )
+        await enforce_test_access_by_invocation(
+            get_pool(), redis,
+            invocation_id=payload.test_invocation_id, requester=requester,
+        )
+
         # ── Soft propose: record the full intent, create nothing ──
         if soft and call_id is not None:
             async with get_pool().acquire() as conn:
