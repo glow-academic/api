@@ -111,6 +111,25 @@ async def resolve_profile_upsert(
 
     async with pool.acquire() as conn:
         async with conn.transaction():
+            # ── Step 0: Serialize first-create on the primary email ─────────────
+            # Two parallel first-logins for the same human both miss the
+            # search-by-email below and would each create a fresh profile
+            # (duplicate identities). search_profiles + create_profile_artifact
+            # is not a single idempotent INSERT (the profile↔email match is a
+            # junction, not a column), so an ON CONFLICT can't cover it.
+            # Take a transactional advisory lock keyed on the primary email so
+            # the race-loser blocks until the winner commits, then its search
+            # hits the winner's profile and converges on the UPDATE path. The
+            # email string is identical across both races (emails_resource has
+            # UNIQUE(email)), so both hash to the same lock key; the xact lock
+            # auto-releases on commit/rollback.
+            if emails:
+                primary_email = emails[primary_email_index]
+                await conn.execute(
+                    "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+                    primary_email,
+                )
+
             # ── Step 2: Resolve resources ───────────────────────────────────────
             # Name
             name_resource = await create_name_fn(conn, name, redis)

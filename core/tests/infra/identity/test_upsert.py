@@ -22,8 +22,15 @@ class _TransactionContext:
 
 
 class _Connection:
+    def __init__(self) -> None:
+        self.executed: list[tuple[str, tuple[object, ...]]] = []
+
     def transaction(self) -> _TransactionContext:
         return _TransactionContext(self)
+
+    async def execute(self, query: str, *args: object) -> str:
+        self.executed.append((query, args))
+        return "SELECT 1"
 
 
 class _AcquireContext:
@@ -305,6 +312,116 @@ class TestResolveProfileUpsert:
         assert created_email_inputs == ["a@test.com", "b@test.com", "c@test.com"]
         assert len(create_calls) == 1
         assert create_calls[0]["email_ids"] == email_ids
+
+
+    async def test_takes_advisory_lock_on_primary_email(self) -> None:
+        # C1-A: first-create must be serialized on the primary email so two
+        # concurrent first-logins can't both create a profile.
+        pool = FakePool()
+
+        await resolve_profile_upsert(
+            pool,
+            None,
+            name="Locked",
+            emails=["a@test.com", "primary@test.com"],
+            role="member",
+            primary_email_index=1,
+            create_name_fn=lambda conn, name, redis: _await_value(_name_resource()),
+            create_email_fn=lambda conn, email, redis: _await_value(_email_resource()),
+            search_roles_fn=lambda conn, redis, **kwargs: _await_value(
+                [_role_resource()]
+            ),
+            search_flags_fn=lambda conn, redis, **kwargs: _await_value(
+                [_flag_resource()]
+            ),
+            search_profiles_fn=lambda conn, **kwargs: _await_value(([], 0)),
+            create_snapshot_fn=lambda conn, redis, **kwargs: _await_value(uuid4()),
+            create_profile_artifact_fn=lambda conn, **kwargs: _await_value(
+                SimpleNamespace(id=uuid4())
+            ),
+            create_session_fn=lambda conn, profiles_resource_id: _await_value(
+                SimpleNamespace(id=uuid4())
+            ),
+        )
+
+        lock_calls = [
+            args
+            for query, args in pool.conn.executed
+            if "pg_advisory_xact_lock" in query
+        ]
+        assert len(lock_calls) == 1
+        # Keyed on the PRIMARY email (index 1), not the first email.
+        assert lock_calls[0] == ("primary@test.com",)
+
+    async def test_concurrent_first_logins_converge_on_one_profile(self) -> None:
+        # C1-A: model the race — the lock-winner creates a profile; once it
+        # commits, the loser's search-by-email hits the winner's profile and it
+        # takes the UPDATE path. Exactly one profile is created, both converge.
+        import asyncio
+
+        pool = FakePool()
+        winner_profile_id = uuid4()
+        email_id = uuid4()
+        # Shared "DB" state mutated by the winner's create; the lock guarantees
+        # the loser observes it on its subsequent search.
+        store: dict[str, list[UUID]] = {"profiles": []}
+        create_count = {"n": 0}
+
+        async def fake_search_profiles(conn, **kwargs):
+            return (list(store["profiles"]), len(store["profiles"]))
+
+        async def fake_create_profile_artifact(conn, **kwargs):
+            create_count["n"] += 1
+            store["profiles"].append(winner_profile_id)
+            return SimpleNamespace(id=winner_profile_id)
+
+        updated_ids: list[UUID] = []
+
+        async def fake_update_profile_artifact(conn, profile_id_arg, **kwargs):
+            updated_ids.append(profile_id_arg)
+            return SimpleNamespace(id=profile_id_arg)
+
+        async def one_login() -> UpsertProfileResult:
+            return await resolve_profile_upsert(
+                pool,
+                None,
+                name="Same Human",
+                emails=["same@test.com"],
+                role="member",
+                create_name_fn=lambda conn, name, redis: _await_value(
+                    _name_resource()
+                ),
+                create_email_fn=lambda conn, email, redis: _await_value(
+                    _email_resource(id=email_id, email=email)
+                ),
+                search_roles_fn=lambda conn, redis, **kwargs: _await_value(
+                    [_role_resource()]
+                ),
+                search_flags_fn=lambda conn, redis, **kwargs: _await_value(
+                    [_flag_resource()]
+                ),
+                search_profiles_fn=fake_search_profiles,
+                create_snapshot_fn=lambda conn, redis, **kwargs: _await_value(uuid4()),
+                create_profile_artifact_fn=fake_create_profile_artifact,
+                update_profile_artifact_fn=fake_update_profile_artifact,
+                create_session_fn=lambda conn, profiles_resource_id: _await_value(
+                    SimpleNamespace(id=uuid4())
+                ),
+            )
+
+        # Serial execution models the post-lock ordering the advisory lock
+        # enforces in Postgres (the loser cannot run its search until the
+        # winner commits). Both calls share the same store.
+        first = await one_login()
+        second = await one_login()
+
+        assert create_count["n"] == 1
+        assert first.created is True
+        assert second.created is False
+        # Race-loser converges on the SAME profile (no duplicate identity).
+        assert first.profile_id == winner_profile_id
+        assert second.profile_id == winner_profile_id
+        assert updated_ids == [winner_profile_id]
 
 
 async def _await_value(value):

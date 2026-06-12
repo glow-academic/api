@@ -3049,7 +3049,7 @@ CREATE MATERIALIZED VIEW public.calls_mv AS
      LEFT JOIN public.call_uploads_entry cue ON (((cue.call_id = c.id) AND (cue.active = true))))
      LEFT JOIN public.uploads_entry ue ON (((ue.id = cue.upload_id) AND (ue.active = true))))
      LEFT JOIN public.tools_calls_connection tcc ON ((tcc.call_id = c.id)))
-  WHERE (c.run_id IS NOT NULL)
+  WHERE ((c.active = true) AND (c.run_id IS NOT NULL))
   WITH NO DATA;
 
 
