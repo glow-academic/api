@@ -49,3 +49,36 @@ async def test_refresh_exposes_created_row(conn, redis_client, profile_id):
     assert row is not None
     assert row['id'] == result.id
     assert row['mcp'] is True
+
+
+async def test_duplicate_completion_is_idempotent(conn, redis_client, profile_id):
+    """C1-B: a duplicate hard completion must NOT append a second active row."""
+    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+
+    first = await create_video_completion(conn, redis_client, video_id=seed.id, session_id=session.id)
+    second = await create_video_completion(conn, redis_client, video_id=seed.id, session_id=session.id)
+
+    rows = await conn.fetch(
+        "SELECT id, active FROM video_completion_entry WHERE video_id = $1", seed.id
+    )
+    assert len(rows) == 1
+    assert rows[0]["active"] is True
+    assert first.id == second.id
+
+
+async def test_hard_completion_supersedes_dormant_soft(conn, redis_client, profile_id):
+    """C1-B: a hard completion promotes a dormant soft proposal in place."""
+    session, call, seed = await _setup_entry(conn, redis_client, profile_id)
+
+    soft = await create_video_completion(conn, redis_client, video_id=seed.id, session_id=session.id, soft=True)
+    assert soft.active is False
+
+    hard = await create_video_completion(conn, redis_client, video_id=seed.id, session_id=session.id)
+
+    rows = await conn.fetch(
+        "SELECT id, active FROM video_completion_entry WHERE video_id = $1", seed.id
+    )
+    assert len(rows) == 1
+    assert rows[0]["active"] is True
+    assert hard.id == soft.id
+    assert hard.active is True

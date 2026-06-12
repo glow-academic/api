@@ -21,7 +21,17 @@ from redis.asyncio import Redis
 from app.infra.refresh.queue import enqueue_refreshes
 from app.infra.refresh.types import RefreshResponse
 
-_TAGS = ["groups", "artifacts"]
+# Includes the GLOBAL ``home``/``practice`` tags. A group is the backing
+# entity for a simulation, and group renames (``title_group_impl`` →
+# ``create_group_name`` → ``groups_mv``/``group_names_mv``) change the title
+# the home/practice cards render per-simulation. Those reads register under
+# ``["home"/"practice", "get"]`` + a per-profile tag and carry NO
+# ``groups``/``artifacts`` tag, so without busting the global
+# ``home``/``practice`` tags here a rename leaves stale card names across every
+# student for the full 300s TTL (C5). Mirrors ``simulation/refresh._TAGS``,
+# which the rename path does NOT flow through (it routes via this shared group
+# refresh instead).
+_TAGS = ["groups", "artifacts", "home", "practice"]
 _VIEWS = ["groups_mv", "group_names_mv"]
 
 

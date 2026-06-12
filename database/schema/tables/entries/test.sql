@@ -266,6 +266,17 @@ ALTER TABLE ONLY public.test_invocation_completion_entry
 
 --
 
+-- Name: test_invocation_completion_entry test_invocation_completion_entry_invocation_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique: at most one completion row per invocation (C1-B), backs the
+-- ON CONFLICT (invocation_id) idempotency guard in create.py.
+--
+
+ALTER TABLE ONLY public.test_invocation_completion_entry
+    ADD CONSTRAINT test_invocation_completion_entry_invocation_unique UNIQUE (invocation_id);
+
+
+--
+
 -- Name: test_feedback_entry benchmark_feedbacks_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -289,6 +300,17 @@ ALTER TABLE ONLY public.test_grade_entry
 
 ALTER TABLE ONLY public.test_completion_entry
     ADD CONSTRAINT test_completion_entry_pkey PRIMARY KEY (id);
+
+
+--
+
+-- Name: test_completion_entry test_completion_entry_test_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique: at most one completion row per test (C1-B), backs the
+-- ON CONFLICT (test_id) idempotency guard in create.py.
+--
+
+ALTER TABLE ONLY public.test_completion_entry
+    ADD CONSTRAINT test_completion_entry_test_unique UNIQUE (test_id);
 
 
 --

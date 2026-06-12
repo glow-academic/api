@@ -47,6 +47,16 @@ ALTER TABLE ONLY public.audio_completion_entry
 
 --
 
+-- Name: audio_completion_entry audio_completion_entry_audio_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per audio (C1-B); backs the ON CONFLICT (audio_id) guard.
+--
+
+ALTER TABLE ONLY public.audio_completion_entry
+    ADD CONSTRAINT audio_completion_entry_audio_unique UNIQUE (audio_id);
+
+
+--
+
 -- Name: audio_uploads_entry audio_uploads_entry_audio_id_upload_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 class CreateVideoCompletionResponse(BaseModel):
     id: UUID
+    # True iff the row is an MV-visible (hard) completion (C1-B).
+    active: bool = True
 
 
 class GetVideoCompletionResponse(BaseModel):

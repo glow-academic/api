@@ -29,3 +29,31 @@ async def test_refresh_no_redis(monkeypatch):
     pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
     result = await refresh_group_impl(pool, None, profile_id=uuid4())
     assert result.success is True
+
+
+async def test_refresh_busts_cross_entity_home_practice_tags(monkeypatch):
+    """C5: a group (simulation-backing) mutation must invalidate the global
+    ``home``/``practice`` cache tags, not just ``groups``/``artifacts``. Those
+    profile-scoped reads render the group/simulation title and carry no
+    ``groups``/``artifacts`` tag, so a rename would otherwise leave the
+    home/practice cards stale for the full 300s TTL."""
+    monkeypatch.setattr(
+        "app.infra.refresh.queue.resolve_profile_identity_context",
+        AsyncMock(return_value=object()),
+    )
+    invalidated: list[str] = []
+
+    async def mock_invalidate(tags, redis=None):
+        invalidated.extend(tags)
+
+    monkeypatch.setattr("app.utils.cache.invalidate_tags.invalidate_tags", mock_invalidate)
+    pool = AsyncMock()
+    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=AsyncMock())
+    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
+
+    result = await refresh_group_impl(pool, AsyncMock(), profile_id=uuid4())
+
+    assert result.success is True
+    for tag in ("groups", "artifacts", "home", "practice"):
+        assert tag in result.invalidated_tags
+        assert tag in invalidated

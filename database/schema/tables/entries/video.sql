@@ -47,6 +47,16 @@ ALTER TABLE ONLY public.video_completion_entry
 
 --
 
+-- Name: video_completion_entry video_completion_entry_video_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per video (C1-B); backs the ON CONFLICT (video_id) guard.
+--
+
+ALTER TABLE ONLY public.video_completion_entry
+    ADD CONSTRAINT video_completion_entry_video_unique UNIQUE (video_id);
+
+
+--
+
 -- Name: video_uploads_entry video_uploads_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

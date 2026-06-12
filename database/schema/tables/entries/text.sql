@@ -47,6 +47,16 @@ ALTER TABLE ONLY public.text_completion_entry
 
 --
 
+-- Name: text_completion_entry text_completion_entry_text_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per text (C1-B); backs the ON CONFLICT (text_id) guard.
+--
+
+ALTER TABLE ONLY public.text_completion_entry
+    ADD CONSTRAINT text_completion_entry_text_unique UNIQUE (text_id);
+
+
+--
+
 -- Name: text_uploads_entry text_uploads_entry_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

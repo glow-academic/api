@@ -66,3 +66,61 @@ async def test_passes_mcp_flag(conn, redis_client, profile_id):
     )
     assert row is not None
     assert row["mcp"] is True
+
+
+async def _setup_invocation(conn, redis_client, profile_id):
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    group = await create_group(conn, redis_client, session_id=session.id, artifact_type="persona")
+    run = await create_run(conn, redis_client, group_id=group.id, session_id=session.id)
+    call = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    test = await create_test(conn, redis_client, call_id=call.id, profiles_id=profile_id)
+    call2 = await create_call(conn, redis_client, run_id=run.id, session_id=session.id)
+    invocation = await create_test_invocation(
+        conn, redis_client, test_id=test.id, call_id=call2.id
+    )
+    return invocation, call2
+
+
+async def test_duplicate_completion_is_idempotent(conn, redis_client, profile_id):
+    """C1-B: a duplicate hard completion must NOT append a second active row."""
+    invocation, call = await _setup_invocation(conn, redis_client, profile_id)
+
+    first = await create_test_invocation_completion(
+        conn, redis_client, invocation_id=invocation.id, call_id=call.id
+    )
+    second = await create_test_invocation_completion(
+        conn, redis_client, invocation_id=invocation.id, call_id=call.id
+    )
+
+    # Same logical completion: at most one row, and it stays active.
+    rows = await conn.fetch(
+        "SELECT id, active FROM test_invocation_completion_entry WHERE invocation_id = $1",
+        invocation.id,
+    )
+    assert len(rows) == 1
+    assert rows[0]["active"] is True
+    assert first.id == second.id
+    assert first.active is True and second.active is True
+
+
+async def test_hard_completion_supersedes_dormant_soft(conn, redis_client, profile_id):
+    """C1-B: a hard completion promotes a dormant soft proposal in place."""
+    invocation, call = await _setup_invocation(conn, redis_client, profile_id)
+
+    soft = await create_test_invocation_completion(
+        conn, redis_client, invocation_id=invocation.id, call_id=call.id, soft=True
+    )
+    assert soft.active is False
+
+    hard = await create_test_invocation_completion(
+        conn, redis_client, invocation_id=invocation.id, call_id=call.id
+    )
+
+    rows = await conn.fetch(
+        "SELECT id, active FROM test_invocation_completion_entry WHERE invocation_id = $1",
+        invocation.id,
+    )
+    assert len(rows) == 1
+    assert rows[0]["active"] is True
+    assert hard.id == soft.id
+    assert hard.active is True

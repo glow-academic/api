@@ -47,6 +47,16 @@ ALTER TABLE ONLY public.image_completion_entry
 
 --
 
+-- Name: image_completion_entry image_completion_entry_image_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per image (C1-B); backs the ON CONFLICT (image_id) guard.
+--
+
+ALTER TABLE ONLY public.image_completion_entry
+    ADD CONSTRAINT image_completion_entry_image_unique UNIQUE (image_id);
+
+
+--
+
 -- Name: image_uploads_entry image_uploads_entry_image_id_upload_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

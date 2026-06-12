@@ -29,3 +29,13 @@ ALTER TABLE ONLY public.upload_completion_entry
 
 
 --
+
+-- Name: upload_completion_entry upload_completion_entry_upload_unique; Type: CONSTRAINT; Schema: public; Owner: -
+-- Terminal-unique per upload (C1-B); backs the ON CONFLICT (upload_id) guard.
+--
+
+ALTER TABLE ONLY public.upload_completion_entry
+    ADD CONSTRAINT upload_completion_entry_upload_unique UNIQUE (upload_id);
+
+
+--
