@@ -3,26 +3,25 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.pricing.get import get_pricing_impl
 from app.infra.pricing.types import PricingRequest
+from app.ws.pagination import PagedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class PricingSearchPayload(BaseModel):
+class PricingSearchPayload(PagedWsSearch):
     """Payload for pricing.search socket event."""
 
     start_date: datetime | None = Field(default=None)
     end_date: datetime | None = Field(default=None)
     date_from: datetime | None = Field(default=None)
     date_to: datetime | None = Field(default=None)
-    page: int = Field(0)
-    page_size: int = Field(50)
     sort_order: str = Field("desc")
 
 

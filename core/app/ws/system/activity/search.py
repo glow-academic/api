@@ -3,11 +3,12 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
+from app.ws.pagination import PagedWsSearch
 
 internal_sio = get_internal_sio()
 
@@ -23,7 +24,7 @@ from app.infra.common_context import resolve_common_context
 from app.infra.session.types import SessionListItem
 
 
-class ActivitySearchPayload(BaseModel):
+class ActivitySearchPayload(PagedWsSearch):
     """Payload for activity.search socket event."""
 
     date_from: str | None = Field(None)
@@ -31,8 +32,6 @@ class ActivitySearchPayload(BaseModel):
     department_ids: list[UUID] | None = Field(None)
     role_ids: list[UUID] | None = Field(None)
     active: bool | None = Field(None)
-    page: int = Field(0)
-    page_size: int = Field(50)
     sort_order: str = Field("desc")
 
 

@@ -2,23 +2,22 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.department.search import search_department_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
+from app.ws.pagination import PaginatedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class DepartmentSearchPayload(BaseModel):
+class DepartmentSearchPayload(PaginatedWsSearch):
     """Payload for department.search socket event."""
 
     search: str | None = Field(None)
     flag_search: str | None = Field(None)
-    page_size: int = Field(12)
-    page_offset: int = Field(0)
 
 
 @sio.on("department.search")  # type: ignore

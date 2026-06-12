@@ -3,17 +3,18 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.agent.search import search_agent_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
+from app.ws.pagination import PaginatedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class AgentSearchPayload(BaseModel):
+class AgentSearchPayload(PaginatedWsSearch):
     """Payload for agent.search socket event."""
 
     search: str | None = Field(None)
@@ -24,8 +25,6 @@ class AgentSearchPayload(BaseModel):
     model_search: str | None = Field(None)
     tool_search: str | None = Field(None)
     flag_search: str | None = Field(None)
-    page_size: int = Field(12)
-    page_offset: int = Field(0)
 
 
 @sio.on("agent.search")  # type: ignore

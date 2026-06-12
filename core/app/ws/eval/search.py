@@ -3,25 +3,25 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.eval.search import search_eval_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
+from app.ws.pagination import MAX_WS_PAGE_SIZE, PaginatedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class EvalSearchPayload(BaseModel):
+class EvalSearchPayload(PaginatedWsSearch):
     """Payload for eval.search socket event."""
 
     search: str | None = Field(None)
     filter_department_ids: list[UUID] | None = Field(None)
     department_search: str | None = Field(None)
     flag_search: str | None = Field(None)
-    page_size: int = Field(50)
-    page_offset: int = Field(0)
+    page_size: int = Field(50, ge=1, le=MAX_WS_PAGE_SIZE)
 
 
 @sio.on("eval.search")  # type: ignore

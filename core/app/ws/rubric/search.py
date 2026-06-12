@@ -3,17 +3,18 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
 from app.infra.rubric.search import search_rubric_impl
+from app.ws.pagination import PaginatedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class RubricSearchPayload(BaseModel):
+class RubricSearchPayload(PaginatedWsSearch):
     """Payload for rubric.search socket event."""
 
     search: str | None = Field(None)
@@ -22,8 +23,6 @@ class RubricSearchPayload(BaseModel):
     department_search: str | None = Field(None)
     simulation_search: str | None = Field(None)
     flag_search: str | None = Field(None)
-    page_size: int = Field(12)
-    page_offset: int = Field(0)
 
 
 @sio.on("rubric.search")  # type: ignore
