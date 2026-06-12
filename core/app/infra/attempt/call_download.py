@@ -19,6 +19,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.attempt.types import CallDownloadAttemptApiResult
 from app.infra.globals import CALL_FOLDER, UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
@@ -67,6 +68,15 @@ async def call_download_attempt_impl(
 
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload record not found.")
+
+    # Per-resource ownership check (issue #148 sibling): has_permission only
+    # proves the caller holds the call_download capability — the resolved
+    # upload is keyed solely by the caller-supplied call_id, so without this any
+    # holder could download another student's call media by id (IDOR). Mirrors
+    # audio_download / file_download / image_download / text_download.
+    await enforce_attempt_media_access(
+        pool, redis, upload_id=upload.id, requester=profile
+    )
 
     file_path = os.path.join(CALL_FOLDER, os.path.basename(upload.file_path))
     if not os.path.exists(file_path):

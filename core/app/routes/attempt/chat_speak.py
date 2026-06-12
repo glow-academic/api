@@ -13,22 +13,20 @@ pushing it; the ack ({idempotency_key, accept}) flushes the staged frames into
 the live queue (accept) or drops them (reject). ``soft=False`` pushes
 immediately (the real-time hot path — no wrapper, no per-frame DB write). Lets
 a benchmark stage a sequence of audio frames and replay them on accept.
+
+AUTHZ: ownership is enforced inside the shared ``chat_speak_impl`` (W1) so the
+HTTP route and its WS twin (``ws/attempt/speak.py``) can never diverge — only
+the authenticated owner of the live session may push audio into it.
 """
 
 from __future__ import annotations
 
-import asyncio
-import base64
-import time
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.infra.websocket.session_store import (
-    get_session_by_chat_id,
-    get_session_by_conversation_id,
-)
+from app.infra.attempt.speak import chat_speak_impl
 
 router = APIRouter()
 
@@ -47,23 +45,6 @@ class ChatSpeakResponse(BaseModel):
     idempotency_key: str | None = None
 
 
-def _resolve_session(request: ChatSpeakRequest):
-    if request.conversation_id:
-        return get_session_by_conversation_id(str(request.conversation_id))
-    if request.chat_id:
-        return get_session_by_chat_id(str(request.chat_id))
-    return None
-
-
-def _enqueue(session, frame: bytes) -> bool:
-    session.last_activity = time.monotonic()
-    try:
-        session.inbound_queue.put_nowait({"type": "audio", "pcm16_bytes": frame})
-        return True
-    except asyncio.QueueFull:
-        return False
-
-
 @router.post("/chat_speak", response_model=ChatSpeakResponse)
 async def chat_speak(
     request: ChatSpeakRequest,
@@ -74,34 +55,26 @@ async def chat_speak(
     if not profile_id:
         raise HTTPException(status_code=401, detail="Missing profile")
 
-    session = _resolve_session(request)
-    if not session:
+    result = chat_speak_impl(
+        profile_id=profile_id,
+        conversation_id=request.conversation_id,
+        chat_id=request.chat_id,
+        audio=request.audio,
+        soft=request.soft,
+        accept=request.accept,
+        idempotency_key=request.idempotency_key,
+    )
+
+    if result.not_found:
         raise HTTPException(status_code=404, detail="No active audio session")
-
-    # ── Ack: flush (accept) or drop (reject) the staged frames ──
-    if request.accept is not None and request.idempotency_key is not None:
-        key = str(request.idempotency_key)
-        staged = session.pending_frames.pop(key, [])
-        if request.accept:
-            ok = all(_enqueue(session, f) for f in staged) if staged else True
-            return ChatSpeakResponse(accepted=ok, idempotency_key=key)
-        return ChatSpeakResponse(accepted=False, idempotency_key=key)
-
-    # Decode the inbound frame (required for stage + live push).
-    if not request.audio:
+    # AUTHZ: non-owner caller — deny with NO side effect (W1).
+    if result.denied:
+        raise HTTPException(
+            status_code=403, detail="You don't have access to this audio session."
+        )
+    if result.bad_audio:
         raise HTTPException(status_code=400, detail="audio is required")
-    try:
-        audio_bytes = base64.b64decode(request.audio)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid base64 audio data")
-    if not audio_bytes:
-        return ChatSpeakResponse(accepted=False)
 
-    # ── Soft propose: hold the frame, don't push it ──
-    if request.soft:
-        key = str(request.idempotency_key or uuid4())
-        session.pending_frames.setdefault(key, []).append(audio_bytes)
-        return ChatSpeakResponse(accepted=True, idempotency_key=key)
-
-    # ── Live: push immediately (real-time hot path) ──
-    return ChatSpeakResponse(accepted=_enqueue(session, audio_bytes))
+    return ChatSpeakResponse(
+        accepted=result.accepted, idempotency_key=result.idempotency_key
+    )
