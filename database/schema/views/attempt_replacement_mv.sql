@@ -18,7 +18,7 @@ CREATE MATERIALIZED VIEW public.attempt_replacement_mv AS
      JOIN public.attempt_chat_entry c ON ((c.id = sm.chat_id)))
      JOIN public.attempt_chat_bridge_entry ac ON ((ac.attempt_chat_id = c.id)))
      JOIN public.attempt_entry a ON ((a.id = ac.attempt_id)))
-  WHERE ((rp.active = true) AND (i.active = true) AND (c.active = true) AND (a.active = true))
+  WHERE ((rp.active = true) AND (i.active = true) AND (sm.active = true) AND (c.active = true) AND (ac.active = true) AND (a.active = true))
   WITH NO DATA;
 
 

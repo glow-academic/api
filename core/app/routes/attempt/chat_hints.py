@@ -11,11 +11,12 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.attempt.chat_analysis_common import run_chat_analysis_write
 from app.infra.globals import get_pool, get_redis_client
+from app.infra.shared_types import MAX_BULK_ITEMS
 from app.tools.entries.attempt_hint.create import create_attempt_hint
 
 router = APIRouter()
@@ -29,7 +30,7 @@ class ChatHintItem(BaseModel):
 
 class ChatHintsRequest(BaseModel):
     chat_id: UUID
-    hints: list[ChatHintItem]
+    hints: list[ChatHintItem] = Field(..., max_length=MAX_BULK_ITEMS)
     idempotency_key: UUID | None = None
     soft: bool = False
     accept: bool | None = None
