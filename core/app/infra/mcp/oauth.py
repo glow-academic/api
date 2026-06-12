@@ -252,6 +252,19 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
 
         from app.infra.globals import get_pool
 
+        # Token for the profile_id ContextVar set below. Reset in the finally
+        # around call_next so this MCP caller's profile_id never leaks forward
+        # into the NEXT request on the same worker task. (Mirrors the
+        # try/finally + ContextVar.reset(token) pattern in
+        # server_timing.ServerTimingMiddleware.) Without this reset the value
+        # set by this outer BaseHTTPMiddleware dispatch propagates across
+        # requests under Starlette 0.47.3 — the inner DBLogging reset runs in a
+        # child context that doesn't propagate back here — letting a subsequent
+        # request read (and be authorized as) this caller's profile via the
+        # MCP discovery path (_current_profile_id) or the dispatch fallback
+        # (resolve_mcp_profile_id's profile_id_context.get).
+        profile_token: Any | None = None
+
         pool = get_pool()
         if pool:
             try:
@@ -260,7 +273,7 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
                     request.state.profile_id = str(profile_id)
                     from app.utils.logging.db_logger import set_profile_id
 
-                    set_profile_id(str(profile_id))
+                    profile_token = set_profile_id(str(profile_id))
                     logger.debug(f"MCP profile resolved: {profile_id}")
                 else:
                     logger.warning(
@@ -282,4 +295,10 @@ class McpOAuthMiddleware(BaseHTTPMiddleware):
             request.scope["path"] = mcp_path
             request.scope["raw_path"] = mcp_path.encode()
 
-        return await call_next(request)
+        try:
+            return await call_next(request)
+        finally:
+            if profile_token is not None:
+                from app.utils.logging.db_logger import profile_id_context
+
+                profile_id_context.reset(profile_token)

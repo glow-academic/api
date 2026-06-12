@@ -142,3 +142,68 @@ async def test_middleware_passes_non_mcp_paths_through():
     response = await middleware.dispatch(request, call_next)
 
     call_next.assert_called_once_with(request)
+
+
+async def test_middleware_resets_profile_id_contextvar_after_request() -> None:
+    """X1 regression: an MCP request must NOT leak its profile_id into the
+    next request on the same worker task.
+
+    Two sequential dispatches share one task (one ContextVar context, as a
+    real Starlette worker task does). Request 1 authenticates as profile A and
+    sets profile_id_context. Without the per-request reset, the value survives
+    past call_next and request 2 — which never authenticates — would read A
+    via the MCP discovery path (_current_profile_id) and the dispatch fallback
+    (resolve_mcp_profile_id). With the try/finally + ContextVar.reset(token)
+    the var is restored to its prior (None) state after request 1.
+    """
+    from app.utils.logging.db_logger import profile_id_context
+
+    profile_a = "11111111-1111-1111-1111-111111111111"
+
+    # Baseline: nothing set on this task before any request runs.
+    token = profile_id_context.set(None)
+    try:
+        assert profile_id_context.get(None) is None
+
+        middleware = McpOAuthMiddleware(app=MagicMock())
+
+        # --- Request 1: an authenticated MCP request for profile A ---
+        req1 = _make_request("/mcp", auth_header="Bearer good-token")
+        call_next_1 = AsyncMock(return_value=MagicMock(status_code=200))
+
+        with patch(
+            "app.infra.identity.resolve_identity.extract_bearer_token",
+            return_value="good-token",
+        ), patch(
+            "app.infra.identity.resolve_identity.verify_jwt",
+            return_value={"sub": "a", "email": "a@example.com"},
+        ), patch(
+            "app.infra.globals.get_pool",
+            return_value=MagicMock(),
+        ), patch(
+            "app.infra.identity.resolve_identity._resolve_profile_id",
+            new=AsyncMock(return_value=profile_a),
+        ):
+            await middleware.dispatch(req1, call_next_1)
+
+            # Inside the request the profile is set (discovery/dispatch read it).
+            assert call_next_1.await_count == 1
+
+        # --- The leak assertion: after request 1 returns, the var is reset ---
+        # If the reset were missing, this would read profile_a and request 2
+        # below would authorize as A.
+        assert profile_id_context.get(None) is None, (
+            "MCP profile_id leaked past the request boundary"
+        )
+
+        # --- Request 2: a request that never authenticates via MCP ---
+        # It must not observe request 1's profile_id.
+        req2 = _make_request("/api/health")
+        call_next_2 = AsyncMock(return_value=MagicMock(status_code=200))
+        await middleware.dispatch(req2, call_next_2)
+
+        assert profile_id_context.get(None) is None, (
+            "request 2 saw the previous MCP caller's profile_id"
+        )
+    finally:
+        profile_id_context.reset(token)
