@@ -114,6 +114,25 @@ async def test_invocation_complete_internal_impl(
             create_test_invocation_completion,
         )
 
+        # ── Owner/role/department scope (BOLA + cross-dept guard, T2) ──────
+        # The completion insert below is keyed solely by the caller-supplied
+        # ``test_invocation_id``. Without this, any authenticated profile could
+        # force-complete ANOTHER user's invocation (terminal-state corruption)
+        # simply by passing their invocation id. Resolve invocation → owner and
+        # route through the shared attempt-mutation gate.
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+        from app.infra.test.permissions import enforce_test_access_by_invocation
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id)), redis,
+        )
+        await enforce_test_access_by_invocation(
+            get_pool(), redis,
+            invocation_id=payload.test_invocation_id, requester=requester,
+        )
+
         async with get_pool().acquire() as conn:
             async with conn.transaction():
                 invs = await get_test_invocations(conn, [payload.test_invocation_id], redis)

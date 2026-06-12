@@ -76,6 +76,21 @@ async def archive_test_impl(
             idempotency_key=idempotency_key,
         )
 
+    # ── Owner/role/department scope (BOLA + cross-dept guard, T7) ──────────
+    # Each archive row below is keyed on a caller-supplied ``test_id``. Without
+    # this, any authenticated profile could archive/unarchive ANOTHER user's
+    # benchmark tests by id. Resolve every requested ``test → owner`` and route
+    # through the shared attempt-mutation gate before any write (mirrors the
+    # guarded ``archive_attempt_impl`` on the attempt side).
+    from app.infra.profile_identity_context import resolve_profile_identity_context
+    from app.infra.test.permissions import enforce_test_access_by_test
+
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+    for test_id in request.test_ids:
+        await enforce_test_access_by_test(
+            pool, redis, test_id=test_id, requester=requester,
+        )
+
     with timed("group"):
         group_result = await resolve_group_impl(
             pool, redis,

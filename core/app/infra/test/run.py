@@ -108,6 +108,25 @@ async def test_run_internal_impl(
                 idempotency_key=idempotency_key,
             )
 
+        # ── Owner/role/department scope (BOLA + cross-dept guard, T4) ──────
+        # The binding-row insert below is keyed solely by the caller-supplied
+        # ``test_invocation_id``. Without this, any authenticated profile could
+        # bind a run into ANOTHER user's invocation, polluting its run/trace
+        # chain (which feeds its later grade/aggregate). Resolve invocation →
+        # owner and route through the shared attempt-mutation gate.
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+        from app.infra.test.permissions import enforce_test_access_by_invocation
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id)), redis,
+        )
+        await enforce_test_access_by_invocation(
+            get_pool(), redis,
+            invocation_id=payload.test_invocation_id, requester=requester,
+        )
+
         with timed("db_write"):
             async with get_pool().acquire() as conn:
                 async with conn.transaction():

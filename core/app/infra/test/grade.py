@@ -16,6 +16,8 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.test.permissions import enforce_test_access_by_invocation
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.calls.get import get_calls
 from app.tools.entries.test.get import get_tests
@@ -60,6 +62,18 @@ async def create_grade_impl(
 
     if not invocation_id:
         raise ValueError("invocation_id is required")
+
+    # ── Owner/role/department scope (BOLA + cross-dept guard, T1) ──────────
+    # The grade insert below is keyed solely by the caller-supplied
+    # ``invocation_id`` and is NOT scoped to the actor. Without this, any
+    # authenticated profile could forge an arbitrary score (or ``full=True``
+    # max-marks) onto ANOTHER user's benchmark invocation. Resolve the
+    # invocation → group → session → owner and route through the shared
+    # attempt-mutation gate (mirrors ``enforce_attempt_access_by_grade``).
+    requester = await resolve_profile_identity_context(pool, profile_id, redis)
+    await enforce_test_access_by_invocation(
+        pool, redis, invocation_id=invocation_id, requester=requester,
+    )
 
     with timed("grade_compute"):
       async with pool.acquire() as conn:
