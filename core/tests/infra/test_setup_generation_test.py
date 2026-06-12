@@ -303,6 +303,79 @@ class TestSetupGenerationTest:
         assert traces[0].temperature_level_ids == agent.temperature_level_ids
         assert traces[0].modality_ids == agent.modality_ids
 
+    async def test_mid_chain_failure_rolls_back_all_scaffold(
+        self, conn, profile_id, redis_client, monkeypatch
+    ):
+        """S-B: a failure mid-loop must leave NO orphan scaffold rows.
+
+        The parent test + every per-agent invocation/trace/run grandchild
+        are written in one ``conn.transaction()``. We make the run-binding
+        insert raise on the SECOND agent — without the transaction the
+        first agent's fully-written invocation/trace/run (and the parent
+        test) would commit as orphans. With it, the whole scaffold rolls
+        back atomically. Counts are read straight from the base tables
+        (no MV refresh) so we observe the committed truth, not a cache.
+        """
+        run_id = await _setup_run(conn, redis_client, profile_id)
+        first_agent = await _create_agent_config(
+            conn, redis_client, name="rollback-first-agent"
+        )
+        second_agent = await _create_agent_config(
+            conn, redis_client, name="rollback-second-agent"
+        )
+
+        before_tests = await conn.fetchval("SELECT count(*) FROM test_entry")
+        before_invs = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_entry"
+        )
+        before_traces = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_traces_entry"
+        )
+        before_runs = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_runs_entry"
+        )
+
+        import app.infra.websocket.setup_generation_test as mod
+
+        real_create_runs = mod.create_test_invocation_runs
+        calls = {"n": 0}
+
+        async def failing_create_runs(*args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                raise RuntimeError("injected mid-chain failure (2nd agent)")
+            return await real_create_runs(*args, **kwargs)
+
+        monkeypatch.setattr(mod, "create_test_invocation_runs", failing_create_runs)
+
+        with pytest.raises(RuntimeError, match="injected mid-chain failure"):
+            await setup_generation_test(
+                conn,
+                agents=[first_agent, second_agent],
+                run_id=run_id,
+                profile_id=profile_id,
+            )
+
+        # The failure fired on the second agent — so without atomicity the
+        # parent test + first agent's invocation/trace/run would persist.
+        assert calls["n"] == 2
+
+        after_tests = await conn.fetchval("SELECT count(*) FROM test_entry")
+        after_invs = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_entry"
+        )
+        after_traces = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_traces_entry"
+        )
+        after_runs = await conn.fetchval(
+            "SELECT count(*) FROM test_invocation_runs_entry"
+        )
+
+        assert after_tests == before_tests, "orphan test_entry left behind"
+        assert after_invs == before_invs, "orphan invocation left behind"
+        assert after_traces == before_traces, "orphan trace left behind"
+        assert after_runs == before_runs, "orphan run-binding left behind"
+
     async def test_none_config_fields_round_trip_as_empty_lists(
         self, conn, profile_id, redis_client
     ):

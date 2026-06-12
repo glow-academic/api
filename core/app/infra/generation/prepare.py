@@ -481,21 +481,28 @@ async def prepare_generation(
         except (ValueError, TypeError):
             client_run_uuid = None
 
+    # The run row, the eval scaffold (setup_generation_test), and the
+    # per-agent framing messages form one logical pre-execute scaffold.
+    # They were previously written across three separate pool.acquire()
+    # calls (S-C) — a failure mid-scaffold left a committed active run with
+    # only part of its framing (and possibly a partial test). They are all
+    # DB-only writes (create_run / setup_generation_test / persist_run_message
+    # touch only Postgres + local redis cache + a local text-upload file — no
+    # LLM/network call sits between them), so we group them into ONE
+    # transaction below. The per-agent group-history reads (fetch_group_history)
+    # are pulled OUT of that transaction into a separate pass so the write txn
+    # stays tight and never spans an unrelated read.
+    #
+    # When the caller supplies its own run_id (grading-pipeline reuse), the
+    # run already exists, so create_run is skipped — but the eval scaffold +
+    # messages still commit atomically relative to each other.
+    reuse_run_id: UUID | None = None
     if payload.run_id:
-        # Reuse existing run (e.g., grading pipeline passes its own run_id)
-        run_id = uuid.UUID(payload.run_id) if isinstance(payload.run_id, str) else payload.run_id
-    else:
-        with timed("db_write"):
-          async with pool.acquire() as conn:
-            run = await create_run(
-                conn, redis,
-                group_id=group_id,
-                session_id=session_id,
-                agent_ids=agent_ids_for_run,
-                soft=soft,
-                id=client_run_uuid,
-            )
-        run_id = run.id
+        reuse_run_id = (
+            uuid.UUID(payload.run_id)
+            if isinstance(payload.run_id, str)
+            else payload.run_id
+        )
 
     # --- Step 7: Setup generation test ---
     test_id: UUID | None = None
@@ -519,37 +526,13 @@ async def prepare_generation(
         a.id: a.rubric_id for a in config_agents if getattr(a, "rubric_id", None)
     }
 
-    if agents_with_rubrics:
-        from app.infra.websocket.generation_types import EvalSetup, InvocationSlot
-
-        async with pool.acquire() as conn:
-            gen_test = await setup_generation_test(
-                conn,
-                agents=agents_with_rubrics,
-                run_id=run_id,
-                profile_id=profiles_id,
-            )
-        generation_invocation_map = gen_test.invocations
-        test_id = gen_test.test_id
-
-        # Build the run-level eval scaffold once. Rides on the
-        # ArtifactGenerateResponse so audit's ``**output`` spread
-        # carries it onto ``<artifact>.generate.completed`` — no
-        # emit-time lookup, no metadata digging on the FE.
-        eval_setup = EvalSetup(
-            test_id=gen_test.test_id,
-            invocations=[
-                InvocationSlot(
-                    invocation_id=inv_id,
-                    agent_id=agent_id,
-                    rubric_id=rubric_by_agent.get(agent_id),
-                )
-                for agent_id, inv_id in gen_test.invocations.items()
-            ],
-        )
-
-    # --- Step 9: Build dispatches + persist messages ---
+    # --- Step 8: Build dispatches (sync, no DB) ---
+    # Pass 1: build every agent's dispatch synchronously (build_agent_dispatch
+    # is pure CPU — no await). We collect the per-agent locals the message
+    # persist + the later history-threading pass need, WITHOUT touching the DB
+    # yet, so the scaffold write below can be a single tight transaction.
     dispatches: list[AgentDispatch] = []
+    built_dispatches: list[tuple[uuid.UUID, Any, Any, dict[str, Any], Any]] = []
 
     for agent_group_id, agent_resource_types in agent_groups.items():
         agent_resource = agents_by_id.get(agent_group_id) or config_agents[0]
@@ -596,36 +579,92 @@ async def prepare_generation(
             params=payload_params,
         )
 
-        # Persist messages to the run
-        with timed("audit_write"):
-          async with pool.acquire() as conn:
-            for msg in dispatch.messages:
-                if msg.persist:
-                    await persist_run_message(
-                        conn,
-                        redis,
-                        run_id=run_id,
-                        session_id=session_id,
-                        role=msg.role,
-                        content=msg.raw_text,
-                    )
+        built_dispatches.append(
+            (agent_group_id, agent_resource_types, llm_config, enriched_metadata, dispatch)
+        )
 
-            # Instructions — role is "user" for FE-direct flows (a human
-            # typed something) and "assistant" for tool-driven flows
-            # (the parent LLM crafted these as a tool argument, e.g.
-            # ``Scenario_Generate(instructions=["…"])``). Caller decides
-            # via ``payload.instructions_role`` (default "user"); the
-            # INFRA_OPS tool dispatcher overrides to "assistant".
-            if payload.instructions:
-                for instruction in payload.instructions:
-                    await persist_run_message(
-                        conn,
-                        redis,
-                        run_id=run_id,
-                        session_id=session_id,
-                        role=payload.instructions_role,
-                        content=instruction,
-                    )
+    # --- Step 9: Atomic pre-execute scaffold write (S-C) ---
+    # run row + eval scaffold + ALL framing messages in ONE transaction so a
+    # mid-scaffold failure leaves no partial run / eval / messages. All three
+    # are DB-only (no LLM/network call between them), so a single transaction
+    # is correct; the history-threading reads stay outside it (Step 10).
+    if agents_with_rubrics:
+        from app.infra.websocket.generation_types import EvalSetup, InvocationSlot
+
+    with timed("db_write"):
+      async with pool.acquire() as conn:
+        async with conn.transaction():
+            if reuse_run_id is not None:
+                run_id = reuse_run_id
+            else:
+                run = await create_run(
+                    conn, redis,
+                    group_id=group_id,
+                    session_id=session_id,
+                    agent_ids=agent_ids_for_run,
+                    soft=soft,
+                    id=client_run_uuid,
+                )
+                run_id = run.id
+
+            if agents_with_rubrics:
+                gen_test = await setup_generation_test(
+                    conn,
+                    agents=agents_with_rubrics,
+                    run_id=run_id,
+                    profile_id=profiles_id,
+                )
+                generation_invocation_map = gen_test.invocations
+                test_id = gen_test.test_id
+
+                # Build the run-level eval scaffold once. Rides on the
+                # ArtifactGenerateResponse so audit's ``**output`` spread
+                # carries it onto ``<artifact>.generate.completed`` — no
+                # emit-time lookup, no metadata digging on the FE.
+                eval_setup = EvalSetup(
+                    test_id=gen_test.test_id,
+                    invocations=[
+                        InvocationSlot(
+                            invocation_id=inv_id,
+                            agent_id=agent_id,
+                            rubric_id=rubric_by_agent.get(agent_id),
+                        )
+                        for agent_id, inv_id in gen_test.invocations.items()
+                    ],
+                )
+
+            # Persist every agent's framing messages to the run, same conn/txn.
+            for _agid, _art, _llm, _meta, dispatch in built_dispatches:
+                for msg in dispatch.messages:
+                    if msg.persist:
+                        await persist_run_message(
+                            conn,
+                            redis,
+                            run_id=run_id,
+                            session_id=session_id,
+                            role=msg.role,
+                            content=msg.raw_text,
+                        )
+
+                # Instructions — role is "user" for FE-direct flows (a human
+                # typed something) and "assistant" for tool-driven flows
+                # (the parent LLM crafted these as a tool argument, e.g.
+                # ``Scenario_Generate(instructions=["…"])``). Caller decides
+                # via ``payload.instructions_role`` (default "user"); the
+                # INFRA_OPS tool dispatcher overrides to "assistant".
+                if payload.instructions:
+                    for instruction in payload.instructions:
+                        await persist_run_message(
+                            conn,
+                            redis,
+                            run_id=run_id,
+                            session_id=session_id,
+                            role=payload.instructions_role,
+                            content=instruction,
+                        )
+
+    # --- Step 10: Thread history + assemble dispatches (reads, no write txn) ---
+    for agent_group_id, agent_resource_types, llm_config, enriched_metadata, dispatch in built_dispatches:
 
         # Resolve this agent's full input-modality set from the tool
         # graph so chat-history rendering can decide between OpenAI
