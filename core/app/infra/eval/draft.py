@@ -9,6 +9,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.eval.permissions import compute_can_draft
 from app.infra.eval.refresh import refresh_eval_impl
 from app.infra.eval.types import (
@@ -399,6 +400,16 @@ async def patch_eval_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=target_id,
+                    getter=get_eval_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact=ARTIFACT,
+                )
                 drafts = await get_eval_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
@@ -461,6 +472,16 @@ async def patch_eval_draft_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=resolved_draft_id or idempotency_key,
+            getter=get_eval_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact=ARTIFACT,
+        )
         async with conn.transaction():
             result = await create_eval_draft(
                 conn,

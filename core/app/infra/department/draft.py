@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from app.infra.department.permissions import compute_can_draft
 from app.infra.department.refresh import refresh_department_impl
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.department.types import (
     DraftFormState,
     PatchDepartmentDraftApiRequest,
@@ -283,6 +284,16 @@ async def patch_department_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=target_id,
+                    getter=get_department_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact=ARTIFACT,
+                )
                 drafts = await get_department_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
@@ -348,6 +359,16 @@ async def patch_department_draft_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=idempotency_key,
+            getter=get_department_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact=ARTIFACT,
+        )
         async with conn.transaction():
             result = await create_department_draft(
                 conn,
