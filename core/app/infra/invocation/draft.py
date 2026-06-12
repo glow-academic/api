@@ -8,6 +8,7 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.invocation.refresh import refresh_invocation_impl
 from app.infra.invocation.types import (
     DraftFormState,
@@ -206,6 +207,16 @@ async def patch_invocation_draft_impl(
     if accept is not None and idempotency_key is not None:
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=idempotency_key,
+                    getter=get_invocation_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact="invocation",
+                )
                 drafts = await get_invocation_drafts(conn, [idempotency_key], redis)
                 async with conn.transaction():
                     if drafts:
@@ -271,6 +282,16 @@ async def patch_invocation_draft_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=idempotency_key or request.draft_id,
+            getter=get_invocation_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact="invocation",
+        )
         async with conn.transaction():
             result = await create_invocation_draft(
                 conn,
