@@ -10,11 +10,12 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.attempt.chat_analysis_common import run_chat_analysis_write
 from app.infra.globals import get_pool, get_redis_client
+from app.infra.shared_types import MAX_BULK_ITEMS
 from app.tools.entries.attempt_analysis.create import create_attempt_analysis
 from app.tools.entries.attempt_grade.search import search_attempt_grades
 
@@ -27,7 +28,10 @@ class ChatAnalysisItem(BaseModel):
 
 class ChatAnalysesRequest(BaseModel):
     chat_id: UUID
-    analyses: list[ChatAnalysisItem]
+    # Bounded (C4-C): each analysis is a per-item DB INSERT inside the grade
+    # write transaction; an unbounded array lets one request fan out arbitrarily
+    # many round trips / hold a transaction open (resource-exhaustion DoS).
+    analyses: list[ChatAnalysisItem] = Field(..., max_length=MAX_BULK_ITEMS)
     idempotency_key: UUID | None = None
     soft: bool = False
     accept: bool | None = None

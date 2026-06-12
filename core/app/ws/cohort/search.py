@@ -3,17 +3,18 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.infra.cohort.search import search_cohort_impl
 from app.infra.events.audit import run_artifact_operation_with_audit
 from app.infra.globals import get_internal_sio, get_pool, get_redis_client, sio
 from app.infra.identity.socket import resolve_socket_identity
+from app.ws.pagination import MAX_WS_PAGE_SIZE, PaginatedWsSearch
 
 internal_sio = get_internal_sio()
 
 
-class CohortSearchPayload(BaseModel):
+class CohortSearchPayload(PaginatedWsSearch):
     """Payload for cohort.search socket event."""
 
     search: str | None = Field(None)
@@ -24,8 +25,7 @@ class CohortSearchPayload(BaseModel):
     simulation_search: str | None = Field(None)
     department_search: str | None = Field(None)
     flag_search: str | None = Field(None)
-    page_size: int = Field(10)
-    page_offset: int = Field(0)
+    page_size: int = Field(10, ge=1, le=MAX_WS_PAGE_SIZE)
 
 
 @sio.on("cohort.search")  # type: ignore

@@ -11,11 +11,12 @@ from uuid import UUID, uuid4
 
 import asyncpg
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.attempt.chat_analysis_common import run_chat_analysis_write
 from app.infra.globals import get_pool, get_redis_client
+from app.infra.shared_types import MAX_BULK_ITEMS
 from app.tools.entries.attempt_grade.search import search_attempt_grades
 from app.tools.entries.attempt_improvement.create import create_attempt_improvement
 from app.tools.entries.attempt_replacement.create import create_attempt_replacement
@@ -33,12 +34,15 @@ class ChatImprovementItem(BaseModel):
     name: str
     description: str
     message_id: UUID | None = None
-    replacements: list[ChatReplacementItem] | None = None
+    # Bounded (C4-C): each replacement is a per-item DB INSERT inside the grade
+    # write transaction; an unbounded array lets one request fan out arbitrarily
+    # many round trips / hold a transaction open (resource-exhaustion DoS).
+    replacements: list[ChatReplacementItem] | None = Field(None, max_length=MAX_BULK_ITEMS)
 
 
 class ChatImprovementsRequest(BaseModel):
     chat_id: UUID
-    improvements: list[ChatImprovementItem]
+    improvements: list[ChatImprovementItem] = Field(..., max_length=MAX_BULK_ITEMS)
     idempotency_key: UUID | None = None
     soft: bool = False
     accept: bool | None = None
