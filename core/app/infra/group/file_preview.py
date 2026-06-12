@@ -24,7 +24,9 @@ from app.infra.group.media_types import FilePreviewGroupApiResult
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
+from app.infra.upload_owner import enforce_upload_owner
 from app.tools.entries.files.search import search_files
+from app.tools.entries.files.get import get_file
 from app.utils.document.pdf_first_page_to_image_bytes import (
     pdf_first_page_to_image_bytes,
 )
@@ -77,6 +79,19 @@ async def file_preview_group_impl(
             detail="No upload found for this file.",
         )
 
+    # R2 ownership scope (C2): the *_preview class renders the same
+    # session-owned upload bytes by caller-supplied id as the *_download class,
+    # so it needs the identical guard. Resolve the resource's owning session and
+    # require it to belong to the caller (shared enforce_upload_owner; 404 — not
+    # 403 — to keep a denied probe indistinguishable from a missing resource).
+    async with pool.acquire() as _own_conn:
+        _owner = await get_file(_own_conn, results[0].file_id, redis)
+    await enforce_upload_owner(
+        pool, redis,
+        upload_session_id=_owner.session_id if _owner else None,
+        requester=profile,
+        not_found_detail="No upload found for this file.",
+    )
     file_record = results[0]
 
     # -- Step 4: Verify file on disk and is PDF ---------------------------------

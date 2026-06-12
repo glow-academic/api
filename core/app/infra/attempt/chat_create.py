@@ -230,8 +230,27 @@ async def create_attempt_chat_impl(
     # existing black-box getters (no raw SQL) and fail with a clean 404 — mirrors
     # the chat_id guard below and the #299 chat_message fix; placed before either
     # bridge insert so it covers both paths.
+    from app.infra.attempt.permissions import (
+        enforce_attempt_access_by_attempt,
+        enforce_attempt_access_by_attempt_chat,
+    )
     from app.tools.entries.attempt.get import get_attempts
     from app.tools.entries.attempt_chat.get import get_attempt_chats
+
+    # ── Profile context (hoisted above the short-circuit) ─────────────────────
+    #
+    # The reuse short-circuit (``previous_attempt_chat_id``) used to ``return``
+    # BEFORE this resolution and the permission check below — so that whole path
+    # ran with route authn only and NO actor scope (C1). Resolve the caller's
+    # identity FIRST so both the ownership guard (below) and the short-circuit
+    # path are authorized. ``resolve_profile_identity_context`` is the same
+    # black-box every sibling attempt-mutation impl uses.
+    with timed("profile"):
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id,
+        )
+    if profile is None:
+        raise HTTPException(401, "Profile not found. Please sign in again.")
 
     # Cache-hedged reads (NOT bypass_cache): a legitimate
     # ``previous_attempt_chat_id`` is often a freshly-created attempt_chat that
@@ -251,6 +270,35 @@ async def create_attempt_chat_impl(
             )
             if not prev_chats:
                 raise HTTPException(404, "Previous attempt chat not found.")
+
+    # ── Authorization (was MISSING — C1) ──────────────────────────────────────
+    #
+    # chat_create was the only attempt-side op taking caller-supplied ids that
+    # ran NO ``enforce_attempt_access_by_*`` guard. It existence-checked the ids
+    # above but never proved the caller OWNS the target attempt — letting an
+    # actor graft an attempt_chat (and, via ``previous_attempt_chat_id``, another
+    # user's conversation/grades) into a victim's attempt. Placed AFTER the
+    # existence 404s (so a bogus id still 404s) and BEFORE the short-circuit
+    # return below (so the reuse path cannot bypass it):
+    #
+    #   - ``attempt_id`` — the attempt both paths bridge INTO must be the
+    #     caller's (resolve attempt → owner, self/super-admin/strictly-higher-
+    #     role-in-department). Mirrors complete_attempt_impl.
+    #   - ``previous_attempt_chat_id`` — the grafted chat must ALSO belong to the
+    #     caller, else its conversation/grades would be pulled into the attempt.
+    #     Resolved via the chat's CREATING SESSION (``..._by_attempt_chat``), not
+    #     the bridge-derived MV: the legitimate reuse target is a freshly-created,
+    #     not-yet-bridged attempt_chat (the "advance to next chat" flow,
+    #     ``test_chat_create_route_bridges_chat_into_attempt``) that has no MV
+    #     ``profile_id`` and would otherwise fail-close.
+    await enforce_attempt_access_by_attempt(
+        pool, redis, attempt_id=request.attempt_id, requester=profile,
+    )
+    if request.previous_attempt_chat_id:
+        await enforce_attempt_access_by_attempt_chat(
+            pool, redis,
+            attempt_chat_id=request.previous_attempt_chat_id, requester=profile,
+        )
 
     # ── Short-circuit: reuse previous attempt_chat ───────────────────────────
 
@@ -272,14 +320,8 @@ async def create_attempt_chat_impl(
             idempotency_key=request.idempotency_key,
         )
 
-    # ── Step 1: Profile context + permissions ─────────────────────────────────
-
-    with timed("profile"):
-        profile = await resolve_profile_identity_context(
-            pool, profile_id, redis, session_id=session_id,
-        )
-    if profile is None:
-        raise HTTPException(401, "Profile not found. Please sign in again.")
+    # ── Step 1: Permissions ───────────────────────────────────────────────────
+    # (profile context resolved above, before the short-circuit, for C1.)
 
     if not has_permission(profile.role_permissions, "attempt", "start"):
         raise HTTPException(403, "You don't have permission to create attempt chats.")

@@ -341,6 +341,53 @@ async def enforce_attempt_access_by_group(
     )
 
 
+async def enforce_attempt_access_by_attempt_chat(
+    pool: asyncpg.Pool,
+    redis: Redis,
+    *,
+    attempt_chat_id: UUID | None,
+    requester: ProfileIdentityContext | None,
+    deny_detail: str = "You don't have access to this attempt chat.",
+) -> None:
+    """Authorize reuse of an attempt_chat by its *creating session* owner.
+
+    Unlike :func:`enforce_attempt_access_by_chat` (which resolves the owner from
+    ``attempt_chat_mv.profile_id`` — derived through the bridge → attempt →
+    session chain), this resolves ``attempt_chat → session → profile`` directly
+    off the raw ``attempt_chat_entry.session_id``. That makes it correct for a
+    freshly-created, NOT-yet-bridged attempt_chat (the real "advance to next
+    chat" flow in chat_create's short-circuit, see
+    ``test_chat_create_route_bridges_chat_into_attempt``), which carries NO MV
+    ``profile_id`` and would otherwise fail-close. Mirrors
+    :func:`enforce_attempt_access_by_group` (group → session → profile).
+
+    Fail-closed: if the chat, its session, or the session owner can't be
+    resolved, ``_enforce_attempt_owner_access`` denies. An authored/seed chat
+    with no profile-linked session resolves to ``None`` and is therefore denied
+    here — chat reuse is always a user-driven action on a user-owned chat, the
+    correct conservative default.
+    """
+    from app.tools.entries.attempt_chat.get_session import (
+        get_attempt_chat_session_id,
+    )
+    from app.tools.entries.sessions.get import get_sessions
+
+    owner_profiles_id: UUID | None = None
+    if attempt_chat_id is not None:
+        async with pool.acquire() as conn:
+            session_id = await get_attempt_chat_session_id(conn, attempt_chat_id)
+            if session_id is not None:
+                sessions = await get_sessions(conn, [session_id], redis)
+                owner_profiles_id = sessions[0].profile_id if sessions else None
+
+    await _enforce_attempt_owner_access(
+        pool, redis,
+        owner_profiles_id=owner_profiles_id,
+        requester=requester,
+        deny_detail=deny_detail,
+    )
+
+
 async def enforce_attempt_access_by_chat(
     pool: asyncpg.Pool,
     redis: Redis,
