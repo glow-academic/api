@@ -22,7 +22,9 @@ from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.rubric.types import FileDownloadRubricApiResult
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.upload_owner import enforce_upload_owner
 from app.tools.entries.files.search import search_files
+from app.tools.entries.files.get import get_file
 
 
 async def file_download_rubric_impl(
@@ -68,6 +70,16 @@ async def file_download_rubric_impl(
             detail="No upload found for this file.",
         )
 
+    # R2 ownership scope: resolve the resource's owning session and
+    # require it to belong to the caller (shared enforce_upload_owner).
+    async with pool.acquire() as _own_conn:
+        _owner = await get_file(_own_conn, results[0].file_id, redis)
+    await enforce_upload_owner(
+        pool, redis,
+        upload_session_id=_owner.session_id if _owner else None,
+        requester=profile,
+        not_found_detail="No upload found for this file.",
+    )
     file_record = results[0]
 
     # -- Step 4: Verify file on disk --------------------------------------------

@@ -21,6 +21,9 @@ from app.infra.profile_identity_context import ProfileIdentityContext
 pytestmark = pytest.mark.asyncio
 
 MODULE = "app.infra.provider.call_download"
+# Ownership resolution now lives in the shared helper module (R2 class-fix);
+# the SEC2 exemplar delegates to it, so session lookups patch there.
+OWNER_MODULE = "app.infra.upload_owner"
 
 
 def _profile(profiles_id, *, role_permissions):
@@ -121,7 +124,7 @@ async def test_rejects_cross_owner_call_id(monkeypatch):
 
     monkeypatch.setattr(f"{MODULE}.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr(f"{MODULE}.search_call_uploads", mock_search_call_uploads)
-    monkeypatch.setattr(f"{MODULE}.search_sessions", mock_search_sessions)
+    monkeypatch.setattr(f"{OWNER_MODULE}.search_sessions", mock_search_sessions)
     monkeypatch.setattr(f"{MODULE}.get_upload", mock_get_upload)
 
     with pytest.raises(HTTPException) as exc:
@@ -167,7 +170,7 @@ async def test_allows_owner(monkeypatch, tmp_path):
 
     monkeypatch.setattr(f"{MODULE}.resolve_profile_identity_context", mock_resolve)
     monkeypatch.setattr(f"{MODULE}.search_call_uploads", mock_search_call_uploads)
-    monkeypatch.setattr(f"{MODULE}.search_sessions", mock_search_sessions)
+    monkeypatch.setattr(f"{OWNER_MODULE}.search_sessions", mock_search_sessions)
     monkeypatch.setattr(f"{MODULE}.get_upload", mock_get_upload)
     monkeypatch.setattr(cd, "CALL_FOLDER", str(tmp_path))
     monkeypatch.setattr(cd, "UPLOAD_FOLDER", str(tmp_path))

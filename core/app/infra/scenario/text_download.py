@@ -22,6 +22,7 @@ from redis.asyncio import Redis
 from app.infra.globals import UPLOAD_FOLDER
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.upload_owner import enforce_upload_owner
 from app.infra.scenario.types import TextDownloadScenarioApiResult
 from app.tools.entries.text_uploads.search import search_text_uploads
 from app.tools.entries.uploads.get import get_upload
@@ -74,6 +75,12 @@ async def text_download_scenario_impl(
         upload_id = junctions[0].upload_id
 
         # -- Step 4: Resolve upload_id -> file metadata -------------------------
+        await enforce_upload_owner(
+            pool, redis,
+            upload_session_id=junctions[0].session_id,
+            requester=profile,
+            not_found_detail="No upload found for this text.",
+        )
         upload = await get_upload(conn, upload_id, redis)
 
     if upload is None:
