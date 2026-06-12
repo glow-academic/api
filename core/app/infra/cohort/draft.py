@@ -26,6 +26,7 @@ from redis.asyncio import Redis
 
 from app.infra.cohort.permissions import compute_can_draft
 from app.infra.cohort.refresh import refresh_cohort_impl
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.cohort.types import (
     CohortDraftFormState,
     PatchCohortDraftApiRequest,
@@ -427,6 +428,16 @@ async def patch_cohort_draft_impl(
 
         if accept:
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=target_id,
+                    getter=get_cohort_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=profile.profiles_id,
+                    role_level=profile.role_level,
+                    artifact=ARTIFACT,
+                )
                 drafts = await get_cohort_drafts(conn, [target_id], redis, active=None)
                 async with conn.transaction():
                     if drafts:
@@ -550,6 +561,16 @@ async def patch_cohort_draft_impl(
     resolved_flag_ids = list(request.flag_ids or [])
     with timed("db_write"):
      async with pool.acquire() as conn:
+        await enforce_draft_owner(
+            conn,
+            redis,
+            draft_id=idempotency_key,
+            getter=get_cohort_drafts,
+            caller_session_id=session_id,
+            caller_profile_id=profile.profiles_id,
+            role_level=profile.role_level,
+            artifact=ARTIFACT,
+        )
         async with conn.transaction():
             result = await create_cohort_draft(
                 conn,
