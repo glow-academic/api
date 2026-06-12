@@ -374,6 +374,122 @@ class TestEmulationDepartmentScope:
         assert result.allowed is True
         assert result.grant_id is not None
 
+    async def test_chained_emulation_gated_on_actor_not_intermediate(
+        self, pool, redis_client, monkeypatch
+    ):
+        """E1 (critical): a SECOND hop A→B→C is gated on the REAL ACTOR A's
+        role/department, NOT the intermediate B's.
+
+        A = Administrator, dept {X}. B = Instructional, dept {X, Y} (A may
+        reach B — shares X). C = GTA, dept {Y} only. B *could* reach C
+        (shares Y, role-permitted), but A cannot reach dept Y directly, so
+        the chained hop A(as B)→C must be DENIED. Pre-fix this gated on B
+        and laundered A into dept Y."""
+        dept_x, dept_y = uuid4(), uuid4()
+        actor_a, inter_b, target_c = uuid4(), uuid4(), uuid4()
+        _patch_identities(
+            monkeypatch,
+            {
+                actor_a: _emu_ctx(
+                    uuid4(), role="Administrator", role_level=3,
+                    department_ids=[dept_x],
+                ),
+                inter_b: _emu_ctx(
+                    uuid4(), role="Instructional Staff", role_level=2,
+                    department_ids=[dept_x, dept_y],
+                ),
+                target_c: _emu_ctx(
+                    uuid4(), role="GTA", role_level=1,
+                    department_ids=[dept_y],
+                ),
+            },
+        )
+
+        # Requester is the effective (already-emulated) profile B; the real
+        # JWT actor is A. The gate must evaluate A, not B.
+        result = await resolve_emulation(
+            pool, redis_client,
+            requester_profile_id=inter_b,
+            target_profile_id=target_c,
+            actor_profile_id=actor_a,
+        )
+        assert result.allowed is False
+        assert result.reason == "You do not have permission to emulate this profile"
+        assert result.grant_id is None
+
+    async def test_chained_emulation_allowed_when_actor_can_reach_target(
+        self, pool, redis_client, monkeypatch, profile_identity_factory
+    ):
+        """E1 allow-side: a legitimate chain A→B→C where the ACTOR A *can*
+        reach C's department directly is ALLOWED (a real grant is created)."""
+        requester = await profile_identity_factory(name="chain-inter-b")
+        target = await profile_identity_factory(name="chain-target-c")
+
+        async with pool.acquire() as conn:
+            await create_session(conn, redis_client, profile_id=requester.profile_resource_id)
+            await create_session(conn, redis_client, profile_id=target.profile_resource_id)
+            await refresh_sessions(conn)
+
+        actor_a = uuid4()
+        dept_x = uuid4()  # A, B and C all share dept X
+        _patch_identities(
+            monkeypatch,
+            {
+                actor_a: _emu_ctx(
+                    uuid4(), role="Administrator", role_level=3,
+                    department_ids=[dept_x],
+                ),
+                requester.artifact_id: _emu_ctx(
+                    requester.profile_resource_id, role="Instructional Staff",
+                    role_level=2, department_ids=[dept_x],
+                ),
+                target.artifact_id: _emu_ctx(
+                    target.profile_resource_id, role="GTA", role_level=1,
+                    department_ids=[dept_x],
+                ),
+            },
+        )
+
+        result = await resolve_emulation(
+            pool, redis_client,
+            requester_profile_id=requester.artifact_id,
+            target_profile_id=target.artifact_id,
+            actor_profile_id=actor_a,
+        )
+        assert result.allowed is True
+        assert result.grant_id is not None
+
+    async def test_chained_emulation_missing_actor_denied(
+        self, pool, redis_client, monkeypatch
+    ):
+        """E1 edge: if the actor's identity cannot be resolved the chained
+        hop is denied (fail-closed), not silently gated on the intermediate."""
+        inter_b, target_c, actor_a = uuid4(), uuid4(), uuid4()
+        _patch_identities(
+            monkeypatch,
+            {
+                # actor_a deliberately absent from the mapping → resolves None
+                inter_b: _emu_ctx(
+                    uuid4(), role="Administrator", role_level=3,
+                    department_ids=[uuid4()],
+                ),
+                target_c: _emu_ctx(
+                    uuid4(), role="GTA", role_level=1,
+                    department_ids=[uuid4()],
+                ),
+            },
+        )
+
+        result = await resolve_emulation(
+            pool, redis_client,
+            requester_profile_id=inter_b,
+            target_profile_id=target_c,
+            actor_profile_id=actor_a,
+        )
+        assert result.allowed is False
+        assert result.reason == "Actor profile not found"
+        assert result.grant_id is None
+
     async def test_global_target_emulatable(
         self, pool, redis_client, monkeypatch, profile_identity_factory
     ):

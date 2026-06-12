@@ -44,11 +44,28 @@ async def emulate_profile(
         pool = get_pool()
         session_id = getattr(http_request.state, "session_id", None)
 
-        # Resolve time-windowed group for audit linking
+        # E2 — attribute the emulation grant + audit to the REAL actor A, not
+        # the intermediate (effective) profile B. ``profile_id`` here is the
+        # effective profile; while already emulating, ``actor_profile_id`` is
+        # the real JWT actor. The audit record (artifact owner + session +
+        # group) must show A emulated C, else the chained grant is durably
+        # misattributed to B (repudiation). When emulating we resolve the
+        # actor's own active session so the whole audit row is coherent.
+        audit_profile_id = UUID(str(actor_profile_id)) if actor_profile_id else UUID(profile_id)
+        audit_session_id = session_id
+        if actor_profile_id and actor_profile_id != UUID(profile_id):
+            # ``profile_id`` arg is a profile_artifact.id, so use the
+            # artifact-id session resolver to get the actor's own session.
+            from app.infra.identity.resolve_identity import get_or_create_session
+            async with pool.acquire() as conn:
+                audit_session_id = await get_or_create_session(conn, audit_profile_id)
+
+        # Resolve time-windowed group for audit linking — against the
+        # attributed (actor) profile/session so the audit owner is coherent.
         group_id = None
-        if session_id:
+        if audit_session_id:
             group_result = await group_profile_impl(
-                pool, redis, profile_id=UUID(profile_id), session_id=session_id,
+                pool, redis, profile_id=audit_profile_id, session_id=audit_session_id,
                 id_only=True,
             )
             group_id = group_result.group_id
@@ -76,8 +93,8 @@ async def emulate_profile(
             pool,
             redis,
             artifact="profile",
-            profile_id=UUID(profile_id),
-            session_id=session_id,
+            profile_id=audit_profile_id,
+            session_id=audit_session_id,
             group_id=group_id,
             operation="emulate",
             # On ack, carry only `accept` so the gate's _is_bare_ack skips it.
