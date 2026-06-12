@@ -40,10 +40,24 @@ class AudioStopInternalResult(BaseModel):
     chat_id: str
     stopped: bool = True
     idempotency_key: str | None = None
+    denied: bool = False
 
 
-async def _perform_silence(chat_id: str, sid: str) -> AudioStopInternalResult:
-    """End the live voice session: record completion, clean up, emit."""
+async def _perform_silence(
+    chat_id: str, sid: str, requester_profile_id: str | None = None
+) -> AudioStopInternalResult:
+    """End the live voice session: record completion, clean up, emit.
+
+    AUTHZ / ownership (the R3 guard — mirrors ``chat_speak_impl``'s W1 owner
+    check for the same in-memory ``AudioSession`` keyed by the same ``chat_id``):
+    only the authenticated owner of the live session may silence it. A
+    non-owner caller (or a caller with no resolved profile) is denied with NO
+    side effect — no DB completion, no adapter cleanup, no emit — so an attacker
+    can't tear down a victim's live voice session by supplying its ``chat_id``.
+    ``AudioSession.profile_id`` is stored as a ``str`` (audio.py sets it from
+    ``str(prepared.profile_id)``), so we compare stringified. Owner-only (no
+    role-hierarchy bypass), matching chat_speak.
+    """
     redis = get_redis_client()
     session = get_session_by_chat_id(str(chat_id))
     if not session:
@@ -51,6 +65,21 @@ async def _perform_silence(chat_id: str, sid: str) -> AudioStopInternalResult:
         # already ended or never started.
         logger.info(f"attempt_chat_silence: no session for chat_id={chat_id} (no-op)")
         return AudioStopInternalResult(chat_id=str(chat_id), stopped=False)
+
+    # Fail-closed owner guard: deny (no teardown) if the caller doesn't own the
+    # session. ``requester_profile_id is None`` only on legacy callers that
+    # never resolved an identity; both edges now pass it, so a missing one means
+    # we cannot prove ownership → deny.
+    if requester_profile_id is None or str(requester_profile_id) != (
+        session.profile_id or ""
+    ):
+        logger.warning(
+            f"attempt_chat_silence: owner mismatch for chat_id={chat_id} "
+            f"(requester={requester_profile_id}); denied (no teardown)"
+        )
+        return AudioStopInternalResult(
+            chat_id=str(chat_id), stopped=False, denied=True
+        )
 
     group_id = session.group_id
 
@@ -121,7 +150,7 @@ async def attempt_chat_silence_internal_impl(
                 raise HTTPException(status_code=404, detail="No pending silence for this call.")
             result = AudioStopInternalResult(chat_id=str(chat_id), stopped=False)
             if accept:
-                result = await _perform_silence(str(chat_id), sid)
+                result = await _perform_silence(str(chat_id), sid, profile_id)
             async with get_pool().acquire() as conn:
                 await create_soft_call(
                     conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
@@ -142,7 +171,7 @@ async def attempt_chat_silence_internal_impl(
             return AudioStopInternalResult(chat_id=str(chat_id), stopped=False, idempotency_key=str(call_id))
 
         # ── Live: perform now ──
-        result = await _perform_silence(str(chat_id), sid)
+        result = await _perform_silence(str(chat_id), sid, profile_id)
         result.idempotency_key = str(call_id) if call_id else None
         return result
 

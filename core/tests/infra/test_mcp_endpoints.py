@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from app.infra.mcp.register import (
     _annotations_for,
+    _clamp_page_size_inputs,
     register_tools,
 )
 from app.infra.mcp.resolve import McpContext, allowed_tool_names
 from app.infra.mcp.tool_catalog import slugify_tool_name
+from app.infra.shared_types import MAX_PAGE_SIZE
 
 
 def test_slugify_tool_name_handles_common_shapes():
@@ -117,6 +119,56 @@ def test_allowed_tool_names_requires_at_least_one_overlap():
     )
 
     assert allowed_tool_names(ctx) == {"create_content"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# R4: the MCP dispatch builds its own tool signature with no le bound, so a
+# page-size arg flows unbounded into the SQL LIMIT. The REST request models cap
+# it at le=200 (MAX_PAGE_SIZE); _clamp_page_size_inputs mirrors that shared cap
+# onto the MCP read/search path before resolve_tool_spec.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_clamp_page_size_clamps_oversized_to_max():
+    """An oversized MCP page_size is clamped to MAX_PAGE_SIZE (no unbounded LIMIT)."""
+    out = _clamp_page_size_inputs({"page_size": 1_000_000, "search": "x"})
+    assert out["page_size"] == MAX_PAGE_SIZE
+    assert out["search"] == "x"  # other inputs untouched
+
+
+def test_clamp_page_size_clamps_page_limit_too():
+    """page_limit (the activity/list size arg) is also capped."""
+    assert _clamp_page_size_inputs({"page_limit": 9999})["page_limit"] == MAX_PAGE_SIZE
+
+
+def test_clamp_page_size_string_input_is_clamped():
+    """FastMCP may pass a stringified int — it's coerced then clamped."""
+    assert _clamp_page_size_inputs({"page_size": "5000"})["page_size"] == MAX_PAGE_SIZE
+
+
+def test_clamp_page_size_below_one_floored():
+    """A zero/negative page_size floors to 1 (matches REST ge=1)."""
+    assert _clamp_page_size_inputs({"page_size": 0})["page_size"] == 1
+    assert _clamp_page_size_inputs({"page_size": -10})["page_size"] == 1
+
+
+def test_clamp_page_size_in_range_unchanged():
+    """A legitimate page_size within bounds passes through untouched."""
+    assert _clamp_page_size_inputs({"page_size": 12})["page_size"] == 12
+    assert _clamp_page_size_inputs({"page_size": MAX_PAGE_SIZE})["page_size"] == MAX_PAGE_SIZE
+
+
+def test_clamp_page_size_no_page_arg_is_noop():
+    """Tools with no page-size arg are unaffected (e.g. offset-only)."""
+    assert _clamp_page_size_inputs({"page_offset": 99999, "search": "x"}) == {
+        "page_offset": 99999,
+        "search": "x",
+    }
+
+
+def test_clamp_page_size_non_numeric_left_for_downstream():
+    """A non-numeric value is left untouched so resolve_tool_spec/Pydantic reports it."""
+    assert _clamp_page_size_inputs({"page_size": "abc"})["page_size"] == "abc"
 
 
 def test_register_tools_registers_each_tool_def_once():

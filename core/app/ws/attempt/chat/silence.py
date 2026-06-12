@@ -21,7 +21,17 @@ async def attempt_chat_silence(sid: str, data: dict[str, Any]) -> None:
         return
 
     async def _runner() -> dict[str, Any]:
-        await attempt_chat_silence_internal_impl({"chat_id": chat_id, "sid": sid})
+        # Pass the resolved caller profile so the impl's owner guard (R3) can
+        # deny silencing another user's live voice session. The WS path skips
+        # the audit wrapper (no session_id), but the profile still threads
+        # straight into ``_perform_silence``'s ownership check.
+        await attempt_chat_silence_internal_impl(
+            {
+                "chat_id": chat_id,
+                "sid": sid,
+                "profile_id": str(identity.profile_id) if identity.profile_id else None,
+            }
+        )
         return {"chat_id": chat_id, "success": True}
 
     pool = get_pool()

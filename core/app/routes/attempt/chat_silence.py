@@ -38,7 +38,7 @@ async def chat_silence(
         raise HTTPException(status_code=401, detail="Missing profile")
 
     try:
-        return await attempt_chat_silence_internal_impl(
+        result = await attempt_chat_silence_internal_impl(
             {
                 "chat_id": str(request.chat_id),
                 "profile_id": str(profile_id) if profile_id else None,
@@ -48,3 +48,9 @@ async def chat_silence(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # Owner guard (R3, mirrors chat_speak's HTTP 403): a non-owner caller is
+    # denied with no teardown — surface it as a 403 rather than a benign result.
+    if result.denied:
+        raise HTTPException(status_code=403, detail="Not the owner of this session.")
+    return result
