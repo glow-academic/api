@@ -27,6 +27,7 @@ from pydantic import Field
 
 from app.infra.mcp.resolve import resolve_mcp_context
 from app.infra.mcp.tool_catalog import slugify_tool_name
+from app.infra.shared_types import MAX_PAGE_SIZE
 from app.infra.tools.execute_infra_operation import (
     InfraContext,
     execute_infra_operation,
@@ -59,6 +60,35 @@ _FIELD_TYPE_MAP: dict[str, type] = {
 
 def _py_type_for(field_type: str | None) -> type:
     return _FIELD_TYPE_MAP.get((field_type or "string").lower(), str)
+
+
+# Page-size args an MCP tool can carry into a SQL ``LIMIT``. The REST request
+# models cap these at ``le=200`` (``MAX_PAGE_SIZE``) via Pydantic, but the MCP
+# dispatch builds its own tool signature with no bound (R4) — so an MCP client
+# could ask for an unbounded one-shot read (``page_size=1_000_000`` →
+# full-table dump). We clamp the same shared cap on the MCP path. Only the
+# LIMIT-controlling size args matter; offset args (``page_offset``/``page``)
+# don't widen a single read, so they're left alone.
+_MCP_PAGE_SIZE_ARGS = ("page_size", "page_limit")
+
+
+def _clamp_page_size_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
+    """Clamp any page-size arg to ``[1, MAX_PAGE_SIZE]`` (R4).
+
+    Mirrors the REST/WS cap (the shared ``MAX_PAGE_SIZE``) on the MCP read/search
+    path, which otherwise has no bound. Non-numeric values are left untouched so
+    downstream validation (``resolve_tool_spec`` / Pydantic) reports them.
+    """
+    for arg in _MCP_PAGE_SIZE_ARGS:
+        if arg not in inputs:
+            continue
+        raw = inputs[arg]
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            continue
+        inputs[arg] = max(1, min(value, MAX_PAGE_SIZE))
+    return inputs
 
 _ensure_lock = asyncio.Lock()
 _ensured = False
@@ -157,6 +187,11 @@ async def _dispatch(tool_name: str, inputs: dict[str, Any]) -> dict[str, Any]:
             "tool": tool_name,
             "agent_id": str(mcp_ctx.agent_id),
         }
+
+    # R4: clamp page-size inputs to the shared cap before resolving the spec —
+    # the MCP signature has no le bound, so this is where REST's le=200 gets
+    # mirrored onto the MCP read/search path.
+    inputs = _clamp_page_size_inputs(inputs)
 
     try:
         spec = resolve_tool_spec(td, inputs)
