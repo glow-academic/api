@@ -85,73 +85,83 @@ async def setup_generation_test(
     if run is None:
         raise ValueError(f"Run not found: {run_id}")
 
-    test_call = await create_call(conn, redis, run_id=run_id, session_id=run.session_id)
-
-    # 1. Create the test entry (is_dynamic=False — skip LLM re-run, grade
-    #    existing agent output directly via /test/generate's static branch).
-    test_result = await create_test(
-        conn, redis,
-        call_id=test_call.id,
-        profiles_id=profile_id,
-        name="generation_resolution",
-        num_invocations=len(agents),
-        infinite_mode=False,
-        is_dynamic=False,
-    )
-    test_id = test_result.id
-
-    # 2. Create test_invocation + trace + run binding per agent
     invocations: dict[UUID, UUID] = {}
 
-    for agent_config in agents:
-        invocation_call = await create_call(
-            conn, redis,
-            run_id=run_id,
-            session_id=run.session_id,
-        )
+    # Atomic (S-B): the parent test_entry + every per-agent
+    # invocation/trace/run grandchild must commit together. A mid-loop
+    # failure (e.g. agent 3's trace/run insert) must not leave a committed
+    # test_entry with a partial invocation set — the FE surfaces this as a
+    # gradeable test whose /test/grade then errors on the missing rows.
+    # Mirrors test_start_impl's #353 txn. All writes are DB-only (the
+    # create_* helpers' redis write-backs are local cache pushes, no
+    # network/LLM call sits inside this scope), so one transaction is
+    # correct; the inner create_* compose as savepoints.
+    async with conn.transaction():
+        test_call = await create_call(conn, redis, run_id=run_id, session_id=run.session_id)
 
-        # Invocation level: agent identity + rubric + invocation-bundle
-        inv_result = await create_test_invocation(
+        # 1. Create the test entry (is_dynamic=False — skip LLM re-run, grade
+        #    existing agent output directly via /test/generate's static branch).
+        test_result = await create_test(
             conn, redis,
-            test_id=test_id,
-            call_id=invocation_call.id,
-            agent_ids=[agent_config.agent_id],
-            rubric_ids=[agent_config.rubric_id],
-            department_ids=agent_config.department_ids,
-            voice_ids=agent_config.voice_ids,
-            reasoning_level_ids=agent_config.reasoning_level_ids,
-            temperature_level_ids=agent_config.temperature_level_ids,
-            quality_ids=agent_config.quality_ids,
-            modality_ids=agent_config.modality_ids,
+            call_id=test_call.id,
+            profiles_id=profile_id,
+            name="generation_resolution",
+            num_invocations=len(agents),
+            infinite_mode=False,
+            is_dynamic=False,
         )
-        test_invocation_id = inv_result.id
+        test_id = test_result.id
 
-        # Trace: the conversation/bundle context. run_id points at the
-        # live run (this is the run we're attaching for grading; no
-        # historical replay needed when is_dynamic=False).
-        trace_result = await create_test_invocation_traces(
-            conn, redis,
-            test_invocation_id=test_invocation_id,
-            run_id=run_id,
-            prompt_ids=agent_config.prompt_ids,
-            instruction_ids=agent_config.instruction_ids,
-            tool_ids=agent_config.tool_ids,
-            voice_ids=agent_config.voice_ids,
-            quality_ids=agent_config.quality_ids,
-            reasoning_level_ids=agent_config.reasoning_level_ids,
-            temperature_level_ids=agent_config.temperature_level_ids,
-            modality_ids=agent_config.modality_ids,
-        )
+        # 2. Create test_invocation + trace + run binding per agent
+        for agent_config in agents:
+            invocation_call = await create_call(
+                conn, redis,
+                run_id=run_id,
+                session_id=run.session_id,
+            )
 
-        # Run binding: links the trace + invocation to the live run.
-        # Same run_id throughout (online eval = no replay).
-        await create_test_invocation_runs(
-            conn, redis,
-            test_invocation_id=test_invocation_id,
-            test_invocation_traces_id=trace_result.id,
-            run_id=run_id,
-        )
+            # Invocation level: agent identity + rubric + invocation-bundle
+            inv_result = await create_test_invocation(
+                conn, redis,
+                test_id=test_id,
+                call_id=invocation_call.id,
+                agent_ids=[agent_config.agent_id],
+                rubric_ids=[agent_config.rubric_id],
+                department_ids=agent_config.department_ids,
+                voice_ids=agent_config.voice_ids,
+                reasoning_level_ids=agent_config.reasoning_level_ids,
+                temperature_level_ids=agent_config.temperature_level_ids,
+                quality_ids=agent_config.quality_ids,
+                modality_ids=agent_config.modality_ids,
+            )
+            test_invocation_id = inv_result.id
 
-        invocations[agent_config.agent_id] = test_invocation_id
+            # Trace: the conversation/bundle context. run_id points at the
+            # live run (this is the run we're attaching for grading; no
+            # historical replay needed when is_dynamic=False).
+            trace_result = await create_test_invocation_traces(
+                conn, redis,
+                test_invocation_id=test_invocation_id,
+                run_id=run_id,
+                prompt_ids=agent_config.prompt_ids,
+                instruction_ids=agent_config.instruction_ids,
+                tool_ids=agent_config.tool_ids,
+                voice_ids=agent_config.voice_ids,
+                quality_ids=agent_config.quality_ids,
+                reasoning_level_ids=agent_config.reasoning_level_ids,
+                temperature_level_ids=agent_config.temperature_level_ids,
+                modality_ids=agent_config.modality_ids,
+            )
+
+            # Run binding: links the trace + invocation to the live run.
+            # Same run_id throughout (online eval = no replay).
+            await create_test_invocation_runs(
+                conn, redis,
+                test_invocation_id=test_invocation_id,
+                test_invocation_traces_id=trace_result.id,
+                run_id=run_id,
+            )
+
+            invocations[agent_config.agent_id] = test_invocation_id
 
     return GenerationTestResult(test_id=test_id, invocations=invocations)
