@@ -24,10 +24,15 @@ async def setting_drafts(sid: str, data: dict[str, Any]) -> None:
         operation="drafts",
         profile_id=identity.profile_id,
         sid=sid,
+        # D1: setting drafts have no profiles-connection backstop, so the only
+        # ownership scope is the session. Forward the caller's session_id so the
+        # fail-closed search clamps to THIS socket's drafts (the HTTP twin
+        # already passes session_id). Without it the search returns nothing.
         runner=lambda: list_setting_drafts_impl(
             pool,
             redis,
             profile_id=identity.profile_id,
+            session_id=identity.session_id,
         ),
         arguments={},
     )
