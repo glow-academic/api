@@ -312,3 +312,16 @@ def test_chat_feedback_request_caps_feedbacks():
     one = ChatFeedbackItem(feedback="f")
     with pytest.raises(ValidationError):
         ChatFeedbackRequest(chat_id=chat_id, feedbacks=[one] * (MAX_BULK_ITEMS + 1))
+
+
+def test_chat_hints_request_caps_hints():
+    """I1: the 5th C4-C sibling — chat_hints' array was the one left unbounded.
+    A normal-sized payload still validates; oversized is rejected."""
+    from app.routes.attempt.chat_hints import ChatHintItem, ChatHintsRequest
+
+    chat_id = __import__("uuid").uuid4()
+    one = ChatHintItem(hint="h")
+    with pytest.raises(ValidationError):
+        ChatHintsRequest(chat_id=chat_id, hints=[one] * (MAX_BULK_ITEMS + 1))
+    ok = ChatHintsRequest(chat_id=chat_id, hints=[one] * 3)
+    assert len(ok.hints) == 3
