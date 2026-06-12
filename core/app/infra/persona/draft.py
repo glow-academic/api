@@ -400,7 +400,29 @@ async def patch_persona_draft_impl(
         target_id = entry.artifact_id
 
         if accept:
+            # Fail-closed ownership guard on the promote path, mirroring
+            # scenario/draft.py: a holder of the draft permission who learns
+            # another user's draft_id must not be able to promote it.
+            # Super-admin (role_level==0) bypasses inside enforce_draft_owner.
+            ack_profile = await resolve_profile_identity_context(
+                pool, profile_id, redis, session_id=session_id,
+            )
+            if ack_profile is None:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Profile not found. Please sign in again.",
+                )
             async with pool.acquire() as conn:
+                await enforce_draft_owner(
+                    conn,
+                    redis,
+                    draft_id=target_id,
+                    getter=get_persona_drafts,
+                    caller_session_id=session_id,
+                    caller_profile_id=ack_profile.profiles_id,
+                    role_level=ack_profile.role_level,
+                    artifact=ARTIFACT,
+                )
                 # active=None so we find the dormant draft (active=false)
                 # we're about to promote.
                 drafts = await get_persona_drafts(conn, [target_id], redis, active=None)
