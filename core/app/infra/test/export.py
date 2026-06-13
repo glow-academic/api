@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from uuid import UUID
@@ -47,6 +46,7 @@ from app.tools.entries.test_invocation_traces.search import (
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.names.get import get_names
 from app.tools.resources.voices.get import get_voices
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -355,7 +355,7 @@ async def _export_single_test_bytes(
     voice_map: dict[UUID, str] = {v.id: v.voice for v in voices_data}
 
     test_output = io.StringIO()
-    test_writer = csv.writer(test_output)
+    test_writer = FormulaSafeWriter(test_output)
     test_writer.writerow(TEST_CSV_COLUMNS)
     for t in tests:
         departments_str = PIPE.join(
@@ -378,7 +378,7 @@ async def _export_single_test_bytes(
         )
 
     inv_output = io.StringIO()
-    inv_writer = csv.writer(inv_output)
+    inv_writer = FormulaSafeWriter(inv_output)
     inv_writer.writerow(INVOCATION_CSV_COLUMNS)
     for inv in invocations:
         agents_str = PIPE.join(
@@ -414,7 +414,7 @@ async def _export_single_test_bytes(
         )
 
     run_output = io.StringIO()
-    run_writer = csv.writer(run_output)
+    run_writer = FormulaSafeWriter(run_output)
     run_writer.writerow(RUN_CSV_COLUMNS)
     for r in runs:
         # Agents come from the parent invocation; the config bundle comes from

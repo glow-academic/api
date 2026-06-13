@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 from datetime import datetime
 from uuid import UUID
@@ -29,6 +28,7 @@ from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.fields.get import get_fields
 from app.tools.resources.names.get import get_names
 from app.tools.resources.parameter_fields.get import get_parameter_fields
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -175,7 +175,7 @@ async def export_document_impl(
     # ── Step 5: Generate CSV + upload ──────────────────────────────────
 
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = FormulaSafeWriter(output)
     writer.writerow(CSV_COLUMNS)
 
     for a in artifacts:

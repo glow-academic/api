@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 from datetime import datetime
 from uuid import UUID
@@ -37,6 +36,7 @@ from app.tools.resources.personas.get import get_personas
 from app.tools.resources.problem_statements.get import get_problem_statements
 from app.tools.resources.questions.get import get_questions
 from app.tools.resources.videos.get import get_videos
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -284,7 +284,7 @@ async def export_scenario_impl(
 
     with timed("render"):
      output = io.StringIO()
-     writer = csv.writer(output)
+     writer = FormulaSafeWriter(output)
      writer.writerow(CSV_COLUMNS)
 
      for a in artifacts:

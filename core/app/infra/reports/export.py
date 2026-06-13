@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -43,6 +42,7 @@ from app.tools.entries.test_invocation_traces.types import (
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.names.get import get_names
 from app.tools.resources.voices.get import get_voices
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -106,7 +106,7 @@ def _build_invocations_csv(
     voice_map: dict[UUID, str],
 ) -> str:
     inv_output = io.StringIO()
-    inv_writer = csv.writer(inv_output)
+    inv_writer = FormulaSafeWriter(inv_output)
     inv_writer.writerow(INVOCATION_CSV_COLUMNS)
 
     for inv in invocations:
@@ -140,7 +140,7 @@ def _build_groups_csv(
     voice_map: dict[UUID, str],
 ) -> str:
     grp_output = io.StringIO()
-    grp_writer = csv.writer(grp_output)
+    grp_writer = FormulaSafeWriter(grp_output)
     grp_writer.writerow(GROUP_CSV_COLUMNS)
 
     for g in groups:
@@ -172,7 +172,7 @@ def _build_runs_csv(
     voice_map: dict[UUID, str],
 ) -> str:
     run_output = io.StringIO()
-    run_writer = csv.writer(run_output)
+    run_writer = FormulaSafeWriter(run_output)
     run_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:
@@ -213,7 +213,7 @@ def _build_brightspace_csv(
 ) -> str:
     """Build the Brightspace gradebook CSV — one row per graded invocation."""
     bs_output = io.StringIO()
-    bs_writer = csv.writer(bs_output)
+    bs_writer = FormulaSafeWriter(bs_output)
     bs_writer.writerow(BRIGHTSPACE_CSV_COLUMNS)
 
     for inv in invocations:

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -30,6 +29,7 @@ from app.tools.entries.test_invocation.search import (
 )
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.profiles.get import get_profiles
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -156,7 +156,7 @@ async def export_benchmark_impl(
     with timed("csv_build"):
      # benchmarks.csv
      bench_output = io.StringIO()
-    bench_writer = csv.writer(bench_output)
+    bench_writer = FormulaSafeWriter(bench_output)
     bench_writer.writerow(BENCHMARK_CSV_COLUMNS)
 
     for b in benchmarks:
@@ -184,7 +184,7 @@ async def export_benchmark_impl(
 
     # test_invocations.csv
     inv_output = io.StringIO()
-    inv_writer = csv.writer(inv_output)
+    inv_writer = FormulaSafeWriter(inv_output)
     inv_writer.writerow(INVOCATION_CSV_COLUMNS)
 
     for inv in invocations:

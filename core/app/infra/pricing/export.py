@@ -12,7 +12,6 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -26,6 +25,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.groups.get import get_groups
 from app.tools.entries.runs.search import search_runs
 from app.tools.resources.names.get import get_names
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -109,7 +109,7 @@ async def export_pricing_impl(
     # -- Step 5: Generate ZIP (runs.csv) + upload --
 
     runs_output = io.StringIO()
-    runs_writer = csv.writer(runs_output)
+    runs_writer = FormulaSafeWriter(runs_output)
     runs_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:

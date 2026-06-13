@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -23,6 +22,7 @@ from redis.asyncio import Redis
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.health.search import search_health
 from app.tools.entries.metrics.search import search_metrics
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 HEALTH_CSV_COLUMNS = [
     "date_hour",
@@ -115,7 +115,7 @@ async def export_health_impl(
 
     # Generate health CSV
     health_output = io.StringIO()
-    health_writer = csv.writer(health_output)
+    health_writer = FormulaSafeWriter(health_output)
     health_writer.writerow(HEALTH_CSV_COLUMNS)
 
     for h in health_entries:
@@ -137,7 +137,7 @@ async def export_health_impl(
 
     # Generate metrics CSV
     metrics_output = io.StringIO()
-    metrics_writer = csv.writer(metrics_output)
+    metrics_writer = FormulaSafeWriter(metrics_output)
     metrics_writer.writerow(METRICS_CSV_COLUMNS)
 
     for m in metrics_entries:

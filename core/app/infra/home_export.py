@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import os
 import subprocess
@@ -38,6 +37,7 @@ from app.tools.resources.personas.get import get_personas
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.scenarios.get import get_scenarios
 from app.tools.resources.simulations.get import get_simulations
+from app.utils.csv.formula_safe import FormulaSafeWriter
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -497,7 +497,7 @@ def _build_attempts_csv_bytes(
 ) -> bytes:
     """Generate attempts.csv bytes from prefetched attempts + resource maps."""
     attempts_output = io.StringIO()
-    attempts_writer = csv.writer(attempts_output)
+    attempts_writer = FormulaSafeWriter(attempts_output)
     attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
 
     for a in attempts:

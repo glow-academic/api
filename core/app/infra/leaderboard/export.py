@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -31,6 +30,7 @@ from app.tools.resources.personas.get import get_personas
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.scenarios.get import get_scenarios
 from app.tools.resources.simulations.get import get_simulations
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -206,7 +206,7 @@ async def export_leaderboard_impl(
 
     # Generate attempts CSV
     attempts_output = io.StringIO()
-    attempts_writer = csv.writer(attempts_output)
+    attempts_writer = FormulaSafeWriter(attempts_output)
     attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
 
     for a in attempts:
@@ -233,7 +233,7 @@ async def export_leaderboard_impl(
 
     # Generate chats CSV
     chats_output = io.StringIO()
-    chats_writer = csv.writer(chats_output)
+    chats_writer = FormulaSafeWriter(chats_output)
     chats_writer.writerow(CHAT_CSV_COLUMNS)
 
     for c in chats:

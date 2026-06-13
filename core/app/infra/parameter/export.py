@@ -11,7 +11,6 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import asyncio
-import csv
 import io
 import os
 import uuid as uuid_mod
@@ -21,24 +20,24 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
-from app.infra.globals import UPLOAD_FOLDER
-
-from app.infra.profile_identity_context import resolve_profile_identity_context
-from app.infra.server_timing import timed
-from app.tools.entries.file_uploads.create import create_file_upload
-from app.tools.entries.files.create import create_file as create_file_entry
-from app.infra.refresh.queue import enqueue_refreshes
-from app.tools.entries.uploads.create import create_upload
-from app.tools.resources.files.create import create_file as create_file_resource
 from app.infra.activate.activate import activate_rows
-from app.tools.entries.soft_calls.create import create_soft_call
-from app.tools.entries.soft_calls.get import get_soft_call
+from app.infra.globals import UPLOAD_FOLDER
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.refresh.queue import enqueue_refreshes
+from app.infra.server_timing import timed
 from app.tools.artifacts.parameter.get import get_parameters
 from app.tools.artifacts.parameter.search import search_parameters
+from app.tools.entries.file_uploads.create import create_file_upload
+from app.tools.entries.files.create import create_file as create_file_entry
+from app.tools.entries.soft_calls.create import create_soft_call
+from app.tools.entries.soft_calls.get import get_soft_call
+from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.departments.get import get_departments
 from app.tools.resources.descriptions.get import get_descriptions
 from app.tools.resources.fields.get import get_fields
+from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.resources.names.get import get_names
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -210,7 +209,7 @@ async def export_parameter_impl(
 
     with timed("build_csv"):
      output = io.StringIO()
-     writer = csv.writer(output)
+     writer = FormulaSafeWriter(output)
      writer.writerow(CSV_COLUMNS)
 
      for a in artifacts:
