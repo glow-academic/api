@@ -54,6 +54,7 @@ async def export_chat_impl(
     group_id: UUID,
     attempt_id: UUID | None = None,
     draft_id: UUID | None = None,
+    session_id: UUID | None = None,
 ) -> dict:
     """Chat single-item export using composable infra functions.
 
@@ -70,7 +71,9 @@ async def export_chat_impl(
     # ── Step 1: Profile context ────────────────────────────────────────
 
     with timed("profile"):
-        profile = await resolve_profile_identity_context(pool, profile_id, redis)
+        profile = await resolve_profile_identity_context(
+            pool, profile_id, redis, session_id=session_id
+        )
 
     if profile is None:
         raise HTTPException(
@@ -79,13 +82,16 @@ async def export_chat_impl(
         )
 
     # ── Step 2: Resolve chat context (draft-only) ──────────────────────
-
+    # Thread the caller's identity (``profile`` carries session_id +
+    # profiles_id + role_level) so resolve_chat_context can owner-gate the
+    # per-user-private chat authoring draft before hydrating/exporting it.
     with timed("chat_ctx"):
         ctx = await resolve_chat_context(
             pool,
             redis,
             group_id=group_id,
             draft_id=draft_id,
+            profile=profile,
         )
 
     # ── Step 3: Flatten selected resources into CSV row ─────────────────

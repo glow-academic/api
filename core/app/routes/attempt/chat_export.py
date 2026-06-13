@@ -69,6 +69,7 @@ async def chat_export(
                 group_id=group_id,
                 attempt_id=body.attempt_id,
                 draft_id=body.draft_id,
+                session_id=cast(UUID, session_id),
             )
 
         return await run_artifact_operation_with_audit(
