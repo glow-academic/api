@@ -217,6 +217,8 @@ def _wire_resolve_profile(monkeypatch, actor):
         "app.infra.test.invocation.complete",
         "app.infra.test.title",
         "app.infra.invocation.create",
+        "app.infra.test.generate",
+        "app.infra.test.watch",
     ):
         m = importlib.import_module(mod_name)
         if hasattr(m, "resolve_profile_identity_context"):
@@ -1444,6 +1446,196 @@ async def test_invocation_create_allows_superadmin_global(monkeypatch):
 
 
 # =============================================================================
+# G2 — /test/generate (client-supplied group_id-keyed LLM generation). The
+# guardrail-MISSED op: holding ``test:generate`` is a role check, NOT ownership.
+# A deny must raise 403 BEFORE prepare_generation runs — so no run/call is
+# minted in the victim's group and no provider cost is burned.
+# =============================================================================
+
+
+def _wire_generate(monkeypatch):
+    import app.infra.test.generate as mod
+
+    prepared: list = []
+
+    async def fake_prepare(*a, **k):
+        prepared.append(k.get("group_id"))
+
+        class _P:
+            run_id = uuid4()
+            dispatches = []
+            resource_types = []
+        return _P()
+
+    async def fake_run(*a, **k):
+        class _R:
+            produced_media = []
+        return _R()
+
+    async def fake_socket_owner(*a, **k):
+        return "sid-1"
+
+    # ``has_permission`` is the ONLY pre-existing gate — let it pass so the test
+    # exercises the NEW ownership gate, not the role check.
+    monkeypatch.setattr(mod, "has_permission", lambda *a, **k: True)
+    monkeypatch.setattr(mod, "prepare_generation", fake_prepare)
+    monkeypatch.setattr(mod, "run_generation_with_refresh", fake_run)
+    monkeypatch.setattr(
+        "app.infra.websocket.get_socket_owner.get_socket_owner", fake_socket_owner,
+    )
+    # REGISTRY.get("test") returns the real test config on the allow path; the
+    # deny path raises before it is consulted. No patch needed.
+    return prepared
+
+
+def _profile_with_profiles(profiles_id, role, role_level):
+    # generate's kicker path reads profile.profiles_id; ``_profile`` already
+    # populates it (frozen dataclass), so this is just a clarity alias.
+    return _profile(profiles_id, role, role_level)
+
+
+async def _run_generate(group_id, actor_id, actor):
+    from app.infra.test.generate import generate_test_impl
+
+    return await generate_test_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        group_id=group_id, sid="sid-1", wait_for_complete=True,
+    )
+
+
+async def test_generate_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    actor = _profile_with_profiles(attacker, "member", 1)
+    _wire_resolve_profile(monkeypatch, actor)
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=True)
+    prepared = _wire_generate(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_generate(uuid4(), attacker, actor)
+    assert exc.value.status_code == 403
+    assert prepared == []  # no generation prepared → no run/call, no provider cost
+
+
+async def test_generate_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    actor = _profile_with_profiles(instructor, "instructional", 2)
+    _wire_resolve_profile(monkeypatch, actor)
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    prepared = _wire_generate(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_generate(uuid4(), instructor, actor)
+    assert exc.value.status_code == 403
+    assert prepared == []
+
+
+async def test_generate_allows_owner(monkeypatch):
+    owner, gid = uuid4(), uuid4()
+    actor = _profile_with_profiles(owner, "member", 1)
+    _wire_resolve_profile(monkeypatch, actor)
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    prepared = _wire_generate(monkeypatch)
+    result = await _run_generate(gid, owner, actor)
+    assert result.group_id == str(gid)
+    assert prepared == [gid]  # the owner's group IS prepared
+
+
+async def test_generate_allows_superadmin_global(monkeypatch):
+    super_id, owner, gid = uuid4(), uuid4(), uuid4()
+    actor = _profile_with_profiles(super_id, "superadmin", 4)
+    _wire_resolve_profile(monkeypatch, actor)
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    prepared = _wire_generate(monkeypatch)
+    result = await _run_generate(gid, super_id, actor)
+    assert result.group_id == str(gid)
+    assert prepared == [gid]
+
+
+# =============================================================================
+# G3 — /test/watch (POST one-shot, group_id-keyed run read). watch_runs_impl's
+# profile_id was "checked at route" but never gated → read-side IDOR. A deny
+# must raise 403 BEFORE subscribing to the victim's run events (no watch).
+# =============================================================================
+
+
+def _wire_watch(monkeypatch):
+    import app.infra.test.watch as mod
+
+    watched: list[UUID] = []
+
+    async def fake_watch_runs(pool, redis, *, group_id, **k):
+        watched.append(group_id)
+        from app.infra._watch import WatchApiResponse
+
+        return WatchApiResponse(group_id=group_id, runs=[])
+
+    monkeypatch.setattr(mod, "watch_runs_impl", fake_watch_runs)
+    return watched
+
+
+async def _run_watch(group_id, actor_id):
+    from app.infra.test.watch import watch_test_impl
+
+    return await watch_test_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        group_id=group_id, wait_for_complete=False,
+    )
+
+
+async def test_watch_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    _wire_resolve_profile(monkeypatch, _profile(attacker, "member", 1))
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=True)
+    watched = _wire_watch(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(uuid4(), attacker)
+    assert exc.value.status_code == 403
+    assert watched == []  # never subscribed to the victim's run events
+
+
+async def test_watch_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    _wire_resolve_profile(monkeypatch, _profile(instructor, "instructional", 2))
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    watched = _wire_watch(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(uuid4(), instructor)
+    assert exc.value.status_code == 403
+    assert watched == []
+
+
+async def test_watch_fails_closed_on_unresolvable_group(monkeypatch):
+    actor = uuid4()
+    _wire_resolve_profile(monkeypatch, _profile(actor, "instructional", 2))
+    _wire_owner_resolution(monkeypatch, owner_profile_id=None, department_in_scope=True)
+    watched = _wire_watch(monkeypatch)
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(uuid4(), actor)
+    assert exc.value.status_code == 403
+    assert watched == []
+
+
+async def test_watch_allows_owner(monkeypatch):
+    owner, gid = uuid4(), uuid4()
+    _wire_resolve_profile(monkeypatch, _profile(owner, "member", 1))
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    watched = _wire_watch(monkeypatch)
+    result = await _run_watch(gid, owner)
+    assert result.group_id == gid
+    assert watched == [gid]  # the owner's run IS watched
+
+
+async def test_watch_allows_superadmin_global(monkeypatch):
+    super_id, owner, gid = uuid4(), uuid4(), uuid4()
+    _wire_resolve_profile(monkeypatch, _profile(super_id, "superadmin", 4))
+    _wire_owner_resolution(monkeypatch, owner_profile_id=owner, department_in_scope=False)
+    watched = _wire_watch(monkeypatch)
+    result = await _run_watch(gid, super_id)
+    assert result.group_id == gid
+    assert watched == [gid]
+
+
+# =============================================================================
 # GUARDRAIL — structural assertion that EVERY id-taking mutator in the
 # test/invocation class references an ``enforce_test_access_*`` (or attempt's
 # group gate, for the title delegate). This is the durable fix: a future op
@@ -1460,7 +1652,11 @@ async def test_invocation_create_allows_superadmin_global(monkeypatch):
 # =============================================================================
 
 
-# (module dotted-path, impl function name). Every entry must guard.
+# (module dotted-path, impl function name). Every entry must guard. These are
+# the impls behaviourally tested above (T1–T7, F1–F5) PLUS the two ops this PR
+# guarded (generate G2 / watch G3). The route-derived completeness test below
+# is the durable structural net; this list keeps the per-impl AST assertion for
+# the non-route (websocket) handlers and as belt-and-suspenders for the rest.
 _TEST_MUTATORS: list[tuple[str, str]] = [
     ("app.infra.test.grade", "create_grade_impl"),                       # T1
     ("app.infra.test.invocation.complete", "test_invocation_complete_internal_impl"),  # T2
@@ -1470,25 +1666,18 @@ _TEST_MUTATORS: list[tuple[str, str]] = [
     ("app.infra.test.feedback", "create_feedback_impl"),                 # T6
     ("app.infra.test.archive", "archive_test_impl"),                     # T7
     ("app.infra.test.stop", "test_stop_internal_impl"),                  # F1
-    ("app.infra.test.workflows", "test_next_impl"),                      # F2
+    ("app.infra.test.workflows", "test_next_impl"),                      # F2 (WS, no HTTP route)
     ("app.infra.test.title", "title_test_impl"),                         # F3
     ("app.infra.invocation.create", "create_invocation_impl"),           # F5
+    ("app.infra.test.generate", "generate_test_impl"),                   # G2
+    ("app.infra.test.watch", "watch_test_impl"),                         # G3
 ]
 
-# Ops deliberately NOT in the registry, each with the reason it needs no
-# test-ownership guard (terminate is route-level run-keyed; reads scope via the
-# caller's own group; etc.). Documented so reviewers can see what was excluded.
-_GUARD_EXEMPT: dict[str, str] = {
-    "app.infra.test.terminate": (
-        "invocation_terminate is guarded at the route (run-keyed via "
-        "enforce_test_access_by_run); no single impl module to register here."
-    ),
-}
-
-# The accepted guard markers — any reference to one of these names inside the
-# mutator's source (or its nested defs) satisfies the guardrail. title_test_impl
-# funnels through the attempt group gate via the test-subsystem wrapper, so the
-# test-specific helper is what we look for.
+# The accepted guard markers — any reference to one of these names inside a
+# mutator's source (or a guard-bearing impl it calls, or its own route handler)
+# satisfies the guardrail. title_test_impl funnels through the attempt group
+# gate via the test-subsystem wrapper, so the test-specific helper is what we
+# look for.
 _GUARD_MARKERS = {
     "enforce_test_access_by_invocation",
     "enforce_test_access_by_run",
@@ -1497,26 +1686,87 @@ _GUARD_MARKERS = {
     "enforce_test_access_by_group",
 }
 
+# =============================================================================
+# ROUTE-DERIVED COMPLETENESS (G4). The previous meta-test only flagged modules
+# that ALREADY contained a guard marker — so a brand-new UNGUARDED op (exactly
+# how generate/G2 + watch/G3 slipped through) was invisible. The durable fix:
+# enumerate the actual REGISTERED ROUTES (test/invocation/watch surface), and
+# assert each one is either guarded (the route handler, or any infra impl it
+# calls, references an enforce_test_access_* guard) OR explicitly exempted with
+# a reason. A new route with neither FAILS — the guard can no longer be skipped
+# silently.
+#
+# Keyed by (METHOD, PATH). Every route on the test router must appear as either
+# guarded-at-runtime (verified structurally) or here, WITH A REASON reviewed in
+# the diff. Reads scope through ``group_test_impl`` (the caller's own
+# time-windowed group) so they need no child-id ownership gate; creation/start
+# take no foreign id; download/draft/decrypt carry their own owner gates.
+# =============================================================================
 
-def _function_references_guard(module_name: str, func_name: str) -> bool:
-    """Parse the module's source and return True iff the named function (or any
-    function nested inside it) references one of the guard markers by name."""
+_INFRA_GUARD_PREFIXES = ("app.infra.test.", "app.infra.invocation.")
+
+_ROUTE_GUARD_EXEMPT: dict[tuple[str, str], str] = {
+    # ── Reads / refresh: scoped to the caller's OWN group via group_test_impl
+    # (the caller's time-windowed group window) — no caller-supplied child id
+    # trusted, so no test-ownership gate needed.
+    ("POST", "/test/get"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/search"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/invocations"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/invocation_get"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/generations"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/context"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/group"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/benchmark"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/drafts"): "read — group_test_impl scopes to caller's own group",
+    ("POST", "/test/refresh"): "cache refresh — group_test_impl scopes to caller's own group",
+    ("POST", "/test/export"): "read/export — group_test_impl scopes to caller's own group",
+    ("POST", "/test/problem"): "problem report — group_test_impl scopes to caller's own group",
+    # ── Creation: no foreign id is trusted (a new test is minted for the caller).
+    ("POST", "/test/start"): "creation — mints a new test for the caller; no foreign id consumed",
+    # ── Downloads / draft / decrypt: carry their OWN ownership/permission gate
+    # (a different guard family than enforce_test_access_*), verified in their
+    # own suites — not the test-ownership chain.
+    ("POST", "/test/file_download"): "guarded by enforce_upload_owner (upload-owner family) + test:file_download",
+    ("POST", "/test/call_download"): "media download — gated by has_permission(test:call_download) + call-belongs check",
+    ("POST", "/test/text_download"): "media download — gated by has_permission(test:text_download) + run-belongs check",
+    ("POST", "/test/draft"): "guarded by enforce_draft_owner (draft-owner family) + test:invocation_draft",
+    ("POST", "/test/decrypt"): "guarded by has_permission(test:invocation_draft) + key-belongs-to-invocation (#268/#270)",
+    # ── GET /test/watch: the shared browser-SSE stream sibling of POST /watch.
+    # build_artifact_stream_impl is the artifact-agnostic EventSource feed; its
+    # group scoping is a separate, pre-existing shared concern (out of scope of
+    # the G3 one-shot fix). Documented so this stays visible for a later sweep.
+    ("GET", "/test/watch"): (
+        "shared browser-SSE stream (build_artifact_stream_impl); group scoping is "
+        "a pre-existing cross-artifact concern, separate from the POST /watch (G3) fix"
+    ),
+}
+
+
+def _module_func_node(module_name: str, func_name: str):
+    """Return the AST node for ``func_name`` defined at top level of
+    ``module_name`` (or None)."""
     import ast
     import importlib
+    import inspect
 
     mod = importlib.import_module(module_name)
-    src = __import__("inspect").getsource(mod)
-    tree = ast.parse(src)
-
-    target = None
+    tree = ast.parse(inspect.getsource(mod))
     for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == func_name:
-            target = node
-            break
-    if target is None:
-        return False
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == func_name
+        ):
+            return node
+    return None
 
-    for sub in ast.walk(target):
+
+def _node_references_guard(node) -> bool:
+    """True iff ``node`` (and anything nested in it) names a guard marker."""
+    import ast
+
+    if node is None:
+        return False
+    for sub in ast.walk(node):
         if isinstance(sub, ast.Name) and sub.id in _GUARD_MARKERS:
             return True
         if isinstance(sub, ast.Attribute) and sub.attr in _GUARD_MARKERS:
@@ -1524,53 +1774,153 @@ def _function_references_guard(module_name: str, func_name: str) -> bool:
     return False
 
 
+def _function_references_guard(module_name: str, func_name: str) -> bool:
+    """Parse the module's source and return True iff the named function (or any
+    function nested inside it) references one of the guard markers by name."""
+    return _node_references_guard(_module_func_node(module_name, func_name))
+
+
+def _build_impl_location_index() -> dict[str, str]:
+    """Map every ``*_impl`` function name → its dotted module path, scanning the
+    test + invocation infra packages. Used to follow a route handler's calls
+    into the impl that actually performs (and guards) the write."""
+    import ast
+    import importlib
+    import pathlib
+
+    index: dict[str, str] = {}
+    for pkg in ("app.infra.test", "app.infra.invocation"):
+        base = importlib.import_module(pkg)
+        root = pathlib.Path(base.__file__).parent
+        for py in sorted(root.rglob("*.py")):
+            rel = py.relative_to(root).with_suffix("")
+            parts = [p for p in rel.parts if p != "__init__"]
+            dotted = pkg + ("." + ".".join(parts) if parts else "")
+            try:
+                tree = ast.parse(py.read_text())
+            except (SyntaxError, UnicodeDecodeError):
+                continue
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and node.name.endswith("_impl")
+                ):
+                    index.setdefault(node.name, dotted)
+    return index
+
+
+def _called_impl_names(node) -> set[str]:
+    """All ``*_impl`` callee names referenced inside ``node``."""
+    import ast
+
+    names: set[str] = set()
+    if node is None:
+        return names
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Call):
+            f = sub.func
+            if isinstance(f, ast.Name) and f.id.endswith("_impl"):
+                names.add(f.id)
+            elif isinstance(f, ast.Attribute) and f.attr.endswith("_impl"):
+                names.add(f.attr)
+    return names
+
+
+def _route_is_guarded(endpoint_module: str, endpoint_name: str, impl_index: dict[str, str]) -> bool:
+    """A route is guarded if its handler — or any test/invocation infra impl the
+    handler calls — references an ``enforce_test_access_*`` marker."""
+    handler_node = _module_func_node(endpoint_module, endpoint_name)
+    if _node_references_guard(handler_node):
+        return True  # route-level guard (e.g. /test/invocation_terminate)
+    for impl_name in _called_impl_names(handler_node):
+        loc = impl_index.get(impl_name)
+        if loc and loc.startswith(_INFRA_GUARD_PREFIXES):
+            if _function_references_guard(loc, impl_name):
+                return True
+    return False
+
+
+def _test_router_routes() -> list[tuple[str, str, str, str]]:
+    """(method, path, endpoint_module, endpoint_name) for each registered route
+    on the test router (the SOURCE OF TRUTH — actual endpoints, not a list)."""
+    from app.routes.test import router
+
+    out: list[tuple[str, str, str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for r in router.routes:
+        ep = getattr(r, "endpoint", None)
+        if ep is None:
+            continue
+        for method in sorted(r.methods or []):
+            if method in {"HEAD", "OPTIONS"}:
+                continue
+            key = (method, r.path)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append((method, r.path, ep.__module__, ep.__name__))
+    return out
+
+
 @pytest.mark.parametrize("module_name,func_name", _TEST_MUTATORS)
 def test_every_test_mutator_references_a_guard(module_name, func_name):
     """Structural guardrail: each registered test/invocation mutator must
     reference an ``enforce_test_access_*`` guard in its source. Fails loudly if
     a new mutator is added to the registry without a guard (the lesson from
-    #372 missing stop/next/title)."""
+    #372 missing stop/next/title, and #374 missing generate/watch)."""
     assert _function_references_guard(module_name, func_name), (
         f"{module_name}.{func_name} is a test/invocation mutator but does NOT "
         f"reference any of {sorted(_GUARD_MARKERS)} — add the appropriate "
         f"enforce_test_access_* guard (mirror the attempt subsystem), or, if it "
-        f"is genuinely exempt, document it in _GUARD_EXEMPT with a reason."
+        f"is genuinely exempt, document it in _ROUTE_GUARD_EXEMPT with a reason."
     )
 
 
-def test_guardrail_registry_is_complete():
-    """Meta-guard: every test-mutator impl module on disk is either registered
-    in ``_TEST_MUTATORS`` or explicitly exempted in ``_GUARD_EXEMPT`` — so a
-    NEW mutator module can't be added without one of the two lists noticing.
+def test_every_test_route_is_guarded_or_exempt():
+    """ROUTE-DERIVED completeness (G4). Enumerate every registered route on the
+    test/invocation/watch surface and assert each is either guarded (handler or
+    an infra impl it calls references ``enforce_test_access_*``) or explicitly
+    exempted in ``_ROUTE_GUARD_EXEMPT`` with a reason.
 
-    Heuristic: scan ``app/infra/test/`` (+ invocation/create) for impl modules
-    whose source already references a guard marker OR a known mutation verb;
-    each such module must appear in one of the two registries. This keeps the
-    registry honest without enumerating every read module."""
-    import pathlib
-
-    import app.infra.test as test_pkg
-
-    registered = {m for m, _ in _TEST_MUTATORS}
-    test_dir = pathlib.Path(test_pkg.__file__).parent
-
+    This is the durable net the prior marker-presence scan lacked: a NEW route
+    with no guard AND no exemption fails here — it cannot be silently
+    unguarded. (Proven non-vacuous by the sibling tests that remove the guard
+    from generate/watch/next and watch this fire.)"""
+    impl_index = _build_impl_location_index()
     offenders: list[str] = []
-    for py in sorted(test_dir.rglob("*.py")):
-        text = py.read_text()
-        # A module is "mutator-like" if it already wires a guard marker.
-        if not any(marker in text for marker in _GUARD_MARKERS):
+    for method, path, ep_mod, ep_name in _test_router_routes():
+        if (method, path) in _ROUTE_GUARD_EXEMPT:
             continue
-        # Derive dotted module name under app.infra.test.
-        rel = py.relative_to(test_dir).with_suffix("")
-        dotted = "app.infra.test." + ".".join(rel.parts)
-        if dotted == "app.infra.test.permissions":
-            continue  # the helper definitions themselves, not a mutator
-        if dotted in registered or dotted in _GUARD_EXEMPT:
+        if _route_is_guarded(ep_mod, ep_name, impl_index):
             continue
-        offenders.append(dotted)
+        offenders.append(f"{method} {path} ({ep_mod}.{ep_name})")
 
     assert not offenders, (
-        "These test modules reference an enforce_test_access_* guard but are "
-        f"neither in _TEST_MUTATORS nor _GUARD_EXEMPT: {offenders}. Register "
-        "the mutator (so its guard is asserted) or exempt it with a reason."
+        "These test-surface routes are owner-scoped/mutating but neither "
+        "reference an enforce_test_access_* guard (in the handler or an infra "
+        f"impl they call) nor appear in _ROUTE_GUARD_EXEMPT: {offenders}. Add "
+        "the appropriate enforce_test_access_* guard (mirror the attempt "
+        "subsystem), or, if the route is genuinely read-safe / creation-only / "
+        "guarded by another owner family, add it to _ROUTE_GUARD_EXEMPT with a "
+        "reason."
     )
+
+
+def test_route_guardrail_catches_a_newly_unguarded_route(monkeypatch):
+    """Non-vacuous proof the route-derived net actually fires. Simulate a NEW
+    owner-scoped route whose handler/impl has NO guard and is NOT exempt: the
+    completeness check must report it as an offender. (Guards the guardrail.)"""
+    real = _test_router_routes
+
+    def _with_phantom():
+        rows = real()
+        rows.append(("POST", "/test/__phantom_unguarded__", "app.infra.test.search", "search_test_impl"))
+        return rows
+
+    monkeypatch.setattr(
+        "tests.infra.test.test_test_mutation_authz_class._test_router_routes",
+        _with_phantom,
+    )
+    with pytest.raises(AssertionError) as exc:
+        test_every_test_route_is_guarded_or_exempt()
+    assert "__phantom_unguarded__" in str(exc.value)

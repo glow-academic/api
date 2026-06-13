@@ -18,6 +18,8 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra._watch import WatchApiResponse, watch_runs_impl
+from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.test.permissions import enforce_test_access_by_group
 
 
 async def watch_test_impl(
@@ -33,6 +35,19 @@ async def watch_test_impl(
     **_kwargs,
 ) -> WatchApiResponse:
     """Watch a test-scoped run in ``group_id``."""
+    # ── Ownership gate (G3) ──────────────────────────────────────────────
+    # ``group_id`` is caller-supplied; ``watch_runs_impl`` documents its
+    # ``profile_id`` as "checked at route", but the route does NOT gate it —
+    # so without this, any authenticated caller could watch another user's
+    # run completion + the media it produced (read-side IDOR). The test group
+    # is per-session-private, so resolve group → session → owner and apply the
+    # shared test gate before subscribing to the victim's run events.
+    requester = await resolve_profile_identity_context(
+        pool, profile_id, redis, session_id=session_id,
+    )
+    await enforce_test_access_by_group(
+        pool, redis, group_id=group_id, requester=requester,
+    )
     return await watch_runs_impl(
         pool,
         redis,
