@@ -390,6 +390,45 @@ async def test_next_impl(
         )
         return
 
+    # ── Owner/role/department scope (write-IDOR guard, F2) ─────────────────
+    # ``test.next`` advances another user's test execution purely by the
+    # caller-supplied ``test_id`` (leaking the foreign test's invocation/group
+    # ids into the caller's room and driving its next incomplete run). The #372
+    # class-fix never enumerated ``next``, so it slipped the sweep. Resolve the
+    # requester from the WS identity threaded in via ``data`` and gate on
+    # ``test_id → test.profile_id`` before any search/emit, mirroring the other
+    # test-id-keyed mutators (complete / archive). Fail-closed on an
+    # unresolvable requester.
+    from app.infra.profile_identity_context import resolve_profile_identity_context
+    from app.infra.test.permissions import enforce_test_access_by_test
+
+    requester = None
+    profile_id_val = data.get("profile_id")
+    if profile_id_val:
+        requester = await resolve_profile_identity_context(
+            pool, uuid.UUID(str(profile_id_val)), redis,
+        )
+    from fastapi import HTTPException
+
+    try:
+        await enforce_test_access_by_test(
+            pool, redis, test_id=test_id, requester=requester,
+        )
+    except HTTPException:
+        await emit(
+            [
+                client_event(
+                    "test.next.error",
+                    {
+                        "message": "You don't have access to this test.",
+                        "error_type": "forbidden",
+                    },
+                    room=sid,
+                )
+            ]
+        )
+        return
+
     try:
         with timed("fetch_runs"):
           async with pool.acquire() as conn:
