@@ -18,10 +18,12 @@ import asyncio
 from uuid import UUID
 
 import asyncpg
+from fastapi import HTTPException
 from redis.asyncio import Redis
 
 # Department resolution
 from app.infra.attempt.department import resolve_attempt_department
+from app.infra.drafts.ownership import enforce_draft_owner
 from app.infra.flag_icons import hydrate_flag_icons
 
 # Profile type
@@ -217,8 +219,31 @@ async def resolve_chat_context(
             )
 
     # ── Step 3: Fetch draft ───────────────────────────────────────────────────
+    # The chat authoring draft is per-user-PRIVATE (it carries session_id +
+    # profile_ids and its WRITE path is guarded by ``enforce_draft_owner`` —
+    # see infra/attempt/chat/draft.py). Unlike the ~18 org-SHARED catalog
+    # drafts (persona/scenario/model/…), a foreign chat draft_id must not be
+    # readable here. Gate the READ with the same fail-closed owner check so
+    # chat_get / chat_export only ever hydrate the caller's own draft. The
+    # caller's identity must be present to resolve a draft; absence fails
+    # closed (a draft_id with no identity cannot be owner-verified).
     if draft_id:
+        if profile is None:
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to read this chat draft.",
+            )
         async with pool.acquire() as conn:
+            await enforce_draft_owner(
+                conn,
+                redis,
+                draft_id=draft_id,
+                getter=get_chat_drafts,
+                caller_session_id=profile.session_id,
+                caller_profile_id=profile.profiles_id,
+                role_level=profile.role_level,
+                artifact="attempt",
+            )
             drafts = await get_chat_drafts(conn, [draft_id], redis)
     else:
         drafts = []

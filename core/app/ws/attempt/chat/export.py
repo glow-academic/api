@@ -57,6 +57,7 @@ async def attempt_chat_export(sid: str, data: dict[str, Any]) -> None:
             group_id=group_result.group_id,
             attempt_id=payload.attempt_id,
             draft_id=payload.draft_id,
+            session_id=identity.session_id,
         )
 
     await run_artifact_operation_with_audit(
