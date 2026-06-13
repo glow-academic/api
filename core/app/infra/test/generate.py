@@ -29,6 +29,7 @@ from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
+from app.infra.test.permissions import enforce_test_access_by_group
 from app.infra.test.trace_context import resolve_trace_context
 from app.infra.websocket.generation_types import (
     ArtifactGenerateResponse,
@@ -209,6 +210,18 @@ async def generate_test_impl(
                 sid=resolved_sid,
             )
 
+        # ── Ownership gate (G2) ──────────────────────────────────────────
+        # The group here is derived from a client-supplied trace_id (and, as a
+        # fallback, a client-supplied group_id) — NOT from the caller's own
+        # ``resolve_group_impl`` window. Without this, any holder of
+        # ``test:generate`` could drive LLM generation (burning provider cost)
+        # into another user's private test group via a foreign trace. Resolve
+        # group → session → owner and apply the shared test gate. Mirrors the
+        # test.next/test.stop ownership fixes.
+        await enforce_test_access_by_group(
+            pool, redis, group_id=resolved_group_id, requester=profile,
+        )
+
         # is_dynamic=False → skip the LLM call. The model output we'll bind
         # via /test/run is the historical run's existing assistant turn.
         if not is_dynamic:
@@ -248,6 +261,19 @@ async def generate_test_impl(
             include_history=False,
         )
         group_id_str = str(group_result.group_id)
+    else:
+        # ── Ownership gate (G2) ──────────────────────────────────────────
+        # A client-supplied group_id bypasses ``resolve_group_impl`` (the
+        # caller's-own-group window). Without this, any holder of
+        # ``test:generate`` could drive LLM generation into another user's
+        # private test group, minting runs/calls there and burning provider
+        # cost on the victim. Resolve group → session → owner and apply the
+        # shared test gate. (When group_id is derived above it is already the
+        # caller's own group, so no gate is needed on that branch.)
+        await enforce_test_access_by_group(
+            pool, redis,
+            group_id=UUID(str(group_id_str)), requester=profile,
+        )
 
     config = REGISTRY.get(ARTIFACT_TYPE)
     if not config:
