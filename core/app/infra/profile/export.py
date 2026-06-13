@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 from datetime import datetime
 from uuid import UUID
@@ -28,6 +27,7 @@ from app.tools.resources.departments.get import get_departments
 from app.tools.resources.emails.get import get_emails
 from app.tools.resources.names.get import get_names
 from app.tools.resources.roles.get import get_roles
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -157,7 +157,7 @@ async def export_profile_impl(
 
     with timed("build"):
       output = io.StringIO()
-      writer = csv.writer(output)
+      writer = FormulaSafeWriter(output)
       writer.writerow(CSV_COLUMNS)
 
       for a in artifacts:

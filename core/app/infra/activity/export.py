@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -27,6 +26,7 @@ from app.tools.entries.grants.search import search_grants
 from app.tools.entries.logins.search import search_logins
 from app.tools.entries.problems.search import search_problems
 from app.tools.resources.profiles.get import get_profiles
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -200,7 +200,7 @@ async def export_activity_impl(
 
     # Generate activity CSV
     activity_output = io.StringIO()
-    activity_writer = csv.writer(activity_output)
+    activity_writer = FormulaSafeWriter(activity_output)
     activity_writer.writerow(ACTIVITY_CSV_COLUMNS)
 
     for a in activity_entries:
@@ -218,7 +218,7 @@ async def export_activity_impl(
 
     # Generate logins CSV
     logins_output = io.StringIO()
-    logins_writer = csv.writer(logins_output)
+    logins_writer = FormulaSafeWriter(logins_output)
     logins_writer.writerow(LOGINS_CSV_COLUMNS)
 
     for lg in logins_entries:
@@ -236,7 +236,7 @@ async def export_activity_impl(
 
     # Generate problems CSV
     problems_output = io.StringIO()
-    problems_writer = csv.writer(problems_output)
+    problems_writer = FormulaSafeWriter(problems_output)
     problems_writer.writerow(PROBLEMS_CSV_COLUMNS)
 
     for p in problems_entries:
@@ -257,7 +257,7 @@ async def export_activity_impl(
 
     # Generate grants CSV
     grants_output = io.StringIO()
-    grants_writer = csv.writer(grants_output)
+    grants_writer = FormulaSafeWriter(grants_output)
     grants_writer.writerow(GRANTS_CSV_COLUMNS)
 
     for g in grants_entries:
@@ -275,7 +275,7 @@ async def export_activity_impl(
 
     # Generate emulations CSV
     emulations_output = io.StringIO()
-    emulations_writer = csv.writer(emulations_output)
+    emulations_writer = FormulaSafeWriter(emulations_output)
     emulations_writer.writerow(EMULATIONS_CSV_COLUMNS)
 
     for e in emulations_entries:

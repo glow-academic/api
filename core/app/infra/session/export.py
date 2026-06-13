@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -32,6 +31,7 @@ from app.tools.entries.runs.search import search_runs
 from app.tools.entries.sessions.get import get_sessions
 from app.tools.resources.names.get import get_names
 from app.tools.resources.profiles.get import get_profiles
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -170,7 +170,7 @@ async def export_session_impl(
     with timed("build"):
      # Generate sessions CSV
      sessions_output = io.StringIO()
-     sessions_writer = csv.writer(sessions_output)
+     sessions_writer = FormulaSafeWriter(sessions_output)
      sessions_writer.writerow(SESSION_CSV_COLUMNS)
 
     for s in sessions:
@@ -186,7 +186,7 @@ async def export_session_impl(
 
     # Generate groups CSV
     groups_output = io.StringIO()
-    groups_writer = csv.writer(groups_output)
+    groups_writer = FormulaSafeWriter(groups_output)
     groups_writer.writerow(GROUP_CSV_COLUMNS)
 
     for g in groups:
@@ -203,7 +203,7 @@ async def export_session_impl(
 
     # Generate runs CSV
     runs_output = io.StringIO()
-    runs_writer = csv.writer(runs_output)
+    runs_writer = FormulaSafeWriter(runs_output)
     runs_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:

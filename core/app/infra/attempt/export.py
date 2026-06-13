@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import csv
 import io
 import zipfile
 from uuid import UUID
@@ -28,13 +27,13 @@ import asyncpg
 from fastapi import HTTPException
 from redis.asyncio import Redis
 
+from app.infra.attempt.permissions import check_attempt_access
 from app.infra.exports.file_modality import (
     accept_staged_export,
     extension_from_mime,
     stage_export_soft_call,
     wrap_bytes_as_file,
 )
-from app.infra.attempt.permissions import check_attempt_access
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.attempt.search import search_attempts
@@ -44,6 +43,7 @@ from app.tools.resources.personas.get import get_personas
 from app.tools.resources.profiles.get import get_profiles
 from app.tools.resources.scenarios.get import get_scenarios
 from app.tools.resources.simulations.get import get_simulations
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -380,7 +380,7 @@ async def _export_single_attempt_bytes(
     persona_map = {p.id: p.name or "" for p in personas_data}
 
     attempts_output = io.StringIO()
-    attempts_writer = csv.writer(attempts_output)
+    attempts_writer = FormulaSafeWriter(attempts_output)
     attempts_writer.writerow(ATTEMPT_CSV_COLUMNS)
     for a in attempts:
         scenarios_str = PIPE.join(
@@ -404,7 +404,7 @@ async def _export_single_attempt_bytes(
         )
 
     chats_output = io.StringIO()
-    chats_writer = csv.writer(chats_output)
+    chats_writer = FormulaSafeWriter(chats_output)
     chats_writer.writerow(CHAT_CSV_COLUMNS)
     for c in chats:
         personas_str = PIPE.join(
@@ -426,7 +426,7 @@ async def _export_single_attempt_bytes(
         )
 
     messages_output = io.StringIO()
-    messages_writer = csv.writer(messages_output)
+    messages_writer = FormulaSafeWriter(messages_output)
     messages_writer.writerow(MESSAGE_CSV_COLUMNS)
     for m in messages:
         messages_writer.writerow(

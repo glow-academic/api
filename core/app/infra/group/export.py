@@ -12,7 +12,6 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import base64
-import csv
 import io
 import zipfile
 from datetime import datetime
@@ -27,6 +26,7 @@ from app.infra.server_timing import timed
 from app.tools.entries.groups.get import get_groups
 from app.tools.entries.runs.search import search_runs
 from app.tools.resources.names.get import get_names
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -120,7 +120,7 @@ async def export_group_impl(
     # Generate groups CSV
     with timed("build"):
      groups_output = io.StringIO()
-     groups_writer = csv.writer(groups_output)
+     groups_writer = FormulaSafeWriter(groups_output)
      groups_writer.writerow(GROUP_CSV_COLUMNS)
 
     for g in groups:
@@ -136,7 +136,7 @@ async def export_group_impl(
 
     # Generate runs CSV
     runs_output = io.StringIO()
-    runs_writer = csv.writer(runs_output)
+    runs_writer = FormulaSafeWriter(runs_output)
     runs_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:

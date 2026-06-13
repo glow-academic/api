@@ -10,7 +10,6 @@ Composes existing black-box tools:
 from __future__ import annotations
 
 import base64
-import csv
 import io
 from datetime import datetime
 from uuid import UUID
@@ -21,6 +20,7 @@ from redis.asyncio import Redis
 from app.infra.invocation.context import resolve_invocation_context
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
+from app.utils.csv.formula_safe import FormulaSafeWriter
 
 PIPE = "|"
 
@@ -175,7 +175,7 @@ async def export_invocation_impl(
 
     with timed("build"):
      output = io.StringIO()
-     writer = csv.writer(output)
+     writer = FormulaSafeWriter(output)
      writer.writerow(CSV_COLUMNS)
 
     writer.writerow(
