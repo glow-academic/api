@@ -27,6 +27,7 @@ from redis.asyncio import Redis
 
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
+from app.infra.test.permissions import enforce_test_access_by_test
 from app.infra.server_timing import timed
 from app.tools.entries.calls.create import create_call
 from app.tools.entries.groups.get import get_groups
@@ -108,6 +109,21 @@ async def create_invocation_impl(
         tests = await get_tests(conn, [request.test_id], redis)
         if not tests:
             raise HTTPException(status_code=404, detail=f"Test {request.test_id} not found")
+
+        # ── Owner/role/department scope (write-IDOR guard, F5) ─────────────
+        # ``invocation/create`` materializes a child ``test_invocation_entry``
+        # bound to the caller-supplied ``request.test_id``. The write lands in
+        # the caller's OWN group, but the new row references a potentially
+        # FOREIGN test — the same shape as the chat_create C1 fix (graft a
+        # child under another user's parent). ``has_permission`` only proves
+        # the caller may create invocations *somewhere*; it doesn't scope the
+        # target test. Gate ``test_id → test.profile_id`` after the existence
+        # 404 (so a bogus id still 404s) and before the bind. Owners create
+        # under their own test (allowed); a higher-role in-dept instructor /
+        # super-admin pass the shared gate; cross-owner peers are denied.
+        await enforce_test_access_by_test(
+            pool, redis, test_id=request.test_id, requester=identity,
+        )
 
         groups = await get_groups(conn, [group_id], redis)
         if not groups or groups[0].session_id is None:

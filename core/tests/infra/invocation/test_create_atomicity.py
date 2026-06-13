@@ -47,6 +47,12 @@ def _patch_preamble(monkeypatch):
     async def _refresh(pool, redis, **kwargs):
         return None
 
+    # The F5 ownership guard (``enforce_test_access_by_test``) is exercised in
+    # the authz-class suite; here it's a black box stubbed to allow so this
+    # suite stays focused on transaction atomicity.
+    async def _enforce_ok(pool, redis, *, test_id, requester, **kwargs):
+        return None
+
     monkeypatch.setattr(inv_mod, "resolve_profile_identity_context", _resolve_identity)
     monkeypatch.setattr(inv_mod, "has_permission", _has_permission)
     monkeypatch.setattr(
@@ -54,6 +60,7 @@ def _patch_preamble(monkeypatch):
     )
     monkeypatch.setattr(inv_mod, "get_tests", _get_tests)
     monkeypatch.setattr(inv_mod, "get_groups", _get_groups)
+    monkeypatch.setattr(inv_mod, "enforce_test_access_by_test", _enforce_ok)
     monkeypatch.setattr(inv_mod, "refresh_invocation_impl", _refresh)
 
 

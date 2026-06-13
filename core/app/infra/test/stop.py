@@ -57,6 +57,30 @@ async def test_stop_internal_impl(
         idempotency_key = UUID(idempotency_key)
     is_ack = accept is not None and idempotency_key is not None
 
+    # ── Owner/role/department scope (write-IDOR guard, F1) ─────────────────
+    # ``test_stop`` emits ``test.stop.completed`` purely on the caller-supplied
+    # ``invocation_id`` — with no actor scoping, any authenticated user who
+    # learns another user's in-flight ``invocation_id`` could force-stop their
+    # benchmark run (targeted DoS + signal injection into the victim's room).
+    # The #372 class-fix wired ``enforce_test_access_by_invocation`` into
+    # grade/run/trace/complete but missed this sibling; mirror ``stop_attempt``
+    # (the attempt-subsystem analogue guards all three of its paths). All three
+    # paths below — ack-emit, soft-propose, live-emit — resolve
+    # ``invocation → group → session → owner`` and apply the shared gate. The
+    # ack path re-derives the invocation from the staged soft-call
+    # (``entry.artifact_id``) and is guarded there; propose/live are guarded
+    # against ``payload.invocation_id``. Fail-closed: an unresolvable requester
+    # (no profile_id) denies.
+    requester = None
+    if profile_id_val:
+        from app.infra.profile_identity_context import (
+            resolve_profile_identity_context,
+        )
+
+        requester = await resolve_profile_identity_context(
+            get_pool(), UUID(str(profile_id_val)), get_redis_client(),
+        )
+
     async def _emit_stop() -> None:
         rooms: list[str] = [f"test_{payload.invocation_id}"]
         if profile_id_val:
@@ -86,6 +110,14 @@ async def test_stop_internal_impl(
             if entry is None or entry.status != "pending" or entry.operation != OPERATION:
                 raise HTTPException(status_code=404, detail="No pending stop for this call.")
             if accept:
+                from app.infra.test.permissions import (
+                    enforce_test_access_by_invocation,
+                )
+
+                await enforce_test_access_by_invocation(
+                    get_pool(), get_redis_client(),
+                    invocation_id=entry.artifact_id, requester=requester,
+                )
                 await _emit_stop()
             async with get_pool().acquire() as conn:
                 await create_soft_call(
@@ -102,6 +134,12 @@ async def test_stop_internal_impl(
 
         # ── Soft propose: record intent without emitting ──
         if soft and call_id is not None:
+            from app.infra.test.permissions import enforce_test_access_by_invocation
+
+            await enforce_test_access_by_invocation(
+                get_pool(), get_redis_client(),
+                invocation_id=payload.invocation_id, requester=requester,
+            )
             async with get_pool().acquire() as conn:
                 await create_soft_call(
                     conn, get_redis_client(), call_id=call_id, artifact=ARTIFACT,
@@ -116,6 +154,12 @@ async def test_stop_internal_impl(
             )
 
         # ── Live: emit the stop now ──
+        from app.infra.test.permissions import enforce_test_access_by_invocation
+
+        await enforce_test_access_by_invocation(
+            get_pool(), get_redis_client(),
+            invocation_id=payload.invocation_id, requester=requester,
+        )
         await _emit_stop()
         return TestStopInternalResult(
             invocation_id=str(payload.invocation_id),
