@@ -31,6 +31,7 @@ from redis.asyncio import Redis
 from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
+from app.infra.attempt.permissions import enforce_attempt_access_by_group
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -109,6 +110,29 @@ async def generate_system_impl(
 
     # -- Step 3: Validate resources --------------------------------------------
     from app.infra.group.resolve import resolve_group_impl
+
+    # ── Ownership gate (R4-surfaced sibling of R1/G2) ────────────────────────
+    # A client-supplied ``group_id`` is idempotently upserted/reused by
+    # ``resolve_group_impl`` with NO caller-vs-owner check. Without this gate,
+    # any ``system:generate`` holder could drive generation into another user's
+    # private system group and burn provider cost on them — the third twin of
+    # the test (G2) and attempt (R1) generate IDORs, caught by the new full-route
+    # guardrail (R4). Omitted ``group_id`` → window-create for the caller's OWN
+    # session (no foreign access), so gate only the caller-supplied case.
+    if group_id is not None:
+        try:
+            _supplied_gid: UUID | None = (
+                group_id if isinstance(group_id, UUID) else UUID(str(group_id))
+            )
+        except (ValueError, TypeError):
+            _supplied_gid = None  # malformed → fail-closed (owner resolves None)
+        await enforce_attempt_access_by_group(
+            pool, redis,
+            group_id=_supplied_gid,
+            requester=profile,
+            deny_detail="You don't have access to this system group.",
+        )
+
     # Always resolve — resolve_group_impl idempotently upserts when a
     # client-minted group_id is supplied, or falls back to window-based
     # auto-create when omitted. Either way the groups_entry row exists

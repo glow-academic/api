@@ -10,12 +10,14 @@ the actual ``execute_generation`` + per-artifact refresh finish in the
 background.
 
 Failure semantics:
-- Blocking (``wait_for_complete=True``): exceptions log + emit
-  ``<artifact>.generate.failed`` to the hub AND re-raise so the HTTP
-  route surfaces a 5xx (preserves existing behavior).
-- Background (``wait_for_complete=False``): same log + hub emit, but
-  the exception is swallowed by the task so it can't crash the request
-  that already returned. SSE consumers are the failure channel.
+- Blocking (``wait_for_complete=True``): exceptions log and re-raise so
+  the HTTP route surfaces a 5xx; the ``<artifact>.generate.failed`` hub
+  emit is owned by the audit wrapper the exception bubbles into (R6 —
+  no double terminal).
+- Background (``wait_for_complete=False``): log + hub emit here (the
+  audit wrapper does not run on this path), and the exception is
+  swallowed by the task so it can't crash the request that already
+  returned. SSE consumers are the failure channel.
 """
 
 from __future__ import annotations
@@ -91,22 +93,29 @@ async def run_generation_with_refresh(
                 "%s generation failed for run_id=%s",
                 artifact_type, prepared.run_id,
             )
-            try:
-                await internal_sio.emit(
-                    f"{artifact_type}.generate.failed",
-                    {
-                        "artifact_type": artifact_type,
-                        "run_id": str(prepared.run_id),
-                        "group_id": str(group_id),
-                        "success": False,
-                        "message": str(exc)[:500],
-                    },
-                )
-            except Exception:
-                logger.exception(
-                    "failed to emit %s.generate.failed for run_id=%s",
-                    artifact_type, prepared.run_id,
-                )
+            # R6: only the background path emits ``.failed`` here. On the
+            # blocking path the exception re-raises into
+            # ``run_artifact_operation_with_audit``, which is the single
+            # source of truth for the terminal (it owns ``.completed`` and
+            # emits its own ``.failed`` with call_id/operation_key). Emitting
+            # here too produced a DOUBLE ``.failed`` on the wire.
+            if not wait_for_complete:
+                try:
+                    await internal_sio.emit(
+                        f"{artifact_type}.generate.failed",
+                        {
+                            "artifact_type": artifact_type,
+                            "run_id": str(prepared.run_id),
+                            "group_id": str(group_id),
+                            "success": False,
+                            "message": str(exc)[:500],
+                        },
+                    )
+                except Exception:
+                    logger.exception(
+                        "failed to emit %s.generate.failed for run_id=%s",
+                        artifact_type, prepared.run_id,
+                    )
             if wait_for_complete:
                 raise
             return None

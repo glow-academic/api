@@ -101,7 +101,9 @@ def compute_pass_pct(
         return None
     if pass_points is None:
         return None
-    return round(100.0 * pass_points / total_points)
+    # R9: clamp to <=100 — a misconfigured rubric (pass_points > total_points)
+    # would otherwise yield a >100% threshold and mislabel a perfect score.
+    return min(100, round(100.0 * pass_points / total_points))
 
 
 def compute_status(

@@ -532,6 +532,36 @@ async def test_o1_present_usage_frame_does_not_warn(
     assert result.total_output_tokens == 3
 
 
+async def test_r7_unsupported_modality_raises_not_silent_success(
+    conn, redis_client, profile_id, pool, monkeypatch
+):
+    """R7: an unsupported modality pair used to emit a stray
+    ``{artifact}.generate.text.error`` and then ``return None`` — treated as
+    success, so the audit wrapper emitted ``.completed`` and the route 200'd
+    (a mixed/double terminal + success status with no assistant row). It must
+    now RAISE so exactly one terminal (``.failed`` via the audit wrapper) is
+    produced and the HTTP status reflects the failure."""
+    session, group, run = await _run_deps(conn, redis_client, profile_id)
+    dispatch = _make_dispatch(with_tool=False)
+    prepared = _make_prepared(session, group, run, profile_id, [dispatch])
+
+    bus = _FakeBus()
+    monkeypatch.setattr(execute_mod, "get_internal_sio", lambda: bus)
+    # Force the unsupported-modality fall-through deterministically.
+    monkeypatch.setattr(execute_mod, "resolve_executor", lambda *a, **k: "unsupported")
+
+    with pytest.raises(RuntimeError, match="Unsupported modality pair"):
+        await execute_generation(
+            pool, redis_client, prepared=prepared, sid="sid-r7",
+        )
+
+    # The old stray ``.text.error`` success-emit is gone — no error frame is
+    # emitted in lieu of a terminal; the raise drives the single terminal.
+    assert not [
+        ev for ev, _ in bus.events if ev.endswith(".text.error")
+    ], "unsupported-modality must raise, not emit a stray .text.error then succeed"
+
+
 async def test_s1_multi_agent_all_ok_still_aggregates(
     conn, redis_client, profile_id, pool, monkeypatch
 ):

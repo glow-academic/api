@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Final
 from uuid import UUID
 
-from app.infra.stream.types import EventEnvelope, is_run_terminal
+from app.infra.stream.types import EventEnvelope, is_non_droppable
 
 logger = logging.getLogger(__name__)
 
@@ -75,16 +75,17 @@ async def publish(event: EventEnvelope) -> None:
             except asyncio.QueueFull:
                 # Lost a race with another producer that refilled the freed slot
                 # before our put. For an ordinary mid-run frame this is fine —
-                # drop it and keep the fan-out non-blocking. But a run TERMINAL
-                # frame (``.completed`` / ``.failed`` / ``agent_completed`` …)
-                # is load-bearing: dropping it leaves a run-scoped watcher
+                # drop it and keep the fan-out non-blocking. But a NON-DROPPABLE
+                # frame (the true terminals ``.completed`` / ``.failed`` plus
+                # load-bearing progress milestones like ``agent_completed``) is
+                # load-bearing: dropping a terminal leaves a run-scoped watcher
                 # (``glow … watch <run_id>``) looping on keep-alives with no
-                # EOF — it hangs forever (S4). Terminal frames are rare (one per
-                # run) and must not be lost, so for them keep shedding the oldest
-                # and retrying until the put lands (bounded by the queue depth so
-                # this can never spin). Non-terminal frames keep the original
-                # best-effort drop.
-                if is_run_terminal(event.event_type):
+                # EOF — it hangs forever (S4) — and dropping ``agent_completed``
+                # loses an agent in a multi-agent UI. These frames are rare and
+                # must not be lost, so for them keep shedding the oldest and
+                # retrying until the put lands (bounded by the queue depth so
+                # this can never spin). Other frames keep the best-effort drop.
+                if is_non_droppable(event.event_type):
                     delivered = False
                     for _ in range(_QUEUE_MAXSIZE + 1):
                         try:

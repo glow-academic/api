@@ -1005,7 +1005,7 @@ async def get_test_impl(
                         score=paired_grade.score,
                         passed=paired_grade.passed,
                         time_taken=paired_grade.time_taken,
-                        total_points=getattr(rubric, "points", None) if rubric else None,
+                        total_points=getattr(rubric, "total_points", None) if rubric else None,
                         pass_points=getattr(rubric, "pass_points", None) if rubric else None,
                     )
                     paired_feedback = feedback_by_grade.get(paired_grade.id, [])
