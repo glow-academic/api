@@ -21,6 +21,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 from app.infra.activate.activate import activate_rows
+from app.infra.delete.delete_artifact import delete_artifacts
 from app.infra.events.audit import (
     build_audit_arguments,
     run_artifact_operation_with_audit,
@@ -98,13 +99,31 @@ async def test_run_internal_impl(
                     targets=["test_invocation_runs_mv"],
                 )
             async with get_pool().acquire() as conn:
-                await create_soft_call(
-                    conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
-                    operation=OPERATION, artifact_id=entry.artifact_id,
-                    status="accepted" if accept else "rejected",
-                )
+                async with conn.transaction():
+                    # A2: on REJECT, hard-delete the dormant (active=False) binding
+                    # row in the SAME txn as the terminal ledger write. The dormant
+                    # row is MV-invisible, so leaving it behind both leaks a row
+                    # forever AND lets a later stray activate_rows/replay resurrect
+                    # a rejected binding into the live MV. Deleting it closes both.
+                    if not accept and run_row_id:
+                        await delete_artifacts(
+                            conn, table="test_invocation_runs_entry",
+                            ids=[UUID(run_row_id)],
+                        )
+                    await create_soft_call(
+                        conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
+                        operation=OPERATION, artifact_id=entry.artifact_id,
+                        status="accepted" if accept else "rejected",
+                    )
+            # A1: a reject ack is NOT a successful commit — return
+            # ``success=False`` so the wrapper's ``.completed`` payload can't
+            # be mistaken for an accepted binding. The ack threads
+            # ``idempotency_key`` as the wrapper ``call_id`` (see audit call
+            # below), so the ``.completed`` ledger lookup resolves
+            # ``ledger_status`` to "rejected" (not null) for live watchers.
             return TestRunInternalResult(
                 test_invocation_run_id=str(run_row_id or ""),
+                success=bool(accept),
                 idempotency_key=idempotency_key,
             )
 
@@ -176,6 +195,11 @@ async def test_run_internal_impl(
         runner=_run,
         arguments={"accept": accept} if is_ack else build_audit_arguments(data),
         operation_key=idempotency_key,  # idempotency replay gate
+        # A1: for an ack, thread the ack's idempotency_key as the wrapper
+        # call_id so emit_call_id == the soft-ledger key the ack writes —
+        # the .completed ledger lookup then resolves ledger_status to
+        # "accepted"/"rejected" instead of null.
+        call_id=idempotency_key if is_ack else None,
         session_id=UUID(str(session_id)),
         entity_id=payload.test_invocation_id,
         test_id=payload.test_id,

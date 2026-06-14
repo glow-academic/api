@@ -9,3 +9,12 @@ CREATE UNIQUE INDEX idx_sessions_mv_session_id ON public.sessions_mv USING btree
 
 
 --
+
+-- Name: idx_sessions_mv_profile_created; Type: INDEX; Schema: public; Owner: -
+-- report-15 P1: served on every authenticated request (search_sessions by profile_id).
+--
+
+CREATE INDEX idx_sessions_mv_profile_created ON public.sessions_mv USING btree (profile_id, session_created_at DESC);
+
+
+--

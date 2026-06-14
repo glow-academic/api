@@ -160,6 +160,8 @@ class ExecuteGenerationResult:
     run_id: uuid.UUID
     total_input_tokens: int = 0
     total_output_tokens: int = 0
+    # C1: cache-read (cached prefix) tokens, billed at the cached rate.
+    total_cached_input_tokens: int = 0
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     assistant_output: str = ""
     reasoning_output: str = ""
@@ -383,6 +385,10 @@ async def execute_generation(
                     continue
                 total_result.total_input_tokens += agent_result.total_input_tokens
                 total_result.total_output_tokens += agent_result.total_output_tokens
+                # C1: aggregate cached tokens alongside input/output.
+                total_result.total_cached_input_tokens += (
+                    agent_result.total_cached_input_tokens
+                )
                 total_result.tool_results.extend(agent_result.tool_results)
                 total_result.assistant_output = agent_result.assistant_output
                 total_result.reasoning_output = agent_result.reasoning_output
@@ -394,6 +400,10 @@ async def execute_generation(
             if agent_result is not None:
                 total_result.total_input_tokens += agent_result.total_input_tokens
                 total_result.total_output_tokens += agent_result.total_output_tokens
+                # C1: aggregate cached tokens alongside input/output.
+                total_result.total_cached_input_tokens += (
+                    agent_result.total_cached_input_tokens
+                )
                 total_result.tool_results.extend(agent_result.tool_results)
                 total_result.assistant_output = agent_result.assistant_output
                 total_result.reasoning_output = agent_result.reasoning_output
@@ -495,6 +505,8 @@ async def _execute_agent_dispatch(
 
     total_input_tokens = 0
     total_output_tokens = 0
+    # C1: cache-read (cached prefix) tokens summed across iterations.
+    total_cached_input_tokens = 0
     all_tool_results: list[dict[str, Any]] = []
     final_assistant_output = ""
     final_reasoning_output = ""
@@ -521,6 +533,7 @@ async def _execute_agent_dispatch(
         not mask the cancellation itself, which still re-raises.
         """
         if not (total_input_tokens or total_output_tokens
+                or total_cached_input_tokens
                 or final_assistant_output or final_reasoning_output):
             return
         from app.infra.websocket.persist_run_message import persist_run_message
@@ -548,12 +561,15 @@ async def _execute_agent_dispatch(
                                 [dispatch.agent_id] if dispatch.agent_id else None
                             ),
                         )
-                    if total_input_tokens or total_output_tokens:
+                    if (total_input_tokens or total_output_tokens
+                            or total_cached_input_tokens):
                         await create_token(
                             cancel_conn, redis,
                             run_id=run_id, session_id=session_id,
                             input_tokens=total_input_tokens,
                             output_tokens=total_output_tokens,
+                            # C1: persist cached tokens on cancel too.
+                            cached_input_tokens=total_cached_input_tokens,
                         )
         except Exception:
             logger.exception(
@@ -635,6 +651,8 @@ async def _execute_agent_dispatch(
             reasoning_output = ""
             input_tokens = 0
             output_tokens = 0
+            # C1: cache-read tokens reported on this iteration's usage frame.
+            cached_input_tokens = 0
             # O1: track whether the provider stream actually delivered a usage
             # frame this iteration. Some providers (notably self-hosted/vLLM and
             # any stream that omits a final usage chunk) complete WITHOUT one, in
@@ -963,6 +981,11 @@ async def _execute_agent_dispatch(
                     if isinstance(usage_data, dict):
                         input_tokens = usage_data.get("prompt_tokens", 0) or 0
                         output_tokens = usage_data.get("completion_tokens", 0) or 0
+                        # C1: capture the cache-read token count so the cached
+                        # portion of spend is recorded (was silently dropped).
+                        cached_input_tokens = (
+                            usage_data.get("cache_read_input_tokens", 0) or 0
+                        )
                         usage_frame_seen = True
 
             # End of stream
@@ -987,6 +1010,8 @@ async def _execute_agent_dispatch(
 
             total_input_tokens += input_tokens
             total_output_tokens += output_tokens
+            # C1: accumulate cached tokens across the agentic iterations.
+            total_cached_input_tokens += cached_input_tokens
             all_tool_results.extend(tool_results)
             final_assistant_output = assistant_output
             final_reasoning_output = reasoning_output
@@ -1163,6 +1188,8 @@ async def _execute_agent_dispatch(
             "modality": "text",
             "input_text_tokens": total_input_tokens,
             "output_text_tokens": total_output_tokens,
+            # C1: cache-read tokens for run_complete_impl → create_token.
+            "cached_input_tokens": total_cached_input_tokens,
             "assistant_output": final_assistant_output,
             "reasoning_output": final_reasoning_output,
             "reasoning_started_at": (
@@ -1194,6 +1221,9 @@ async def _execute_agent_dispatch(
             run_id=run_id,
             total_input_tokens=total_input_tokens,
             total_output_tokens=total_output_tokens,
+            # C1: surface cached tokens on the result so multi-agent
+            # aggregation rolls them up too.
+            total_cached_input_tokens=total_cached_input_tokens,
             tool_results=all_tool_results,
             assistant_output=final_assistant_output,
             reasoning_output=final_reasoning_output,

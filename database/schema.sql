@@ -18775,6 +18775,13 @@ CREATE UNIQUE INDEX attempt_mv_attempt_id_idx ON public.attempt_mv USING btree (
 
 
 --
+-- Name: idx_attempt_mv_profile_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_attempt_mv_profile_created ON public.attempt_mv USING btree (profile_id, attempt_created_at DESC);
+
+
+--
 -- Name: attempt_mv_role_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -19458,6 +19465,13 @@ CREATE INDEX documents_resource_file_id_idx ON public.documents_resource USING b
 --
 
 CREATE INDEX emails_email_idx ON public.emails_resource USING btree (email);
+
+
+--
+-- Name: idx_emails_resource_lower_email; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_emails_resource_lower_email ON public.emails_resource USING btree (lower(email));
 
 
 --
@@ -24144,6 +24158,13 @@ CREATE UNIQUE INDEX idx_sessions_mv_session_id ON public.sessions_mv USING btree
 
 
 --
+-- Name: idx_sessions_mv_profile_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_sessions_mv_profile_created ON public.sessions_mv USING btree (profile_id, session_created_at DESC);
+
+
+--
 -- Name: idx_setting_auth_item_values_generated; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -26864,6 +26885,13 @@ CREATE INDEX runs_keys_connection_runs_id_idx ON public.runs_keys_connection USI
 --
 
 CREATE UNIQUE INDEX runs_mv_run_id_idx ON public.runs_mv USING btree (run_id);
+
+
+--
+-- Name: idx_runs_mv_group_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_runs_mv_group_id ON public.runs_mv USING btree (group_id, run_created_at);
 
 
 --

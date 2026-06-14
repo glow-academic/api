@@ -139,6 +139,12 @@ async def run_complete_impl(
             reasoning_started_at = None
     input_tokens = data.get("input_text_tokens", 0)
     output_tokens = data.get("output_text_tokens", 0)
+    # C1: cache-read (cached prefix) tokens are billed at the cached rate but
+    # were dropped here — create_token was called with only input/output, so
+    # the cached portion of spend landed in neither input_tokens nor a cached
+    # pricing row. Thread it through so it is recorded; runs_mv already selects
+    # tokens_entry.cached_input_tokens and joins a pricing_type='cached' row.
+    cached_input_tokens = data.get("cached_input_tokens", 0)
     # Dispatching agent (H2). When set, the assistant + reasoning rows
     # are linked to this agent in ``messages_agents_connection`` so a
     # multi-agent run's next turn can scope each agent's history to its
@@ -198,13 +204,15 @@ async def run_complete_impl(
                     agent_ids=persist_agent_ids,
                 )
 
-            if input_tokens or output_tokens:
+            if input_tokens or output_tokens or cached_input_tokens:
                 await create_token(
                     conn,
                     redis, run_id=run_uuid,
                     session_id=session_id,
                     input_tokens=input_tokens,
                     output_tokens=output_tokens,
+                    # C1: record cache-read tokens for cached-rate billing.
+                    cached_input_tokens=cached_input_tokens,
                 )
     except Exception as e:
         # The turn (reasoning + answer + token/cost row) is LOAD-BEARING: it is

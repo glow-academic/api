@@ -17,3 +17,12 @@ CREATE INDEX attempt_mv_role_id_idx ON public.attempt_mv USING btree (role_id);
 
 
 --
+
+-- Name: idx_attempt_mv_profile_created; Type: INDEX; Schema: public; Owner: -
+-- report-15 P3: served on every home/practice/dashboard load (search_attempts by profile_id).
+--
+
+CREATE INDEX idx_attempt_mv_profile_created ON public.attempt_mv USING btree (profile_id, attempt_created_at DESC);
+
+
+--

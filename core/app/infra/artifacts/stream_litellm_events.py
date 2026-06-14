@@ -43,6 +43,45 @@ def _sanitize_tool_arguments(raw: str) -> str:
     return json.dumps(value)
 
 
+def _extract_cache_read_tokens(usage_obj: Any) -> int:
+    """Pull the cache-read (cached prefix) token count out of a litellm usage frame.
+
+    C1: cache-read tokens are billed at the cached input rate, but the usage
+    frame was previously reduced to only prompt/completion tokens, so the
+    cached portion of spend was never recorded. litellm normalizes the count
+    to ``usage.cache_read_input_tokens`` (Anthropic prompt caching); the
+    OpenAI shape nests it under ``usage.prompt_tokens_details.cached_tokens``.
+    Accept either, on dict- or object-shaped usage, defaulting to 0 when the
+    provider sent none (the common no-cache turn). Pure read — no I/O.
+    """
+    if usage_obj is None:
+        return 0
+    # Direct litellm field (Anthropic prompt caching).
+    if isinstance(usage_obj, dict):
+        direct = usage_obj.get("cache_read_input_tokens")
+        details = usage_obj.get("prompt_tokens_details")
+    else:
+        direct = getattr(usage_obj, "cache_read_input_tokens", None)
+        details = getattr(usage_obj, "prompt_tokens_details", None)
+    if direct:
+        try:
+            return int(direct)
+        except (TypeError, ValueError):
+            return 0
+    # OpenAI shape: usage.prompt_tokens_details.cached_tokens.
+    if details is not None:
+        if isinstance(details, dict):
+            nested = details.get("cached_tokens")
+        else:
+            nested = getattr(details, "cached_tokens", None)
+        if nested:
+            try:
+                return int(nested)
+            except (TypeError, ValueError):
+                return 0
+    return 0
+
+
 # ----------------------------
 # Streaming parser state classes
 # ----------------------------
@@ -175,12 +214,23 @@ async def stream_litellm_events(
                         "completion_tokens": usage_obj.get(
                             "completion_tokens", usage_obj.get("output_tokens", 0)
                         ),
+                        # C1: cache-read tokens are billed at the cached rate;
+                        # carry them through so create_token records them and a
+                        # pricing_type='cached' row can be emitted downstream
+                        # (litellm surfaces them at usage.cache_read_input_tokens).
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
+                        ),
                     }
                 elif hasattr(usage_obj, "prompt_tokens"):
                     # Extract usage from object
                     final_usage_data = {
                         "prompt_tokens": getattr(usage_obj, "prompt_tokens", 0),
                         "completion_tokens": getattr(usage_obj, "completion_tokens", 0),
+                        # C1: see dict branch above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
+                        ),
                     }
 
                 # Usage represents completion - emit message_complete with usage immediately
@@ -209,6 +259,10 @@ async def stream_litellm_events(
                     final_usage_data = {
                         "prompt_tokens": getattr(usage_obj, "prompt_tokens", 0),
                         "completion_tokens": getattr(usage_obj, "completion_tokens", 0),
+                        # C1: see the chunk-dict usage branch above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
+                        ),
                     }
                 elif isinstance(usage_obj, dict):
                     final_usage_data = {
@@ -217,6 +271,10 @@ async def stream_litellm_events(
                         ),
                         "completion_tokens": usage_obj.get(
                             "completion_tokens", usage_obj.get("output_tokens", 0)
+                        ),
+                        # C1: see the chunk-dict usage branch above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
                         ),
                     }
 
@@ -662,11 +720,20 @@ async def _parse_responses_chunk(
                     usage_data = {
                         "prompt_tokens": getattr(usage_obj, "input_tokens", 0),
                         "completion_tokens": getattr(usage_obj, "output_tokens", 0),
+                        # C1: carry cache-read tokens through the Responses API
+                        # usage frame too (see stream_litellm_events main loop).
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
+                        ),
                     }
                 elif hasattr(usage_obj, "prompt_tokens"):
                     usage_data = {
                         "prompt_tokens": getattr(usage_obj, "prompt_tokens", 0),
                         "completion_tokens": getattr(usage_obj, "completion_tokens", 0),
+                        # C1: see above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(
+                            usage_obj
+                        ),
                     }
         elif isinstance(chunk, dict):
             response = chunk.get("response", {})
@@ -680,6 +747,8 @@ async def _parse_responses_chunk(
                         "completion_tokens": usage.get(
                             "output_tokens", usage.get("completion_tokens", 0)
                         ),
+                        # C1: see above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(usage),
                     }
             # Fallback: check chunk.usage directly (for dict format)
             if not usage_data:
@@ -692,6 +761,8 @@ async def _parse_responses_chunk(
                         "completion_tokens": usage.get(
                             "output_tokens", usage.get("completion_tokens", 0)
                         ),
+                        # C1: see above.
+                        "cache_read_input_tokens": _extract_cache_read_tokens(usage),
                     }
 
         ev: dict[str, Any] = {

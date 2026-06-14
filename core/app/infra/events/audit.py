@@ -268,7 +268,13 @@ async def run_artifact_operation_with_audit(
                 _cached = _receipt.get("raw_output")
                 # Never replay a cached server error — let the retry truly retry.
                 _is_error = isinstance(_cached, dict) and _cached.get("success") is False
-                if _cached is not None and not _is_error:
+                # A3: a soft/propose persists a calls_entry receipt, but its
+                # "success" reflects only a DORMANT staged binding — replaying it
+                # would re-assert a creation that may since have been rejected.
+                # Fall through to the soft-call ledger (the propose's real
+                # idempotency layer) instead of replaying a stale success.
+                _is_soft = bool(arguments.get("soft"))
+                if _cached is not None and not _is_error and not _is_soft:
                     logger.info(
                         "IDEM_REPLAY %s.%s operation_key=%s call_id=%s",
                         artifact, operation, operation_key, _prior[0].id,
@@ -349,6 +355,13 @@ async def run_artifact_operation_with_audit(
         signal. Skip caching server errors so a retry truly retries (mirrors the
         ``calls_entry`` replay path). Best-effort."""
         if not _idem_gate_active or operation_key is None:
+            return
+        # A3: never persist a replayable success receipt for a soft/propose op.
+        # A propose only stages a DORMANT binding whose fate (accept/reject) is
+        # decided by a later ack — replaying its cached "success" would re-assert
+        # a creation that may since have been rejected. The soft-call ledger is
+        # the authoritative idempotency layer for the propose phase.
+        if arguments.get("soft"):
             return
         _is_err = isinstance(raw_output, dict) and raw_output.get("success") is False
         if _is_err:

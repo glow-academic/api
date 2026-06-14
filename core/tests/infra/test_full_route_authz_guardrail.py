@@ -70,6 +70,10 @@ _GUARD_MARKERS = {
     "enforce_test_access_by_group",
     "enforce_draft_owner",
     "enforce_upload_owner",
+    # G1: problem resolve/unresolve owner gate (resolve_activity_impl resolves
+    # the problem's owner via profiles_problems_connection and enforces vs the
+    # requester, admin/super-admin outranks).
+    "_enforce_problem_owner",
 }
 
 # Owner-scoped families: the per-session-private artifact chains that share the
@@ -125,7 +129,13 @@ _ROUTE_GUARD_EXEMPT: dict[tuple[str, str], str] = {
     ("POST", "/system/group"): "read — group_system_impl scopes to caller's own group",
     ("POST", "/test/invocation_get"): "read — group_test_impl scopes to caller's own group",
     ("POST", "/system/refresh"): "cache refresh — caller-own group window",
-    ("POST", "/system/resolve"): "problem-resolution — caller-own problem report",
+    # NOTE: ``/system/resolve`` was previously exempted here as "caller-own
+    # problem report" — but neither the HTTP nor WS surface actually checked
+    # ownership, so the exemption was FALSE and hid a live cross-user IDOR (G1:
+    # any user could resolve/unresolve any user's problem). ``resolve_activity_impl``
+    # now carries ``_enforce_problem_owner`` (owner via profiles_problems_connection,
+    # admin/super-admin outranks), so this route is intentionally NOT exempt: the
+    # guardrail actively re-asserts the guard.
     ("POST", "/system/problem"): "problem report — caller-own group window",
     ("POST", "/system/health"): "read — system health (no owner-scoped write)",
     ("POST", "/system/activity"): "read/dashboard — aggregate (no owner write)",

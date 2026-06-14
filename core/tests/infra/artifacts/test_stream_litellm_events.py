@@ -99,9 +99,13 @@ async def test_completions_stream_normalizes_text_tool_and_usage_once() -> None:
             "type": "message_complete",
             "choice_index": 0,
             "finish_reason": "tool_calls",
+            # C1: usage now always carries cache_read_input_tokens (0 when the
+            # provider sent no cached-prefix tokens) so the cached portion of
+            # spend is no longer silently dropped.
             "usage": {
                 "prompt_tokens": 11,
                 "completion_tokens": 7,
+                "cache_read_input_tokens": 0,
             },
         },
     ]
@@ -211,9 +215,11 @@ async def test_responses_stream_normalizes_output_items_and_completion() -> None
         {
             "type": "message_complete",
             "finish_reason": "stop",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 9,
                 "completion_tokens": 4,
+                "cache_read_input_tokens": 0,
             },
         },
     ]
@@ -253,6 +259,8 @@ async def test_model_like_chunks_with_usage_emit_single_completion_event() -> No
     assert message_complete_events[0]["usage"] == {
         "prompt_tokens": 3,
         "completion_tokens": 2,
+        # C1: cache_read_input_tokens now always present (0 = no cache hit).
+        "cache_read_input_tokens": 0,
     }
 
 
@@ -323,9 +331,11 @@ async def test_completions_stream_reads_choice_level_tool_calls_and_usage_object
             "type": "message_complete",
             "choice_index": 0,
             "finish_reason": "stop",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 5,
                 "completion_tokens": 3,
+                "cache_read_input_tokens": 0,
             },
         }
     ]
@@ -488,9 +498,11 @@ async def test_responses_stream_supports_object_style_chunks() -> None:
         {
             "type": "message_complete",
             "finish_reason": "stop",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 2,
                 "completion_tokens": 1,
+                "cache_read_input_tokens": 0,
             },
         },
     ]
@@ -530,9 +542,11 @@ async def test_responses_stream_top_level_usage_emits_single_completion_event() 
         {
             "type": "message_complete",
             "finish_reason": "stop",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 3,
                 "completion_tokens": 2,
+                "cache_read_input_tokens": 0,
             },
         }
     ]
@@ -611,9 +625,11 @@ async def test_completions_stream_reads_direct_usage_dict_and_finish_reason() ->
             "type": "message_complete",
             "choice_index": 0,
             "finish_reason": "length",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 4,
                 "completion_tokens": 2,
+                "cache_read_input_tokens": 0,
             },
         }
     ]
@@ -793,9 +809,11 @@ async def test_completions_stream_uses_dict_backed_chunks_and_deltas() -> None:
             "type": "message_complete",
             "choice_index": 0,
             "finish_reason": "stop",
+            # C1: cache_read_input_tokens now always present (0 = no cache hit).
             "usage": {
                 "prompt_tokens": 2,
                 "completion_tokens": 1,
+                "cache_read_input_tokens": 0,
             },
         },
         {"type": "assistant_role", "choice_index": 0},
@@ -811,3 +829,87 @@ async def test_completions_stream_uses_dict_backed_chunks_and_deltas() -> None:
             "text": "Hello from dict fallback",
         },
     ]
+
+
+# ---------------------------------------------------------------------------
+# C1: cache-read (cached prefix) token capture
+# ---------------------------------------------------------------------------
+
+
+def _usage_of(events: list[dict[str, object]]) -> dict[str, object]:
+    completes = [e for e in events if e["type"] == "message_complete"]
+    assert len(completes) == 1
+    usage = completes[0]["usage"]
+    assert isinstance(usage, dict)
+    return usage
+
+
+@pytest.mark.asyncio
+async def test_completions_usage_captures_direct_cache_read_tokens() -> None:
+    """C1: litellm's ``usage.cache_read_input_tokens`` (Anthropic prompt
+    caching) must be surfaced on the message_complete usage frame, not dropped.
+    Before the fix the frame carried only prompt/completion tokens, so the
+    cached portion of spend vanished."""
+    chunks = [
+        {
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"role": "assistant", "content": "Hi"},
+                    "finish_reason": "stop",
+                }
+            ]
+        },
+        {
+            "choices": [],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 20,
+                "cache_read_input_tokens": 50000,
+            },
+        },
+    ]
+
+    usage = _usage_of(await _collect_events(chunks))
+    assert usage["prompt_tokens"] == 100
+    assert usage["completion_tokens"] == 20
+    assert usage["cache_read_input_tokens"] == 50000
+
+
+@pytest.mark.asyncio
+async def test_completions_usage_captures_openai_nested_cached_tokens() -> None:
+    """C1: the OpenAI shape nests the count under
+    ``usage.prompt_tokens_details.cached_tokens`` — accept that too."""
+    chunks = [
+        {
+            "choices": [],
+            "usage": {
+                "prompt_tokens": 80,
+                "completion_tokens": 10,
+                "prompt_tokens_details": {"cached_tokens": 64},
+            },
+        },
+    ]
+
+    usage = _usage_of(await _collect_events(chunks))
+    assert usage["cache_read_input_tokens"] == 64
+
+
+@pytest.mark.asyncio
+async def test_responses_usage_captures_cache_read_tokens() -> None:
+    """C1: the Responses API usage frame must carry cache-read tokens too."""
+    chunks = [
+        {
+            "type": "response.completed",
+            "response": {
+                "usage": {
+                    "input_tokens": 9,
+                    "output_tokens": 4,
+                    "cache_read_input_tokens": 7,
+                }
+            },
+        },
+    ]
+
+    usage = _usage_of(await _collect_events(chunks))
+    assert usage["cache_read_input_tokens"] == 7
