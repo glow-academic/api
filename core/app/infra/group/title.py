@@ -35,6 +35,15 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.group_names.create import create_group_name
 
+# R3: artifact types whose group chain is per-session-private (group → session
+# → owner), not org-shared catalog. Renaming these is a write-IDOR if unscoped,
+# so the ownership gate lives HERE in the shared impl — no per-artifact wrapper
+# (system/title, WS system.group_name) can omit it. The test/attempt wrappers
+# also gate; the check is owner-or-deny, so re-running it for a legitimate owner
+# is idempotent (no double-deny). Catalog artifacts (provider, model, …) keep
+# the unscoped behavior they had by design.
+_OWNER_SCOPED_GROUP_ARTIFACTS = frozenset({"test", "attempt", "system"})
+
 
 class TitleGroupRequest(BaseModel):
     """Shared request body — each artifact subclasses for OpenAPI naming."""
@@ -101,6 +110,19 @@ async def title_group_impl(
         raise HTTPException(
             status_code=401,
             detail="Profile not found. Please sign in again.",
+        )
+
+    # R3: gate owner-scoped (per-session-private) group renames here so no
+    # wrapper can skip it (system/title delegates with no gate of its own).
+    # Resolves group → session → owner and denies non-owners; idempotent for
+    # the test/attempt wrappers that already gate. `profile` is the requester.
+    if artifact_type in _OWNER_SCOPED_GROUP_ARTIFACTS:
+        from app.infra.attempt.permissions import (
+            enforce_attempt_access_by_group,
+        )
+
+        await enforce_attempt_access_by_group(
+            pool, redis, group_id=group_id, requester=profile,
         )
 
     # ── Ack short-circuit ─────────────────────────────────────────────

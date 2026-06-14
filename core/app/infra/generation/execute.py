@@ -27,7 +27,6 @@ from app.infra.artifacts import (
 from app.infra.artifacts.convert_tools_to_openai_format import sanitize_tool_name
 from app.infra.generation.audio import execute_audio_dispatch
 from app.infra.generation.dispatch import resolve_executor
-from app.infra.generation.emit import emit_modality_event
 from app.infra.generation.media import execute_media_dispatch
 from app.infra.generation.stt import execute_stt_dispatch
 from app.infra.generation.tts import execute_tts_dispatch
@@ -38,7 +37,7 @@ from app.infra.tools.execute_infra_operation import (
     execute_infra_operation,
 )
 from app.infra.tools.resolve_tool_spec import resolve_tool_spec
-from app.infra.websocket.generation_types import GenerateErrorApiRequest, ProducedMedia
+from app.infra.websocket.generation_types import ProducedMedia
 from app.infra.websocket.is_run_cancelled import is_run_cancelled
 from app.infra.websocket.set_active_run import set_active_run
 from app.infra.websocket.socket_event import internal_event, make_emit
@@ -335,19 +334,17 @@ async def execute_generation(
                 internal_sio=internal_sio,
             )
 
-        await emit_modality_event(
-            emit, "text", "error",
-            GenerateErrorApiRequest(
-                sid=sid,
-                error_message=(
-                    f"Unsupported modality pair: in={sorted(dispatch.input_modalities)}, "
-                    f"out={sorted(dispatch.output_modalities)}"
-                ),
-                artifact_type=prepared.artifact_type,
-                group_id=str(prepared.group_id),
-            ).model_dump(), artifact_type=prepared.artifact_type,
+        # R7: an unsupported modality pair used to emit a stray
+        # ``{artifact}.generate.text.error`` (a ``.error`` terminal) and then
+        # ``return None`` — treated as success, so the audit wrapper emitted
+        # ``.completed`` and the route 200'd. That produced a mixed/double
+        # terminal AND a success status with no assistant row. Raise instead so
+        # exactly one terminal (``.failed`` via the audit wrapper) is produced
+        # and the HTTP status reflects the failure.
+        raise RuntimeError(
+            f"Unsupported modality pair: in={sorted(dispatch.input_modalities)}, "
+            f"out={sorted(dispatch.output_modalities)}"
         )
-        return None
 
     # Run all agent dispatches in parallel (enables A/B evals when
     # multiple agents in the winning system handle the same operations)

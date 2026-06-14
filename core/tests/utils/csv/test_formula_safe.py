@@ -19,6 +19,11 @@ from app.utils.csv.formula_safe import (
 # The full OWASP trigger set this fix must neutralize.
 TRIGGER_CHARS = ["=", "+", "-", "@", "\t", "\r"]
 
+# Formula-*leader* chars (the non-whitespace subset). These are the triggers that
+# can hide behind leading whitespace; ``\t``/``\r`` are themselves whitespace and
+# are consumed by ``lstrip()``, so they only matter as the genuine first char.
+FORMULA_LEADERS = ["=", "+", "-", "@"]
+
 
 # ── safe_csv_cell: each trigger char is neutralized ───────────────────────────
 
@@ -40,6 +45,41 @@ def test_only_leading_trigger_matters(trigger: str) -> None:
     value = f"safe{trigger}value"
 
     assert safe_csv_cell(value) == value
+
+
+# ── safe_csv_cell: leading-whitespace-then-trigger (R10) ──────────────────────
+
+
+@pytest.mark.parametrize("trigger", FORMULA_LEADERS)
+def test_leading_space_then_trigger_is_prefixed(trigger: str) -> None:
+    # R10: classic Excel treats a leading space as text, but Google Sheets / some
+    # LibreOffice import paths strip leading whitespace before evaluating — so a
+    # leading-space-then-trigger value is still a live formula and must be
+    # neutralized.
+    payload = f" {trigger}HYPERLINK('http://evil','x')"
+
+    out = safe_csv_cell(payload)
+
+    assert out == "'" + payload
+    assert out[0] == "'"
+
+
+@pytest.mark.parametrize("trigger", FORMULA_LEADERS)
+def test_leading_newline_then_trigger_is_prefixed(trigger: str) -> None:
+    # R10: a leading newline (or other whitespace) before the trigger is stripped
+    # by some import paths too.
+    payload = f"\n{trigger}cmd|'/C calc'!A0"
+
+    out = safe_csv_cell(payload)
+
+    assert out == "'" + payload
+    assert out[0] == "'"
+
+
+def test_whitespace_only_value_unchanged() -> None:
+    # R10: lstrip() on a whitespace-only string yields "" (not a trigger), so it
+    # must pass through untouched.
+    assert safe_csv_cell("   ") == "   "
 
 
 # ── safe_csv_cell: normal values round-trip ───────────────────────────────────

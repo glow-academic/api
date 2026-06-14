@@ -63,8 +63,17 @@ def safe_csv_cell(value: object) -> object:
     Non-string values (ints, floats, ``None``, …) are returned unchanged so the
     csv writer renders them as it normally would; only ``str`` values that begin
     with a formula trigger are prefixed with ``'``. Empty strings pass through.
+
+    R10: Google Sheets / some LibreOffice CSV-import paths strip leading whitespace
+    before evaluating a cell, so a value like ``" =HYPERLINK(...)"`` or ``"\\n=..."``
+    is still a live formula there. We therefore neutralize when the first
+    *non-whitespace* character is a trigger (``value.lstrip()``), in addition to the
+    literal first character — the latter still catches a genuine leading ``\\t``/``\\r``
+    control trigger, which ``lstrip()`` would itself strip away.
     """
-    if isinstance(value, str) and value and value[0] in _FORMULA_TRIGGERS:
+    if isinstance(value, str) and (
+        value[:1] in _FORMULA_TRIGGERS or value.lstrip()[:1] in _FORMULA_TRIGGERS
+    ):
         return _SAFE_PREFIX + value
     return value
 

@@ -524,3 +524,232 @@ async def test_video_download_allows_higher_role_in_scope(monkeypatch):
         _FakePool(), object(), profile_id=instructor, video_id=video_id,
     )
     assert result.upload_id == upload_id
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# generate_attempt_impl (R1 — attempt twin of test/generate G2)
+# ─────────────────────────────────────────────────────────────────────────────
+# A client-supplied ``group_id`` is idempotently upserted/reused with NO
+# caller-vs-owner check, then driven into ``prepare_generation``. Holding
+# ``attempt:generate`` is a ROLE check, not ownership — without the gate any
+# holder drives LLM generation into a victim's private attempt group (burning
+# provider cost). A deny must raise 403 BEFORE ``prepare_generation`` so no
+# run/call is minted in the victim's group.
+
+
+def _wire_generate(monkeypatch, actor):
+    """Patch resolve_profile + let has_permission pass, then record any prepared
+    generation (group_id) so a deny is proven to mint nothing."""
+    import app.infra.attempt.generate as mod
+
+    prepared: list = []
+
+    async def fake_resolve(pool, profile_id, redis, *a, **k):
+        return actor
+
+    async def fake_resolve_group(pool, redis, *, group_id=None, **k):
+        from app.infra.group.resolve import GroupResolveResponse
+
+        return GroupResolveResponse.model_construct(group_id=group_id)
+
+    async def fake_prepare(*a, **k):
+        prepared.append(k.get("group_id"))
+
+        class _P:
+            run_id = uuid4()
+            dispatches = []
+            resource_types = []
+        return _P()
+
+    async def fake_run(*a, **k):
+        class _R:
+            produced_media = []
+        return _R()
+
+    async def fake_socket_owner(*a, **k):
+        return "sid-1"
+
+    # ``has_permission`` is the only PRE-existing gate — let it pass so the test
+    # exercises the NEW ownership gate (R1), not the coarse role capability.
+    monkeypatch.setattr(mod, "resolve_profile_identity_context", fake_resolve)
+    monkeypatch.setattr(mod, "has_permission", lambda *a, **k: True)
+    monkeypatch.setattr(mod, "prepare_generation", fake_prepare)
+    monkeypatch.setattr(mod, "run_generation_with_refresh", fake_run)
+    monkeypatch.setattr(
+        "app.infra.group.resolve.resolve_group_impl", fake_resolve_group,
+    )
+    monkeypatch.setattr(
+        "app.infra.websocket.get_socket_owner.get_socket_owner", fake_socket_owner,
+    )
+    return prepared
+
+
+async def _run_generate(group_id, actor_id):
+    from app.infra.attempt.generate import generate_attempt_impl
+
+    return await generate_attempt_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        group_id=group_id, sid="sid-1", wait_for_complete=True,
+    )
+
+
+async def test_generate_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    prepared = _wire_generate(monkeypatch, _profile(attacker, "member", 1))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id, owner_profile_id=owner
+    )
+    with pytest.raises(HTTPException) as exc:
+        await _run_generate(group_id, attacker)
+    assert exc.value.status_code == 403
+    assert prepared == []  # no generation prepared → no run/call, no provider cost
+
+
+async def test_generate_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    prepared = _wire_generate(monkeypatch, _profile(instructor, "instructional", 2))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    with pytest.raises(HTTPException) as exc:
+        await _run_generate(group_id, instructor)
+    assert exc.value.status_code == 403
+    assert prepared == []
+
+
+async def test_generate_allows_owner(monkeypatch):
+    owner = uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    prepared = _wire_generate(monkeypatch, _profile(owner, "member", 1))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    result = await _run_generate(group_id, owner)
+    assert result.group_id == str(group_id)
+    assert prepared == [group_id]  # the owner's group IS prepared
+
+
+async def test_generate_allows_superadmin_global(monkeypatch):
+    super_id, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    prepared = _wire_generate(monkeypatch, _profile(super_id, "superadmin", 4))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    result = await _run_generate(group_id, super_id)
+    assert result.group_id == str(group_id)
+    assert prepared == [group_id]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# watch_attempt_impl (R2 — attempt twin of test/watch G3, read-side run IDOR)
+# ─────────────────────────────────────────────────────────────────────────────
+# ``watch_runs_impl``'s ``profile_id`` was "checked at route" but the route only
+# authenticates → a caller-supplied ``group_id`` reached the hub subscription
+# unguarded. A deny must raise 403 BEFORE ``watch_runs_impl`` subscribes to the
+# victim's run completion + produced media (no watch).
+
+
+def _wire_watch(monkeypatch, actor):
+    import app.infra.attempt.watch as mod
+
+    watched: list[UUID] = []
+
+    async def fake_resolve(pool, profile_id, redis, *a, **k):
+        return actor
+
+    async def fake_watch_runs(pool, redis, *, group_id, **k):
+        watched.append(group_id)
+        from app.infra._watch import WatchApiResponse
+
+        return WatchApiResponse(group_id=group_id, runs=[])
+
+    monkeypatch.setattr(mod, "resolve_profile_identity_context", fake_resolve)
+    monkeypatch.setattr(mod, "watch_runs_impl", fake_watch_runs)
+    return watched
+
+
+async def _run_watch(group_id, actor_id):
+    from app.infra.attempt.watch import watch_attempt_impl
+
+    return await watch_attempt_impl(
+        _FakePool(), object(),
+        profile_id=actor_id, session_id=uuid4(),
+        group_id=group_id, wait_for_complete=False,
+    )
+
+
+async def test_watch_blocks_peer_member(monkeypatch):
+    attacker, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    watched = _wire_watch(monkeypatch, _profile(attacker, "member", 1))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id, owner_profile_id=owner
+    )
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(group_id, attacker)
+    assert exc.value.status_code == 403
+    assert watched == []  # never subscribed to the victim's run events
+
+
+async def test_watch_blocks_cross_department_instructor(monkeypatch):
+    instructor, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    watched = _wire_watch(monkeypatch, _profile(instructor, "instructional", 2))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(group_id, instructor)
+    assert exc.value.status_code == 403
+    assert watched == []
+
+
+async def test_watch_fails_closed_on_unresolvable_group(monkeypatch):
+    actor = uuid4()
+    group_id = uuid4()
+    watched = _wire_watch(monkeypatch, _profile(actor, "instructional", 2))
+    # No group row resolves → owner is None → fail-closed deny (no subscription).
+    import app.tools.entries.groups.get as groups_get
+
+    async def fake_get_groups(conn, ids, redis, *a, **k):
+        return []
+
+    monkeypatch.setattr(groups_get, "get_groups", fake_get_groups)
+    with pytest.raises(HTTPException) as exc:
+        await _run_watch(group_id, actor)
+    assert exc.value.status_code == 403
+    assert watched == []
+
+
+async def test_watch_allows_owner(monkeypatch):
+    owner = uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    watched = _wire_watch(monkeypatch, _profile(owner, "member", 1))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    result = await _run_watch(group_id, owner)
+    assert result.group_id == group_id
+    assert watched == [group_id]  # the owner's run IS watched
+
+
+async def test_watch_allows_superadmin_global(monkeypatch):
+    super_id, owner = uuid4(), uuid4()
+    group_id, session_id = uuid4(), uuid4()
+    watched = _wire_watch(monkeypatch, _profile(super_id, "superadmin", 4))
+    _wire_group_owner(
+        monkeypatch, group_id=group_id, session_id=session_id,
+        owner_profile_id=owner, department_in_scope=False,
+    )
+    result = await _run_watch(group_id, super_id)
+    assert result.group_id == group_id
+    assert watched == [group_id]

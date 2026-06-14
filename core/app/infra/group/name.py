@@ -89,6 +89,17 @@ async def name_group_impl(
             detail="Profile not found. Please sign in again.",
         )
 
+    # R3: ownership gate. This impl is only reachable via the system-group
+    # rename (WS system.group_name + INFRA_OPS dispatch), and the system group
+    # chain is per-session-private (group → session → owner). The gate must
+    # live here so the WS handler can't omit it. Denies non-owners; `profile`
+    # is the requester.
+    from app.infra.attempt.permissions import enforce_attempt_access_by_group
+
+    await enforce_attempt_access_by_group(
+        pool, redis, group_id=resolved_group_id, requester=profile,
+    )
+
     # Step 2: Create group_names entry (append-only)
     with timed("db_write"):
       async with pool.acquire() as conn:

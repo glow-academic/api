@@ -18,6 +18,8 @@ import asyncpg
 from redis.asyncio import Redis
 
 from app.infra._watch import WatchApiResponse, watch_runs_impl
+from app.infra.attempt.permissions import enforce_attempt_access_by_group
+from app.infra.profile_identity_context import resolve_profile_identity_context
 
 
 async def watch_attempt_impl(
@@ -33,6 +35,19 @@ async def watch_attempt_impl(
     **_kwargs,
 ) -> WatchApiResponse:
     """Watch a attempt-scoped run in ``group_id``."""
+    # ── Ownership gate (R2, mirror of G3) ────────────────────────────────
+    # ``group_id`` is caller-supplied; ``watch_runs_impl`` documents its
+    # ``profile_id`` as "checked at route", but the route only authenticates —
+    # so without this, any authenticated caller could watch another user's run
+    # completion + the media it produced (read-side IDOR). The attempt group is
+    # per-session-private, so resolve group → session → owner and apply the
+    # shared attempt gate before subscribing to the victim's run events.
+    requester = await resolve_profile_identity_context(
+        pool, profile_id, redis, session_id=session_id,
+    )
+    await enforce_attempt_access_by_group(
+        pool, redis, group_id=group_id, requester=requester,
+    )
     return await watch_runs_impl(
         pool,
         redis,

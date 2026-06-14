@@ -30,6 +30,7 @@ from redis.asyncio import Redis
 
 from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
+from app.infra.attempt.permissions import enforce_attempt_access_by_group
 from app.infra.attempt.refresh import refresh_attempt_impl
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
@@ -117,6 +118,31 @@ async def generate_attempt_impl(
 
     # -- Step 3: Validate resources --------------------------------------------
     from app.infra.group.resolve import resolve_group_impl
+
+    # ── Ownership gate (R1, mirror of G2) ────────────────────────────────────
+    # A client-supplied ``group_id`` is idempotently upserted/reused by
+    # ``resolve_group_impl`` with NO caller-vs-owner check, then driven into
+    # ``prepare_generation``. Without this gate, any ``attempt:generate`` holder
+    # could drive LLM generation (burning provider cost) into another user's
+    # private attempt group and emit into their room. When ``group_id`` is
+    # omitted, ``resolve_group_impl`` window-creates a fresh group for the
+    # caller's OWN session (no foreign access) — so gate only the caller-supplied
+    # case: resolve group → session → owner and apply the shared attempt gate.
+    # Mirrors the test/generate G2 fix; the attempt twin slipped the guardrail.
+    if group_id is not None:
+        try:
+            _supplied_gid: UUID | None = (
+                group_id if isinstance(group_id, UUID) else UUID(str(group_id))
+            )
+        except (ValueError, TypeError):
+            _supplied_gid = None  # malformed → fail-closed (owner resolves None)
+        await enforce_attempt_access_by_group(
+            pool, redis,
+            group_id=_supplied_gid,
+            requester=profile,
+            deny_detail="You don't have access to this attempt group.",
+        )
+
     # Always resolve — resolve_group_impl idempotently upserts when a
     # client-minted group_id is supplied, or falls back to window-based
     # auto-create when omitted. Either way the groups_entry row exists

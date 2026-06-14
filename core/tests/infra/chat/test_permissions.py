@@ -91,6 +91,14 @@ async def test_compute_pass_pct_returns_none_for_none_pass():
     assert compute_pass_pct(100, None) is None
 
 
+async def test_compute_pass_pct_clamps_when_pass_exceeds_total():
+    # R9: a misconfigured rubric (pass_points > total_points) must not yield a
+    # >100% pass threshold that mislabels a perfect score as "medium".
+    assert compute_pass_pct(10, 12) == 100
+    # A perfect 100% score is "high" against the clamped threshold (not "medium").
+    assert compute_score_status(100.0, pass_threshold=compute_pass_pct(10, 12)) == "high"
+
+
 # --- compute_status ---
 
 
