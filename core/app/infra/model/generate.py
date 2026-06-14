@@ -13,6 +13,7 @@ from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
+from app.infra.identity.request_limit import enforce_request_limit
 from app.infra.model.refresh import refresh_model_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -81,6 +82,19 @@ async def generate_model_impl(
                 status_code=403,
                 detail="You don't have permission to generate models.",
             )
+
+    # RL-A: Rate limit (RL-A / RL1/RL2) — every LLM-generation entry point must
+    # meter the request_limit. #379 metered only attempt/test/system (+agent);
+    # model/generate is also an LLM-cost entry point and must enforce here too,
+    # before any provider call. No-op for roles without a quota.
+    await enforce_request_limit(
+        redis,
+        profile_id=profile_id,
+        request_limit=profile.request_limit,
+        request_limit_interval=profile.request_limit_interval,
+        operation="generate",
+    )
+
     from app.infra.group.resolve import resolve_group_impl
     # Always resolve — resolve_group_impl idempotently upserts when a
     # client-minted group_id is supplied, or falls back to window-based
