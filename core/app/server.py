@@ -721,6 +721,62 @@ from app.routes import router as root_router  # noqa: E402
 
 fastapi_app.include_router(root_router)
 
+
+# ---------------------------------------------------------------------------
+# Readiness probe (DEP-A) — UNAUTHENTICATED, exercises real dependencies.
+# ---------------------------------------------------------------------------
+# The blue-green deploy gate previously probed an *authed* route with no token
+# and accepted the resulting 401 as "ready" — but that 401 is raised by the
+# auth dependency BEFORE the DB/Redis are ever touched, so it only proved the
+# app imported + bound the port. A color with a broken DB_HOST / Redis-down
+# still passed readiness and swapped to live, then 500'd every real request
+# (report-17 DEP-A). This endpoint deliberately has NO auth dependency and
+# actually pings the dependencies a real request needs, so the deploy gate can
+# distinguish "up + serving" from "up but broken".
+#
+# Gates (503) on DB + Redis — the two whose failure 500s every request.
+# Keycloak is reported but NOT gated: it has known deploy-time warmup races
+# (sync race + blue/green cache divergence, hand-patched today), so blocking
+# the readiness swap on it would stall every deploy. Auth-token failures are a
+# softer, self-healing degradation than a dead DB/Redis.
+@fastapi_app.get("/readyz", include_in_schema=False)
+async def readyz() -> ORJSONResponse:
+    from app.infra.globals import get_pool, get_redis_client
+    from app.infra.health.checks import (
+        ServiceCheckResult,
+        check_database,
+        check_keycloak,
+        check_redis,
+    )
+
+    try:
+        pool = get_pool()
+    except Exception:
+        pool = None
+    try:
+        redis_client = get_redis_client()
+    except Exception:
+        redis_client = None
+
+    db = await check_database(pool)
+    redis_res = await check_redis(redis_client)
+    try:
+        kc = await check_keycloak()
+    except Exception as e:  # never let the soft check break the probe
+        kc = ServiceCheckResult(False, 0.0, str(e))
+
+    ready = db.ok and redis_res.ok  # hard requirements
+    body = {
+        "ready": ready,
+        "checks": {
+            "database": {"ok": db.ok, "latency_ms": round(db.latency_ms, 1), "error": db.error},
+            "redis": {"ok": redis_res.ok, "latency_ms": round(redis_res.latency_ms, 1), "error": redis_res.error},
+            # reported for visibility, NOT gated (see comment above)
+            "keycloak": {"ok": kc.ok, "latency_ms": round(kc.latency_ms, 1), "error": kc.error, "gated": False},
+        },
+    }
+    return ORJSONResponse(status_code=200 if ready else 503, content=body)
+
 import app.ws  # noqa: E402, F401 — registers ws input/output handlers
 
 # ---------------------------------------------------------------------------
