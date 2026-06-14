@@ -14,12 +14,19 @@ from app.infra.identity.request_limit import (
 
 
 class _FakeRedis:
-    """Minimal async Redis fake supporting incr/expire with an optional fault."""
+    """Minimal async Redis fake supporting incr/expire/ttl with an optional fault.
 
-    def __init__(self, *, fail: bool = False) -> None:
+    ``drop_expires`` simulates the RL-B failure mode: ``expire`` silently no-ops
+    (a lost EXPIRE), so the key lives with no TTL until the ttl-reassert re-arms
+    it.
+    """
+
+    def __init__(self, *, fail: bool = False, drop_expires: bool = False) -> None:
         self._counts: dict[str, int] = {}
         self.expires: dict[str, int] = {}
         self._fail = fail
+        self._drop = drop_expires
+        self.expire_calls = 0
 
     async def incr(self, key: str) -> int:
         if self._fail:
@@ -28,7 +35,16 @@ class _FakeRedis:
         return self._counts[key]
 
     async def expire(self, key: str, ttl: int) -> None:
+        self.expire_calls += 1
+        if self._drop:
+            return  # simulate a lost EXPIRE (RL-B)
         self.expires[key] = ttl
+
+    async def ttl(self, key: str) -> int:
+        # -2 no key, -1 key but no TTL, else remaining seconds.
+        if key not in self._counts:
+            return -2
+        return self.expires.get(key, -1)
 
 
 def test_interval_to_seconds_parses_common_forms():
@@ -104,3 +120,18 @@ async def test_fails_open_on_redis_error():
         redis, profile_id=uuid4(), request_limit=1,
         request_limit_interval="1 day", operation="generate",
     )
+
+
+@pytest.mark.asyncio
+async def test_rl_b_reasserts_ttl_when_expire_was_lost():
+    """RL-B: if EXPIRE is lost (orphaned no-TTL key), later calls re-arm it
+    instead of leaving the profile 429'd forever."""
+    redis = _FakeRedis(drop_expires=True)  # every EXPIRE silently fails
+    pid = uuid4()
+    for _ in range(3):
+        await enforce_request_limit(
+            redis, profile_id=pid, request_limit=5,
+            request_limit_interval="1 day", operation="generate",
+        )
+    # count==1 expire (1) + ttl-reassert on calls 2 and 3 (ttl<0) => >1 attempts.
+    assert redis.expire_calls >= 2

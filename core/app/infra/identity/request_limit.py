@@ -78,6 +78,14 @@ async def enforce_request_limit(
         if count == 1:
             # First call in this window — start the TTL so it self-resets.
             await redis.expire(key, window)
+        elif await redis.ttl(key) < 0:
+            # RL-B: the key exists but has NO TTL — a prior EXPIRE was lost
+            # (Redis blip / dropped batched write / cancellation between the
+            # INCR and EXPIRE above). Without re-arming it, the window never
+            # resets and the profile is 429'd FOREVER once over limit. Re-set
+            # the TTL so it self-heals (fixed-window semantics preserved: we
+            # only re-arm when no expiry is set, never extend a live one).
+            await redis.expire(key, window)
     except Exception:
         return  # fail-open: don't break generation on a Redis hiccup
 
