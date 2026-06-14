@@ -9,3 +9,12 @@ CREATE UNIQUE INDEX runs_mv_run_id_idx ON public.runs_mv USING btree (run_id);
 
 
 --
+
+-- Name: idx_runs_mv_group_id; Type: INDEX; Schema: public; Owner: -
+-- report-15 P2: served on every conversation/history load (search_runs by group_id).
+--
+
+CREATE INDEX idx_runs_mv_group_id ON public.runs_mv USING btree (group_id, run_created_at);
+
+
+--

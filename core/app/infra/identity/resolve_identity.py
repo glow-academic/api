@@ -431,18 +431,26 @@ async def _resolve_profile_id(
     if not email:
         return None
 
-    from app.infra.globals import get_redis_client
     from app.tools.artifacts.profile.search import search_profiles
-    from app.tools.resources.emails.search import search_emails
 
-    redis = get_redis_client()
-
+    # P4: the auth path resolves an EXACT email — use a case-insensitive
+    # equality lookup instead of the substring search in search_emails
+    # (`LIKE '%'||$1||'%'`), which forced a seq scan on every email-claim auth
+    # and would also spuriously match substrings of another user's address.
+    # The prior code matched case-insensitively (`e.email.lower() ==
+    # email.lower()`), and emails are NOT normalized to lowercase at write
+    # (create_email stores them verbatim), so we keep `LOWER(email) = LOWER($1)`
+    # to preserve that behavior — served by the functional index
+    # idx_emails_resource_lower_email (added in the report-15 migration), so it
+    # is a seek, not a scan.
     async with pool.acquire() as conn:
-        email_results = await search_emails(conn, redis, search=email, limit_count=100)
+        email_rows = await conn.fetch(
+            "SELECT id FROM emails_resource "
+            "WHERE LOWER(email) = LOWER($1) AND active = true",
+            email,
+        )
 
-    matching_email_ids = [
-        e.id for e in email_results if e.email.lower() == email.lower()
-    ]
+    matching_email_ids = [r["id"] for r in email_rows]
     if not matching_email_ids:
         return None
 

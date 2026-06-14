@@ -421,3 +421,117 @@ async def test_audit_path_replays_from_calls_entry_receipt(monkeypatch, tmp_path
     assert runs["count"] == 0, "replay must not re-invoke the runner"
     # No lock should linger from a replayed call.
     assert f"{_IDEM_LOCK_PREFIX}{op_key}" not in redis.store
+
+
+# ---------------------------------------------------------------------------
+# A3 — a soft/propose op must NOT have a replayable success receipt: its
+#      "success" is only a DORMANT staged binding, which a later ack may reject.
+#      Replaying it would re-assert a creation that was since rejected.
+# ---------------------------------------------------------------------------
+
+
+async def test_soft_propose_non_audit_does_not_cache_success_receipt(monkeypatch):
+    """A soft propose on the non-audit path must NOT leave a redis replay
+    receipt, and a retry must RE-RUN (re-propose) rather than replay a stale
+    success that a since-issued reject would have invalidated."""
+    _wire_common_deps(monkeypatch, with_tool=False)
+
+    async def mock_search_calls(conn, redis, **kw):
+        return []
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    redis = _FakeRedis()
+    pool = _FakePool()
+    op_key = uuid4()
+    runs = {"count": 0}
+
+    async def runner():
+        runs["count"] += 1
+        return {"success": True, "value": runs["count"]}
+
+    args = {"soft": True, "foo": "bar"}
+
+    first = await run_artifact_operation_with_audit(
+        pool, redis, artifact="test", profile_id=uuid4(), operation="run",
+        runner=runner, arguments=args, operation_key=op_key,
+    )
+    assert first == {"success": True, "value": 1}
+    # A3: no replayable success receipt is cached for a soft/propose.
+    assert f"{_IDEM_RECEIPT_PREFIX}{op_key}" not in redis.store
+
+    # Retry: must re-run (re-propose), NOT replay the stale "success".
+    second = await run_artifact_operation_with_audit(
+        pool, redis, artifact="test", profile_id=uuid4(), operation="run",
+        runner=runner, arguments=args, operation_key=op_key,
+    )
+    assert runs["count"] == 2, "soft propose retry must re-run, not replay success"
+    assert second == {"success": True, "value": 2}
+
+
+async def test_soft_propose_audit_path_does_not_replay_success(monkeypatch, tmp_path):
+    """A soft propose whose calls_entry receipt says success=True must NOT be
+    replayed — the runner re-runs so the soft-call ledger stays authoritative
+    (a since-issued reject can't be papered over by a cached success)."""
+    _wire_common_deps(monkeypatch, with_tool=True)
+
+    op_key = uuid4()
+    runs = {"count": 0}
+
+    receipt_rel = "call/soft_replayed.json"
+    (tmp_path / "call").mkdir(parents=True, exist_ok=True)
+    (tmp_path / receipt_rel).write_text(
+        json.dumps(
+            {
+                "arguments": {"soft": True, "foo": "bar"},
+                "raw_output": {"success": True, "value": "from_receipt"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class _PriorCall:
+        id = uuid4()
+        file_path = receipt_rel
+
+    async def mock_search_calls(conn, redis, **kw):
+        return [_PriorCall()]
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    async def mock_create_tool_call(pool, redis, **kw):
+        # The audit store wraps + invokes the runner internally; mark that the
+        # store path (i.e. a true re-run, NOT a replay) was reached.
+        runs["store_invoked"] = True
+        return _FakeAuditResult(
+            result={"success": True, "value": "fresh"},
+            call_upload_id=uuid4(),
+        )
+
+    monkeypatch.setattr(audit_mod, "create_tool_call", mock_create_tool_call)
+
+    async def mock_get_tools(pool, ids, redis):
+        return []
+
+    monkeypatch.setattr(audit_mod, "get_tools", mock_get_tools)
+
+    redis = _FakeRedis()
+    pool = _FakePool()
+
+    async def runner():
+        runs["count"] += 1
+        return {"success": True, "value": "fresh"}
+
+    result = await run_artifact_operation_with_audit(
+        pool, redis, artifact="test", profile_id=uuid4(), operation="run",
+        runner=runner, arguments={"soft": True, "foo": "bar"}, operation_key=op_key,
+        upload_folder=tmp_path, group_id=uuid4(),
+    )
+
+    # A3: the cached success receipt MUST NOT be replayed for a soft propose —
+    # control falls through to the audit store (a real re-run), not the
+    # "from_receipt" short-circuit.
+    assert result != {"success": True, "value": "from_receipt"}
+    assert runs.get("store_invoked") is True, (
+        "soft propose must fall through to a re-run, not replay the cached success"
+    )

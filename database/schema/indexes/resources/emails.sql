@@ -25,3 +25,12 @@ CREATE INDEX idx_emails_mcp ON public.emails_resource USING btree (mcp);
 
 
 --
+
+-- Name: idx_emails_resource_lower_email; Type: INDEX; Schema: public; Owner: -
+-- report-15 P4: serves the case-insensitive auth-path email lookup.
+--
+
+CREATE INDEX idx_emails_resource_lower_email ON public.emails_resource USING btree (LOWER(email));
+
+
+--

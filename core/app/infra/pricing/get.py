@@ -135,6 +135,13 @@ async def get_pricing_impl(
         date_key = (
             run.run_created_at.strftime("%Y-%m-%d") if run.run_created_at else "unknown"
         )
+        # C2: multi-model runs attribute the full blended cost to model_ids[0]
+        # (the rest of the models show $0 on the per-model chart). A correct
+        # per-model split is NOT possible with the current schema — tokens_entry
+        # / run_pricing_entry record tokens+cost once per RUN (no model_id), and
+        # runs_mv.model_ids is a DISTINCT array_agg with no per-model weighting.
+        # Fixing it requires per-(run, model) token capture (schema + MV change)
+        # — out of scope here; do not fabricate a split heuristic.
         model_id = str(run.model_ids[0]) if run.model_ids else None
         bucket_key = (date_key, model_id)
         if bucket_key not in daily_buckets:
