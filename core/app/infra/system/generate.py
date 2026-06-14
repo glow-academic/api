@@ -32,6 +32,7 @@ from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
 from app.infra.attempt.permissions import enforce_attempt_access_by_group
+from app.infra.identity.request_limit import enforce_request_limit
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -107,6 +108,15 @@ async def generate_system_impl(
             status_code=403,
             detail="You don't have permission to generate system operations.",
         )
+
+    # -- Step 2b: Rate limit (RL1/RL2) -----------------------------------------
+    await enforce_request_limit(
+        redis,
+        profile_id=profile_id,
+        request_limit=profile.request_limit,
+        request_limit_interval=profile.request_limit_interval,
+        operation="generate",
+    )
 
     # -- Step 3: Validate resources --------------------------------------------
     from app.infra.group.resolve import resolve_group_impl

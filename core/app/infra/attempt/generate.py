@@ -32,6 +32,7 @@ from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.attempt.permissions import enforce_attempt_access_by_group
 from app.infra.attempt.refresh import refresh_attempt_impl
+from app.infra.identity.request_limit import enforce_request_limit
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
 from app.infra.permissions_helpers import has_permission
@@ -115,6 +116,18 @@ async def generate_attempt_impl(
             status_code=403,
             detail="You don't have permission to generate attempts.",
         )
+
+    # -- Step 2b: Rate limit (RL1/RL2) -----------------------------------------
+    # Enforce the role's resolved request_limit on this LLM-cost path — the
+    # limit was hydrated onto the identity but checked nowhere. No-op for roles
+    # without a quota. Reject (429) before any provider call / pool checkout.
+    await enforce_request_limit(
+        redis,
+        profile_id=profile_id,
+        request_limit=profile.request_limit,
+        request_limit_interval=profile.request_limit_interval,
+        operation="generate",
+    )
 
     # -- Step 3: Validate resources --------------------------------------------
     from app.infra.group.resolve import resolve_group_impl

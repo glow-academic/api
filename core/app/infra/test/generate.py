@@ -26,6 +26,7 @@ from app.infra.generation.execute import execute_generation
 from app.infra.generation.runner import run_generation_with_refresh
 from app.infra.generation.prepare import prepare_generation
 from app.infra.globals import get_internal_sio
+from app.infra.identity.request_limit import enforce_request_limit
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
@@ -174,6 +175,16 @@ async def generate_test_impl(
         raise HTTPException(
             status_code=403, detail="You don't have permission to generate tests.",
         )
+
+    # Rate limit (RL1/RL2) — enforce the role's resolved request_limit on this
+    # LLM-cost path before any provider call. No-op for roles without a quota.
+    await enforce_request_limit(
+        redis,
+        profile_id=profile_id,
+        request_limit=profile.request_limit,
+        request_limit_interval=profile.request_limit_interval,
+        operation="generate",
+    )
 
     if sid:
         resolved_sid = sid
