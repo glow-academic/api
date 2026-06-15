@@ -22,6 +22,7 @@ from app.tools.entries.calls.create import create_call
 from app.tools.entries.message_uploads.create import create_message_upload
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.uploads.create import create_upload
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def create_tool_call(
@@ -337,7 +338,10 @@ async def _persist_audit_writes(
         # orphan on the always-hit audited-tool-call path, visible to reads and
         # unable to self-heal. create_run_message opens its own transaction;
         # asyncpg nests it as a SAVEPOINT under this outer one, so they compose.
-        async with conn.transaction():
+        # HC2: defer the entry-creates' Redis write-backs to post-commit so a
+        # rollback here leaves no phantom cache rows (nested savepoints
+        # participate; this outermost block owns the single flush).
+        async with transaction_with_writeback(conn):
             text_upload = await create_upload(
                 conn, redis,
                 session_id=session_id,

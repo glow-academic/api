@@ -109,3 +109,46 @@ async def test_bypass_mv_finds_without_refresh(conn, redis_client, profile_id):
 
     ids = [item.grade_id for item in items]
     assert result.id in ids
+
+
+async def test_regrade_supersedes_prior_cached_grade(conn, redis_client, profile_id):
+    """HC1 (report-19): a re-grade must not leave the superseded grade in the
+    write-back cache. ``attempt_grade_mv`` is DISTINCT ON (chat_id), so search
+    must return exactly ONE grade per chat — the latest — even before the MV
+    refreshes (i.e. served straight from the hedged-read cache). Before the fix
+    both grades' cache rows survived and search returned two grades for one chat.
+    """
+    session = await create_session(conn, redis_client, profile_id=profile_id)
+    chat = await create_chat(conn, redis_client, session_id=session.id)
+    attempt_chat = await create_attempt_chat(
+        conn, redis_client, session_id=session.id, chat_id=chat.id
+    )
+    first = await create_attempt_grade(
+        conn,
+        redis_client, chat_id=attempt_chat.id,
+        session_id=session.id,
+        time_taken=120,
+        passed=True,
+        score=85,
+    )
+    # Re-grade the SAME chat: new grade_id, supersedes ``first``.
+    regrade = await create_attempt_grade(
+        conn,
+        redis_client, chat_id=attempt_chat.id,
+        session_id=session.id,
+        time_taken=140,
+        passed=False,
+        score=40,
+    )
+
+    # Deliberately NO refresh_attempt_grade(): the chat is absent from the MV,
+    # so results come purely from the write-back cache — the path HC1 fixes.
+    items = await search_attempt_grades(
+        conn, redis_client, chat_ids=[attempt_chat.id]
+    )
+    grade_ids = [item.grade_id for item in items]
+
+    assert grade_ids == [regrade.id], (
+        f"re-grade must leave exactly the latest grade in cache, got {grade_ids}"
+    )
+    assert first.id not in grade_ids

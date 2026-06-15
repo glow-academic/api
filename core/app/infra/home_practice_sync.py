@@ -46,6 +46,7 @@ from app.tools.resources.simulation_availability.types import (
 from app.tools.resources.simulation_positions.types import (
     GetSimulationPositionResponse,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -537,7 +538,10 @@ async def sync_home_practice_entries(
     # One entry per simulation (shared across all profiles), one chat per scenario.
     redis = get_redis_client()
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        # HC2: defer the fresh tree's Redis write-backs to post-commit so a
+        # rollback of this re-sync leaves no phantom home/practice/chat cache
+        # rows (the create tools' write_back_row calls enqueue inside this block).
+        async with transaction_with_writeback(conn):
             # ── Idempotency clear (scoped to this cohort) ──
             # ``/cohort/update`` re-runs this on every save and the create
             # tools are plain INSERTs, so without a clear each re-run appended
