@@ -31,14 +31,29 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 _TTL = 3600  # 1h — outlives MV refresh window; self-heals on next write
 _RECENT_CAP = 1000  # bounds per-namespace memory of the merge-index
+
+# report-19 HC2: when a write-back is issued inside a Postgres transaction, the
+# Redis SETEX must NOT fire until that transaction COMMITS — otherwise a later
+# statement that rolls the txn back leaves a phantom cache row served for _TTL
+# with no backing DB row. ``transaction_with_writeback`` sets this ContextVar to
+# a pending-queue for the duration of the (outermost) transaction; while it is
+# set, ``write_back_row`` enqueues instead of writing, and the queue is flushed
+# only on successful commit. None ⇒ no active deferral ⇒ write immediately
+# (unchanged behaviour for write-backs outside any transaction).
+_pending_writebacks: ContextVar[
+    list[tuple[Redis, str, "UUID | str", dict[str, Any], "int | None"]] | None
+] = ContextVar("_pending_writebacks", default=None)
 
 
 def _row_key(entry: str, row_id: UUID | str) -> str:
@@ -69,10 +84,30 @@ async def write_back_row(
     for ordering consistency with the MV (which orders by ``created_at``).
 
     Best-effort: errors are swallowed so a cache outage doesn't break writes.
+
+    HC2: if called inside a ``transaction_with_writeback`` block, the actual
+    Redis write is DEFERRED and flushed only after the surrounding Postgres
+    transaction commits (so a rollback leaves no phantom cache row).
     """
     if score_ms is None:
         import time
         score_ms = int(time.time() * 1000)
+    pending = _pending_writebacks.get()
+    if pending is not None:
+        # Inside a deferred-write-back transaction: enqueue, flush on commit.
+        pending.append((redis, entry, row_id, row, score_ms))
+        return
+    await _do_write_back_row(redis, entry, row_id, row, score_ms)
+
+
+async def _do_write_back_row(
+    redis: Redis,
+    entry: str,
+    row_id: UUID | str,
+    row: dict[str, Any],
+    score_ms: int,
+) -> None:
+    """Issue the actual Redis SETEX+ZADD for a write-back. Best-effort."""
     try:
         async with redis.pipeline(transaction=False) as pipe:
             pipe.setex(_row_key(entry, row_id), _TTL, json.dumps(row, default=str))
@@ -82,6 +117,43 @@ async def write_back_row(
             await pipe.execute()
     except Exception:
         pass
+
+
+@asynccontextmanager
+async def transaction_with_writeback(conn: asyncpg.Connection):
+    """Drop-in replacement for ``conn.transaction()`` that defers any
+    ``write_back_row`` issued inside it until AFTER the Postgres transaction
+    commits — closing report-19 HC2 (write-backs surviving a rollback as phantom
+    cache rows).
+
+    Semantics:
+      - Outermost use sets the pending-queue; nested uses (asyncpg SAVEPOINTs)
+        simply participate — they do NOT flush, since a savepoint release is not
+        a durable commit and the outer txn can still roll back. The outermost
+        block owns the single flush.
+      - The queue is flushed ONLY if the transaction block exits without raising
+        (i.e. the COMMIT succeeded). On any exception (rollback) the queued
+        write-backs are discarded — no phantom rows.
+
+    Usage:  ``async with transaction_with_writeback(conn):  ...creates...``
+    """
+    outer = _pending_writebacks.get() is None
+    token = _pending_writebacks.set([]) if outer else None
+    committed = False
+    try:
+        async with conn.transaction():
+            yield
+        committed = True  # reached only after a successful COMMIT
+    finally:
+        if outer:
+            pending = _pending_writebacks.get() or []
+            assert token is not None
+            _pending_writebacks.reset(token)
+            if committed:
+                for redis_c, entry_c, row_id_c, row_c, score_c in pending:
+                    await _do_write_back_row(
+                        redis_c, entry_c, row_id_c, row_c, score_c
+                    )
 
 
 async def read_back_row(
