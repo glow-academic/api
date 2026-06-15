@@ -7,7 +7,7 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.attempt_grade.types import CreateAttemptGradeResponse
-from app.utils.cache.hedged_row import write_back_row
+from app.utils.cache.hedged_row import invalidate_row, write_back_row
 
 
 async def create_attempt_grade(
@@ -65,11 +65,16 @@ async def create_attempt_grade(
     # for chat_id by definition. ``total_points``/``pass_points`` derive
     # from rubric joins; default to None until the MV refreshes. ``rubric_id``
     # picks the first linked rubric_id when present.
-    # FLAG: any *subsequent* attempt_grade insert for the same chat_id
-    # should invalidate the prior cache row (so DISTINCT ON semantics hold
-    # on the read side). That child-create-as-supersede flow isn't wired
-    # here — needs follow-up: ``invalidate_row(redis, "attempt_grade",
-    # <prev_grade_id>)`` before write_back_row of the new one.
+    # report-19 HC1: a re-grade inserts a NEW attempt_grade row for the same
+    # chat_id. ``attempt_grade_mv`` is DISTINCT ON (chat_id) ORDER BY created_at
+    # DESC, so only this latest grade wins on the read side — but the write-back
+    # cache keys every grade by its own grade_id, so without invalidation the
+    # superseded grade's cache row would survive (both pass ``hedged_search``'s
+    # chat_id filter, dedup is by grade_id) and ``search_attempt_grades`` would
+    # return TWO grades for one chat for up to _TTL. Wire the supersede flow the
+    # prior FLAG prescribed: bust every prior grade's cache row for this chat
+    # before caching the fresh (latest) one, so the hedged read honours the same
+    # DISTINCT-ON-(chat_id) contract as the MV.
     fresh_row = {
         "grade_id": str(entry_id),
         "chat_id": str(chat_id),
@@ -83,6 +88,17 @@ async def create_attempt_grade(
         "id": str(entry_id),
     }
     if actual_created_at is not None:
+        # Supersede prior cached grades for this chat (HC1) — invalidate_row
+        # deletes the per-id cache key, which drops it from hedged_search
+        # (the recent-ZSET ref MGET-misses and ages out under the cap).
+        prior_grades = await conn.fetch(
+            "SELECT id FROM attempt_grade_entry WHERE chat_id = $1 AND id <> $2",
+            chat_id,
+            entry_id,
+        )
+        for prior in prior_grades:
+            await invalidate_row(redis, "attempt_grade", prior["id"])
+
         await write_back_row(
             redis,
             "attempt_grade",
