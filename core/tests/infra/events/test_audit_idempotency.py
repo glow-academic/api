@@ -424,6 +424,85 @@ async def test_audit_path_replays_from_calls_entry_receipt(monkeypatch, tmp_path
 
 
 # ---------------------------------------------------------------------------
+# AU2 — can_audit=True replay must survive the fire-and-forget audit-persist
+#       window. ``_persist_audit_writes`` (create_tool_call) writes the receipt
+#       file/junction that supplies ``file_path`` in the BACKGROUND and is not
+#       awaited, but the lock is released synchronously. A retry landing before
+#       the persist commits finds the call with file_path=None (filtered out)
+#       and must replay from the Redis receipt — which is now written on EVERY
+#       success, not just can_audit=False — instead of re-executing.
+# ---------------------------------------------------------------------------
+
+
+async def test_audit_path_replays_via_redis_receipt_before_filepath_durable(
+    monkeypatch, tmp_path
+):
+    op_key = uuid4()
+    execs = {"count": 0}
+    search_calls_seen = {"n": 0}
+
+    _wire_common_deps(monkeypatch, with_tool=True)
+
+    async def mock_create_tool_call(pool, redis, **kw):
+        # A real execution goes through the audit store. The background persist
+        # that would set file_path is NOT simulated → file_path stays None.
+        execs["count"] += 1
+        return _FakeAuditResult(
+            result={"success": True, "value": "first"},
+            call_upload_id=uuid4(),
+        )
+
+    monkeypatch.setattr(audit_mod, "create_tool_call", mock_create_tool_call)
+
+    async def mock_get_tools(pool, ids, redis):
+        return []
+
+    monkeypatch.setattr(audit_mod, "get_tools", mock_get_tools)
+
+    class _PriorCallNoFile:
+        id = uuid4()
+        file_path = None  # background persist hasn't landed yet
+
+    async def mock_search_calls(conn, redis, **kw):
+        search_calls_seen["n"] += 1
+        # First run: nothing yet. Retry: the calls_entry row is visible but its
+        # file_path is still NULL (persist in flight).
+        return [] if search_calls_seen["n"] == 1 else [_PriorCallNoFile()]
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    redis = _FakeRedis()
+    pool = _FakePool()
+    args = {"foo": "bar"}
+
+    async def runner():
+        return {"success": True, "value": "first"}
+
+    first = await run_artifact_operation_with_audit(
+        pool, redis, artifact="auth", profile_id=uuid4(), operation="update",
+        runner=runner, arguments=args, operation_key=op_key,
+        upload_folder=tmp_path, group_id=uuid4(),
+    )
+    assert first == {"success": True, "value": "first"}
+    assert execs["count"] == 1
+    # AU2 fix: a Redis replay receipt is written even on the audited path.
+    assert f"{_IDEM_RECEIPT_PREFIX}{op_key}" in redis.store
+
+    # Retry while file_path is still NULL: must REPLAY from the redis receipt,
+    # not re-execute through the audit store.
+    second = await run_artifact_operation_with_audit(
+        pool, redis, artifact="auth", profile_id=uuid4(), operation="update",
+        runner=runner, arguments=args, operation_key=op_key,
+        upload_folder=tmp_path, group_id=uuid4(),
+    )
+    assert second == {"success": True, "value": "first"}
+    assert execs["count"] == 1, (
+        "retry in the audit-persist window must replay via the redis receipt, "
+        "not re-execute"
+    )
+
+
+# ---------------------------------------------------------------------------
 # A3 — a soft/propose op must NOT have a replayable success receipt: its
 #      "success" is only a DORMANT staged binding, which a later ack may reject.
 #      Replaying it would re-assert a creation that was since rejected.
