@@ -744,8 +744,12 @@ async def run_artifact_operation_with_audit(
             receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
             receipt["timings_ms"] = get_timings()
             receipt["completed_at"] = datetime.now(timezone.utc).isoformat()
-            receipt_path.write_text(
-                json.dumps(receipt, indent=2, default=str), encoding="utf-8",
+            # AU3: atomic write so a concurrent idempotency-replay reader never
+            # observes a torn receipt mid-update (which would fail json.loads and
+            # make the gate fall through to a duplicate execution).
+            from app.utils.atomic_write import atomic_write_text
+            atomic_write_text(
+                receipt_path, json.dumps(receipt, indent=2, default=str),
             )
         except Exception as e:
             # O3: this write IS the signal meant to flag "audit lifecycle
