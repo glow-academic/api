@@ -345,3 +345,106 @@ async def test_sync_clear_rolls_back_with_recreate_on_failure(
         "the prior tree was deactivated but the recreate failed — the clear "
         "did not roll back atomically with the recreate"
     )
+
+
+# ── HC3 (report-21): soft-delete must invalidate the hedged per-id cache ──────
+
+
+async def _prior_tree_ids(pool, snapshot_id):
+    """The active generated practice + chat ids currently linked to a snapshot."""
+    async with pool.acquire() as conn:
+        practice_rows = await conn.fetch(
+            """
+            SELECT DISTINCT pe.id
+            FROM practice_entry pe
+            JOIN practice_cohorts_connection pcc ON pcc.practice_id = pe.id
+            WHERE pcc.cohorts_id = $1
+              AND pcc.active = true
+              AND pe.active = true
+              AND pe.generated = true
+            """,
+            snapshot_id,
+        )
+        chat_rows = await conn.fetch(
+            """
+            SELECT DISTINCT ce.id
+            FROM chat_entry ce
+            JOIN practice_chat_entry pce ON pce.chat_id = ce.id AND pce.active = true
+            JOIN practice_entry pe ON pe.id = pce.practice_id AND pe.active = true
+            JOIN practice_cohorts_connection pcc
+              ON pcc.practice_id = pe.id AND pcc.active = true
+            WHERE pcc.cohorts_id = $1
+              AND ce.active = true
+              AND ce.generated = true
+            """,
+            snapshot_id,
+        )
+    return [r["id"] for r in practice_rows], [r["id"] for r in chat_rows]
+
+
+async def test_sync_soft_delete_invalidates_hedged_cache(
+    pool, redis_client, sync_fixture
+):
+    """HC3: re-syncing soft-deletes the prior cohort's home/practice/chat rows;
+    those rows are served from the per-id hedged cache (``entry:<ns>:<id>``), so
+    the soft-delete MUST bust their cache keys. Before the fix the deactivation
+    issued ZERO invalidate_row calls, so a GET right after a re-sync still
+    returned the stale (now-inactive) scaffold from cache for the TTL.
+
+    Set-up: run sync once, find the prior practice + chat ids, warm their per-id
+    cache keys (mirrors what create/get write-backs would leave live), then
+    re-sync (which deactivates that prior tree) and assert the prior ids' cache
+    keys are gone.
+    """
+    from uuid import uuid4
+
+    from app.utils.cache.hedged_row import read_back_row, write_back_row
+
+    artifact_id = uuid4()
+    snapshot_id = sync_fixture["cohort_id"]
+    async with pool.acquire() as conn:
+        await _link_cohort_artifact(conn, artifact_id, snapshot_id)
+
+    kwargs = dict(
+        pool=pool,
+        cohorts_resource_id=snapshot_id,
+        simulation_ids=[sync_fixture["simulation_id"]],
+        simulation_position_ids=[],
+        simulation_availability_ids=[],
+        department_ids=[],
+        profile_ids=[sync_fixture["profile_id"]],
+        profile_persona_ids=[],
+        cohort_artifact_id=artifact_id,
+    )
+
+    # First sync builds a tree (sync_fixture's simulation is practice=True).
+    await sync_home_practice_entries(**kwargs)
+    prior_practice_ids, prior_chat_ids = await _prior_tree_ids(pool, snapshot_id)
+    assert prior_practice_ids, "expected at least one practice row from the sync"
+    assert prior_chat_ids, "expected at least one chat row from the sync"
+
+    # Warm the per-id hedged cache for every prior row, in the exact namespaces
+    # the GET/search consumers read (practice→"practice", chat→"chat").
+    for pid in prior_practice_ids:
+        await write_back_row(redis_client, "practice", pid, {"id": str(pid)})
+    for cid in prior_chat_ids:
+        await write_back_row(redis_client, "chat", cid, {"id": str(cid)})
+    # Sanity: the cache is warm before the re-sync.
+    for pid in prior_practice_ids:
+        assert await read_back_row(redis_client, "practice", pid) is not None
+    for cid in prior_chat_ids:
+        assert await read_back_row(redis_client, "chat", cid) is not None
+
+    # Re-sync: deactivates the prior tree (active=false) AND must bust its cache.
+    await sync_home_practice_entries(**kwargs)
+
+    for pid in prior_practice_ids:
+        assert await read_back_row(redis_client, "practice", pid) is None, (
+            f"soft-deleted practice row {pid} still served from the hedged "
+            "cache — sync did not invalidate its per-id key (HC3)"
+        )
+    for cid in prior_chat_ids:
+        assert await read_back_row(redis_client, "chat", cid) is None, (
+            f"soft-deleted chat row {cid} still served from the hedged cache — "
+            "sync did not invalidate its per-id key (HC3)"
+        )

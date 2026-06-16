@@ -23,15 +23,21 @@ from uuid import UUID
 import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
-from app.tools.entries.soft_calls.types import CreateSoftCallResponse, GetSoftCallResponse
+from app.tools.entries.soft_calls.types import (
+    CreateSoftCallResponse,
+    GetSoftCallResponse,
+)
+from app.utils.cache.hedged_row import write_back_row
 
-_TTL = 3600  # 1h — outlives MV refresh window; self-heals on next write
-_RECENT_CAP = 1000  # bounds memory of the merge-index
-_RECENT_KEY = "entry:soft_call:recent"
-
-
-def _row_key(call_id: UUID) -> str:
-    return f"entry:soft_call:{call_id}"
+# Cache namespace shared with get.py/search.py: the per-row key is
+# ``entry:soft_call:{call_id}`` and the recent-writes index is
+# ``entry:soft_call:recent`` — exactly ``write_back_row``'s
+# ``entry:<ENTRY>:<id>`` / ``entry:<ENTRY>:recent`` shape with ENTRY="soft_call"
+# and id=call_id. Routing through ``write_back_row`` makes these write-backs
+# participate in the report-19 HC2 / report-20 V2 deferral so a SETEX issued
+# inside a ``transaction_with_writeback`` fires only on COMMIT (a rollback
+# leaves no phantom terminal cache row served for the TTL).
+_ENTRY = "soft_call"
 
 
 async def create_soft_call(
@@ -95,28 +101,24 @@ async def create_soft_call(
     entry_id = row["id"]
     created_at = row["created_at"]
 
-    fresh_json = json.dumps(
-        GetSoftCallResponse(
-            id=entry_id,
-            call_id=call_id,
-            artifact=artifact,
-            operation=operation,
-            status=status,
-            artifact_id=artifact_id,
-            patch=patch,
-            created_at=created_at,
-            eval=eval,
-        ).model_dump(mode="json")
-    )
+    fresh_row = GetSoftCallResponse(
+        id=entry_id,
+        call_id=call_id,
+        artifact=artifact,
+        operation=operation,
+        status=status,
+        artifact_id=artifact_id,
+        patch=patch,
+        created_at=created_at,
+        eval=eval,
+    ).model_dump(mode="json")
     score = int(created_at.timestamp() * 1000)  # ms-precision matches MV ORDER BY
 
-    # One pipeline = one round-trip. Reaches past BatchedRedis (which only
-    # batches GET/SETEX/EXPIRE) for the ZADD / ZREMRANGEBYRANK primitives.
-    async with redis.pipeline(transaction=False) as pipe:
-        pipe.setex(_row_key(call_id), _TTL, fresh_json)
-        pipe.zadd(_RECENT_KEY, {str(call_id): score})
-        pipe.zremrangebyrank(_RECENT_KEY, 0, -_RECENT_CAP - 1)
-        pipe.expire(_RECENT_KEY, _TTL)
-        await pipe.execute()
+    # Write-back via the shared helper so this SETEX+ZADD participates in the
+    # write-back deferral when issued inside a ``transaction_with_writeback``
+    # (HC2/V2). Outside any transaction it writes immediately — unchanged
+    # behaviour. The recent-index key/cap match the helper's defaults, and the
+    # per-row key matches what get.py/search.py read back.
+    await write_back_row(redis, _ENTRY, call_id, fresh_row, score_ms=score)
 
     return CreateSoftCallResponse(id=entry_id)

@@ -46,7 +46,7 @@ from app.tools.resources.simulation_availability.types import (
 from app.tools.resources.simulation_positions.types import (
     GetSimulationPositionResponse,
 )
-from app.utils.cache.hedged_row import transaction_with_writeback
+from app.utils.cache.hedged_row import invalidate_row, transaction_with_writeback
 from app.utils.logging.db_logger import get_logger
 
 logger = get_logger(__name__)
@@ -558,7 +558,15 @@ async def sync_home_practice_entries(
             # this drops the stale scaffold from every consumer; the fresh set
             # is created below in the same transaction → replace, never append.
             if cohort_artifact_id is not None:
-                await conn.execute(
+                # HC3 (report-21): the deactivated home/practice/chat rows are
+                # served from the hedged per-id cache (home/practice/chat GET +
+                # search read ``entry:<ns>:<id>``). Soft-deleting them in
+                # Postgres alone left those cache rows live for the TTL, so a
+                # GET right after a re-sync would still return the stale (now
+                # inactive) scaffold. Capture every deactivated id and bust its
+                # cache row below. The final statement is now a ``fetch`` whose
+                # CTE collects the three id sets the consumers cache by.
+                deact_rows = await conn.fetch(
                     """
                     WITH snaps AS (
                         SELECT ccj.cohorts_id
@@ -605,7 +613,7 @@ async def sync_home_practice_entries(
                             )
                           AND ce.active = true
                           AND ce.generated = true
-                        RETURNING 1
+                        RETURNING ce.id
                     ),
                     deact_home_bridge AS (
                         UPDATE home_chat_entry hce
@@ -637,14 +645,30 @@ async def sync_home_practice_entries(
                         UPDATE home_entry he
                         SET active = false
                         WHERE he.id IN (SELECT id FROM prior_home)
-                        RETURNING 1
+                        RETURNING he.id
+                    ),
+                    deact_practice AS (
+                        UPDATE practice_entry pe
+                        SET active = false
+                        WHERE pe.id IN (SELECT id FROM prior_practice)
+                        RETURNING pe.id
                     )
-                    UPDATE practice_entry pe
-                    SET active = false
-                    WHERE pe.id IN (SELECT id FROM prior_practice)
+                    SELECT 'home'     AS ns, id FROM deact_home
+                    UNION ALL
+                    SELECT 'practice' AS ns, id FROM deact_practice
+                    UNION ALL
+                    SELECT 'chat'     AS ns, id FROM deact_chats
                     """,
                     cohort_artifact_id,
                 )
+
+                # Bust each soft-deleted row's per-id hedged cache key so the
+                # stale scaffold is no longer served from cache. ``invalidate_row``
+                # is a best-effort DELETE (not a deferred write-back): a rollback
+                # of this re-sync would only bust still-valid cache rows, which
+                # self-heal on the next read/MV-refresh — never serves stale data.
+                for r in deact_rows:
+                    await invalidate_row(redis, r["ns"], r["id"])
 
             session = await create_session(conn, redis)
 

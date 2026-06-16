@@ -40,14 +40,12 @@ import asyncpg  # type: ignore
 from redis.asyncio import Redis
 
 from app.tools.entries.soft_calls.types import GetSoftCallResponse
+from app.utils.cache.hedged_row import write_back_row
 
-_TTL = 3600  # 1h — mirrors create_soft_call's write-back TTL
-_RECENT_CAP = 1000
-_RECENT_KEY = "entry:soft_call:recent"
-
-
-def _row_key(call_id: UUID) -> str:
-    return f"entry:soft_call:{call_id}"
+# Cache namespace shared with create.py/get.py/search.py — see create.py for the
+# key-shape rationale. Routing the terminal-state write-back through
+# ``write_back_row`` makes it participate in the HC2/V2 deferral.
+_ENTRY = "soft_call"
 
 
 async def resolve_soft_call(
@@ -128,16 +126,15 @@ async def resolve_soft_call(
 
     # Write-back cache + recent-index, identical shape to create_soft_call so
     # get_soft_call / search_soft_calls see the terminal state immediately.
-    # NOTE: the row is not durably committed until the caller's transaction
-    # commits; the TTL'd cache self-heals on the next write/MV refresh, and a
-    # rolled-back transaction is the crash case A4 already tolerates.
-    fresh_json = json.dumps(entry.model_dump(mode="json"))
+    # ``resolve_soft_call`` runs INSIDE the caller's ``conn.transaction()`` (A4),
+    # so this write-back is the exact V2-GAP case: routing it through
+    # ``write_back_row`` defers the SETEX until that transaction COMMITS when the
+    # caller uses ``transaction_with_writeback``. A rollback then leaves NO
+    # phantom terminal cache row (previously the raw pipeline fired the SETEX
+    # immediately, serving a non-existent terminal status for the TTL).
     score = int(row["created_at"].timestamp() * 1000)
-    async with redis.pipeline(transaction=False) as pipe:
-        pipe.setex(_row_key(call_id), _TTL, fresh_json)
-        pipe.zadd(_RECENT_KEY, {str(call_id): score})
-        pipe.zremrangebyrank(_RECENT_KEY, 0, -_RECENT_CAP - 1)
-        pipe.expire(_RECENT_KEY, _TTL)
-        await pipe.execute()
+    await write_back_row(
+        redis, _ENTRY, call_id, entry.model_dump(mode="json"), score_ms=score
+    )
 
     return entry
