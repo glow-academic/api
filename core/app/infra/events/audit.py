@@ -719,14 +719,19 @@ async def run_artifact_operation_with_audit(
             "ledger_artifact_id": ledger_artifact_id,
         })
 
-    # Idempotency bookkeeping on success.
-    #   • can_audit=True: ``create_tool_call`` already persisted the calls_entry
-    #     receipt that ``search_calls`` replays — nothing extra to write.
-    #   • can_audit=False: persist the lightweight Redis receipt so a retry
-    #     replays instead of re-executing (the A2 duplicate-write fix).
-    # Either way, drop the in-flight lock now that the receipt exists.
-    if not can_audit:
-        await _write_redis_receipt(result_data)
+    # Idempotency bookkeeping on success — write the lightweight Redis receipt
+    # on EVERY success, then drop the in-flight lock.
+    #   • can_audit=False: it is the ONLY replay signal (no calls_entry at all).
+    #   • can_audit=True (AU2): the calls_entry receipt that ``search_calls``
+    #     replays is keyed on ``file_path``, but that path is written by the
+    #     FIRE-AND-FORGET ``_persist_audit_writes`` task (create_tool_call) and
+    #     is NOT durable when we release the lock here. A retry landing in that
+    #     window finds the call with ``file_path=None`` (filtered out above),
+    #     falls to the Redis-receipt branch, and — without this — finds nothing
+    #     and RE-EXECUTES. Writing the Redis receipt unconditionally closes the
+    #     window (and the failure-to-persist case); it is best-effort and
+    #     no-ops on soft/error, so it is safe for the audited path too.
+    await _write_redis_receipt(result_data)
     await _release_idem_lock()
 
     # Final receipt update — merge full per-phase timings + completed_at
