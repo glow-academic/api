@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+from app.utils.atomic_write import atomic_write_text
+
 
 def save_call_upload(
     payload: dict[str, Any],
@@ -24,6 +26,8 @@ def save_call_upload(
     filename = f"{upload_id}.json"
     full_path = subfolder / filename
 
-    full_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    # AU3: atomic write so a concurrent idempotency-replay reader never sees a
+    # torn/partial receipt (which would fail json.loads → gate re-executes).
+    atomic_write_text(full_path, json.dumps(payload, indent=2, default=str))
 
     return os.path.join("call", filename)
