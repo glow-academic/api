@@ -292,6 +292,16 @@ async def resolve_group_impl(
     resolved_group_id: UUID
     created_new = False
 
+    # B2 (report-18): the single-group race guard relies on a GET reflecting a
+    # just-written SETEX for the same key within a tick. BatchedRedis coalesces
+    # GET→MGET and SETEX→pipeline and runs the MGET BEFORE the writes in the
+    # SAME pipeline, so a batched GET returns the PRE-SETEX value — widening the
+    # window where concurrent resolvers both read None. Route this function's
+    # cache reads/writes through the RAW (un-batched, ordered) client so
+    # read-after-write causality holds. (The atomic ``SET NX EX`` claim below is
+    # the ultimate guard, but raw ordering keeps the fast-path reuse honest.)
+    cache = getattr(redis, "_client", redis)
+
     if group_id is not None:
         # Client-minted id pattern: the caller treats ``group_id`` as
         # canonical and the server idempotently materializes the row.
@@ -313,17 +323,17 @@ async def resolve_group_impl(
         # decision — existing groups have content worth loading and
         # don't need a default title written over the AI's later rename.
         created_new = result.inserted
-        await redis.setex(
+        await cache.setex(
             _redis_key(artifact_type, profile_id), window_seconds, str(resolved_group_id),
         )
     else:
         key = _redis_key(artifact_type, profile_id)
-        existing = await redis.get(key)
+        existing = await cache.get(key)
         if existing:
             resolved_group_id = UUID(
                 existing.decode() if isinstance(existing, bytes) else existing
             )
-            await redis.expire(key, window_seconds)
+            await cache.expire(key, window_seconds)
         else:
             # Concurrent page-load fires multiple HTTP routes in
             # parallel (e.g. /context + /group + /search), each
@@ -338,7 +348,7 @@ async def resolve_group_impl(
             # read back the winner's id and proceed against it. All
             # concurrent calls converge on one group.
             candidate = snapshot_key or _mint_group_id()
-            claimed = await redis.set(
+            claimed = await cache.set(
                 key, str(candidate), nx=True, ex=window_seconds,
             )
             if claimed:
@@ -357,7 +367,7 @@ async def resolve_group_impl(
                 # key. Re-read and use the winner's id; the row
                 # they minted with is_active=true is already FK-safe
                 # for downstream audits.
-                winner = await redis.get(key)
+                winner = await cache.get(key)
                 if winner is None:
                     # Pathological: TTL expired between SETNX and
                     # GET. Fall back to minting our own — this is
@@ -371,13 +381,13 @@ async def resolve_group_impl(
                             soft=False,
                         )
                     resolved_group_id = result.id
-                    await redis.setex(key, window_seconds, str(resolved_group_id))
+                    await cache.setex(key, window_seconds, str(resolved_group_id))
                     created_new = True
                 else:
                     resolved_group_id = UUID(
                         winner.decode() if isinstance(winner, bytes) else winner
                     )
-                    await redis.expire(key, window_seconds)
+                    await cache.expire(key, window_seconds)
 
     # ── Default title for freshly-minted groups ──────────────────────
     # Write a "New Chat" row so the client never sees an empty header

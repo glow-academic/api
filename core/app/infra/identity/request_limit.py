@@ -32,6 +32,22 @@ _UNIT_SECONDS = {
 }
 _DEFAULT_WINDOW = 86400  # 1 day — matches the seeded ``daily-10`` limit.
 
+# RL-B2 (report-18): INCR + EXPIRE as two separate round-trips is not atomic —
+# the EXPIRE can be lost (Redis blip, cancellation, or a co-batched pipeline
+# error), leaving a TTL-less key that 429s a profile FOREVER. The prior
+# self-heal re-armed the TTL on a LATER read, but that set a fresh full window
+# from the read moment → up to ~2x quota slide. This Lua does INCR then arms
+# the TTL iff none is set, ATOMICALLY in one round-trip: the EXPIRE can never
+# be lost (so no forever-429 and no read-time re-arm), and a live window is
+# never extended (EXPIRE only fires when TTL < 0). Fixed-window, exactly once.
+_INCR_EXPIRE_LUA = """
+local c = redis.call('INCR', KEYS[1])
+if redis.call('TTL', KEYS[1]) < 0 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return c
+"""
+
 
 def interval_to_seconds(interval: str | None) -> int:
     """Parse a ``request_limit_interval`` string to a window in seconds.
@@ -74,18 +90,10 @@ async def enforce_request_limit(
     window = interval_to_seconds(request_limit_interval)
     key = f"reqlimit:{profile_id}:{operation}"
     try:
-        count = await redis.incr(key)
-        if count == 1:
-            # First call in this window — start the TTL so it self-resets.
-            await redis.expire(key, window)
-        elif await redis.ttl(key) < 0:
-            # RL-B: the key exists but has NO TTL — a prior EXPIRE was lost
-            # (Redis blip / dropped batched write / cancellation between the
-            # INCR and EXPIRE above). Without re-arming it, the window never
-            # resets and the profile is 429'd FOREVER once over limit. Re-set
-            # the TTL so it self-heals (fixed-window semantics preserved: we
-            # only re-arm when no expiry is set, never extend a live one).
-            await redis.expire(key, window)
+        # Atomic INCR + arm-TTL-if-unset (RL-B2). ``eval`` is a passthrough op
+        # on BatchedRedis (not coalesced), so this is one ordered round-trip,
+        # independent of the batched-write path.
+        count = await redis.eval(_INCR_EXPIRE_LUA, 1, key, window)
     except Exception:
         return  # fail-open: don't break generation on a Redis hiccup
 

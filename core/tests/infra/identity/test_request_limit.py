@@ -14,37 +14,31 @@ from app.infra.identity.request_limit import (
 
 
 class _FakeRedis:
-    """Minimal async Redis fake supporting incr/expire/ttl with an optional fault.
+    """Minimal async Redis fake implementing the RL-B2 atomic ``eval`` path.
 
-    ``drop_expires`` simulates the RL-B failure mode: ``expire`` silently no-ops
-    (a lost EXPIRE), so the key lives with no TTL until the ttl-reassert re-arms
-    it.
+    ``enforce_request_limit`` runs a single Lua ``INCR`` + arm-TTL-iff-unset via
+    ``redis.eval``. This fake reproduces those semantics in-memory: it INCRs the
+    counter and arms the TTL exactly once (when none is set), so a TTL can never
+    be lost (no forever-429) and a live window is never extended (no ~2x slide).
+    ``arm_count`` records how many times the TTL was actually armed.
     """
 
-    def __init__(self, *, fail: bool = False, drop_expires: bool = False) -> None:
+    def __init__(self, *, fail: bool = False) -> None:
         self._counts: dict[str, int] = {}
         self.expires: dict[str, int] = {}
         self._fail = fail
-        self._drop = drop_expires
-        self.expire_calls = 0
+        self.arm_count = 0
 
-    async def incr(self, key: str) -> int:
+    async def eval(self, script: str, numkeys: int, *keys_and_args):
         if self._fail:
             raise RuntimeError("redis down")
+        key = keys_and_args[0]
+        ttl = int(keys_and_args[numkeys])  # ARGV[1]
         self._counts[key] = self._counts.get(key, 0) + 1
+        if key not in self.expires:  # TTL < 0 → arm it (atomic with the INCR)
+            self.expires[key] = ttl
+            self.arm_count += 1
         return self._counts[key]
-
-    async def expire(self, key: str, ttl: int) -> None:
-        self.expire_calls += 1
-        if self._drop:
-            return  # simulate a lost EXPIRE (RL-B)
-        self.expires[key] = ttl
-
-    async def ttl(self, key: str) -> int:
-        # -2 no key, -1 key but no TTL, else remaining seconds.
-        if key not in self._counts:
-            return -2
-        return self.expires.get(key, -1)
 
 
 def test_interval_to_seconds_parses_common_forms():
@@ -123,15 +117,20 @@ async def test_fails_open_on_redis_error():
 
 
 @pytest.mark.asyncio
-async def test_rl_b_reasserts_ttl_when_expire_was_lost():
-    """RL-B: if EXPIRE is lost (orphaned no-TTL key), later calls re-arm it
-    instead of leaving the profile 429'd forever."""
-    redis = _FakeRedis(drop_expires=True)  # every EXPIRE silently fails
+async def test_rl_b2_ttl_armed_once_atomically_never_extended():
+    """RL-B2: the INCR + arm-TTL is a single atomic ``eval``, so the TTL is
+    armed exactly ONCE (on the first call) and a live window is never extended
+    on later calls — no ~2x quota slide, and no lost-EXPIRE forever-429 (the
+    EXPIRE can't be separated from the INCR)."""
+    redis = _FakeRedis()
     pid = uuid4()
     for _ in range(3):
         await enforce_request_limit(
             redis, profile_id=pid, request_limit=5,
             request_limit_interval="1 day", operation="generate",
         )
-    # count==1 expire (1) + ttl-reassert on calls 2 and 3 (ttl<0) => >1 attempts.
-    assert redis.expire_calls >= 2
+    key = f"reqlimit:{pid}:generate"
+    assert redis.expires[key] == 86400
+    # Armed on the first call only — subsequent calls find a live TTL and
+    # leave it untouched (the window-slide the old read-time re-arm caused).
+    assert redis.arm_count == 1
