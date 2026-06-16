@@ -418,9 +418,24 @@ async def _resolve_profile_id(
     direct_id = claims.get("profile_id")
     if direct_id:
         try:
-            return UUID(direct_id)
+            pid = UUID(direct_id)
         except ValueError:
-            pass
+            pid = None
+        if pid is not None:
+            # ID1 (report-20): a default_idp token names a profile_id
+            # directly, but a previously-issued token outlives a later
+            # deactivation. Verify the artifact is still active before
+            # trusting the claim — a soft-deleted/disabled account must stop
+            # resolving. An unknown-or-inactive id is a hard revoke: we do
+            # NOT fall through to the email path / guest auto-create, which
+            # would silently reprovision a banned user as a fresh guest.
+            async with pool.acquire() as conn:
+                is_active = await conn.fetchval(
+                    "SELECT active FROM profile_artifact WHERE id = $1", pid
+                )
+            if is_active:
+                return pid
+            raise ValueError(f"Profile {pid} is inactive or no longer exists")
 
     # Strategy 2: Email claim (fully-scoped OIDC clients put it there)
     # Strategy 3: Fetch email from Keycloak by sub when the token lacks it
@@ -456,10 +471,22 @@ async def _resolve_profile_id(
 
     async with pool.acquire() as conn:
         artifact_ids, _ = await search_profiles(
+            conn, email_ids=matching_email_ids, active_only=True, limit_count=1
+        )
+    if artifact_ids:
+        return artifact_ids[0]
+
+    # ID1 (report-20): no ACTIVE profile for this email. If a deactivated one
+    # exists, revoke rather than letting resolve_identity auto-provision a
+    # fresh guest profile (which would re-admit a disabled user). Only a
+    # genuine "no profile at all" returns None → guest auto-create proceeds.
+    async with pool.acquire() as conn:
+        inactive_ids, _ = await search_profiles(
             conn, email_ids=matching_email_ids, active_only=False, limit_count=1
         )
-
-    return artifact_ids[0] if artifact_ids else None
+    if inactive_ids:
+        raise ValueError("Profile for this email is deactivated")
+    return None
 
 
 async def _auto_create_guest_profile(
