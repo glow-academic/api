@@ -210,7 +210,12 @@ async def execute_media_dispatch(
             ).model_dump(),
             artifact_type=artifact_type,
         )
-        return None
+        # R7 parity: the modality ``.error`` event clears the FE skeleton, but
+        # ``return None`` is the SUCCESS signal to ``execute_generation`` — so a
+        # media failure produced a false ``.completed`` terminal + HTTP 200
+        # alongside the ``.error``. Re-raise so the audit wrapper owns a single
+        # ``.failed`` terminal and the route status reflects the failure.
+        raise
 
     return _produced_media_from(modality, media_result)
 
