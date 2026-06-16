@@ -742,12 +742,7 @@ fastapi_app.include_router(root_router)
 @fastapi_app.get("/readyz", include_in_schema=False)
 async def readyz() -> ORJSONResponse:
     from app.infra.globals import get_pool, get_redis_client
-    from app.infra.health.checks import (
-        ServiceCheckResult,
-        check_database,
-        check_keycloak,
-        check_redis,
-    )
+    from app.infra.health.checks import check_database, check_redis
 
     try:
         pool = get_pool()
@@ -760,19 +755,19 @@ async def readyz() -> ORJSONResponse:
 
     db = await check_database(pool)
     redis_res = await check_redis(redis_client)
-    try:
-        kc = await check_keycloak()
-    except Exception as e:  # never let the soft check break the probe
-        kc = ServiceCheckResult(False, 0.0, str(e))
 
+    # M1 (report-18): readiness gates ONLY on the two hard dependencies it
+    # decides on — DB + Redis. Keycloak is NOT gated (a KC blip must not fail a
+    # color out of rotation), so we deliberately do NOT issue a per-probe httpx
+    # GET to Keycloak here: once the deploy gate polls /readyz on a loop (D1),
+    # an unbounded outbound KC fetch per probe would amplify load + pool churn
+    # for a signal that never affects the decision.
     ready = db.ok and redis_res.ok  # hard requirements
     body = {
         "ready": ready,
         "checks": {
             "database": {"ok": db.ok, "latency_ms": round(db.latency_ms, 1), "error": db.error},
             "redis": {"ok": redis_res.ok, "latency_ms": round(redis_res.latency_ms, 1), "error": redis_res.error},
-            # reported for visibility, NOT gated (see comment above)
-            "keycloak": {"ok": kc.ok, "latency_ms": round(kc.latency_ms, 1), "error": kc.error, "gated": False},
         },
     }
     return ORJSONResponse(status_code=200 if ready else 503, content=body)

@@ -89,6 +89,13 @@ class BatchedRedis:
         # Guards double-scheduling of the flush task when many ops enqueue
         # before the next tick fires.
         self._flush_scheduled: bool = False
+        # B1 (report-18): asyncio holds only a WEAK reference to a task, so a
+        # flush task whose only ref was the discarded ``create_task`` return
+        # could be garbage-collected before it ran — leaving every awaiting
+        # ``get``/``setex``/``expire`` future for that tick to hang forever and
+        # the buffered writes silently lost. Hold a strong ref in a set until
+        # the task completes (mirrors utils/async_tasks.schedule_background).
+        self._flush_tasks: set[asyncio.Task[Any]] = set()
 
     async def get(self, key: Any) -> Any:
         """Coalesced GET. Identical semantics to ``Redis.get(key)`` —
@@ -130,7 +137,11 @@ class BatchedRedis:
     def _schedule_flush(self) -> None:
         if not self._flush_scheduled:
             self._flush_scheduled = True
-            asyncio.create_task(self._flush())
+            task = asyncio.create_task(self._flush())
+            # B1: keep a strong ref so the task can't be GC'd mid-flight;
+            # drop it on completion to avoid unbounded growth.
+            self._flush_tasks.add(task)
+            task.add_done_callback(self._flush_tasks.discard)
 
     async def _flush(self) -> None:
         # Yield once so peer awaits scheduled in the same tick get a chance
@@ -151,6 +162,12 @@ class BatchedRedis:
         try:
             # ``transaction=False`` — we don't need MULTI/EXEC atomicity,
             # just pipelined dispatch (one network round-trip).
+            # B3 (report-18): ``raise_on_error=False`` so ONE poisoned command
+            # (e.g. a SETEX/EXPIRE against a wrong-type key) does NOT abort and
+            # fail every co-batched op — its error is returned in-band as that
+            # command's result and dispatched to ITS future only. Without this,
+            # a single bad key silently dropped a co-batched rate-limit EXPIRE
+            # or cache SETEX for unrelated keys/requests in the same tick.
             async with self._client.pipeline(transaction=False) as pipe:
                 if get_keys:
                     pipe.mget(get_keys)
@@ -159,8 +176,8 @@ class BatchedRedis:
                         pipe.setex(w.key, w.ttl, w.value)
                     elif w.op == "expire":
                         pipe.expire(w.key, w.ttl)
-                results = await pipe.execute()
-        except Exception as exc:  # noqa: BLE001
+                results = await pipe.execute(raise_on_error=False)
+        except Exception as exc:  # noqa: BLE001 — connection-level failure
             logger.warning(
                 "BatchedRedis: pipeline failed (%d gets, %d writes): %s",
                 len(get_keys), len(pending_writes), exc,
@@ -175,18 +192,31 @@ class BatchedRedis:
             return
 
         # Dispatch results. Pipeline returns one entry per queued command,
-        # in queue order: MGET (if any), then each write.
+        # in queue order: MGET (if any), then each write. With
+        # ``raise_on_error=False`` an individual entry may be an Exception
+        # (that command failed) — dispatch it to that command's future(s) only.
         idx = 0
         if get_keys:
             values = results[idx]
             idx += 1
-            for k, v in zip(get_keys, values):
-                for f in pending_gets[k]:
-                    if not f.done():
-                        f.set_result(v)
+            if isinstance(values, Exception):
+                for k in get_keys:
+                    for f in pending_gets[k]:
+                        if not f.done():
+                            f.set_exception(values)
+            else:
+                for k, v in zip(get_keys, values):
+                    for f in pending_gets[k]:
+                        if not f.done():
+                            f.set_result(v)
         for i, w in enumerate(pending_writes):
-            if not w.future.done():
-                w.future.set_result(results[idx + i])
+            if w.future.done():
+                continue
+            res = results[idx + i]
+            if isinstance(res, Exception):
+                w.future.set_exception(res)
+            else:
+                w.future.set_result(res)
 
     def __getattr__(self, name: str) -> Any:
         """Pass through every non-batched operation directly to the
