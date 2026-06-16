@@ -147,7 +147,9 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return None
+        # R7 parity: ``return None`` signals success to execute_generation → a
+        # TTS failure would 200 with no audio. Re-raise for a single ``.failed``.
+        raise
 
     # Run the canonical media pipeline: writes bytes → uploads_entry →
     # audios_resource → audios_entry → audio_uploads_entry +
@@ -180,7 +182,8 @@ async def execute_tts_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return None
+        # R7 parity: a persist failure must not return the success signal.
+        raise
 
     upload_id = upload_result.upload_id
     resource_id = upload_result.resource_id

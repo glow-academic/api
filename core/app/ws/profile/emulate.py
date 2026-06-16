@@ -27,6 +27,22 @@ async def profile_emulate(sid: str, data: dict[str, Any]) -> None:
         })
         return
 
+    # Guard the UUID parse on raw client input BEFORE it reaches the runner —
+    # an unguarded ``UUID(...)`` there raises inside the audit wrapper, which
+    # re-raises out of this fire-and-forget socket handler as an unretrieved-task
+    # traceback and leaks the raw error into the payload. Every sibling handler
+    # (attempt/chat/audio.py, voice.py, output.py) guards this same way.
+    try:
+        target_uuid = UUID(str(target_profile_id))
+    except (ValueError, TypeError):
+        await internal_sio.emit("profile.emulate.failed", {
+            "sid": sid,
+            "rooms": [sid],
+            "message": "target_profile_id must be a valid UUID.",
+            "error_type": "validation",
+        })
+        return
+
     pool = get_pool()
     redis = get_redis_client()
     bypass_cache = data.get("bypass_cache", False)
@@ -44,7 +60,7 @@ async def profile_emulate(sid: str, data: dict[str, Any]) -> None:
             pool,
             redis,
             profile_id=identity.profile_id,
-            target_profile_id=UUID(target_profile_id),
+            target_profile_id=target_uuid,
             ttl_minutes=ttl_minutes,
             bypass_cache=bypass_cache,
             actor_profile_id=identity.actor_profile_id,

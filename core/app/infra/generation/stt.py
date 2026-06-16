@@ -59,7 +59,10 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        # R7 parity: emit the modality ``.error`` (clears the FE skeleton) then
+        # RAISE — a bare ``return`` is the success signal to execute_generation,
+        # so an STT failure would 200 with no transcript + a stray ``.error``.
+        raise ValueError("STT requires audios_id on the request")
 
     llm_config = dispatch.llm_config
     api_key = llm_config.get("api_key")
@@ -73,7 +76,7 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        raise ValueError("No API key configured for STT")
 
     base_url = llm_config.get("base_url")
     if not base_url:
@@ -86,7 +89,7 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        raise ValueError("No base_url configured for STT provider")
 
     try:
         audios_uuid = UUID(dispatch.audios_id)
@@ -100,7 +103,7 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        raise
 
     pool = get_pool()
     async with pool.acquire() as conn:
@@ -116,7 +119,7 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        raise ValueError(f"No upload linked to audios_id {audios_uuid}")
 
     full_path = resolve_upload_path(upload.file_path, upload_folder=UPLOAD_FOLDER)
 
@@ -157,7 +160,7 @@ async def execute_stt_dispatch(
                 group_id=group_id,
             ).model_dump(),
         )
-        return
+        raise
 
     text = getattr(transcription, "text", None) or str(transcription)
     logger.info(
