@@ -26,6 +26,7 @@ from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "profile"
 
@@ -78,7 +79,7 @@ async def duplicate_profile_impl(
         profiles_rows_ack = None
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     result = await create_profile_artifact(
                         conn,
                         id=target_id,
@@ -162,7 +163,7 @@ async def duplicate_profile_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_profile_artifact(
                 conn,
                 id=idempotency_key,

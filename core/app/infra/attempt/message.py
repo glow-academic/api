@@ -19,6 +19,7 @@ from app.infra.attempt.permissions import enforce_attempt_access_by_chat
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -197,7 +198,7 @@ async def attempt_message_internal_impl(
         # failure. (Redis write-back inside the create_* calls is not
         # transactional, same caveat as every other conn.transaction() impl;
         # the MV refresh stays OUTSIDE the txn — it only runs on success.)
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             # Create attempt_message_entry (container)
             message_result = await create_attempt_message(
                 conn, redis,

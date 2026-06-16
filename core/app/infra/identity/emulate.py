@@ -30,6 +30,7 @@ from app.tools.entries.grant_consumptions.create import (
 from app.tools.entries.grants.create import create_grant
 from app.tools.entries.sessions.search import search_sessions
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -188,7 +189,7 @@ async def resolve_emulation(
     # Step 5: Create grant + emulation in a single transaction
     expires_at = datetime.now(UTC) + timedelta(minutes=ttl_minutes)
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             grant_result = await create_grant(
                 conn,
                 redis, session_id=requester_session_id,

@@ -53,6 +53,7 @@ from app.infra.document.types import (
     CreateDocumentApiResponse,
     DocumentResultItem,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def create_document_impl(
@@ -91,7 +92,7 @@ async def create_document_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_document_artifact(
                         conn,
                         id=target_id,
@@ -257,7 +258,7 @@ async def create_document_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             for idx, item in enumerate(items):
                 flag_ids = list(item.flag_ids) if item.flag_ids else None
 

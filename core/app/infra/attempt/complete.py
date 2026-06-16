@@ -27,6 +27,7 @@ from app.tools.entries.attempt_completion.create import create_attempt_completio
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.resolve import resolve_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "attempt"
 OPERATION = "complete"
@@ -69,7 +70,7 @@ async def complete_attempt_impl(
         # runs only AFTER this commit, so it never snapshots before the ledger
         # row it describes.
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 resolved = await resolve_soft_call(
                     conn, redis, call_id=idempotency_key, artifact=ARTIFACT,
                     operation=OPERATION, artifact_id=entry.artifact_id,

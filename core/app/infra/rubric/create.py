@@ -28,6 +28,7 @@ from app.tools.artifacts.rubric.create import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "rubric"
 
@@ -92,7 +93,7 @@ async def create_rubric_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_rubric_artifact(
                         conn,
                         id=target_id,
@@ -210,7 +211,7 @@ async def create_rubric_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             for idx, item in enumerate(items):
                 # Only pass points are writeable; total is derived on read.
                 point_ids = [item.pass_points_id] if item.pass_points_id else None

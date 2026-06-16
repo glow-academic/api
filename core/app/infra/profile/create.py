@@ -31,6 +31,7 @@ from app.tools.artifacts.profile.create import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "profile"
 
@@ -94,7 +95,7 @@ async def create_profile_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_profile_artifact(
                         conn,
                         id=target_id,
@@ -174,7 +175,7 @@ async def create_profile_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             for item in items:
                 profiles_resource_id = None
                 if not soft:

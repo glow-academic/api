@@ -35,6 +35,7 @@ from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "cohort"
 
@@ -77,7 +78,7 @@ async def duplicate_cohort_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_cohort_artifact(conn, id=target_id, soft=False)
 
         async with pool.acquire() as conn:
@@ -198,7 +199,7 @@ async def duplicate_cohort_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_cohort_artifact(
                 conn,
                 id=idempotency_key,

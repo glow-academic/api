@@ -30,6 +30,7 @@ from app.tools.entries.attempt_audio.create import create_attempt_audio
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "attempt"
 OPERATION = "chat_audio"
@@ -108,7 +109,7 @@ async def attempt_chat_audio_internal_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_attempt_audio(
                 conn,
                 redis, message_id=message_id,

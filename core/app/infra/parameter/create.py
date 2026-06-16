@@ -37,6 +37,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.parameters.get import get_parameters as get_parameter_resources
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "parameter"
 
@@ -116,7 +117,7 @@ async def create_parameter_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_parameter_artifact(
                         conn,
                         id=target_id,
@@ -248,7 +249,7 @@ async def create_parameter_impl(
     with timed("db_write"):
      for idx, item in enumerate(items):
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 result = await create_parameter_artifact(
                     conn,
                     id=item.id,

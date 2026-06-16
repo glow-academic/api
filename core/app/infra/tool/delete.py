@@ -32,6 +32,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "tool"
 
@@ -103,7 +104,7 @@ async def delete_tool_impl(
         else:
             # Reject: restore the soft-deleted artifact
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await restore_artifacts(
                         conn,
                         table="tool_artifact",
@@ -265,7 +266,7 @@ async def delete_tool_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await delete_tools(conn, ids, soft=soft)
 
             if soft and idempotency_key is not None:

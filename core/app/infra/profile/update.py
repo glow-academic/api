@@ -35,6 +35,7 @@ from app.tools.resources.roles.get import get_roles as get_role_artifacts
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "profile"
 
@@ -86,7 +87,7 @@ async def update_profile_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_profile_artifact(
                         conn,
                         target_id,
@@ -348,7 +349,7 @@ async def update_profile_impl(
                 )
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 primary_departments_id: object = _UNSET
                 if item.primary_department_id is not None:
                     primary_departments_id = await resolve_primary_departments_id(

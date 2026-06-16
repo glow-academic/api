@@ -34,6 +34,7 @@ from app.tools.artifacts.field.create import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "field"
 
@@ -113,7 +114,7 @@ async def create_field_impl(
 
             if accept:
                 async with pool.acquire() as conn:
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await create_field_artifact(conn, id=target_id, soft=False)
 
             async with pool.acquire() as conn:
@@ -189,7 +190,7 @@ async def create_field_impl(
             )
 
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     result = await create_field_artifact(
                         conn,
                         id=item.id,
@@ -226,7 +227,7 @@ async def create_field_impl(
     else:
         for item in items:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     result = await create_field_artifact(
                         conn,
                         id=item.id,

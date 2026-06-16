@@ -29,6 +29,7 @@ from app.tools.resources.model_flags.create import create_model_flag
 from app.tools.resources.model_flags.search import search_model_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def _resolve_creatable_values(
@@ -218,7 +219,7 @@ async def patch_invocation_draft_impl(
                     artifact="invocation",
                 )
                 drafts = await get_invocation_drafts(conn, [idempotency_key], redis)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         result = await create_invocation_draft(
@@ -292,7 +293,7 @@ async def patch_invocation_draft_impl(
             role_level=profile.role_level,
             artifact="invocation",
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_invocation_draft(
                 conn,
                 redis, session_id=session_id,

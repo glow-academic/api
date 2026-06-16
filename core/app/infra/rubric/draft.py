@@ -35,6 +35,7 @@ from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 from app.tools.resources.standard_groups.create import create_standard_group
 from app.tools.resources.standards.create import create_standard
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "rubric"
 OPERATION = "draft"
@@ -80,7 +81,7 @@ async def _maybe_auto_accept_rubric_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_rubric_draft(
                 conn,
                 redis, session_id=session_id,
@@ -395,7 +396,7 @@ async def patch_rubric_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_rubric_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_rubric_draft(
@@ -484,7 +485,7 @@ async def patch_rubric_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_rubric_draft(
                 conn,
                 redis, session_id=session_id,

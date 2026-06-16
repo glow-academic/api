@@ -34,6 +34,7 @@ from app.infra.websocket.socket_event import EmitFn
 from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "test"
 OPERATION = "complete"
@@ -76,7 +77,7 @@ async def _mark_all_invocations_complete(
     # DB-only (redis write-backs are local cache pushes, not external/LLM calls),
     # so a single transaction around the loop is correct.
     completion_ids: list[UUID] = []
-    async with conn.transaction():
+    async with transaction_with_writeback(conn):
         for inv in invs:
             if inv.invocation_completed:
                 continue

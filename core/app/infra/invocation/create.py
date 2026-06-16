@@ -38,6 +38,7 @@ from app.infra.invocation.refresh import refresh_invocation_impl
 from app.tools.entries.test_invocation.create import create_test_invocation
 from app.tools.resources.agents.search import search_agents
 from app.tools.resources.model_rubrics.get import get_model_rubrics
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 class CreateInvocationApiRequest(BaseModel):
@@ -241,7 +242,7 @@ async def create_invocation_impl(
         # not materialize an invocation with partial junctions + orphan run/call.
         # Mirrors chat_create's txn. All writes are DB-only (redis write-backs
         # are local cache pushes), so a single transaction is correct.
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             run = await create_run(conn, redis, group_id=group_id, session_id=group_session_id)
             call = await create_call(conn, redis, run_id=run.id, session_id=group_session_id)
 

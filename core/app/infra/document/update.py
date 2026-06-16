@@ -37,6 +37,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.get import get_flags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "document"
 
@@ -113,7 +114,7 @@ async def update_document_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_document_artifact(
                         conn,
                         target_id,
@@ -375,7 +376,7 @@ async def update_document_impl(
         flag_ids = list(item.flag_ids) if item.flag_ids else None
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_document_artifact(
                     conn,
                     item.id,

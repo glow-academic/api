@@ -43,6 +43,7 @@ from app.infra.globals import get_upload_folder
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "attempt"
 
@@ -102,7 +103,7 @@ async def run_chat_analysis_write(
             primary = patch.get("primary_table", primary_table)
             if accept and rows:
                 async with pool.acquire() as conn:
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         for table, ids in rows.items():
                             if ids:
                                 await activate_rows(conn, table=table, ids=[UUID(x) for x in ids])
@@ -122,7 +123,7 @@ async def run_chat_analysis_write(
 
         # ── Create (immediate or staged dormant) ──
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 rows_created = await create_fn(conn, redis, soft)
                 primary_ids = rows_created.get(primary_table, [])
                 if soft and call_id is not None and primary_ids:

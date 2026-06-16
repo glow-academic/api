@@ -32,6 +32,7 @@ from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.socket_event import EmitFn
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "test"
 OPERATION = "invocation_complete"
@@ -134,7 +135,7 @@ async def test_invocation_complete_internal_impl(
         )
 
         async with get_pool().acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 invs = await get_test_invocations(conn, [payload.test_invocation_id], redis)
                 if not invs:
                     raise ValueError(f"Invocation {payload.test_invocation_id} not found")

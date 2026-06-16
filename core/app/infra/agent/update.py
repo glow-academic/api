@@ -34,6 +34,7 @@ from app.tools.artifacts.agent.update import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "agent"
 
@@ -98,7 +99,7 @@ async def update_agent_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_agent_artifact(conn, target_id, soft=False)
 
         async with pool.acquire() as conn:
@@ -306,7 +307,7 @@ async def update_agent_impl(
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 combined_flag_ids = list(item.flag_ids or [])
 
                 await update_agent_artifact(

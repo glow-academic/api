@@ -29,6 +29,7 @@ from app.tools.entries.attempt_conversations.create import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -126,7 +127,7 @@ async def attempt_chat_voice_internal_impl(
         )
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 chat_entries = await get_attempt_chats(conn, [chat_id], redis)
                 if not chat_entries:
                     raise ValueError(f"Attempt chat {chat_id} not found")

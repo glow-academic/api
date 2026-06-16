@@ -30,6 +30,7 @@ from app.tools.artifacts.setting.update import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "setting"
 
@@ -359,7 +360,7 @@ async def update_setting_impl(
             combined_flag_ids.append(item.active_flag_id)
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_setting_artifact(
                     conn,
                     item.id,

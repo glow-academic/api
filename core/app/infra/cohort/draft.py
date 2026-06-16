@@ -57,6 +57,7 @@ from app.tools.resources.simulation_positions.create import (
     create_simulation_position as create_sim_position,
 )
 from app.tools.resources.simulations.search import search_simulations
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "cohort"
 OPERATION = "draft"
@@ -104,7 +105,7 @@ async def _maybe_auto_accept_cohort_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_cohort_draft(
                 conn,
                 redis, session_id=session_id,
@@ -439,7 +440,7 @@ async def patch_cohort_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_cohort_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_cohort_draft(
@@ -571,7 +572,7 @@ async def patch_cohort_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_cohort_draft(
                 conn,
                 redis, session_id=session_id,

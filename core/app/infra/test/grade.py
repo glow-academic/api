@@ -27,6 +27,7 @@ from app.tools.entries.test_grade.create import create_test_grade
 from app.tools.entries.test_invocation.get import get_test_invocations
 from app.tools.resources.rubrics.get import get_rubrics
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def create_grade_impl(
@@ -141,7 +142,7 @@ async def create_grade_impl(
         # a mid-failure must not leave an orphan calls_entry with no grade.
         # DB-only writes (the redis write-backs are fast local cache pushes,
         # not external/LLM calls), so a single transaction is correct here.
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             call = await create_call(
                 conn,
                 redis, run_id=run_id,

@@ -42,6 +42,7 @@ from app.tools.resources.names.search import search_names
 from app.tools.resources.request_limits.create import create_request_limit
 from app.tools.resources.roles.create import create_role
 from app.tools.resources.roles.search import search_roles
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def _maybe_auto_accept_profile_draft(
@@ -83,7 +84,7 @@ async def _maybe_auto_accept_profile_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_profile_draft(
                 conn,
                 redis, session_id=session_id,
@@ -397,7 +398,7 @@ async def patch_profile_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_profile_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_profile_draft(
@@ -472,7 +473,7 @@ async def patch_profile_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             primary_departments_resource_id: UUID | None = None
             if request.primary_department_id is not None:
                 primary_departments_resource_id = await resolve_primary_departments_id(

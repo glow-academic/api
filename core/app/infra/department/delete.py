@@ -27,6 +27,7 @@ from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.names.get import get_names
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -87,7 +88,7 @@ async def delete_department_impl(
             pass
         else:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await restore_artifacts(
                         conn, table="department_artifact", ids=[target_id],
                     )
@@ -255,7 +256,7 @@ async def delete_department_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await delete_departments(conn, ids, soft=soft)
 
             if soft and idempotency_key is not None:

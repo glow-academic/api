@@ -38,6 +38,7 @@ from app.infra.websocket.socket_event import EmitFn, SocketEvent, make_emit
 from app.infra.websocket.test_types import TestErrorData
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "test"
 OPERATION = "start"
@@ -95,7 +96,7 @@ async def test_start_internal_impl(
             ids = entry.patch or {}
             if accept:
                 async with get_pool().acquire() as conn:
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await activate_rows(conn, table="test_entry", ids=[UUID(ids["test_id"])])
                         # benchmark_test_entry has no id column → activate by test_id
                         if ids.get("benchmark_id"):

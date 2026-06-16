@@ -26,6 +26,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -92,7 +93,7 @@ async def create_auth_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_auth_artifact(conn, id=target_id, soft=False)
 
         async with pool.acquire() as conn:
@@ -169,7 +170,7 @@ async def create_auth_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             for idx, item in enumerate(items):
                 result = await create_auth_artifact(
                     conn,

@@ -53,6 +53,7 @@ from app.tools.resources.scenario_rubrics.create import create_scenario_rubric
 from app.tools.resources.scenario_time_limits.create import (
     create_scenario_time_limit,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "simulation"
 OPERATION = "draft"
@@ -101,7 +102,7 @@ async def _maybe_auto_accept_simulation_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_simulation_draft(
                 conn,
                 redis, session_id=session_id,
@@ -408,7 +409,7 @@ async def patch_simulation_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_simulation_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_simulation_draft(
@@ -527,7 +528,7 @@ async def patch_simulation_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_simulation_draft(
                 conn,
                 redis, session_id=session_id,

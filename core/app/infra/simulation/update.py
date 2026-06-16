@@ -40,6 +40,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.get import get_flags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "simulation"
 
@@ -97,7 +98,7 @@ async def update_simulation_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_simulation_artifact(
                         conn,
                         target_id,
@@ -386,7 +387,7 @@ async def update_simulation_impl(
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_simulation_artifact(
                     conn,
                     item.id,

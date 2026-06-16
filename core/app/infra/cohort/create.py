@@ -46,6 +46,7 @@ from app.infra.cohort.types import (
     CreateCohortApiResponse,
     CreateCohortItem,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def create_cohort_impl(
@@ -166,7 +167,7 @@ async def create_cohort_impl(
             flag_ids = list(item.flag_ids) if item.flag_ids else None
 
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     result = await create_cohort_artifact(
                         conn,
                         id=item.id,
@@ -300,7 +301,7 @@ async def create_cohort_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_cohort_artifact(conn, id=target_id, soft=False)
 
             async with pool.acquire() as conn:

@@ -18,6 +18,7 @@ from redis.asyncio import Redis
 
 from app.tools.entries.metrics.create import create_metrics_entry_internal
 from app.tools.entries.metrics.types import CreateMetricsEntryResponse
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def write_metrics_snapshot(
@@ -35,7 +36,7 @@ async def write_metrics_snapshot(
     from app.infra.identity.resolve_identity import get_system_session_id
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             session_id = await get_system_session_id(conn, redis)
 
             return await create_metrics_entry_internal(
@@ -63,7 +64,7 @@ async def write_health_checks(
     from app.tools.entries.health.create import create_health
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             session_id = await get_system_session_id(conn, redis)
 
             for service, result in checks.items():

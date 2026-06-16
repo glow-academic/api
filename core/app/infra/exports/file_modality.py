@@ -42,6 +42,7 @@ from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.mv_refresh_queue import enqueue_pending
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.files.create import create_file as create_file_resource
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 class WrappedFile(NamedTuple):
@@ -185,7 +186,7 @@ async def accept_staged_export(
     ids = entry.patch or {}
     if accept:
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                 await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
                 await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])

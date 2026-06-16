@@ -32,6 +32,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.resources.names.get import get_names
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "persona"
 
@@ -105,7 +106,7 @@ async def delete_persona_impl(
         else:
             # Reject: restore the soft-deleted artifact.
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await restore_artifacts(
                         conn, table="persona_artifact", ids=[target_id],
                     )
@@ -261,7 +262,7 @@ async def delete_persona_impl(
 
     with timed("db_write"):
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 result = await delete_personas(conn, ids, soft=soft)
 
                 # Soft delete: append a pending ledger row per id so ack

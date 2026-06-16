@@ -24,6 +24,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.resolve import resolve_soft_call
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -104,7 +105,7 @@ async def attempt_start_impl(
         # the activations and the ledger row. The MV refresh runs only AFTER
         # the commit.
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 resolved = await resolve_soft_call(
                     conn, redis, call_id=idempotency_key, artifact="attempt",
                     operation="start", artifact_id=entry.artifact_id,
@@ -232,7 +233,7 @@ async def attempt_start_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             persona_result = await create_persona(conn, redis, personas_id=persona_id, soft=soft)
             attempt_result = await create_attempt(
                 conn, redis,

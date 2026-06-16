@@ -47,6 +47,7 @@ from app.tools.resources.thresholds.create import create_threshold
 from app.tools.resources.thresholds.get import get_thresholds
 from app.tools.resources.thresholds.search import search_thresholds
 from app.utils.auth.encrypt_api_key import encrypt_api_key
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "setting"
 OPERATION = "draft"
@@ -100,7 +101,7 @@ async def _maybe_auto_accept_setting_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_setting_draft(
                 conn,
                 redis, session_id=session_id,
@@ -613,7 +614,7 @@ async def patch_setting_draft_impl(
                 drafts = await get_setting_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await create_setting_draft(
                             conn,
                             redis, session_id=session_id,
@@ -687,7 +688,7 @@ async def patch_setting_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_setting_draft(
                 conn,
                 redis, session_id=session_id,

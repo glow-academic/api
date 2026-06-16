@@ -41,6 +41,7 @@ from app.tools.resources.reasoning_levels.search import search_reasoning_levels
 from app.tools.resources.temperature_levels.search import search_temperature_levels
 from app.tools.resources.voices.create import create_voice
 from app.tools.resources.voices.search import search_voices
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "agent"
 OPERATION = "draft"
@@ -100,7 +101,7 @@ async def _maybe_auto_accept_agent_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_agent_draft(
                 conn,
                 redis, session_id=session_id,
@@ -416,7 +417,7 @@ async def patch_agent_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_agent_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_agent_draft(
@@ -511,7 +512,7 @@ async def patch_agent_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             snapshot_id: UUID | None = None
             if any(
                 [

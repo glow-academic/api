@@ -77,7 +77,7 @@ async def _maybe_auto_accept_model_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_model_draft(
                 conn,
                 redis, session_id=session_id,
@@ -132,6 +132,7 @@ from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
 from app.tools.resources.voices.create import create_voice
 from app.tools.resources.voices.search import search_voices
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 def _dedupe_ids(ids: list[UUID] | None) -> list[UUID]:
@@ -523,7 +524,7 @@ async def patch_model_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_model_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_model_draft(
@@ -601,7 +602,7 @@ async def patch_model_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_model_draft(
                 conn,
                 redis, session_id=session_id,

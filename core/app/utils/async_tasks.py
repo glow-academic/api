@@ -41,7 +41,21 @@ def schedule_background(coro: Coroutine[Any, Any, Any], *, label: str) -> asynci
     wait. Errors inside the task get logged with ``label`` for grep-ability;
     they never re-raise to the caller.
     """
-    task = asyncio.create_task(coro)
+    async def _runner() -> Any:
+        # report-20 V2: a fire-and-forget task must NOT inherit an enclosing
+        # ``transaction_with_writeback`` deferral queue. asyncio copied the
+        # current context into this task; reset the deferral so any write-back
+        # the task issues fires immediately (it runs outside the parent txn's
+        # commit scope). See ``clear_writeback_deferral`` for the full rationale.
+        try:
+            from app.utils.cache.hedged_row import clear_writeback_deferral
+
+            clear_writeback_deferral()
+        except Exception:
+            pass
+        return await coro
+
+    task = asyncio.create_task(_runner())
     _PENDING.add(task)
 
     def _done(t: asyncio.Task) -> None:

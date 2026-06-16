@@ -46,6 +46,7 @@ from app.tools.resources.problem_statements.create import (
 )
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "scenario"
 OPERATION = "draft"
@@ -98,7 +99,7 @@ async def _maybe_auto_accept_scenario_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_scenario_draft(
                 conn,
                 redis, session_id=session_id,
@@ -335,7 +336,7 @@ async def patch_scenario_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_scenario_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_scenario_draft(
@@ -478,7 +479,7 @@ async def patch_scenario_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_scenario_draft(
                 conn,
                 redis, session_id=session_id,

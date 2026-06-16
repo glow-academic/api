@@ -45,6 +45,7 @@ from app.tools.resources.audios.create import create_audio_resource
 from app.tools.resources.images.create import create_image as create_image_resource
 from app.tools.resources.videos.create import create_video as create_video_resource
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 _FOLDERS: dict[str, Path] = {
     "audio": AUDIO_FOLDER,
@@ -187,7 +188,7 @@ async def media_upload_impl(
 
     async with pool.acquire() as conn:
         try:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 if upload_id is None:
                     assert file_bytes is not None
                     upload_uuid = _uuid.uuid4()

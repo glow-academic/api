@@ -35,6 +35,7 @@ from app.tools.entries.test_invocation_runs.create import (
 from app.tools.entries.test_invocation_traces.create import (
     create_test_invocation_traces,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 @dataclass(frozen=True)
@@ -96,7 +97,7 @@ async def setup_generation_test(
     # create_* helpers' redis write-backs are local cache pushes, no
     # network/LLM call sits inside this scope), so one transaction is
     # correct; the inner create_* compose as savepoints.
-    async with conn.transaction():
+    async with transaction_with_writeback(conn):
         test_call = await create_call(conn, redis, run_id=run_id, session_id=run.session_id)
 
         # 1. Create the test entry (is_dynamic=False — skip LLM re-run, grade

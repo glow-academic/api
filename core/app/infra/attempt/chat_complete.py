@@ -26,6 +26,7 @@ from app.tools.entries.attempt_chat_completion.create import (
 )
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "attempt"
 OPERATION = "chat_complete"
@@ -90,7 +91,7 @@ async def chat_complete_attempt_impl(
 
     with timed("db_write"):
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 result = await create_attempt_chat_completion(
                     conn,
                     redis, chat_id=chat_id,

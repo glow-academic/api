@@ -7,7 +7,9 @@ import uuid
 
 import pytest
 
+from app.utils.async_tasks import schedule_background, wait_for_pending
 from app.utils.cache.hedged_row import (
+    clear_writeback_deferral,
     read_back_row,
     transaction_with_writeback,
     write_back_row,
@@ -83,3 +85,43 @@ async def test_nested_savepoint_flushes_once_at_outer_commit(conn, redis_client)
     # After the outermost commit, BOTH write-backs are flushed.
     assert (await read_back_row(redis_client, "hc2_test", outer_id)) is not None
     assert (await read_back_row(redis_client, "hc2_test", inner_id)) is not None
+
+
+async def test_background_task_does_not_inherit_deferral(conn, redis_client):
+    """report-20 V2: a fire-and-forget task spawned INSIDE a deferred
+    transaction must NOT inherit the parent's pending-queue. asyncio copies the
+    context into the task, so without the ``schedule_background`` reset the
+    task's write-back would enqueue into a queue the parent flushes/discards on
+    its own boundary — silently losing the write-back (or flushing a phantom
+    before the task's own write commits). The bg write-back must fire
+    IMMEDIATELY instead.
+    """
+    bg_id = str(uuid.uuid4())
+    deferred_id = str(uuid.uuid4())
+
+    async def _bg() -> None:
+        # Runs with the parent context copied in; the spawner reset the
+        # deferral so this write-back is immediate.
+        await write_back_row(redis_client, "hc2_test", bg_id, {"id": bg_id})
+
+    async with transaction_with_writeback(conn):
+        await write_back_row(redis_client, "hc2_test", deferred_id, {"id": deferred_id})
+        task = schedule_background(_bg(), label="hc2_bg_leak_test")
+        await task  # let the bg task complete while the txn is still open
+
+        # The bg task's write-back fired immediately (not deferred)...
+        assert await read_back_row(redis_client, "hc2_test", bg_id) is not None
+        # ...while the parent's own write-back is still deferred.
+        assert await read_back_row(redis_client, "hc2_test", deferred_id) is None
+
+    # Parent commit flushes only the parent's write-back; bg one already there.
+    assert await read_back_row(redis_client, "hc2_test", deferred_id) is not None
+    assert await read_back_row(redis_client, "hc2_test", bg_id) is not None
+    await wait_for_pending(timeout=2.0)
+
+
+async def test_clear_writeback_deferral_is_idempotent_without_active_txn():
+    """``clear_writeback_deferral`` is safe to call with no deferral active —
+    a subsequent immediate write path is unaffected (no exception)."""
+    clear_writeback_deferral()
+    clear_writeback_deferral()  # idempotent

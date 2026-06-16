@@ -39,6 +39,7 @@ from app.tools.resources.files.create import create_file as create_file_resource
 from app.tools.resources.names.get import get_names
 from app.tools.resources.settings.get import get_settings
 from app.utils.csv.formula_safe import FormulaSafeWriter
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 PIPE = "|"
 
@@ -100,7 +101,7 @@ async def export_department_impl(
         ids = entry.patch or {}
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                     await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
                     await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])
