@@ -32,6 +32,7 @@ from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "attempt"
 OPERATION = "audio_upload"
@@ -83,7 +84,7 @@ async def audio_upload_attempt_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                     await activate_rows(conn, table="audios_resource", ids=[UUID(ids["resource_id"])])
                     await activate_rows(conn, table="audios_entry", ids=[UUID(ids["entry_id"])])

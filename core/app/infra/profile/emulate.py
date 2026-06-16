@@ -26,6 +26,7 @@ from app.infra.server_timing import timed
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "profile"
 OPERATION = "emulate"
@@ -60,7 +61,7 @@ async def emulate_profile_impl(
         ids = entry.patch or {}
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="grants_entry", ids=[UUID(ids["grant_id"])])
                     await activate_rows(conn, table="emulations_entry", ids=[UUID(ids["emulation_id"])])
             # Bust the chain cache + refresh MVs so resolve_identity picks up the

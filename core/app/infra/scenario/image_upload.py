@@ -28,6 +28,7 @@ from app.infra.server_timing import timed
 from app.infra.scenario.types import ImageUploadScenarioApiResponse
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "scenario"
 OPERATION = "image_upload"
@@ -78,7 +79,7 @@ async def image_upload_scenario_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                     await activate_rows(conn, table="images_resource", ids=[UUID(ids["resource_id"])])
                     await activate_rows(conn, table="images_entry", ids=[UUID(ids["entry_id"])])

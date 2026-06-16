@@ -56,6 +56,23 @@ _pending_writebacks: ContextVar[
 ] = ContextVar("_pending_writebacks", default=None)
 
 
+def clear_writeback_deferral() -> None:
+    """Reset the write-back deferral for the current context.
+
+    report-20 V2: ``transaction_with_writeback`` keeps its pending-queue in a
+    ContextVar, and ``asyncio.create_task`` COPIES the current context into the
+    new task. A fire-and-forget task spawned *inside* a deferred transaction
+    would therefore inherit that queue — but it runs AFTER (and outside) the
+    transaction's commit/rollback, so any ``write_back_row`` it issues must fire
+    immediately, not enqueue into a queue the parent already flushed/discarded
+    (which would silently drop the write-back, or flush it as a phantom before
+    the task's own DB write commits). Background-task spawners call this at task
+    entry so the child always does immediate write-backs. Idempotent and safe to
+    call when no deferral is active.
+    """
+    _pending_writebacks.set(None)
+
+
 def _row_key(entry: str, row_id: UUID | str) -> str:
     return f"entry:{entry}:{row_id}"
 

@@ -29,6 +29,7 @@ from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.entries.soft_calls.resolve import resolve_soft_call
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -87,7 +88,7 @@ async def update_auth_impl(
         # rolls back BOTH the activation and the ledger row. The soft-call MV
         # refresh + auth refresh run only AFTER the commit.
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 resolved = await resolve_soft_call(
                     conn,
                     redis,
@@ -305,7 +306,7 @@ async def update_auth_impl(
             )
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_auth_artifact(
                     conn,
                     item.id,

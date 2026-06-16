@@ -35,6 +35,7 @@ from app.tools.resources.protocols.create import create_protocol
 from app.tools.resources.protocols.search import search_protocols
 from app.tools.resources.slugs.create import create_slug
 from app.tools.resources.slugs.search import search_slugs
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 AUTH_ACTIVE_FLAG = "auth_active"
 ARTIFACT = "auth"
@@ -84,7 +85,7 @@ async def _maybe_auto_accept_auth_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_auth_draft(
                 conn,
                 redis, session_id=session_id,
@@ -289,7 +290,7 @@ async def patch_auth_draft_impl(
                 drafts = await get_auth_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await create_auth_draft(
                             conn,
                             redis, session_id=session_id,
@@ -355,7 +356,7 @@ async def patch_auth_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_auth_draft(
                 conn,
                 redis, session_id=session_id,

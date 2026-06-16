@@ -37,6 +37,7 @@ from app.tools.resources.fields.get import get_fields
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 from app.tools.resources.parameter_fields.search import search_parameter_fields
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 def _exact_match_id(results: list[Any], raw_value: str, *, attr: str = "name") -> UUID | None:
@@ -210,7 +211,7 @@ async def _maybe_auto_accept_parameter_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_parameter_draft(
                 conn,
                 redis, session_id=session_id,
@@ -336,7 +337,7 @@ async def patch_parameter_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_parameter_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_parameter_draft(
@@ -441,7 +442,7 @@ async def patch_parameter_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_parameter_draft(
                 conn,
                 redis, session_id=session_id,

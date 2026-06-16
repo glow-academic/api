@@ -31,6 +31,7 @@ from app.tools.artifacts.rubric.update import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "rubric"
 
@@ -82,7 +83,7 @@ async def update_rubric_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_rubric_artifact(
                         conn,
                         target_id,
@@ -316,7 +317,7 @@ async def update_rubric_impl(
         point_ids = [item.pass_points_id] if item.pass_points_id else None
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_rubric_artifact(
                     conn,
                     item.id,

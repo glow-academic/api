@@ -75,7 +75,7 @@ async def _maybe_auto_accept_eval_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_eval_draft(
                 conn,
                 redis, session_id=session_id,
@@ -112,6 +112,7 @@ from app.tools.resources.model_flags.create import create_model_flag
 from app.tools.resources.model_flags.search import search_model_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def _resolve_creatable_values(
@@ -413,7 +414,7 @@ async def patch_eval_draft_impl(
                 drafts = await get_eval_drafts(conn, [target_id], redis, active=None)
                 if drafts:
                     draft = drafts[0]
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await create_eval_draft(
                             conn,
                             redis, session_id=session_id,
@@ -482,7 +483,7 @@ async def patch_eval_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_eval_draft(
                 conn,
                 redis, session_id=session_id,

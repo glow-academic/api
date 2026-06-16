@@ -103,7 +103,7 @@ async def _maybe_auto_accept_draft(
     # 3. All decisions in. Promote the draft (active=true) and append
     #    the 'accepted' ledger row.
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_persona_draft(
                 conn,
                 redis, session_id=session_id,
@@ -143,6 +143,7 @@ from app.tools.resources.instructions.create import create_instruction
 from app.tools.resources.names.create import create_name
 from app.tools.resources.parameter_fields.search import search_parameter_fields
 from app.tools.resources.voices.search import search_voices
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 # ---------------------------------------------------------------------------
 # Value resolution — creatable resources only
@@ -426,7 +427,7 @@ async def patch_persona_draft_impl(
                 # active=None so we find the dormant draft (active=false)
                 # we're about to promote.
                 drafts = await get_persona_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_persona_draft(
@@ -554,7 +555,7 @@ async def patch_persona_draft_impl(
                 role_level=profile.role_level,
                 artifact=ARTIFACT,
             )
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 result = await create_persona_draft(
                     conn,
                     redis, session_id=session_id,

@@ -38,6 +38,7 @@ from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.test_invocation_runs.create import (
     create_test_invocation_runs,
 )
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "test"
 OPERATION = "run"
@@ -99,7 +100,7 @@ async def test_run_internal_impl(
                     targets=["test_invocation_runs_mv"],
                 )
             async with get_pool().acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     # A2: on REJECT, hard-delete the dormant (active=False) binding
                     # row in the SAME txn as the terminal ledger write. The dormant
                     # row is MV-invisible, so leaving it behind both leaks a row
@@ -148,7 +149,7 @@ async def test_run_internal_impl(
 
         with timed("db_write"):
             async with get_pool().acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     result = await create_test_invocation_runs(
                         conn, redis,
                         test_invocation_id=payload.test_invocation_id,

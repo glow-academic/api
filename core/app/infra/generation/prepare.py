@@ -76,6 +76,7 @@ def _resolve_modality_pair(
 
 
 from app.infra.server_timing import timed
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def prepare_generation(
@@ -593,7 +594,7 @@ async def prepare_generation(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             if reuse_run_id is not None:
                 run_id = reuse_run_id
             else:

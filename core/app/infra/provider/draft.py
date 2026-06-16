@@ -47,6 +47,7 @@ from app.tools.resources.names.search import search_names
 from app.tools.resources.values.create import create_value
 from app.tools.resources.values.get import get_values
 from app.tools.resources.values.search import search_values
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 PROVIDER_ACTIVE_FLAG = "provider_active"
 
@@ -91,7 +92,7 @@ async def _maybe_auto_accept_provider_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_provider_draft(
                 conn,
                 redis, session_id=session_id,
@@ -431,7 +432,7 @@ async def patch_provider_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_provider_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_provider_draft(
@@ -507,7 +508,7 @@ async def patch_provider_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_provider_draft(
                 conn,
                 redis, session_id=session_id,

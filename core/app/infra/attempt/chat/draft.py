@@ -34,6 +34,7 @@ from app.tools.resources.problem_statements.create import (
 from app.tools.resources.problem_statements.search import search_problem_statements
 from app.tools.resources.questions.create import create_question
 from app.tools.resources.videos.create import create_video
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def _resolve_creatable_values(
@@ -181,7 +182,7 @@ async def patch_chat_draft_impl(
                     artifact="attempt",
                 )
                 drafts = await get_chat_drafts(conn, [idempotency_key], redis)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_chat_draft(
@@ -255,7 +256,7 @@ async def patch_chat_draft_impl(
             role_level=profile.role_level,
             artifact="attempt",
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_chat_draft(
                 conn,
                 redis, session_id=session_id,

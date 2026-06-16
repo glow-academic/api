@@ -29,6 +29,7 @@ from app.infra.server_timing import timed
 from app.infra.attempt.refresh import refresh_attempt_impl
 from app.tools.entries.attempt_chat.create import create_attempt_chat
 from app.tools.entries.attempt_chat_bridge.create import create_attempt_chat_bridge
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 # ---------------------------------------------------------------------------
 # Value types for denormalized input
@@ -565,7 +566,7 @@ async def create_attempt_chat_impl(
 
     with timed("db_write"):
      async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             # Create personas_entry for each AI persona resource ID
             assistant_entry_ids: list[UUID] = []
             for persona_resource_id in (final_personas_ids or []):

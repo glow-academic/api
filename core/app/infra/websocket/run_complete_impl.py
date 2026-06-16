@@ -36,6 +36,7 @@ from app.infra.websocket.resolve_run_completion import resolve_run_completion
 from app.infra.websocket.socket_event import EmitFn, internal_event
 from app.tools.entries.tokens.create import create_token
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -177,7 +178,7 @@ async def run_complete_impl(
     # under this outer transaction, so they compose correctly. The write-back
     # caches inside those impls still fire on the successful path.
     try:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             if reasoning_output:
                 await persist_run_message(
                     conn,

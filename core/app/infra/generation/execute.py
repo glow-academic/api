@@ -253,6 +253,7 @@ async def _call_chat_completions_api(
 
 
 from app.infra.server_timing import timed
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def execute_generation(
@@ -540,7 +541,7 @@ async def _execute_agent_dispatch(
         from app.tools.entries.tokens.create import create_token
         try:
             async with pool.acquire() as cancel_conn:
-                async with cancel_conn.transaction():
+                async with transaction_with_writeback(cancel_conn):
                     if final_reasoning_output:
                         await persist_run_message(
                             cancel_conn, redis,

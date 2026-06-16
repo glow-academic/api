@@ -37,6 +37,7 @@ from app.tools.artifacts.scenario.get import get_scenarios
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "scenario"
 
@@ -134,7 +135,7 @@ async def create_scenario_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_scenario_artifact(
                         conn,
                         id=target_id,
@@ -310,7 +311,7 @@ async def _create_scenarios(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             for idx, item in enumerate(items):
                 flag_ids = _collect_flag_ids(item)
 

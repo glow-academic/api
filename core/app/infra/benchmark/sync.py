@@ -17,6 +17,7 @@ from uuid import UUID
 import asyncpg  # type: ignore
 
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -170,7 +171,7 @@ async def sync_benchmark_entries(
     # retry is therefore safe — it replaces, never appends.
     entry_count = 0
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             # Idempotency clear: soft-delete prior generated benchmarks for
             # THIS eval and the invocations hanging off them. Scoped to the
             # single eval via the evals connection; ``generated = true`` keeps

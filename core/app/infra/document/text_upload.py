@@ -44,6 +44,7 @@ from app.tools.entries.texts.create import create_text as create_text_entry
 from app.tools.entries.uploads.create import create_upload
 from app.tools.resources.texts.create import create_text as create_text_resource
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "document"
 OPERATION = "text_upload"
@@ -107,7 +108,7 @@ async def text_upload_document_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                     await activate_rows(conn, table="texts_resource", ids=[UUID(ids["resource_id"])])
                     await activate_rows(conn, table="texts_entry", ids=[UUID(ids["entry_id"])])

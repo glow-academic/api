@@ -35,6 +35,7 @@ from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "persona"
 
@@ -84,7 +85,7 @@ async def duplicate_persona_impl(
         if accept:
             # Promote: flip dormant copy to active.
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await create_persona_artifact(conn, id=target_id, soft=False)
         # accept=False: dormant copy stays (active=false). The 'rejected'
         # ledger row is the canonical record.
@@ -220,7 +221,7 @@ async def duplicate_persona_impl(
 
     with timed("db_write"):
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 result = await create_persona_artifact(
                     conn,
                     name_id=new_name_resource.id,

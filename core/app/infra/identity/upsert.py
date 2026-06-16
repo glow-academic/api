@@ -35,6 +35,7 @@ from app.tools.resources.emails.create import create_email
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.roles.search import search_roles
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ResolveProfileIdentityFn = Callable[..., Awaitable[object | None]]
 CreateNameFn = Callable[..., Awaitable[object]]
@@ -110,7 +111,7 @@ async def resolve_profile_upsert(
                 raise ValueError(f"Role '{requester.role}' cannot assign role '{role}'")
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             # ── Step 0: Serialize first-create on the primary email ─────────────
             # Two parallel first-logins for the same human both miss the
             # search-by-email below and would each create a fresh profile

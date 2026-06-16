@@ -39,6 +39,7 @@ from app.tools.artifacts.persona.update import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.utils.cache.invalidate_tags import invalidate_tags
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "persona"
 
@@ -97,7 +98,7 @@ async def update_persona_impl(
         if accept:
             # Promote: re-call update with soft=False → activates artifact + junctions.
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_persona_artifact(
                         conn, target_id, soft=False,
                     )
@@ -321,7 +322,7 @@ async def update_persona_impl(
 
     with timed("db_write"):
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 for item in items:
                     # Denormalized snapshot (skip when soft — dormant update)
                     personas_resource_id = None

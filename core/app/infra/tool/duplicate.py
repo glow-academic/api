@@ -36,6 +36,7 @@ from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.tools.resources.flags.search import search_flags
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.get import get_names
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "tool"
 
@@ -180,7 +181,7 @@ async def duplicate_tool_impl(
 
     with timed("db_write"):
       async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_tool_artifact(
                 conn,
                 id=idempotency_key,

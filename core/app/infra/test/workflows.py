@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 
 from app.infra.websocket.socket_event import EmitFn, client_event, internal_event
 from app.infra.server_timing import timed
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 def _find_next_run_id(runs: list[Any], prev_run_id: str | None) -> str | None:
@@ -618,7 +619,7 @@ async def test_start_impl(
             # test_entry unlinked from its benchmark. Analogue of the txn'd
             # attempt_start_impl. DB-only writes (redis write-backs are local
             # cache pushes), so a single transaction is correct.
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 run_id = (
                     await create_run(
                         conn, redis,

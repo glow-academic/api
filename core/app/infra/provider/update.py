@@ -28,6 +28,7 @@ from app.tools.artifacts.provider.update import (
 from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 ARTIFACT = "provider"
 
@@ -79,7 +80,7 @@ async def update_provider_impl(
 
             if accept:
                 async with pool.acquire() as conn:
-                    async with conn.transaction():
+                    async with transaction_with_writeback(conn):
                         await update_provider_artifact(
                             conn,
                             target_id,
@@ -280,7 +281,7 @@ async def update_provider_impl(
             )
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_provider_artifact(
                     conn,
                     item.id,

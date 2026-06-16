@@ -18,6 +18,7 @@ from app.tools.entries.messages.create import create_message
 from app.tools.entries.text_uploads.create import create_text_upload
 from app.tools.entries.texts.create import create_text
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -69,7 +70,7 @@ async def create_run_message(
     # upload, visible to reads and unable to self-heal. When the caller
     # already holds an open transaction (e.g. the document-draft write path)
     # asyncpg nests this as a SAVEPOINT, so it composes correctly either way.
-    async with conn.transaction():
+    async with transaction_with_writeback(conn):
         message = await create_message(
             conn, redis, run_id=run_id, role=role, mcp=mcp, reasoning=reasoning,
             agent_ids=agent_ids, created_at=created_at, id=id,

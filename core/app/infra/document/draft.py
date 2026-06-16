@@ -80,7 +80,7 @@ async def _maybe_auto_accept_document_draft(
         return False
 
     async with pool.acquire() as conn:
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             await create_document_draft(
                 conn,
                 redis, session_id=session_id,
@@ -125,6 +125,7 @@ from app.tools.resources.images.create import create_image as create_image_resou
 from app.tools.resources.names.create import create_name
 from app.tools.resources.names.search import search_names
 from app.tools.resources.texts.create import create_text as create_text_resource
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 async def _resolve_creatable_values(
@@ -388,7 +389,7 @@ async def patch_document_draft_impl(
                     artifact=ARTIFACT,
                 )
                 drafts = await get_document_drafts(conn, [target_id], redis, active=None)
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     if drafts:
                         draft = drafts[0]
                         await create_document_draft(
@@ -471,7 +472,7 @@ async def patch_document_draft_impl(
             role_level=profile.role_level,
             artifact=ARTIFACT,
         )
-        async with conn.transaction():
+        async with transaction_with_writeback(conn):
             result = await create_document_draft(
                 conn,
                 redis, session_id=session_id,

@@ -71,6 +71,14 @@ async def run_generation_with_refresh(
     """
 
     async def _run() -> ExecuteGenerationResult | None:
+        # report-20 V2: this background task opens its own write-back
+        # transactions and must not inherit any enclosing
+        # ``transaction_with_writeback`` deferral the spawning context held
+        # (asyncio copies the context into the task). Reset to immediate.
+        if not wait_for_complete:
+            from app.utils.cache.hedged_row import clear_writeback_deferral
+
+            clear_writeback_deferral()
         try:
             with timed("model_call"):
                 result = await execute_generation(

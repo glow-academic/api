@@ -31,6 +31,7 @@ from app.infra.websocket.find_session_by_socket import find_session_by_socket
 from app.infra.websocket.session_store import get_session_by_group_id
 from app.infra.websocket.socket_event import EmitFn, internal_event
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -680,7 +681,7 @@ async def attempt_start_impl(
                 sim_desc = simulations[0].description
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 run_result = await create_run(
                     conn, redis,
                     session_id=session_id_uuid,
@@ -1164,7 +1165,7 @@ async def attempt_proceed_impl(
             return [uuid.UUID(v) for v in vals] if vals else None
 
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 chat_result = await create_attempt_chat(
                     conn, redis,
                     session_id=session_id_uuid,

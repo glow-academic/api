@@ -38,6 +38,7 @@ from app.tools.entries.soft_calls.create import create_soft_call
 from app.tools.entries.soft_calls.get import get_soft_call
 from app.tools.entries.soft_calls.refresh import refresh_soft_calls
 from app.utils.logging.db_logger import get_logger
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 logger = get_logger(__name__)
 
@@ -101,7 +102,7 @@ async def update_cohort_impl(
 
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await update_cohort_artifact(conn, target_id, soft=False)
 
             async with pool.acquire() as conn:
@@ -370,7 +371,7 @@ async def update_cohort_impl(
 
         # Artifact update inside transaction
         async with pool.acquire() as conn:
-            async with conn.transaction():
+            async with transaction_with_writeback(conn):
                 await update_cohort_artifact(
                     conn,
                     item.id,

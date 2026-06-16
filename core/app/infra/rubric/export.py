@@ -57,6 +57,7 @@ from app.tools.resources.standard_groups.get import get_standard_groups
 from app.tools.resources.standard_groups.types import GetStandardGroupResponse
 from app.tools.resources.standards.search import search_standards
 from app.tools.resources.standards.types import GetStandardResponse
+from app.utils.cache.hedged_row import transaction_with_writeback
 
 
 class _GradingState:
@@ -368,7 +369,7 @@ async def export_rubric_impl(
         ids = entry.patch or {}
         if accept:
             async with pool.acquire() as conn:
-                async with conn.transaction():
+                async with transaction_with_writeback(conn):
                     await activate_rows(conn, table="uploads_entry", ids=[UUID(ids["upload_id"])])
                     await activate_rows(conn, table="files_resource", ids=[UUID(ids["resource_id"])])
                     await activate_rows(conn, table="files_entry", ids=[UUID(ids["entry_id"])])
