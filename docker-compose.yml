@@ -27,6 +27,16 @@ services:
     build:
       context: ./database
       dockerfile: Dockerfile
+    # POOL1 (report-19): the default Postgres max_connections is 100, but
+    # pgbouncer is provisioned to MAX_DB_CONNECTIONS=200 and Keycloak (blue+green),
+    # backup-cron, and migrations all connect DIRECTLY to database:5432 (bypassing
+    # pgbouncer). Under a cold-cache burst (the 5-way gather in
+    # resolve_profile_identity_context × N concurrent /context) the aggregate demand
+    # exceeds 100 and new backends fail "FATAL: sorry, too many clients already" —
+    # the box-hang-under-load symptom. Raise the server cap above pgbouncer (200) +
+    # Keycloak + cron + migration headroom. (custom-entrypoint.sh forwards this
+    # command via `docker-entrypoint.sh "$@"`.)
+    command: ["postgres", "-c", "max_connections=300"]
     environment:
       - POSTGRES_USER=${DB_USER:-myuser}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-mypassword}
