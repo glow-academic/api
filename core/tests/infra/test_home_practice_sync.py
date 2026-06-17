@@ -448,3 +448,86 @@ async def test_sync_soft_delete_invalidates_hedged_cache(
             f"soft-deleted chat row {cid} still served from the hedged cache — "
             "sync did not invalidate its per-id key (HC3)"
         )
+
+
+async def _prior_bridge_ids(pool, snapshot_id):
+    """Active generated practice_chat (+ home_chat) BRIDGE ids for a snapshot."""
+    async with pool.acquire() as conn:
+        practice_bridge = await conn.fetch(
+            """
+            SELECT DISTINCT pce.id
+            FROM practice_chat_entry pce
+            JOIN practice_entry pe ON pe.id = pce.practice_id AND pe.active = true
+            JOIN practice_cohorts_connection pcc
+              ON pcc.practice_id = pe.id AND pcc.active = true
+            WHERE pcc.cohorts_id = $1 AND pce.active = true
+            """,
+            snapshot_id,
+        )
+        home_bridge = await conn.fetch(
+            """
+            SELECT DISTINCT hce.id
+            FROM home_chat_entry hce
+            JOIN home_entry he ON he.id = hce.home_id AND he.active = true
+            JOIN home_cohorts_connection hcc
+              ON hcc.home_id = he.id AND hcc.active = true
+            WHERE hcc.cohorts_id = $1 AND hce.active = true
+            """,
+            snapshot_id,
+        )
+    return [r["id"] for r in practice_bridge], [r["id"] for r in home_bridge]
+
+
+async def test_sync_soft_delete_invalidates_bridge_caches(
+    pool, redis_client, sync_fixture
+):
+    """HC3-INCOMPLETE (report-22): the re-sync also soft-deletes the BRIDGE rows
+    (practice_chat / home_chat), which are served from their own per-id hedged
+    caches. #390 collected the bridge arms with ``RETURNING 1`` (not their id),
+    so those namespaces were never invalidated and the stale active=true bridge
+    rows were served for the TTL. The bridge ids must now be busted too."""
+    from uuid import uuid4
+
+    from app.utils.cache.hedged_row import read_back_row, write_back_row
+
+    artifact_id = uuid4()
+    snapshot_id = sync_fixture["cohort_id"]
+    async with pool.acquire() as conn:
+        await _link_cohort_artifact(conn, artifact_id, snapshot_id)
+
+    kwargs = dict(
+        pool=pool,
+        cohorts_resource_id=snapshot_id,
+        simulation_ids=[sync_fixture["simulation_id"]],
+        simulation_position_ids=[],
+        simulation_availability_ids=[],
+        department_ids=[],
+        profile_ids=[sync_fixture["profile_id"]],
+        profile_persona_ids=[],
+        cohort_artifact_id=artifact_id,
+    )
+
+    await sync_home_practice_entries(**kwargs)
+    practice_bridge_ids, home_bridge_ids = await _prior_bridge_ids(pool, snapshot_id)
+    # The fixture's simulation is practice=True, so practice_chat bridges exist.
+    assert practice_bridge_ids, "expected at least one practice_chat bridge row"
+
+    for bid in practice_bridge_ids:
+        await write_back_row(redis_client, "practice_chat", bid, {"id": str(bid)})
+    for bid in home_bridge_ids:
+        await write_back_row(redis_client, "home_chat", bid, {"id": str(bid)})
+    for bid in practice_bridge_ids:
+        assert await read_back_row(redis_client, "practice_chat", bid) is not None
+
+    await sync_home_practice_entries(**kwargs)
+
+    for bid in practice_bridge_ids:
+        assert await read_back_row(redis_client, "practice_chat", bid) is None, (
+            f"soft-deleted practice_chat bridge {bid} still served from cache — "
+            "the bridge namespace was not invalidated (HC3-INCOMPLETE)"
+        )
+    for bid in home_bridge_ids:
+        assert await read_back_row(redis_client, "home_chat", bid) is None, (
+            f"soft-deleted home_chat bridge {bid} still served from cache — "
+            "the bridge namespace was not invalidated (HC3-INCOMPLETE)"
+        )

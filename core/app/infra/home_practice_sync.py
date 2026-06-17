@@ -619,13 +619,13 @@ async def sync_home_practice_entries(
                         UPDATE home_chat_entry hce
                         SET active = false
                         WHERE hce.id IN (SELECT bridge_id FROM home_chats)
-                        RETURNING 1
+                        RETURNING hce.id
                     ),
                     deact_practice_bridge AS (
                         UPDATE practice_chat_entry pce
                         SET active = false
                         WHERE pce.id IN (SELECT bridge_id FROM practice_chats)
-                        RETURNING 1
+                        RETURNING pce.id
                     ),
                     deact_home_conn AS (
                         UPDATE home_cohorts_connection hcc
@@ -653,11 +653,15 @@ async def sync_home_practice_entries(
                         WHERE pe.id IN (SELECT id FROM prior_practice)
                         RETURNING pe.id
                     )
-                    SELECT 'home'     AS ns, id FROM deact_home
+                    SELECT 'home'          AS ns, id FROM deact_home
                     UNION ALL
-                    SELECT 'practice' AS ns, id FROM deact_practice
+                    SELECT 'practice'      AS ns, id FROM deact_practice
                     UNION ALL
-                    SELECT 'chat'     AS ns, id FROM deact_chats
+                    SELECT 'chat'          AS ns, id FROM deact_chats
+                    UNION ALL
+                    SELECT 'home_chat'     AS ns, id FROM deact_home_bridge
+                    UNION ALL
+                    SELECT 'practice_chat' AS ns, id FROM deact_practice_bridge
                     """,
                     cohort_artifact_id,
                 )
