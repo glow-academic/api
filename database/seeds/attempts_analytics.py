@@ -57,6 +57,7 @@ from app.tools.entries.attempt_content.create import create_attempt_content
 from app.tools.entries.attempt_feedback.create import create_attempt_feedback
 from app.tools.entries.attempt_feedback.refresh import refresh_attempt_feedback
 from app.tools.entries.attempt_grade.create import create_attempt_grade
+from app.tools.entries.attempt_hint.create import create_attempt_hint
 from app.tools.entries.attempt_home.create import create_attempt_home
 from app.tools.entries.attempt_message.create import create_attempt_message
 from app.tools.entries.attempt_practice.create import create_attempt_practice
@@ -123,6 +124,15 @@ _PERSONA_LINES = [
     "That helps. Can you check whether my plan sounds reasonable?",
 ]
 
+
+# Generated coaching hints surfaced to the learner mid-chat (attempt_hint rows).
+# Seeded so the chat-hints demo has real hint content to feature; attached to
+# the learner's own turns (even t) for completed conversational attempts.
+_HINT_LINES = [
+    "Try acknowledging their concern first, then ask one clarifying question before advising.",
+    "Name the specific requirement they're unsure about — concrete beats general here.",
+    "Close with a single, concrete next step they can take right now.",
+]
 
 _SCORE_PCTS = [88, 76, 92, 65, 81, 73, 95, 58, 84, 32, 71, 89]
 _TIME_TAKEN_SECONDS = [780, 1240, 540, 980, 1430, 720, 460, 1820, 690, 920, 1350, 600]
@@ -632,6 +642,20 @@ async def _seed_one_attempt(
                 created_at=attempt_chat_created_at
                 + timedelta(minutes=t + 1, seconds=5),
             )
+
+            # Generated coaching hint on the learner's own turns (hints_enabled
+            # above is the toggle; these are the actual attempt_hint rows the
+            # chat-hints surface renders). Completed attempts only, so an
+            # in-progress attempt still shows "no hints yet".
+            if completed and is_user_turn:
+                await create_attempt_hint(
+                    conn,
+                    redis,
+                    message_id=msg_id,
+                    session_id=session_id,
+                    hint=_HINT_LINES[(t // 2) % len(_HINT_LINES)],
+                    id=sid(f"{slug}/hint/{t}"),
+                )
 
     # 6. Agent activity — runs + tokens + run_pricing. Drives Pricing
     # dashboard cost rollups when joined to pricing_resource. Skipped
