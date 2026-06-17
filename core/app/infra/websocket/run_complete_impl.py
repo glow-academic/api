@@ -69,6 +69,48 @@ def build_run_complete_payload(
     ).model_dump(mode="json")
 
 
+async def _meter_audio_turn(session: Any, redis: Any) -> bool:
+    """VOICE4: meter one voice continuation turn against the profile's role
+    ``request_limit`` (same counter/operation the first turn's /attempt/generate
+    used). Returns ``False`` ONLY when the quota is exhausted (caller trips the
+    breaker and ends the session); ``True`` otherwise.
+
+    Fail-OPEN: a missing profile_id, no configured limit, or any transient
+    resolution error returns ``True`` — metering must never tear down a live
+    call because a lookup hiccupped (it is a cost/abuse guard, not an auth gate).
+    """
+    if not session.profile_id:
+        return True
+    from fastapi import HTTPException
+
+    from app.infra.globals import get_pool
+    from app.infra.identity.request_limit import enforce_request_limit
+    from app.infra.profile_identity_context import (
+        resolve_profile_identity_context,
+    )
+
+    try:
+        prof = await resolve_profile_identity_context(
+            get_pool(), uuid.UUID(session.profile_id), redis
+        )
+        if prof is None:
+            return True
+        await enforce_request_limit(
+            redis,
+            profile_id=uuid.UUID(session.profile_id),
+            request_limit=prof.request_limit,
+            request_limit_interval=prof.request_limit_interval,
+            operation="generate",
+        )
+        return True
+    except HTTPException as e:
+        # 429 → quota exhausted → trip the breaker; any other HTTP error must
+        # not kill a live call.
+        return getattr(e, "status_code", None) != 429
+    except Exception:
+        return True  # fail-open
+
+
 async def run_complete_impl(
     data: dict[str, Any],
     *,
@@ -97,19 +139,40 @@ async def run_complete_impl(
         f"output_tokens={data.get('output_text_tokens', 0)}"
     )
 
-    # Audio continuation: the realtime session stays open across turns.
-    # All we need to do is rotate the run_id so the next turn's events
-    # hang off a fresh run. No rate-limit gate — the audio continuation
-    # payload never carried request_limit, so it was always a no-op.
+    # Audio continuation: the realtime session stays open across turns. Rotate
+    # the run_id so the next turn's events hang off a fresh run.
     if modality == "audio":
         if group_id_str:
             from app.infra.websocket.session_store import (
                 get_session_by_group_id,
+                remove_session,
                 rotate_run_id,
             )
 
             session = get_session_by_group_id(group_id_str)
             if session:
+                # VOICE4 (report-22): meter the turn. This run-complete is the
+                # billable unit (token usage is in the payload), and it gates
+                # the NEXT turn — the first turn was metered by /attempt/generate,
+                # so continuations (previously a no-op: the payload never carried
+                # request_limit) are metered here. Without this, one open realtime
+                # session ran unbounded turns for free. On limit-exhaustion the
+                # breaker trips: close the provider connection rather than rotate
+                # into another free turn.
+                if not await _meter_audio_turn(session, redis):
+                    logger.warning(
+                        "Voice continuation rate-limited — closing session "
+                        f"group_id={group_id_str}"
+                    )
+                    ws = session.oa_ws_connection
+                    if ws is not None:
+                        try:
+                            await ws.close()
+                        except Exception:
+                            pass
+                    remove_session(group_id_str)
+                    return
+
                 new_run_id = str(uuid.uuid4())
                 rotate_run_id(session, new_run_id)
                 logger.info(
