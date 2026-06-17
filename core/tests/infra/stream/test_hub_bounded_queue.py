@@ -159,9 +159,16 @@ async def test_incoming_droppable_dropped_when_queue_is_all_terminals():
         unsubscribe(queue)
 
 
+def _all_subs():
+    # HUB2: registry is now dict[group_id, list[_Subscription]].
+    return [s for subs in hub._SUBSCRIPTIONS.values() for s in subs]
+
+
 async def test_unsubscribe_cleanup_intact():
     group_id = uuid4()
     queue = subscribe(group_id=group_id)
-    assert any(s.queue is queue for s in hub._SUBSCRIPTIONS)
+    assert any(s.queue is queue for s in _all_subs())
     unsubscribe(queue)
-    assert not any(s.queue is queue for s in hub._SUBSCRIPTIONS)
+    assert not any(s.queue is queue for s in _all_subs())
+    # HUB2: the emptied group bucket is removed entirely (no leak).
+    assert group_id not in hub._SUBSCRIPTIONS

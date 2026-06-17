@@ -33,7 +33,7 @@ import json
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -380,7 +380,7 @@ def _default_sort(row: dict[str, Any]) -> datetime:
     so cache rows (serialized) and MV rows (asyncpg datetime) sort together."""
     ts = row.get("created_at")
     if ts is None:
-        return datetime.min
+        return datetime.min.replace(tzinfo=timezone.utc)
     if isinstance(ts, str):
         return datetime.fromisoformat(ts)
     return ts

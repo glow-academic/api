@@ -28,6 +28,27 @@ def _clear_subscriptions():
     hub._SUBSCRIPTIONS.clear()
 
 
+async def test_mid_run_complete_is_not_treated_as_terminal():
+    """HUB4 (report-19): a mid-run ``<artifact>.<op>.complete`` progress frame
+    must NOT count as terminal (only ``.completed``/``.failed``/``.error``/
+    media_* do). The prior private _TERMINAL_SUFFIXES wrongly included bare
+    ``.complete`` → the watch returned 'completed' while the run was in flight.
+    Now single-sourced from stream.types.is_run_terminal."""
+    from app.infra._watch import _is_terminal
+
+    def ev(et):
+        return EventEnvelope(
+            id="e", event_type=et, artifact="simulation", operation="generate",
+            created_at=datetime.now(UTC), group_id=uuid4(), run_id=uuid4(),
+        )
+
+    assert _is_terminal(ev("simulation.generate.complete")) is False  # mid-run
+    assert _is_terminal(ev("simulation.generate.completed")) is True
+    assert _is_terminal(ev("simulation.generate.failed")) is True
+    assert _is_terminal(ev("simulation.generate.error")) is True
+    assert _is_terminal(ev("media_complete")) is True
+
+
 def _terminal(group_id, run_id):
     return EventEnvelope(
         id=f"evt-{run_id}",
