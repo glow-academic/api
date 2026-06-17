@@ -33,19 +33,32 @@ class _Subscription:
     group_id: UUID
 
 
-_SUBSCRIPTIONS: Final[list[_Subscription]] = []
+# HUB2 (report-19): index subscriptions BY group_id. A flat list made publish()
+# an O(total_subscribers) linear scan per event (continue-ing past every
+# non-matching group) — an O(S·E) hot-path cliff under S subscribers × E
+# events/sec. Keyed by group, publish() touches only that group's subscribers.
+_SUBSCRIPTIONS: Final[dict[UUID, list[_Subscription]]] = {}
 
 
 def subscribe(*, group_id: UUID) -> asyncio.Queue[EventEnvelope]:
     """Create a queue subscription for a specific group's events."""
     queue: asyncio.Queue[EventEnvelope] = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
-    _SUBSCRIPTIONS.append(_Subscription(queue=queue, group_id=group_id))
+    _SUBSCRIPTIONS.setdefault(group_id, []).append(
+        _Subscription(queue=queue, group_id=group_id)
+    )
     return queue
 
 
 def unsubscribe(queue: asyncio.Queue[EventEnvelope]) -> None:
-    """Remove a queue subscription."""
-    _SUBSCRIPTIONS[:] = [sub for sub in _SUBSCRIPTIONS if sub.queue is not queue]
+    """Remove a queue subscription; drop the group's bucket when it empties."""
+    for gid, subs in list(_SUBSCRIPTIONS.items()):
+        kept = [sub for sub in subs if sub.queue is not queue]
+        if len(kept) == len(subs):
+            continue
+        if kept:
+            _SUBSCRIPTIONS[gid] = kept
+        else:
+            _SUBSCRIPTIONS.pop(gid, None)
 
 
 async def publish(event: EventEnvelope) -> None:
@@ -55,12 +68,16 @@ async def publish(event: EventEnvelope) -> None:
     fan-out to the others. When a subscriber's bounded queue is full we drop
     its OLDEST buffered event to make room for the new one, so memory stays
     bounded while the consumer keeps receiving the freshest events.
+
+    O(subscribers-of-this-group): only the event's group bucket is touched
+    (HUB2), not the whole registry.
     """
     if not event.group_id:
         return
-    for subscription in list(_SUBSCRIPTIONS):
-        if event.group_id != subscription.group_id:
-            continue
+    subs = _SUBSCRIPTIONS.get(event.group_id)
+    if not subs:
+        return
+    for subscription in list(subs):
         _put_sheddable(subscription.queue, event, subscription.group_id)
 
 

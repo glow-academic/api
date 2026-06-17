@@ -1,6 +1,6 @@
 """Messages search — filtered/paginated query against messages_mv."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg  # type: ignore
@@ -118,7 +118,7 @@ async def search_messages(
     def _ts(row: dict) -> datetime:
         ts = row.get("message_created_at")
         if ts is None:
-            return datetime.min
+            return datetime.min.replace(tzinfo=timezone.utc)
         if isinstance(ts, str):
             return datetime.fromisoformat(ts)
         return ts

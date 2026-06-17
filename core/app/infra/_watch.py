@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.infra.stream.hub import subscribe, unsubscribe
-from app.infra.stream.types import EventEnvelope
+from app.infra.stream.types import EventEnvelope, is_run_terminal
 
 # ---------------------------------------------------------------------------
 # Public types
@@ -98,16 +98,15 @@ class WatchApiResponse(BaseModel):
 # Terminal-event classification
 # ---------------------------------------------------------------------------
 
-# We treat any of these event_type suffixes as terminal.
-_TERMINAL_SUFFIXES = (".complete", ".completed", ".failed", ".error")
-
-
 def _is_terminal(envelope: EventEnvelope) -> bool:
-    et = envelope.event_type or ""
-    return any(et.endswith(s) for s in _TERMINAL_SUFFIXES) or et in {
-        "media_complete",
-        "media_error",
-    }
+    # HUB4 (report-19): single-source the run-terminal contract from
+    # stream/types.py instead of a private suffix tuple. The local copy
+    # included a bare ``.complete`` — exactly the bug ``is_run_terminal``
+    # avoids: a mid-run ``<artifact>.<op>.complete`` progress frame must NOT
+    # count as terminal (it would make the watch return "completed" while the
+    # run is still in flight). ``is_run_terminal`` matches ``.completed`` /
+    # ``.failed`` / ``.error`` / ``media_complete`` / ``media_error`` only.
+    return is_run_terminal(envelope.event_type or "")
 
 
 def _outcome(envelope: EventEnvelope) -> Literal["completed", "failed"]:
