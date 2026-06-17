@@ -179,6 +179,19 @@ async def _snapshot_runs(
     only mode that produces results. Returning empty here keeps the
     impl honest rather than crashing at runtime against a column that
     doesn't exist.
+
+    report-19 HUB3 status: ``watch_runs_impl`` now SUBSCRIBES BEFORE calling
+    this, so a run reaching terminal DURING the watch (the common fast path —
+    the watch is kicked off alongside/just after the generation) is captured by
+    the live drain even though this snapshot is empty. The remaining gap is a
+    run that was ALREADY terminal BEFORE the watch call (e.g. a cache-hit
+    replay): with an empty snapshot it isn't seen and the wait times out. Fully
+    closing that needs this snapshot to report ``status`` for already-terminal
+    runs — but ``runs_entry`` has NO terminal-status column, so it requires the
+    cross-artifact completion read described above (the deferred follow-up); a
+    wrong implementation that reports a false terminal would return incomplete
+    results, which is worse than the timeout, so it is intentionally NOT
+    hand-rolled here.
     """
     # Suppress unused-arg warnings — kept in signature for the follow-up.
     _ = (pool, group_id, run_ids)
@@ -214,44 +227,54 @@ async def watch_runs_impl(
     # or a specific run_id. Normalize to a list[UUID] | None for snapshot.
     target_run_ids: list[UUID] | None = [run_id] if run_id else None
 
-    # Snapshot first — captures runs that already finished
-    initial = await _snapshot_runs(pool, group_id, target_run_ids)
-    statuses: dict[UUID, RunStatus] = {rs.run_id: rs for rs in initial}
-
+    # ``wait_for_complete=False`` is a pure point-in-time snapshot — it never
+    # waits, so it needs no hub subscription (and no race to close).
     if not wait_for_complete:
+        initial = await _snapshot_runs(pool, group_id, target_run_ids)
+        snap = {rs.run_id: rs for rs in initial}
         return WatchApiResponse(
             group_id=group_id,
-            runs=list(statuses.values()),
+            runs=list(snap.values()),
             timed_out=False,
             waited_seconds=0.0,
         )
 
-    # If the run we were given is already terminal, exit.
-    def _all_terminal() -> bool:
-        if not target_run_ids:
-            # No specific id — accept "everything we know about is terminal"
-            return len(statuses) > 0 and all(
-                s.status in {"completed", "failed"} for s in statuses.values()
-            )
-        return all(
-            statuses.get(rid) is not None
-            and statuses[rid].status in {"completed", "failed"}
-            for rid in target_run_ids
-        )
-
-    if _all_terminal():
-        return WatchApiResponse(
-            group_id=group_id,
-            runs=list(statuses.values()),
-            timed_out=False,
-            waited_seconds=0.0,
-        )
-
-    # Subscribe and drain
+    # HUB3 (report-19): SUBSCRIBE BEFORE the snapshot. A run that reaches
+    # terminal in the gap between the snapshot read and the subscribe would
+    # otherwise fire its terminal into the hub with no subscriber → missed →
+    # the watcher waits the full timeout. Subscribing first buffers any such
+    # event in our queue; the snapshot then captures runs already terminal
+    # before we arrived, and the drain loop catches the rest. Everything from
+    # here unsubscribes on exit (incl. the all-terminal early return) via the
+    # try/finally.
     queue = subscribe(group_id=group_id)
-    deadline = started.timestamp() + timeout_seconds
     timed_out = False
     try:
+        initial = await _snapshot_runs(pool, group_id, target_run_ids)
+        statuses: dict[UUID, RunStatus] = {rs.run_id: rs for rs in initial}
+
+        def _all_terminal() -> bool:
+            if not target_run_ids:
+                # No specific id — accept "everything we know about is terminal"
+                return len(statuses) > 0 and all(
+                    s.status in {"completed", "failed"} for s in statuses.values()
+                )
+            return all(
+                statuses.get(rid) is not None
+                and statuses[rid].status in {"completed", "failed"}
+                for rid in target_run_ids
+            )
+
+        # If the run(s) were already terminal at snapshot time, exit immediately.
+        if _all_terminal():
+            return WatchApiResponse(
+                group_id=group_id,
+                runs=list(statuses.values()),
+                timed_out=False,
+                waited_seconds=0.0,
+            )
+
+        deadline = started.timestamp() + timeout_seconds
         while not _all_terminal():
             remaining = deadline - datetime.now(timezone.utc).timestamp()
             if remaining <= 0:

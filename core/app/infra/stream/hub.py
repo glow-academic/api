@@ -61,55 +61,70 @@ async def publish(event: EventEnvelope) -> None:
     for subscription in list(_SUBSCRIPTIONS):
         if event.group_id != subscription.group_id:
             continue
-        queue = subscription.queue
+        _put_sheddable(subscription.queue, event, subscription.group_id)
+
+
+def _put_sheddable(
+    queue: asyncio.Queue[EventEnvelope], event: EventEnvelope, group_id: UUID
+) -> None:
+    """Enqueue ``event``, evicting to stay bounded WITHOUT ever dropping a
+    buffered NON-DROPPABLE frame.
+
+    Fast path: a plain ``put_nowait`` on a non-full queue. On a full queue (a
+    slow consumer), make room by dropping the OLDEST DROPPABLE frame — never a
+    buffered terminal (``.completed`` / ``.failed``) or ``agent_completed``.
+    The prior logic shed the *oldest* frame blindly to make room, which could
+    evict an unread buffered terminal — dropping a terminal leaves a run-scoped
+    watcher (``glow … watch <run_id>``) looping on keep-alives with no EOF, so
+    it hangs forever (report-19 HUB1 / S4). Here a buffered terminal is kept and
+    a droppable frame is shed instead.
+
+    If EVERY buffered frame AND the incoming one are non-droppable (a queue
+    entirely of load-bearing frames — pathological at depth 1000), we drop the
+    oldest to stay bounded and log it, since we cannot grow without bound.
+
+    All ops are non-blocking (`*_nowait`) and synchronous — no ``await`` — so
+    the drain + refill is atomic w.r.t. the event loop; no producer or consumer
+    can interleave mid-rebuild.
+    """
+    try:
+        queue.put_nowait(event)
+        return
+    except asyncio.QueueFull:
+        pass
+
+    # Full: drain to a FIFO list (oldest → newest), append the newcomer, then
+    # drop exactly one victim so the survivors fit (== _QUEUE_MAXSIZE).
+    buffered: list[EventEnvelope] = []
+    while True:
         try:
-            queue.put_nowait(event)
-        except asyncio.QueueFull:
-            # Slow consumer: shed the oldest event, then enqueue the newest.
-            try:
-                queue.get_nowait()
-            except asyncio.QueueEmpty:
-                pass
-            try:
-                queue.put_nowait(event)
-            except asyncio.QueueFull:
-                # Lost a race with another producer that refilled the freed slot
-                # before our put. For an ordinary mid-run frame this is fine —
-                # drop it and keep the fan-out non-blocking. But a NON-DROPPABLE
-                # frame (the true terminals ``.completed`` / ``.failed`` plus
-                # load-bearing progress milestones like ``agent_completed``) is
-                # load-bearing: dropping a terminal leaves a run-scoped watcher
-                # (``glow … watch <run_id>``) looping on keep-alives with no
-                # EOF — it hangs forever (S4) — and dropping ``agent_completed``
-                # loses an agent in a multi-agent UI. These frames are rare and
-                # must not be lost, so for them keep shedding the oldest and
-                # retrying until the put lands (bounded by the queue depth so
-                # this can never spin). Other frames keep the best-effort drop.
-                if is_non_droppable(event.event_type):
-                    delivered = False
-                    for _ in range(_QUEUE_MAXSIZE + 1):
-                        try:
-                            queue.get_nowait()
-                        except asyncio.QueueEmpty:
-                            pass
-                        try:
-                            queue.put_nowait(event)
-                            delivered = True
-                            break
-                        except asyncio.QueueFull:
-                            continue
-                    if not delivered:
-                        logger.error(
-                            "SSE terminal frame %s undeliverable for group %s "
-                            "after draining queue; watcher may hang",
-                            event.event_type,
-                            subscription.group_id,
-                        )
-                else:
-                    # Lost a race with another producer refilling the slot; the
-                    # event is dropped rather than blocking the fan-out.
-                    logger.warning(
-                        "SSE subscriber queue full for group %s; dropping event %s",
-                        subscription.group_id,
-                        event.event_type,
-                    )
+            buffered.append(queue.get_nowait())
+        except asyncio.QueueEmpty:
+            break
+    combined = buffered + [event]
+
+    drop_idx = next(
+        (i for i, e in enumerate(combined) if not is_non_droppable(e.event_type)),
+        None,
+    )
+    if drop_idx is None:
+        dropped = combined.pop(0)
+        logger.error(
+            "SSE queue full of non-droppable frames for group %s; forced to drop "
+            "oldest terminal %s — watcher may hang",
+            group_id,
+            dropped.event_type,
+        )
+    else:
+        combined.pop(drop_idx)
+
+    for e in combined:
+        try:
+            queue.put_nowait(e)
+        except asyncio.QueueFull:  # pragma: no cover — we removed exactly one
+            logger.error(
+                "SSE re-enqueue overflow for group %s; dropping %s",
+                group_id,
+                e.event_type,
+            )
+            break

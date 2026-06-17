@@ -103,61 +103,60 @@ async def test_publish_does_not_block_on_full_subscriber():
         unsubscribe(fast)
 
 
-class _RacyQueue(asyncio.Queue):
-    """Queue whose ``put_nowait`` raises QueueFull for the first ``fail_puts``
-    calls regardless of room — simulates another producer refilling the freed
-    slot in the publish() shed-then-put race (the exact window S4 drops in)."""
-
-    def __init__(self, *a, fail_puts: int = 0, **k):
-        super().__init__(*a, **k)
-        self._fail_puts = fail_puts
-
-    def put_nowait(self, item):  # type: ignore[override]
-        if self._fail_puts > 0:
-            self._fail_puts -= 1
-            raise asyncio.QueueFull
-        return super().put_nowait(item)
-
-
-async def test_terminal_frame_is_not_dropped_under_producer_race():
-    """S4: a run-terminal frame must reach the consumer even when the
-    shed-then-put race keeps losing the freed slot — otherwise a run-scoped
-    watcher hangs forever with no EOF."""
+async def test_buffered_terminal_is_not_evicted_to_make_room():
+    """report-19 HUB1: when a full queue must make room for a new mid-run frame,
+    an ALREADY-BUFFERED terminal must NOT be the one evicted — the oldest
+    DROPPABLE frame is shed instead. The prior logic shed the oldest frame
+    blindly, which could drop an unread buffered terminal → a run-scoped watcher
+    hangs with no EOF (S4)."""
     group_id = uuid4()
-    # Pre-fill so the queue is full, then make the next 3 puts race-fail.
-    q = _RacyQueue(maxsize=_QUEUE_MAXSIZE, fail_puts=3)
-    for seq in range(_QUEUE_MAXSIZE):
-        asyncio.Queue.put_nowait(q, _event(group_id, seq=seq))
-    hub._SUBSCRIPTIONS.append(hub._Subscription(queue=q, group_id=group_id))
+    queue = subscribe(group_id=group_id)
     try:
-        terminal = _event(
-            group_id, seq=9001, event_type="simulation.generate.completed"
+        # Oldest buffered frame is a TERMINAL, then fill the rest with progress.
+        await publish(
+            _event(group_id, seq=0, event_type="simulation.generate.completed")
         )
-        await publish(terminal)
-        drained = [q.get_nowait() for _ in range(q.qsize())]
-        # The terminal frame survived the race and is in the buffer.
-        assert any(e.payload["seq"] == 9001 for e in drained)
+        for seq in range(1, _QUEUE_MAXSIZE):
+            await publish(_event(group_id, seq=seq))
+        assert queue.qsize() == _QUEUE_MAXSIZE
+
+        # A new mid-run frame arrives on the full queue.
+        await publish(_event(group_id, seq=9999))
+
+        drained = [queue.get_nowait() for _ in range(queue.qsize())]
+        seqs = [e.payload["seq"] for e in drained]
+        # The buffered terminal (seq 0) SURVIVED; the oldest droppable (seq 1)
+        # was shed; the newest landed; FIFO order preserved; still bounded.
+        assert len(seqs) == _QUEUE_MAXSIZE
+        assert 0 in seqs, "buffered terminal must not be evicted"
+        assert 1 not in seqs, "oldest droppable should be the victim"
+        assert 9999 in seqs
+        assert seqs == sorted(seqs), "survivors keep FIFO order"
     finally:
-        hub._SUBSCRIPTIONS[:] = [s for s in hub._SUBSCRIPTIONS if s.queue is not q]
+        unsubscribe(queue)
 
 
-async def test_non_terminal_frame_is_dropped_on_lost_race():
-    """A mid-run (non-terminal) frame keeps the original best-effort drop: when
-    the re-put loses the race it is dropped, not retried (fan-out stays cheap)."""
+async def test_incoming_droppable_dropped_when_queue_is_all_terminals():
+    """If every buffered frame is non-droppable, an incoming DROPPABLE frame is
+    the one dropped — the load-bearing terminals are all kept."""
     group_id = uuid4()
-    q = _RacyQueue(maxsize=_QUEUE_MAXSIZE, fail_puts=2)
-    for seq in range(_QUEUE_MAXSIZE):
-        asyncio.Queue.put_nowait(q, _event(group_id, seq=seq))
-    hub._SUBSCRIPTIONS.append(hub._Subscription(queue=q, group_id=group_id))
+    queue = subscribe(group_id=group_id)
     try:
-        progress = _event(
-            group_id, seq=9002, event_type="simulation.generate.progress"
-        )
-        await publish(progress)  # must not raise / hang
-        drained = [q.get_nowait() for _ in range(q.qsize())]
-        assert all(e.payload["seq"] != 9002 for e in drained)
+        for seq in range(_QUEUE_MAXSIZE):
+            await publish(
+                _event(group_id, seq=seq, event_type="simulation.generate.completed")
+            )
+        assert queue.qsize() == _QUEUE_MAXSIZE
+
+        await publish(_event(group_id, seq=9999))  # droppable
+
+        drained = [queue.get_nowait() for _ in range(queue.qsize())]
+        seqs = [e.payload["seq"] for e in drained]
+        # All terminals kept; the incoming droppable was dropped.
+        assert seqs == list(range(_QUEUE_MAXSIZE))
+        assert 9999 not in seqs
     finally:
-        hub._SUBSCRIPTIONS[:] = [s for s in hub._SUBSCRIPTIONS if s.queue is not q]
+        unsubscribe(queue)
 
 
 async def test_unsubscribe_cleanup_intact():
