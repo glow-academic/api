@@ -52,6 +52,9 @@ class ChatSpeakResult:
     denied: bool = False
     not_found: bool = False
     bad_audio: bool = False
+    # VOICE2: the soft-staging buffer is at its byte cap — the caller is pushing
+    # PCM faster than it's being accepted/flushed. Mapped to HTTP 429.
+    over_capacity: bool = False
 
 
 def resolve_speak_session(
@@ -118,7 +121,7 @@ def chat_speak_impl(
     # ── Ack: flush (accept) or drop (reject) the staged frames ──
     if accept is not None and idempotency_key is not None:
         key = str(idempotency_key)
-        staged = session.pending_frames.pop(key, [])
+        staged = session.pop_pending_frames(key)
         if accept:
             ok = all(_enqueue(session, f) for f in staged) if staged else True
             return ChatSpeakResult(accepted=ok, idempotency_key=key)
@@ -140,7 +143,13 @@ def chat_speak_impl(
     # ── Soft propose: hold the frame, don't push it ──
     if soft:
         key = str(idempotency_key or uuid4())
-        session.pending_frames.setdefault(key, []).append(audio_bytes)
+        # VOICE2: bound the staging buffer — a session owner repeatedly POSTing
+        # soft=True with fresh keys (acks that never come) would otherwise grow
+        # pending_frames without limit → single-session OOM.
+        if not session.stage_pending_frame(key, audio_bytes):
+            return ChatSpeakResult(
+                accepted=False, idempotency_key=key, over_capacity=True
+            )
         return ChatSpeakResult(accepted=True, idempotency_key=key)
 
     # ── Live: push immediately (real-time hot path) ──

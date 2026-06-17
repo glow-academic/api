@@ -10,6 +10,20 @@ from typing import Any
 
 _session_store: dict[str, "AudioSession"] = {}
 
+# ── Boundedness caps (report-22 VOICE2/VOICE3) ───────────────────────────────
+# A single realtime PCM frame is small (PCM16@24kHz, ~100ms ≈ 4.8 KB); anything
+# over this is malformed/abusive and is rejected rather than buffered.
+MAX_FRAME_BYTES = 1_000_000  # 1 MB — generous per-frame ceiling
+# Soft-staging buffer (``pending_frames``) total cap. The live inbound_queue is
+# capped at 500 frames; the soft path (POST /chat/speak soft=True) had NO
+# backpressure, so a session owner could append unbounded PCM that's only freed
+# on an ack that may never come → single-session OOM. Bound the total bytes.
+PENDING_FRAMES_MAX_BYTES = 16_000_000  # 16 MB across all pending idempotency keys
+# Accumulated inbound speech between VAD speech_started/stopped. When the
+# provider VAD never fires speech_stopped (turn_detection omitted by default)
+# this grew without bound; cap it (~11 min of 24kHz PCM16).
+SPEECH_BUFFER_MAX_BYTES = 32_000_000  # 32 MB
+
 
 class AudioSession:
     """Audio session data structure.
@@ -72,6 +86,51 @@ class AudioSession:
         # Accumulated assistant PCM16 deltas for the current turn, flushed
         # to disk via audio_upload_attempt_impl on response.audio.done.
         self.assistant_audio_buffer = bytearray()
+        # Running byte total of ``pending_frames`` for the O(1) VOICE2 cap check.
+        self.pending_frames_bytes: int = 0
+
+    def touch(self) -> None:
+        """Refresh the liveness timestamp (VOICE1).
+
+        Call on ANY activity — inbound client frames, OUTBOUND assistant frames
+        sent to the client, and provider events — not just inbound. The reaper
+        (``get_stale_sessions``) closes sessions idle past the window; bumping
+        only on inbound meant a long assistant monologue, a slow tool-loop, or a
+        user who is merely LISTENING for > the window got reaped mid-turn with
+        the provider connection torn down under them.
+        """
+        self.last_activity = time.monotonic()
+
+    def stage_pending_frame(self, key: str, frame: bytes) -> bool:
+        """Append a soft-staged frame under ``key``, enforcing the total-bytes
+        cap (VOICE2). Returns ``False`` (caller must reject) if the frame is
+        oversized or staging it would exceed ``PENDING_FRAMES_MAX_BYTES``."""
+        if len(frame) > MAX_FRAME_BYTES:
+            return False
+        if self.pending_frames_bytes + len(frame) > PENDING_FRAMES_MAX_BYTES:
+            return False
+        self.pending_frames.setdefault(key, []).append(frame)
+        self.pending_frames_bytes += len(frame)
+        return True
+
+    def pop_pending_frames(self, key: str) -> list[bytes]:
+        """Pop a staged key's frames and decrement the running byte total."""
+        frames = self.pending_frames.pop(key, [])
+        self.pending_frames_bytes -= sum(len(f) for f in frames)
+        if self.pending_frames_bytes < 0:  # defensive; should never happen
+            self.pending_frames_bytes = 0
+        return frames
+
+    def buffer_speech_audio(self, frame: bytes) -> bool:
+        """Append inbound speech PCM, enforcing the per-frame and total-buffer
+        caps (VOICE3). Returns ``False`` (caller drops the frame) if the frame
+        is oversized or the buffer is already at ``SPEECH_BUFFER_MAX_BYTES``."""
+        if len(frame) > MAX_FRAME_BYTES:
+            return False
+        if len(self.speech_audio_buffer) + len(frame) > SPEECH_BUFFER_MAX_BYTES:
+            return False
+        self.speech_audio_buffer.extend(frame)
+        return True
 
 
 def create_session(
