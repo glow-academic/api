@@ -74,6 +74,13 @@ async def chat_speak(
         )
     if result.bad_audio:
         raise HTTPException(status_code=400, detail="audio is required")
+    # VOICE2: the soft-staging buffer is at capacity (frames staged faster than
+    # acked/flushed). Shed with a retryable 429 rather than buffer unboundedly.
+    if result.over_capacity:
+        raise HTTPException(
+            status_code=429,
+            detail="Audio staging buffer is full; accept/flush pending frames before staging more.",
+        )
 
     return ChatSpeakResponse(
         accepted=result.accepted, idempotency_key=result.idempotency_key

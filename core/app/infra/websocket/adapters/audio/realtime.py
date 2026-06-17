@@ -472,7 +472,21 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                                 if isinstance(audio_data, bytes)
                                 else base64.b64decode(audio_data)
                             )
-                            session.speech_audio_buffer.extend(raw_bytes)
+                            # VOICE3: bound the buffer. When the provider VAD
+                            # never fires speech_stopped (turn_detection omitted
+                            # by default) this grew without limit. On a per-frame
+                            # or total-cap hit, stop LOCAL accumulation for this
+                            # turn (the live stream to the provider below is
+                            # unaffected) rather than OOM.
+                            if not session.buffer_speech_audio(raw_bytes):
+                                logger.warning(
+                                    "speech_audio_buffer cap hit for group_id=%s "
+                                    "(%d bytes buffered); stopping local speech "
+                                    "buffering for this turn",
+                                    group_id,
+                                    len(session.speech_audio_buffer),
+                                )
+                                session.speech_buffering = False
 
                         # Convert to base64 if bytes
                         if isinstance(audio_data, bytes):
@@ -539,6 +553,14 @@ class RealtimeAudioAdapter(BaseAudioAdapter):
                 # accepts either, so parse without branching on frame type.
                 event = json.loads(message)
                 event_type = event.get("type", "")
+
+                # VOICE1: refresh liveness on EVERY provider event (assistant
+                # audio/transcript deltas, tool-call events, session events) —
+                # not just inbound client frames. Without this, the idle-reaper
+                # (which only saw inbound bumps) tore down sessions mid-turn
+                # during a long assistant monologue, a slow tool-loop, or while
+                # the user was just listening for longer than the idle window.
+                session.touch()
 
                 # Log events for debugging (except frequent audio/transcript deltas)
                 if event_type not in (
