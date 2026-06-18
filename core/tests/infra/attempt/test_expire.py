@@ -137,6 +137,27 @@ async def test_resolvable_owner_still_expires_and_refreshes(monkeypatch):
     enqueue.assert_not_awaited()
 
 
+async def test_reaper_calls_complete_with_system_action(monkeypatch):
+    """The reaper invokes ``complete_attempt_impl`` with ``system_action=True`` so
+    the per-caller attempt-access gate is bypassed. Without it, an owner-less
+    (NULL ``profile_id``) stale attempt is denied 403 BY THE GATE before the
+    completion row is written, so it never goes terminal and is re-found every
+    cycle, error-spamming forever (the 401 degradation branch never sees the
+    gate's 403). This pins the trusted-system bypass."""
+    import app.infra.attempt.expire as m
+
+    _wire_searches(monkeypatch, m, [_stale_attempt(None)])  # owner-less attempt
+    complete = AsyncMock(return_value={"success": True, "completion_id": str(uuid4())})
+    monkeypatch.setattr(m, "complete_attempt_impl", complete)
+    monkeypatch.setattr(m, "enqueue_pending", AsyncMock())
+
+    expired = await m.expire_stale_attempts(_fake_pool(), AsyncMock())
+
+    assert len(expired) == 1
+    complete.assert_awaited_once()
+    assert complete.await_args.kwargs.get("system_action") is True
+
+
 async def test_non_401_http_error_still_surfaces_as_error(monkeypatch, caplog):
     """A genuine (non-401) failure is NOT swallowed — still logs ERROR.
 

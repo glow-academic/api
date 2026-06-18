@@ -45,9 +45,19 @@ async def complete_attempt_impl(
     accept: bool | None = None,
     idempotency_key: UUID | None = None,
     call_id: UUID | None = None,
+    system_action: bool = False,
     **kwargs: Any,
 ):
-    """Mark an attempt as completed (with soft/accept staging)."""
+    """Mark an attempt as completed (with soft/accept staging).
+
+    ``system_action`` skips the per-caller attempt-access gate. It is set ONLY
+    by the background time-limit reaper (``expire.py``), which is a trusted
+    system actor, not a request caller: it terminates an attempt that has run
+    past its own time limit, acting on behalf of the attempt's own owner. No
+    request path sets it — this function is never reached via the generic
+    registry dispatch (only via the explicit route/ws runners, which pass fixed
+    kwargs), so a client cannot inject it. See the reaper rationale below.
+    """
     if attempt_id is None and "attempt_id" in kwargs:
         attempt_id = kwargs["attempt_id"]
     if isinstance(attempt_id, str):
@@ -115,8 +125,18 @@ async def complete_attempt_impl(
     # path so this matches the dept-scoped read/archive gate (issue #148): the
     # actor must own the attempt, be a super-admin, or strictly outrank the
     # owner AND share a department with them.
-    requester = await resolve_profile_identity_context(pool, profile_id, redis)
-    await enforce_attempt_access_by_attempt(pool, redis, attempt_id=attempt_id, requester=requester)
+    # The background time-limit reaper (``system_action``) bypasses this gate:
+    # it is not a request caller, and it must terminate stale attempts whose
+    # owner is unresolvable or NULL (seed/demo attempts) — exactly the case the
+    # gate denies (owner_profiles_id is None → 403). Without the bypass those
+    # attempts were re-found every cycle and the reaper error-spammed forever
+    # (the 401-only degradation branch below never caught the gate's 403). Real
+    # user completions still pass through the full owner/role/department gate.
+    if not system_action:
+        requester = await resolve_profile_identity_context(pool, profile_id, redis)
+        await enforce_attempt_access_by_attempt(
+            pool, redis, attempt_id=attempt_id, requester=requester
+        )
 
     # ── Propose (soft) / immediate (soft=False) ──
     with timed("db_write"):
