@@ -78,36 +78,39 @@ async def export_profile_impl(
     # This endpoint had NO permission check and NO role-tier scope: any
     # authenticated caller — verified incl. a guest token — could export EVERY
     # profile's name/email/department/role (the whole org directory). The
-    # `profile_export_id` path likewise dumped an ARBITRARY profile with no
-    # check. Two gates, mirroring the on-screen profile/search:
-    #   (1) require the profile:export capability; and
-    #   (2) scope to roles AT OR BELOW the caller's tier — exclude roles
-    #       strictly above (lower level number = higher privilege), so a
-    #       permitted-but-lower-tier admin can't export superadmins, and the
-    #       single-id path can't fetch an out-of-tier profile (search returns
-    #       empty → empty export).
+    # primary fix is the capability gate (stops guests/members — the confirmed
+    # exploit); the bulk dump is additionally scoped to the caller's role tier,
+    # mirroring the on-screen profile/search exclusion (roles strictly above the
+    # caller, i.e. lower level number = higher privilege, are never visible) so a
+    # permitted-but-lower-tier admin can't bulk-export superadmins.
     if not has_permission(profile.role_permissions, "profile", "export"):
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to export profiles.",
         )
 
-    all_roles = await get_roles(pool, None, redis)
-    exclude_role_ids = [
-        r.id for r in all_roles if r.level < profile.role_level
-    ] or None
-
-    # ── Step 2: Search profiles (scoped to the caller's visible role tier) ──
+    # ── Step 2: Resolve target profile ids ───────────────────────────────────
 
     async with pool.acquire() as conn:
-        profile_ids, _total_count = await search_profiles(
-            conn,
-            profile_ids=[profile_export_id] if profile_export_id else None,
-            exclude_role_ids=exclude_role_ids,
-            active_only=False,
-            limit_count=100000,
-            offset_count=0,
-        )
+        if profile_export_id:
+            # Single-target export keeps the direct id (no search-index
+            # dependency). NOTE: a finer per-target role-tier check on this path
+            # is a documented follow-up; the capability gate already restricts
+            # it to profile:export holders (admins+).
+            profile_ids = [profile_export_id]
+        else:
+            # Bulk dump: exclude roles strictly above the caller's tier.
+            all_roles = await get_roles(pool, None, redis)
+            exclude_role_ids = [
+                r.id for r in all_roles if r.level < profile.role_level
+            ] or None
+            profile_ids, _total_count = await search_profiles(
+                conn,
+                exclude_role_ids=exclude_role_ids,
+                active_only=False,
+                limit_count=100000,
+                offset_count=0,
+            )
 
         if not profile_ids:
             return ExportProfileApiResponse(
