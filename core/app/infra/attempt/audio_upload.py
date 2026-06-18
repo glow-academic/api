@@ -26,6 +26,7 @@ from redis.asyncio import Redis
 
 from app.infra.activate.activate import activate_rows
 from app.infra.attempt.media_types import AudioUploadAttemptApiResponse
+from app.infra.attempt.permissions import enforce_attempt_media_access
 from app.infra.media.upload import media_upload_impl
 from app.infra.permissions_helpers import has_permission
 from app.infra.profile_identity_context import resolve_profile_identity_context
@@ -113,6 +114,21 @@ async def audio_upload_attempt_impl(
         raise HTTPException(
             status_code=400,
             detail="Either upload_id (promote existing) or file_bytes (new upload) is required.",
+        )
+
+    # Promotion path: ``upload_id`` clones an EXISTING uploads_entry into a NEW
+    # audios_entry under the CALLER's session. The media layer only existence-
+    # checks the id (``get_upload``) and explicitly disclaims auth ("authorization
+    # lives at the artifact boundary") — so without a gate here, a caller holding
+    # another user's ``upload_id`` (e.g. a leaked realtime-capture id) could clone
+    # that user's audio blob under their own session. Authorize the SOURCE upload
+    # against its owning session with the same owner-or-strictly-higher-role +
+    # department gate that protects attempt media downloads. Authored/seed uploads
+    # (no profile-linked owner) are allowed; self short-circuits. (file_bytes is a
+    # brand-new upload under the caller's own session — no foreign id to gate.)
+    if upload_id is not None:
+        await enforce_attempt_media_access(
+            pool, redis, upload_id=upload_id, requester=profile,
         )
 
     session_uuid = session_id or profile.session_id or UUID(int=0)
