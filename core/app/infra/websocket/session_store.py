@@ -23,6 +23,14 @@ PENDING_FRAMES_MAX_BYTES = 16_000_000  # 16 MB across all pending idempotency ke
 # provider VAD never fires speech_stopped (turn_detection omitted by default)
 # this grew without bound; cap it (~11 min of 24kHz PCM16).
 SPEECH_BUFFER_MAX_BYTES = 32_000_000  # 32 MB
+# Hard max wall-clock lifetime of a single voice session (report-22 VOICE1
+# follow-up). The idle reaper only fires when ``last_activity`` goes stale, but
+# ``touch()`` now bumps on EVERY provider event — so a wedged provider (endless
+# keep-alives, a spinning tool-loop) keeps the session perpetually "fresh" and
+# the idle check can never reap it. This absolute ceiling, measured from
+# session creation and immune to ``touch()``, guarantees even a busy-but-wedged
+# session is force-reaped. Generous so it never clips a legitimate call.
+MAX_SESSION_LIFETIME = 3600.0  # 1 hour
 
 
 class AudioSession:
@@ -75,6 +83,16 @@ class AudioSession:
         # don't enqueue until ack" — in-memory since the queue itself is).
         self.pending_frames: dict[str, list[bytes]] = {}
         self.last_activity: float = time.monotonic()
+        # Wall-clock creation time — the anchor for the hard max-lifetime
+        # backstop in ``get_stale_sessions``. Unlike ``last_activity`` this is
+        # NEVER refreshed by ``touch()``, so it catches a wedged-but-busy session
+        # that the idle check alone would never reap (report-22 VOICE1 follow-up).
+        self.created_at: float = time.monotonic()
+        # VOICE4-b: the first turn of a voice session is metered by
+        # /attempt/generate; the first run-complete must NOT meter again (else an
+        # N-turn call costs N+1). Flipped true on the first run-complete; only
+        # continuations (turn 2+) are metered. See run_complete_impl.
+        self.first_audio_turn_complete_seen: bool = False
         self.muted = False
         # User speech audio buffering — accumulates PCM16 frames between
         # VAD speech_started and speech_stopped for disk persistence.
@@ -233,14 +251,26 @@ def get_session_by_sid(sid: str) -> AudioSession | None:
     return None
 
 
-def get_stale_sessions(timeout: float = 300.0) -> list[AudioSession]:
-    """Return sessions inactive for longer than timeout seconds (default 5 min)."""
+def get_stale_sessions(
+    timeout: float = 300.0,
+    max_lifetime: float = MAX_SESSION_LIFETIME,
+) -> list[AudioSession]:
+    """Return sessions that should be reaped: idle past ``timeout`` (default 5
+    min) OR alive past ``max_lifetime`` (default 1 hour).
+
+    The lifetime ceiling is the VOICE1 backstop: since ``touch()`` now refreshes
+    ``last_activity`` on every provider event, a wedged provider keeps a session
+    perpetually un-idle, so the idle check alone can never reclaim it. The
+    creation-anchored ceiling (immune to ``touch()``) force-reaps it regardless.
+    """
     now = time.monotonic()
     seen: set[str] = set()
     stale: list[AudioSession] = []
     for session in _session_store.values():
         if session.chat_id not in seen:
             seen.add(session.chat_id)
-            if (now - session.last_activity) > timeout:
+            idle = (now - session.last_activity) > timeout
+            expired = (now - session.created_at) > max_lifetime
+            if idle or expired:
                 stale.append(session)
     return stale

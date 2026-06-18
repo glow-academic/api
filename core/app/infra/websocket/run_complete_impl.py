@@ -145,32 +145,46 @@ async def run_complete_impl(
         if group_id_str:
             from app.infra.websocket.session_store import (
                 get_session_by_group_id,
-                remove_session,
                 rotate_run_id,
             )
 
             session = get_session_by_group_id(group_id_str)
             if session:
                 # VOICE4 (report-22): meter the turn. This run-complete is the
-                # billable unit (token usage is in the payload), and it gates
-                # the NEXT turn — the first turn was metered by /attempt/generate,
-                # so continuations (previously a no-op: the payload never carried
-                # request_limit) are metered here. Without this, one open realtime
-                # session ran unbounded turns for free. On limit-exhaustion the
-                # breaker trips: close the provider connection rather than rotate
-                # into another free turn.
-                if not await _meter_audio_turn(session, redis):
+                # billable unit (token usage is in the payload), and it gates the
+                # NEXT turn — so continuations (previously a no-op: the payload
+                # never carried request_limit) are metered here. Without this, one
+                # open realtime session ran unbounded turns for free.
+                #
+                # VOICE4-b: the FIRST turn was ALREADY metered by /attempt/generate
+                # (it increments the same ``generate`` counter at session start).
+                # Metering the first run-complete too double-counts turn 1 — an
+                # N-turn call would cost N+1, silently eating ~1 turn of every
+                # user's quota. Skip metering on the first run-complete (just mark
+                # it seen); meter only genuine continuations (turn 2+).
+                if not session.first_audio_turn_complete_seen:
+                    session.first_audio_turn_complete_seen = True
+                elif not await _meter_audio_turn(session, redis):
+                    # VOICE4-c: quota exhausted → trip the breaker. Use the
+                    # canonical teardown — ``cleanup_audio_session`` calls
+                    # ``adapter.stop_session`` which CANCELS the uplink/downlink
+                    # tasks (the uplink loop is blocked on ``inbound_queue.get()``;
+                    # a bare ``ws.close()`` never unblocks it) and closes the
+                    # provider WS, then removes the session and pops
+                    # ``_voice_message_ids``. The previous inline
+                    # ``ws.close() + remove_session`` left the queue-blocked uplink
+                    # task running forever AND, by removing the session first, put
+                    # it beyond the reaper's reach — a permanent task leak per
+                    # rate-limited session.
                     logger.warning(
                         "Voice continuation rate-limited — closing session "
                         f"group_id={group_id_str}"
                     )
-                    ws = session.oa_ws_connection
-                    if ws is not None:
-                        try:
-                            await ws.close()
-                        except Exception:
-                            pass
-                    remove_session(group_id_str)
+                    from app.infra.websocket.audio_lifecycle import (
+                        cleanup_audio_session,
+                    )
+
+                    await cleanup_audio_session(session)
                     return
 
                 new_run_id = str(uuid.uuid4())
