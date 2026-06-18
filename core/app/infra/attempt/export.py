@@ -28,6 +28,7 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 
 from app.infra.attempt.permissions import check_attempt_access
+from app.infra.dashboard.visibility import is_profile_in_department_scope
 from app.infra.exports.file_modality import (
     accept_staged_export,
     extension_from_mime,
@@ -307,11 +308,30 @@ async def _export_single_attempt_bytes(
     # export any student's attempt/grade/PII by ``attempt_id`` (IDOR, #150).
     # ``attempt_role`` is None because role was dropped from profiles_resource
     # (mirrors get.py — owner role is no longer available on the attempt MV).
+    #
+    # Department scope (mirrors get.py #152/#148, which export had drifted
+    # behind): a non-super, non-self caller may only export an attempt whose
+    # owner shares one of their departments. Without this, an elevated user in
+    # Dept A (role strictly higher than the owner's) could export a Dept-B
+    # student's full CSV/ZIP — attempt rows, grades, messages, profile PII —
+    # that they are forbidden to view on-screen. Skipped for self (own attempts
+    # always allowed) and resolved lazily so super-admins / self pay no query.
+    department_in_scope = True
+    if (
+        profile.profiles_id is not None
+        and attempts[0].profile_id is not None
+        and attempts[0].profile_id != profile.profiles_id
+    ):
+        department_in_scope = await is_profile_in_department_scope(
+            pool, profile, attempts[0].profile_id
+        )
+
     if not check_attempt_access(
         attempts[0].profile_id,
         profile.profiles_id,
         request_role=profile.role,
         attempt_role=None,
+        department_in_scope=department_in_scope,
     ):
         raise HTTPException(
             status_code=403,
