@@ -19,6 +19,7 @@ from app.infra.websocket.session_store import (
     SPEECH_BUFFER_MAX_BYTES,
     AudioSession,
     get_stale_sessions,
+    rotate_run_id,
 )
 
 
@@ -135,3 +136,43 @@ def test_buffer_speech_audio_bounds_total():
     # Past the cap, frames are dropped (caller stops local buffering).
     assert s.buffer_speech_audio(chunk) is False
     assert len(s.speech_audio_buffer) <= SPEECH_BUFFER_MAX_BYTES
+
+
+# ── VOICE2 — max-lifetime backstop must not reap a long, progressing session ──
+
+
+def test_rotate_run_id_resets_created_at_extends_lifetime():
+    """A completed-turn rotation refreshes created_at so the MAX_SESSION_LIFETIME
+    backstop is anchored to the LAST completed turn — a >1h actively-progressing
+    voice conversation is not force-reaped mid-turn (regression: created_at was
+    pinned to the first turn)."""
+    session_store._session_store.clear()
+    try:
+        s = _session()
+        session_store._session_store[s.chat_id] = s
+        # Pretend the session started well past the lifetime ceiling, but is
+        # still actively touched (so only the lifetime branch could reap it).
+        s.created_at = time.monotonic() - 4000.0
+        s.touch()
+        assert get_stale_sessions(timeout=300.0, max_lifetime=3600.0) == [s]
+        # A completed turn rotates the run_id → created_at refreshed → not reaped.
+        rotate_run_id(s, "new-run-id")
+        assert (time.monotonic() - s.created_at) < 1.0
+        assert get_stale_sessions(timeout=300.0, max_lifetime=3600.0) == []
+    finally:
+        session_store._session_store.clear()
+
+
+def test_wedged_session_without_rotation_still_reaped():
+    """Companion: a session that completes NO turn (no rotation) keeps its
+    original created_at, so the lifetime backstop still reaps it — the VOICE1
+    wedged-session protection is preserved."""
+    session_store._session_store.clear()
+    try:
+        s = _session()
+        session_store._session_store[s.chat_id] = s
+        s.created_at = time.monotonic() - 4000.0
+        s.touch()  # actively touched, but never rotates (no completed turn)
+        assert get_stale_sessions(timeout=300.0, max_lifetime=3600.0) == [s]
+    finally:
+        session_store._session_store.clear()
