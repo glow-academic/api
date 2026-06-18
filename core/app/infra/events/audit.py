@@ -186,6 +186,29 @@ async def run_artifact_operation_with_audit(
     if common is None:
         raise PermissionError("Profile not found. Please sign in again.")
 
+    # ── Authorization for export operations (systemic gate) ──────────────────
+    # Export operations dump bulk artifact data (CSV/ZIP). Several export impls
+    # had NO permission check and were reachable by ANY authenticated caller —
+    # verified live that a guest could export the profile directory, auth/SSO
+    # config, etc. Every export route funnels through here with
+    # ``operation="export"``, so enforce the ``(artifact, "export")`` capability
+    # at this single choke point. Scoped to ``operation == "export"`` so no other
+    # audited op is affected. This does NOT over-restrict: "export" is part of
+    # ``_READ_OPS`` in the role seed, so any role granted read on an artifact
+    # also holds export (e.g. guests have ``attempt:export``, and
+    # ``attempt/export``'s own ``check_attempt_access`` still scopes them to
+    # their own attempts); a caller with no access to the artifact is denied.
+    if operation == "export":
+        from app.infra.permissions_helpers import has_permission
+
+        if not has_permission(
+            common.profile.role_permissions, artifact, "export"
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="You don't have permission to export this resource.",
+            )
+
     # Permission-driven tool resolution — agent-independent. See
     # ``infra/tools/resolve_for_operation.py``: walks the global tool
     # registry by permission overlap, picks the most-specific tool,

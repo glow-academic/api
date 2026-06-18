@@ -110,6 +110,11 @@ async def create_admin_route_actor(
                 "delete",
                 "duplicate",
                 "draft",
+                # ``export`` is now gated by run_artifact_operation_with_audit
+                # (the export family was systemically ungated). Route-test
+                # actors are admins who legitimately hold it, so grant it by
+                # default — otherwise every */export route test would 403.
+                "export",
             ):
                 permission = await create_permission(
                     conn,
