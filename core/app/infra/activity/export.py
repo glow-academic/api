@@ -19,6 +19,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.tools.entries.activity.search import search_activity
 from app.tools.entries.emulations.search import search_emulations
@@ -113,19 +114,35 @@ async def export_activity_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Parallel search all entry types (full dump) --
+    # -- Step 2: Parallel search all entry types --
+    #
+    # Visibility scope (mirrors the on-screen resolve_activity_context, issue
+    # #144): the per-PERSON entry types — activity, login history, and free-text
+    # problem reports — are clamped to the caller's visible-profile set. Without
+    # this the export dumped EVERY profile's activity/logins/problems across all
+    # departments (a mass cross-department PII leak) while the dashboard scoped
+    # them. grants + emulations are org-level audit rows the on-screen context
+    # also fetches unscoped (admin-gated by the export capability), so they keep
+    # the full fetch to stay faithful to the dashboard.
+    visible_profile_ids = await resolve_visible_profile_ids(pool, profile)
 
     async def _fetch_activity() -> list:
         async with pool.acquire() as c:
-            return await search_activity(c, redis, limit=100000, offset=0)
+            return await search_activity(
+                c, redis, profile_ids=visible_profile_ids, limit=100000, offset=0
+            )
 
     async def _fetch_logins() -> list:
         async with pool.acquire() as c:
-            return await search_logins(c, redis, limit=100000, offset=0)
+            return await search_logins(
+                c, redis, profile_ids=visible_profile_ids, limit=100000, offset=0
+            )
 
     async def _fetch_problems() -> list:
         async with pool.acquire() as c:
-            return await search_problems(c, redis, limit=100000, offset=0)
+            return await search_problems(
+                c, redis, profile_ids=visible_profile_ids, limit=100000, offset=0
+            )
 
     async def _fetch_grants() -> list:
         async with pool.acquire() as c:
