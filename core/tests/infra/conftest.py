@@ -1582,8 +1582,11 @@ async def attempt_route_actor(pool, redis_client, setting_graph_factory):
         redis_client,
         setting_graph_factory,
         # The attempt lifecycle endpoints (start, chat_create) gate on the
-        # `attempt:start` permission, which is not in the default CRUD set.
-        extra_permissions=[("attempt", "start")],
+        # `attempt:start` permission, which is not in the default CRUD set;
+        # `attempt:export` is likewise required by the export gate in
+        # run_artifact_operation_with_audit (attempt is not a default-CRUD
+        # artifact, so the helper's default ops don't cover it).
+        extra_permissions=[("attempt", "start"), ("attempt", "export")],
         group_name="attempt-route",
         role_name_prefix="Attempt Route Admin",
     )

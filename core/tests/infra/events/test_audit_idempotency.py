@@ -87,9 +87,10 @@ class _SilentSio:
 
 
 class _FakeProfile:
-    def __init__(self, profiles_id, session_id):
+    def __init__(self, profiles_id, session_id, role_permissions=None):
         self.profiles_id = profiles_id
         self.session_id = session_id
+        self.role_permissions = role_permissions or []
 
 
 class _FakeCommon:
@@ -97,15 +98,17 @@ class _FakeCommon:
         self.profile = profile
 
 
-def _wire_common_deps(monkeypatch, *, with_tool: bool):
+def _wire_common_deps(monkeypatch, *, with_tool: bool, role_permissions=None):
     """Mock the shared deps. ``with_tool`` controls can_audit:
     a resolved tool + session + profiles_id ⇒ can_audit=True.
+    ``role_permissions`` seeds the resolved profile's capabilities (used by the
+    export authorization gate).
     """
     profiles_id = uuid4()
     session_id = uuid4()
 
     async def mock_common(pool, redis, **kw):
-        return _FakeCommon(_FakeProfile(profiles_id, session_id))
+        return _FakeCommon(_FakeProfile(profiles_id, session_id, role_permissions))
 
     async def mock_resolve_tool(conn, redis, *, artifact, operation):
         if not with_tool:
@@ -137,6 +140,50 @@ def _wire_common_deps(monkeypatch, *, with_tool: bool):
 # ---------------------------------------------------------------------------
 # A2 — non-audit path: lock released + replay via redis receipt
 # ---------------------------------------------------------------------------
+
+
+async def test_export_op_denied_without_permission(monkeypatch):
+    """Systemic export gate: an ``operation="export"`` caller WITHOUT the
+    ``(artifact, "export")`` capability is denied 403 before any work — closes
+    the ungated-export-family hole (a guest could export profiles/auth/etc.)."""
+    from fastapi import HTTPException
+
+    _wire_common_deps(monkeypatch, with_tool=False, role_permissions=[])  # no perms
+
+    async def runner():
+        raise AssertionError("runner must not execute when export is denied")
+
+    with pytest.raises(HTTPException) as exc:
+        await run_artifact_operation_with_audit(
+            _FakePool(), _FakeRedis(), artifact="profile", profile_id=uuid4(),
+            operation="export", runner=runner, arguments={},
+        )
+    assert exc.value.status_code == 403
+
+
+async def test_export_op_allowed_with_permission(monkeypatch):
+    """A caller holding ``(artifact, "export")`` passes the gate and runs."""
+    _wire_common_deps(
+        monkeypatch, with_tool=False, role_permissions=[("profile", "export")]
+    )
+
+    async def mock_search_calls(conn, redis, **kw):
+        return []
+
+    monkeypatch.setattr(audit_mod, "search_calls", mock_search_calls)
+
+    ran = {"n": 0}
+
+    async def runner():
+        ran["n"] += 1
+        return {"ok": True}
+
+    result = await run_artifact_operation_with_audit(
+        _FakePool(), _FakeRedis(), artifact="profile", profile_id=uuid4(),
+        operation="export", runner=runner, arguments={},
+    )
+    assert result == {"ok": True}
+    assert ran["n"] == 1
 
 
 async def test_non_audit_op_releases_lock_and_replays_on_retry(monkeypatch):
