@@ -59,6 +59,7 @@ async def export_profile_impl(
     """
     from fastapi import HTTPException
 
+    from app.infra.permissions_helpers import has_permission
     from app.infra.profile.types import ExportProfileApiResponse
 
     # ── Step 1: Profile context ────────────────────────────────────────
@@ -72,26 +73,49 @@ async def export_profile_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # ── Step 2: Search all profiles (full dump) ──────────────────────
+    # ── Authorization (was COMPLETELY MISSING) ───────────────────────────
+    #
+    # This endpoint had NO permission check and NO role-tier scope: any
+    # authenticated caller — verified incl. a guest token — could export EVERY
+    # profile's name/email/department/role (the whole org directory). The
+    # `profile_export_id` path likewise dumped an ARBITRARY profile with no
+    # check. Two gates, mirroring the on-screen profile/search:
+    #   (1) require the profile:export capability; and
+    #   (2) scope to roles AT OR BELOW the caller's tier — exclude roles
+    #       strictly above (lower level number = higher privilege), so a
+    #       permitted-but-lower-tier admin can't export superadmins, and the
+    #       single-id path can't fetch an out-of-tier profile (search returns
+    #       empty → empty export).
+    if not has_permission(profile.role_permissions, "profile", "export"):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to export profiles.",
+        )
+
+    all_roles = await get_roles(pool, None, redis)
+    exclude_role_ids = [
+        r.id for r in all_roles if r.level < profile.role_level
+    ] or None
+
+    # ── Step 2: Search profiles (scoped to the caller's visible role tier) ──
 
     async with pool.acquire() as conn:
-        if profile_export_id:
-            profile_ids = [profile_export_id]
-        else:
-            profile_ids, _total_count = await search_profiles(
-                conn,
-                active_only=False,
-                limit_count=100000,
-                offset_count=0,
-            )
+        profile_ids, _total_count = await search_profiles(
+            conn,
+            profile_ids=[profile_export_id] if profile_export_id else None,
+            exclude_role_ids=exclude_role_ids,
+            active_only=False,
+            limit_count=100000,
+            offset_count=0,
+        )
 
-            if not profile_ids:
-                return ExportProfileApiResponse(
-                    content="",
-                    file_name="",
-                    mime_type="text/csv",
-                    row_count=0,
-                )
+        if not profile_ids:
+            return ExportProfileApiResponse(
+                content="",
+                file_name="",
+                mime_type="text/csv",
+                row_count=0,
+            )
 
     # ── Step 3: Get profile artifacts with all junction IDs ──────────
 
