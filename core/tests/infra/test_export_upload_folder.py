@@ -147,6 +147,10 @@ async def test_export_profile_impl_returns_inline_csv_content(
         redis_client,
         setting_graph_factory,
         tool_artifacts=["profile"],
+        # profile:export is not one of the default CRUD ops the helper grants;
+        # the impl now gates on it (it was previously UNGATED — any caller could
+        # dump the whole org directory), so the test actor must hold it.
+        extra_permissions=[("profile", "export")],
         group_name="profile-export-folder",
         role_name_prefix="Profile Export Admin",
     )

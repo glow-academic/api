@@ -61,6 +61,10 @@ async def profile_route_actor(pool, redis_client, setting_graph_factory):
         redis_client,
         setting_graph_factory,
         tool_artifacts=["profile", "agent", "persona"],
+        # profile:export is gated by the impl (it was previously UNGATED) and is
+        # not one of the helper's default CRUD ops, so grant it explicitly — the
+        # /profile/export route test needs it.
+        extra_permissions=[("profile", "export")],
         group_name="profile-route",
         role_name_prefix="Profile Route Admin",
         role="superadmin",
