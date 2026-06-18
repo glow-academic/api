@@ -584,7 +584,14 @@ def compute_attempt_aggregates(chats: list[ChatData]) -> dict:
     for chat in chats:
         if chat.grade and chat.grade.time_taken is not None:
             # Graded chat: use the recorded time_taken
-            if chat.grade.score is not None:
+            # Gate the score on ``total_points`` so the numerator stays aligned
+            # with compute_total_possible_points (the denominator) and the
+            # history path — a graded-but-no-rubric chat (total_points 0/NULL)
+            # has no max, so counting its score here would make total_score
+            # exceed total_possible (and the detail endpoint disagree with
+            # history). Count it in NEITHER, per the denominator's documented
+            # invariant.
+            if chat.grade.score is not None and chat.grade.total_points:
                 total_score += chat.grade.score
             if chat.grade.passed is False:
                 all_passed = False
@@ -597,8 +604,8 @@ def compute_attempt_aggregates(chats: list[ChatData]) -> dict:
             except (ValueError, TypeError):
                 pass
         elif chat.grade:
-            # Graded but no time_taken recorded
-            if chat.grade.score is not None:
+            # Graded but no time_taken recorded (same total_points gating).
+            if chat.grade.score is not None and chat.grade.total_points:
                 total_score += chat.grade.score
             if chat.grade.passed is False:
                 all_passed = False
@@ -719,14 +726,24 @@ def compute_passed_standards(
     standard_groups_meta: dict[UUID, dict],
     standards_meta: dict[UUID, dict],
 ) -> list[dict]:
-    """Derive passed standards from feedbacks and standard_group pass_points.
+    """Derive passed standards from the ACHIEVED standard points vs the
+    standard_group's pass_points.
 
-    A standard is "passed" if its feedback total >= the standard_group's pass_points.
+    A standard is "passed" if the learner's ACHIEVED level (the selected
+    standard's own ``points``) >= the standard_group's ``pass_points``.
+
+    NOTE (correctness fix): the feedback's persisted ``total`` is the standard-
+    GROUP MAXIMUM (``chat_feedback`` stores ``total = standard_group.points``),
+    not the achieved score. Comparing ``total >= pass_points`` made every
+    evaluated standard trivially "passed" (group-max is by definition
+    >= pass_points), so the per-standard pass/fail indicators in the attempt
+    detail were always green regardless of how the grader scored. Compare the
+    achieved ``points`` from ``standards_meta`` instead.
 
     Args:
-        feedbacks: List of feedback dicts with 'standard_id' and 'total' keys
-        standard_groups_meta: Dict mapping standard_group_id to metadata with 'pass_points'
-        standards_meta: Dict mapping standard_id to metadata with 'standard_group_id'
+        feedbacks: List of feedback dicts with a 'standard_id' key.
+        standard_groups_meta: Dict mapping standard_group_id to metadata with 'pass_points'.
+        standards_meta: Dict mapping standard_id to metadata with 'points' + 'standard_group_id'.
 
     Returns:
         List of dicts with 'standard_id' and 'passed' keys
@@ -734,11 +751,11 @@ def compute_passed_standards(
     passed = []
     for fb in feedbacks:
         standard_id = fb.get("standard_id")
-        total = fb.get("total") or 0.0
 
         if standard_id:
-            # Look up standard_group_id from standards metadata
+            # Look up the achieved points + standard_group_id from standards metadata
             std_meta = standards_meta.get(standard_id, {})
+            achieved_points = std_meta.get("points") or 0.0
             sg_id = std_meta.get("standard_group_id")
 
             # Look up pass_points from standard_groups metadata
@@ -750,7 +767,7 @@ def compute_passed_standards(
             passed.append(
                 {
                     "standard_id": standard_id,
-                    "passed": total >= pass_points,
+                    "passed": achieved_points >= pass_points,
                 }
             )
     return passed

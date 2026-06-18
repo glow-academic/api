@@ -7,6 +7,7 @@ from app.infra.attempt.permissions import (
     ROLE_HIERARCHY,
     check_attempt_access,
     compute_attempt_aggregates,
+    compute_passed_standards,
     compute_percentage,
     compute_total_possible_points,
 )
@@ -154,3 +155,56 @@ def test_pct_clamped_to_100_on_bonus_inflation():
     assert compute_percentage(12.0, 10.0) <= 100.0
     # Normal sub-100 grade is unaffected.
     assert compute_percentage(7.0, 10.0) == 70.0
+
+
+# ── compute_passed_standards — pass/fail must use the ACHIEVED standard points,
+#    not the standard-group MAX (the feedback's persisted ``total``). Before the
+#    fix, group-max >= pass_points made every evaluated standard "passed". ──────
+
+
+def _passed_setup(achieved_points, pass_points):
+    sid = uuid4()
+    sg_id = uuid4()
+    feedbacks = [{"standard_id": sid, "total": 10.0}]  # total = group MAX (red herring)
+    standard_groups_meta = {sg_id: {"pass_points": pass_points}}
+    standards_meta = {sid: {"points": achieved_points, "standard_group_id": sg_id}}
+    result = compute_passed_standards(feedbacks, standard_groups_meta, standards_meta)
+    return result[0]["passed"]
+
+
+def test_passed_standards_failing_level_is_not_passed():
+    # Grader picked a failing rubric level: achieved 2 < pass 7 → NOT passed
+    # (regression: was wrongly True because group-max 10 >= 7).
+    assert _passed_setup(achieved_points=2, pass_points=7) is False
+
+
+def test_passed_standards_passing_level_is_passed():
+    assert _passed_setup(achieved_points=8, pass_points=7) is True
+
+
+def test_passed_standards_boundary_is_inclusive():
+    # Achieved exactly at threshold → passed (>=).
+    assert _passed_setup(achieved_points=7, pass_points=7) is True
+
+
+def test_passed_standards_no_pass_points_passes_any_achieved():
+    # No configured pass_points (0) → any achieved level passes (0 >= 0).
+    assert _passed_setup(achieved_points=0, pass_points=0) is True
+
+
+def test_graded_no_rubric_chat_excluded_from_both_numerator_and_denominator():
+    """F2: a graded chat with NO rubric (total_points 0/NULL) must count in
+    NEITHER total_score nor total_possible — otherwise total_score > total_possible
+    and the detail endpoint disagrees with the history path. Aligns the numerator
+    with compute_total_possible_points' documented invariant."""
+    chats = [
+        _graded_chat(completed=True, score=8.0, total_points=10.0),
+        # No-rubric grade: score present, total_points 0 (falsy).
+        _graded_chat(completed=True, score=5.0, total_points=0.0),
+    ]
+    total_score = compute_attempt_aggregates(chats)["total_score"]
+    total_possible = compute_total_possible_points(chats)
+    # Only the rubric chat counts on BOTH sides; the no-rubric 5 is excluded.
+    assert total_score == 8.0
+    assert total_possible == 10.0
+    assert total_score <= total_possible

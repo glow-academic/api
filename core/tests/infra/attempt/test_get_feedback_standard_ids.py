@@ -119,12 +119,15 @@ def test_grading_state_helpers_consume_flattened_dicts():
     work once the plural list is flattened, mirroring the handler."""
     sg = uuid4()
     std_a, std_b = uuid4(), uuid4()
+    # passed is computed from each standard's ACHIEVED ``points`` vs the group's
+    # pass_points (NOT the feedback's persisted group-max ``total``): std_a
+    # achieved 6 >= 5 (passed); std_b achieved 3 < 5 (NOT passed).
     standards_meta = {
-        std_a: {"standard_group_id": sg},
-        std_b: {"standard_group_id": sg},
+        std_a: {"standard_group_id": sg, "points": 6.0},
+        std_b: {"standard_group_id": sg, "points": 3.0},
     }
     standard_groups_meta = {sg: {"pass_points": 5.0}}
-    fb = _make_feedback([std_a, std_b], total=6)
+    fb = _make_feedback([std_a, std_b], total=10)  # total = group MAX (not used for pass)
 
     feedbacks_dicts = [
         {"standard_id": std_id, "total": fb.total}
@@ -139,9 +142,8 @@ def test_grading_state_helpers_consume_flattened_dicts():
     passed = compute_passed_standards(
         feedbacks_dicts, standard_groups_meta, standards_meta
     )
-    # total 6 >= pass_points 5 -> all passed
-    assert {p["standard_id"] for p in passed} == {std_a, std_b}
-    assert all(p["passed"] for p in passed)
+    passed_map = {p["standard_id"]: p["passed"] for p in passed}
+    assert passed_map == {std_a: True, std_b: False}
 
 
 def test_handler_source_no_longer_reads_singular_standard_id():
