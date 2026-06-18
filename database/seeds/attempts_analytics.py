@@ -643,11 +643,16 @@ async def _seed_one_attempt(
                 + timedelta(minutes=t + 1, seconds=5),
             )
 
-            # Generated coaching hint on the learner's own turns (hints_enabled
-            # above is the toggle; these are the actual attempt_hint rows the
-            # chat-hints surface renders). Completed attempts only, so an
+            # Generated coaching hint attached to the AI persona's RESPONSE
+            # messages (the odd, non-user turns). The transcript only renders the
+            # "Show hints" affordance on response messages
+            # (``MessagesView``: ``!isQuery && hasHints``; a message is 'query'
+            # iff its content persona == the chat's user_persona_id, which the
+            # even/is_user_turn messages use — so a hint there would never
+            # surface). Semantically right too: the hint coaches the learner's
+            # reply TO the persona's message. Completed attempts only, so an
             # in-progress attempt still shows "no hints yet".
-            if completed and is_user_turn:
+            if completed and not is_user_turn:
                 await create_attempt_hint(
                     conn,
                     redis,
