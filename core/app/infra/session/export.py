@@ -23,6 +23,7 @@ from uuid import UUID
 import asyncpg
 from redis.asyncio import Redis
 
+from app.infra.dashboard.visibility import resolve_visible_profile_ids
 from app.infra.pricing import compute_costs_from_runs
 from app.infra.profile_identity_context import resolve_profile_identity_context
 from app.infra.server_timing import timed
@@ -101,6 +102,23 @@ async def export_session_impl(
             mime_type="application/zip",
             row_count=0,
         )
+
+    # Visibility scope (mirrors the on-screen sibling resolve_session_context,
+    # which clamps to resolve_visible_profile_ids and returns an empty context
+    # for a session the caller cannot see). This export took a caller-supplied
+    # ``target_session_id`` and dumped that session's groups/runs/token-cost
+    # WITHOUT the check — letting an elevated user in Dept A export a Dept-B
+    # student's session run/cost history they cannot view on-screen (same class
+    # as the /attempt/export #399 IDOR). A profile-less session (system/seed,
+    # owner None) has no student to protect and is allowed.
+    owner_profile_id = sessions[0].profile_id
+    if owner_profile_id is not None:
+        visible = set(await resolve_visible_profile_ids(pool, profile))
+        if owner_profile_id not in visible:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to export this session.",
+            )
 
     # -- Step 3: Get groups for this session --
 
