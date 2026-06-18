@@ -7,6 +7,7 @@ import csv
 import io
 import zipfile
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -21,7 +22,10 @@ class TestExportReportsClient:
     async def test_returns_export_response(
         self, pool, redis_client, profile_identity_factory
     ):
-        profile = await profile_identity_factory()
+        # The reports export gate now requires attempt:report (EXPORT-GAP fix).
+        profile = await profile_identity_factory(
+            permissions=[("attempt", "report")],
+        )
 
         result = await export_reports_impl(
             pool,
@@ -150,7 +154,15 @@ async def test_full_export_with_runs_and_traces_sources_ids_per_model(monkeypatc
     ]
 
     monkeypatch.setattr(
-        mod, "resolve_profile_identity_context", AsyncMock(return_value=object())
+        mod,
+        "resolve_profile_identity_context",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                role_permissions=[("attempt", "report")],  # holds report perm
+                role_level=0,  # superadmin → dept_clamp None (no scope interference)
+                department_ids=[],
+            )
+        ),
     )
     monkeypatch.setattr(
         mod,
@@ -196,3 +208,62 @@ async def test_full_export_with_runs_and_traces_sources_ids_per_model(monkeypatc
     assert rec["prompts"] == "PromptName"
     assert rec["instructions"] == "InstructionName"
     assert rec["tools"] == "ToolName"
+
+
+async def test_reports_export_denied_without_report_permission(monkeypatch):
+    """EXPORT-GAP: the reports export view requires the same ``attempt:report``
+    capability as its on-screen read sibling — NOT the bare ``attempt:export``
+    that #404's gate checks. A low-tier caller (GTA/UTA/Guest) who holds
+    attempt:export but not attempt:report is denied 403 before any data is read,
+    closing the privilege-escalating org-wide grade/report dump."""
+    import app.infra.reports.export as mod
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(
+        mod,
+        "resolve_profile_identity_context",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                role_permissions=[("attempt", "export")],  # has export, NOT report
+                role_level=4,
+                department_ids=[uuid4()],
+            )
+        ),
+    )
+    search = AsyncMock(return_value=([], 0))
+    monkeypatch.setattr(mod, "search_test_invocation_entries_internal", search)
+
+    with pytest.raises(HTTPException) as exc:
+        await export_reports_impl(_acquire_pool(), AsyncMock(), profile_id=uuid4())
+    assert exc.value.status_code == 403
+    search.assert_not_called()  # denied before any org-wide read
+
+
+async def test_reports_export_non_super_clamps_to_own_departments(monkeypatch):
+    """A permitted non-super actor (has attempt:report) clamps the invocation
+    dump to its OWN departments (cross-dept leak fix); superadmin is unconstrained
+    (covered by the full-export test above with role_level 0 → None)."""
+    import app.infra.reports.export as mod
+
+    my_dept = uuid4()
+    captured = {}
+
+    async def _search(conn, redis, **kwargs):
+        captured["suite_department_ids"] = kwargs.get("suite_department_ids")
+        return ([], 0)
+
+    monkeypatch.setattr(
+        mod,
+        "resolve_profile_identity_context",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                role_permissions=[("attempt", "report")],
+                role_level=2,  # non-super
+                department_ids=[my_dept],
+            )
+        ),
+    )
+    monkeypatch.setattr(mod, "search_test_invocation_entries_internal", _search)
+
+    await export_reports_impl(_acquire_pool(), AsyncMock(), profile_id=uuid4())
+    assert captured["suite_department_ids"] == [my_dept]  # clamped to own dept

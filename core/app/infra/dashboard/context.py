@@ -310,8 +310,14 @@ async def _compute_rubric_scores(
             c, list(standard_ids_set), redis, bypass_cache=bypass_cache
         )
 
-    # Build standard_id → standard_group_id map
+    # Build standard_id → standard_group_id map + standard_id → ACHIEVED points.
+    # ``s.points`` is the achieved rubric level (the level the grader selected);
+    # the persisted feedback ``total`` is the standard-GROUP MAX, not the score —
+    # the same fact #405's F1 fixed on the attempt side. Using ``fb.total`` below
+    # made every heatmap cell ~100% (100 * group_max / group_max). Use the
+    # achieved per-standard points instead.
     std_to_sg: dict[UUID, UUID] = {s.id: s.standard_group_id for s in standards_list}
+    std_to_points: dict[UUID, float] = {s.id: (s.points or 0) for s in standards_list}
 
     # Step 4: Fetch standard_groups for points
     sg_ids_set: set[UUID] = set(std_to_sg.values())
@@ -353,7 +359,8 @@ async def _compute_rubric_scores(
             # Only include if this standard_group belongs to the chat's rubric
             if valid_sgs is not None and sg_id not in valid_sgs:
                 continue
-            score_agg[(chat_id, sg_id)] += fb.total
+            # Achieved per-standard points (NOT the persisted group-max ``total``).
+            score_agg[(chat_id, sg_id)] += std_to_points.get(sid, 0.0)
 
     # Step 7: Build RubricScoreItems
     chat_meta: dict[UUID, ChatItem] = {item.chat_id: item for item in chat_items}

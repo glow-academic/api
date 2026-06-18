@@ -256,10 +256,34 @@ async def export_reports_impl(
             detail="Profile not found. Please sign in again.",
         )
 
-    # -- Step 2: Search all test invocations (full dump) --
+    # -- Authorization (was the missed sibling of #404) --
+    #
+    # The #404 systemic export gate only requires the bare ``attempt:export``
+    # capability (which GTA/UTA/Guest hold via _READ_OPS). But the reports view
+    # exports test-invocation + Brightspace-grade data that the on-screen read
+    # (resolve_reports_context) gates behind the stronger ``attempt:report``
+    # (an _ATTEMPT_VIEW_OP held only by top tiers) AND scopes to
+    # ``resolve_visible_profile_ids``. Without both, a low-tier user blocked
+    # from /attempt/report on-screen could export every department's reports.
+    #   (1) require the same ``attempt:report`` capability as the read;
+    #   (2) clamp the dump to the actor's departments (superadmin/role_level 0
+    #       unconstrained) — the invocation search drives the groups/runs/
+    #       brightspace CSVs (fetched by its invocation_ids), so clamping it
+    #       clamps the whole export, mirroring the read's visible scope.
+    from app.infra.permissions_helpers import has_permission
+
+    if not has_permission(profile.role_permissions, "attempt", "report"):
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to export reports.",
+        )
+
+    dept_clamp = None if profile.role_level == 0 else (profile.department_ids or [])
+
+    # -- Step 2: Search test invocations (scoped to the actor's departments) --
     async with pool.acquire() as conn:
         invocations, _total_count = await search_test_invocation_entries_internal(
-            conn, redis, limit=100000, offset=0
+            conn, redis, suite_department_ids=dept_clamp, limit=100000, offset=0
         )
 
     if not invocations:

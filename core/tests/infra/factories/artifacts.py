@@ -24,6 +24,7 @@ async def create_profile_identity_fixture(
     emails: list[str] | None = None,
     artifact_active: bool = True,
     role_name_exact: str | None = None,
+    permissions: list[tuple[str, str]] | None = None,
 ) -> ProfileIdentityFixture:
     """Create a real profile artifact plus linked resources for context tests.
 
@@ -70,11 +71,27 @@ async def create_profile_identity_fixture(
             expected_role = role_key
             expected_role_name = role_name_exact or f"{role_name} {tag}"
             expected_role_description = role_description
+            # Optional role capabilities — grant (artifact, operation) perms so
+            # the profile passes capability gates (e.g. the export gate's
+            # attempt:report). Default None keeps the prior no-permission role.
+            role_permission_ids: list = []
+            if permissions:
+                from app.tools.resources.permissions.create import create_permission
+
+                for perm_artifact, perm_op in permissions:
+                    perm_res = await create_permission(
+                        conn,
+                        artifact=perm_artifact,
+                        operation=perm_op,
+                        redis=redis_client,
+                    )
+                    role_permission_ids.append(perm_res.id)
             role_res = await create_role(
                 conn,
                 redis_client,
                 name=expected_role_name,
                 description=role_description,
+                permission_ids=role_permission_ids or None,
             )
             role_ids = [role_res.id]
             expected_role_artifacts = []

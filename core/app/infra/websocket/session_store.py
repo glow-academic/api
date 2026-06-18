@@ -220,9 +220,21 @@ def rotate_run_id(session: AudioSession, new_run_id: str) -> None:
 
     Removes the old run_id key and adds the new one, keeping chat_id
     and group_id keys intact.
+
+    Resets ``created_at`` to anchor the MAX_SESSION_LIFETIME backstop to the
+    LAST COMPLETED TURN rather than the session's first turn (VOICE2 follow-up).
+    A run_id rotation happens once per completed turn (run_complete_impl), so a
+    legitimately long, actively-progressing voice conversation (e.g. a >1h
+    tutoring session) keeps extending its ceiling and is never force-reaped
+    mid-turn — while a wedged session that completes NO turn (a within-turn
+    spin / keep-alive flood that only refreshes ``last_activity`` via touch())
+    never rotates, so the creation-anchored ceiling still reaps it after the
+    window. Turn-completing runaway loops are independently bounded by the
+    VOICE4 per-turn rate-limit breaker.
     """
     _session_store.pop(session.run_id, None)
     session.run_id = new_run_id
+    session.created_at = time.monotonic()
     _session_store[new_run_id] = session
 
 
