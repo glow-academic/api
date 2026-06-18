@@ -51,6 +51,38 @@ def test_reaper_skips_a_touched_session(monkeypatch):
         session_store._session_store.clear()
 
 
+def test_reaper_force_reaps_session_past_max_lifetime():
+    """VOICE1 backstop: ``touch()`` keeps ``last_activity`` perpetually fresh, so
+    a wedged-but-busy provider can never be reaped on idle alone. The hard
+    max-lifetime ceiling — anchored on ``created_at`` and immune to touch() —
+    force-reaps it once the session has been alive past the ceiling."""
+    session_store._session_store.clear()
+    try:
+        s = _session()
+        session_store._session_store[s.chat_id] = s
+        s.touch()  # actively touched → idle check alone never fires
+        assert get_stale_sessions(timeout=300.0, max_lifetime=3600.0) == []
+        # Pretend the session was created just past the lifetime ceiling, while
+        # STILL being actively touched (so only the lifetime branch can catch it).
+        s.created_at = time.monotonic() - 3601.0
+        s.touch()
+        assert get_stale_sessions(timeout=300.0, max_lifetime=3600.0) == [s]
+    finally:
+        session_store._session_store.clear()
+
+
+def test_created_at_is_not_refreshed_by_touch():
+    """``touch()`` bumps liveness but must leave ``created_at`` fixed — otherwise
+    the max-lifetime backstop would be defeated by the same event flood that
+    defeats the idle check."""
+    s = _session()
+    created = s.created_at
+    s.last_activity = created - 5.0
+    s.touch()
+    assert s.created_at == created
+    assert s.last_activity > created
+
+
 # ── VOICE2 — pending_frames byte cap ─────────────────────────────────────────
 
 
