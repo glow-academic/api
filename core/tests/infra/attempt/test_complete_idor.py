@@ -242,3 +242,31 @@ async def test_complete_allows_superadmin_global(monkeypatch):
 
     assert result["success"] is True
     assert completed_ids == [victim.attempt_id]
+
+
+async def test_system_action_bypasses_gate_for_ownerless_attempt(monkeypatch):
+    """The background time-limit reaper (``system_action=True``) completes a
+    stale attempt whose owner is NULL/unresolvable — the case the per-caller gate
+    denies (owner_profiles_id is None → 403 BEFORE the completion row is written,
+    so the attempt never went terminal and the reaper re-found + error-spammed it
+    every cycle). With the bypass the completion is written and the gate's owner
+    resolution is never reached. No request path sets ``system_action`` (it is not
+    reachable via the registry dispatch), so user BOLA protection is untouched."""
+    from app.infra.attempt.complete import complete_attempt_impl
+
+    ownerless = _attempt(uuid4(), None)  # attempt_mv.profile_id NULL (seed/demo)
+    # Resolve the OWNER (would 403 the gate) so we prove the gate is SKIPPED, not
+    # passed: if the gate ran, owner=None → 403.
+    completed_ids = _wire(monkeypatch, actor=None, victim_attempt=ownerless)
+
+    result = await complete_attempt_impl(
+        _FakePool(),
+        object(),
+        profile_id=uuid4(),
+        session_id=uuid4(),
+        attempt_id=ownerless.attempt_id,
+        system_action=True,
+    )
+
+    assert result["success"] is True
+    assert completed_ids == [ownerless.attempt_id]  # written despite NULL owner

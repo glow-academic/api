@@ -93,6 +93,13 @@ async def expire_stale_attempts(
                 session_id=UUID(int=0),
                 attempt_id=attempt.attempt_id,
                 message=f"Auto-expired after {int(elapsed)}s",
+                # Trusted system reaper: skip the per-caller attempt-access gate.
+                # That gate denies (403) when the attempt owner is NULL/
+                # unresolvable (seed/demo attempts), which fired BEFORE the
+                # completion row was written — so the attempt never went
+                # terminal and was re-found every CHECK_INTERVAL, spamming the
+                # ERROR branch below (the 401 degradation never caught the 403).
+                system_action=True,
             )
             expired.append({
                 "attempt_id": str(attempt.attempt_id),
