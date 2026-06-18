@@ -53,13 +53,22 @@ def _fake_attempt(owner_id, attempt_id=None):
     )
 
 
-def _patch_single(monkeypatch, *, requester, attempts):
-    """Wire the single-export deps as params via monkeypatch (black-box)."""
+def _patch_single(monkeypatch, *, requester, attempts, department_in_scope=True):
+    """Wire the single-export deps as params via monkeypatch (black-box).
+
+    ``department_in_scope`` stubs ``is_profile_in_department_scope`` (the
+    #152/#148 cross-department gate export now mirrors from get.py): True keeps
+    a foreign attempt in-scope (same-department), False puts it out of scope.
+    """
     import app.infra.attempt.export as mod
 
     monkeypatch.setattr(
         mod, "resolve_profile_identity_context",
         AsyncMock(return_value=requester),
+    )
+    monkeypatch.setattr(
+        mod, "is_profile_in_department_scope",
+        AsyncMock(return_value=department_in_scope),
     )
 
     async def _search_attempts(conn, redis, **kwargs):
@@ -118,16 +127,55 @@ async def test_single_export_allows_owner(monkeypatch):
 
 
 async def test_single_export_allows_instructor_over_student(monkeypatch):
-    """Instructional (higher role) exporting a student's attempt → succeeds."""
+    """Instructional (higher role) exporting a SAME-DEPARTMENT student's attempt
+    → succeeds."""
     instructor = _fake_profile(uuid4(), role="instructional", role_level=2)
     student_owner = uuid4()
     mod = _patch_single(
         monkeypatch, requester=instructor,
         attempts=[_fake_attempt(student_owner)],
+        department_in_scope=True,
     )
     pool, redis = _pool_redis()
     data, row_count = await mod._export_single_attempt_bytes(
         pool, redis, profile_id=instructor.profiles_id, attempt_id=uuid4(),
+    )
+    assert row_count == 1
+
+
+async def test_single_export_blocks_cross_department_instructor(monkeypatch):
+    """Instructional (higher role) exporting a student's attempt in a DIFFERENT
+    department → 403. This is the M1 gap: export had dropped the #152/#148
+    department-scope gate that get.py/archive.py enforce, so an elevated user in
+    Dept A could export a Dept-B student's CSV/ZIP (attempt rows, grades,
+    messages, PII) they cannot view on-screen."""
+    instructor = _fake_profile(uuid4(), role="instructional", role_level=2)
+    student_owner = uuid4()
+    mod = _patch_single(
+        monkeypatch, requester=instructor,
+        attempts=[_fake_attempt(student_owner)],
+        department_in_scope=False,
+    )
+    pool, redis = _pool_redis()
+    with pytest.raises(HTTPException) as exc:
+        await mod._export_single_attempt_bytes(
+            pool, redis, profile_id=instructor.profiles_id, attempt_id=uuid4(),
+        )
+    assert exc.value.status_code == 403
+
+
+async def test_single_export_allows_owner_regardless_of_department(monkeypatch):
+    """Owner exporting OWN attempt → succeeds even if the dept stub says
+    out-of-scope (the gate is skipped for self; own attempts always allowed)."""
+    owner = _fake_profile(uuid4(), role="member", role_level=1)
+    mod = _patch_single(
+        monkeypatch, requester=owner,
+        attempts=[_fake_attempt(owner.profiles_id)],
+        department_in_scope=False,
+    )
+    pool, redis = _pool_redis()
+    _data, row_count = await mod._export_single_attempt_bytes(
+        pool, redis, profile_id=owner.profiles_id, attempt_id=uuid4(),
     )
     assert row_count == 1
 
