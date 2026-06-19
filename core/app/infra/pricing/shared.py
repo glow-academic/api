@@ -44,8 +44,16 @@ async def _batch_fetch_pricing(
                 for k, v in cached.items()
             }
 
+    # MED-3: price each historical run at the rate ATTACHED to it (its
+    # run_pricing_entry's pricing_id), regardless of whether that
+    # pricing_resource is still active. The sibling read path (get_pricing,
+    # used by the dashboard) applies NO active filter, so dropping deactivated
+    # rows here made the SAME run cost differently on export vs dashboard.
+    # Pricing a run by its attached rate is the consistent, historically-correct
+    # policy (a later price change/deactivation must not retroactively zero out
+    # past spend).
     rows = await conn.fetch(
-        "SELECT id, price, unit_value FROM pricing_resource WHERE id = ANY($1) AND active = TRUE",
+        "SELECT id, price, unit_value FROM pricing_resource WHERE id = ANY($1)",
         pricing_ids,
     )
     result = {
