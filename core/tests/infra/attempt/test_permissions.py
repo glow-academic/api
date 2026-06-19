@@ -192,6 +192,33 @@ def test_passed_standards_no_pass_points_passes_any_achieved():
     assert _passed_setup(achieved_points=0, pass_points=0) is True
 
 
+def test_graded_not_completed_null_time_taken_still_counts_score():
+    """F3: a graded-but-not-completed chat with NULL ``time_taken`` and a
+    ``created_at`` must still contribute its score to the numerator.
+
+    Previously the active-chat elapsed branch (``created_at and not completed``)
+    preempted the score-counting branch, so such a chat's score was dropped from
+    ``total_score`` while ``compute_total_possible_points`` still counted its
+    ``total_points`` — understating the attempt percentage. The score/passed
+    accounting is now decoupled from the elapsed-time branch and gated on the
+    same ``grade + total_points`` the denominator uses.
+    """
+    chat = ChatData(
+        id=uuid4(),
+        completed=False,  # not completed → would have hit the elapsed branch
+        created_at="2026-01-01T00:00:00+00:00",  # truthy → old branch preemption
+        grade=GradeData(
+            score=8.0, passed=True, time_taken=None, total_points=10.0,
+        ),
+    )
+    total_score = compute_attempt_aggregates([chat])["total_score"]
+    total_possible = compute_total_possible_points([chat])
+    # Numerator now counts the score (was 0.0 pre-fix); denominator already did.
+    assert total_score == 8.0
+    assert total_possible == 10.0
+    assert compute_percentage(total_score, total_possible) == 80.0
+
+
 def test_graded_no_rubric_chat_excluded_from_both_numerator_and_denominator():
     """F2: a graded chat with NO rubric (total_points 0/NULL) must count in
     NEITHER total_score nor total_possible — otherwise total_score > total_possible

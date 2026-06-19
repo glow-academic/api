@@ -216,6 +216,35 @@ async def test_chat_grade_allows_superadmin_global(monkeypatch):
     assert graded_ids == [chat.chat_id]
 
 
+async def test_chat_grade_rejects_positive_score_against_zero_total_rubric(monkeypatch):
+    """F4: a resolved rubric bounds the score to its max, INCLUDING a 0-total
+    rubric — a positive score against a 0-max rubric is rejected. The old
+    ``total_points > 0`` guard skipped the check at 0, silently storing a
+    score > 0 against a 0-max rubric (invalid: you can't score 5/0)."""
+    import app.infra.attempt.chat_grade as mod
+    from app.tools.entries.attempt_chat.types import GetAttemptChatResponse
+    from app.tools.resources.rubrics.types import GetRubricResponse
+
+    owner_id, rubric_id = uuid4(), uuid4()
+    chat = GetAttemptChatResponse.model_construct(
+        chat_id=uuid4(), profile_id=owner_id, rubric_id=rubric_id,
+        chat_created_at=datetime.now(UTC),
+    )
+    actor = _profile(owner_id, "member", role_level=1)  # owner → passes authz
+    graded_ids = _wire(monkeypatch, actor=actor, chat=chat)
+
+    async def fake_get_rubrics(conn, ids, redis, *a, **k):
+        return [GetRubricResponse.model_construct(
+            id=rubric_id, total_points=0, pass_points=0,
+        )]
+    monkeypatch.setattr(mod, "get_rubrics", fake_get_rubrics)
+
+    with pytest.raises(ValueError) as exc:
+        await _run(actor_profile_id=owner_id, chat=chat)  # _run grades score=5
+    assert "exceeds maximum of 0" in str(exc.value)
+    assert graded_ids == []  # no grade written against the 0-max rubric
+
+
 async def test_chat_grade_fails_closed_on_unhydrated_owner(monkeypatch):
     """A chat with no resolvable owner (profile_id None) is denied — fail closed."""
     actor_id = uuid4()

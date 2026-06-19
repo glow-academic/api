@@ -582,33 +582,36 @@ def compute_attempt_aggregates(chats: list[ChatData]) -> dict:
 
     now = datetime.now(UTC)
     for chat in chats:
+        # ── Score + passed (numerator) ──
+        # Counted for ANY graded chat whose ``total_points`` is also counted by
+        # compute_total_possible_points (the denominator) — i.e. a grade with a
+        # positive ``total_points``. Gating on ``total_points`` keeps the
+        # numerator aligned with the denominator and the history path: a
+        # graded-but-no-rubric chat (total_points 0/NULL) has no max, so counting
+        # its score would make total_score exceed total_possible. Count it in
+        # NEITHER, per the denominator's documented invariant.
+        #
+        # This is DECOUPLED from the elapsed-time branch below (F3): previously a
+        # graded-but-not-completed chat with NULL ``time_taken`` fell into the
+        # active-chat ``created_at`` elapsed branch, which preempted the
+        # score-counting branch — so its score was dropped from the numerator
+        # while the denominator still counted its total_points (understated %).
+        if chat.grade and chat.grade.score is not None and chat.grade.total_points:
+            total_score += chat.grade.score
+        if chat.grade and chat.grade.passed is False:
+            all_passed = False
+
+        # ── Elapsed time (independent of the score accounting) ──
         if chat.grade and chat.grade.time_taken is not None:
-            # Graded chat: use the recorded time_taken
-            # Gate the score on ``total_points`` so the numerator stays aligned
-            # with compute_total_possible_points (the denominator) and the
-            # history path — a graded-but-no-rubric chat (total_points 0/NULL)
-            # has no max, so counting its score here would make total_score
-            # exceed total_possible (and the detail endpoint disagree with
-            # history). Count it in NEITHER, per the denominator's documented
-            # invariant.
-            if chat.grade.score is not None and chat.grade.total_points:
-                total_score += chat.grade.score
-            if chat.grade.passed is False:
-                all_passed = False
+            # Graded chat: use the recorded time_taken.
             elapsed_seconds += chat.grade.time_taken
         elif chat.created_at and not chat.completed:
-            # Active ungraded chat: compute elapsed from created_at
+            # Active (not-completed) chat: compute elapsed from created_at.
             try:
                 created = datetime.fromisoformat(chat.created_at)
                 elapsed_seconds += max(int((now - created).total_seconds()), 0)
             except (ValueError, TypeError):
                 pass
-        elif chat.grade:
-            # Graded but no time_taken recorded (same total_points gating).
-            if chat.grade.score is not None and chat.grade.total_points:
-                total_score += chat.grade.score
-            if chat.grade.passed is False:
-                all_passed = False
 
     # If no chats or no completed chats, all_passed is False
     if total_chats == 0 or completed_chats == 0:
