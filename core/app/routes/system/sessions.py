@@ -148,9 +148,10 @@ async def search_sessions(
                     continue
                 stats = session_stats[sid]
                 stats["run_count"] += 1
-                stats["total_tokens"] += (
-                    run.input_tokens + run.output_tokens + run.cached_input_tokens
-                )
+                # HIGH-1: cached_input_tokens ⊆ input_tokens (folded into
+                # prompt_tokens), so the token TOTAL is input + output — adding
+                # cached again double-counts the cached portion.
+                stats["total_tokens"] += run.input_tokens + run.output_tokens
 
                 run_cost = Decimal("0")
                 for p in run.pricing:

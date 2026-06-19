@@ -210,9 +210,9 @@ async def get_session_detail_impl(
             }
         agg = group_run_aggs[gid]
         agg["run_count"] += 1
-        agg["total_tokens"] += (
-            run.input_tokens + run.output_tokens + run.cached_input_tokens
-        )
+        # HIGH-1: cached_input_tokens ⊆ input_tokens (folded into prompt_tokens),
+        # so the token TOTAL is input + output — adding cached double-counts it.
+        agg["total_tokens"] += run.input_tokens + run.output_tokens
         agg["total_cost"] += run_costs.get(run.run_id, Decimal("0"))
         if run.run_created_at:
             if agg["first_run_at"] is None or run.run_created_at < agg["first_run_at"]:

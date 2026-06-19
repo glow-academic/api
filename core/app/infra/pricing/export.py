@@ -113,7 +113,9 @@ async def export_pricing_impl(
     runs_writer.writerow(RUN_CSV_COLUMNS)
 
     for r in runs:
-        total_tokens = r.input_tokens + r.output_tokens + r.cached_input_tokens
+        # HIGH-1: cached_input_tokens ⊆ input_tokens (folded into prompt_tokens),
+        # so the token TOTAL is input + output — adding cached double-counts it.
+        total_tokens = r.input_tokens + r.output_tokens
         cost = run_costs.get(r.run_id, 0)
         agents_str = PIPE.join(name_map.get(aid, "") for aid in (r.agent_ids or []))
         models_str = PIPE.join(name_map.get(mid, "") for mid in (r.model_ids or []))

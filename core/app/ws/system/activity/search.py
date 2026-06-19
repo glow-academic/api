@@ -147,9 +147,9 @@ async def _run_search(pool, redis, profile_id, request: ListActivityRequest):
             continue
         stats = session_stats[sid_val]
         stats["run_count"] += 1
-        stats["total_tokens"] += (
-            run.input_tokens + run.output_tokens + run.cached_input_tokens
-        )
+        # HIGH-1: cached_input_tokens ⊆ input_tokens (folded into prompt_tokens),
+        # so the token TOTAL is input + output — adding cached double-counts it.
+        stats["total_tokens"] += run.input_tokens + run.output_tokens
 
         run_cost = Decimal("0")
         for p in run.pricing:

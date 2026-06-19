@@ -22,6 +22,7 @@ from app.tools.entries.run_pricing.create import (
 )
 from app.tools.entries.runs.create import create_run
 from app.tools.entries.sessions.create import create_session
+from app.tools.entries.tokens.create import create_token
 from app.tools.resources.agents.create import create_agent
 from app.tools.resources.models.create import create_model
 from app.tools.resources.pricing.create import create_pricing
@@ -171,6 +172,47 @@ class TestExportPricingClient:
         rows = list(csv.DictReader(io.StringIO(runs_csv)))
         seeded = next(row for row in rows if row["run_id"] == str(run.id))
         assert seeded["group"] == "Pricing Group"
+
+    async def test_total_tokens_excludes_cached_no_double_count(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        """HIGH-1: ``cached_input_tokens`` is a SUBSET of ``input_tokens``
+        (litellm folds cache-read into prompt_tokens for both OpenAI and
+        Anthropic), so the exported ``total_tokens`` must be input + output —
+        NOT input + output + cached, which double-counted the cached portion."""
+        profile = await profile_identity_factory()
+
+        async with pool.acquire() as conn:
+            _session, _group, run, _model, _agent = await _seed_pricing_graph(
+                conn, redis_client, profile.profile_resource_id
+            )
+            # 300 of the 1000 input tokens were cache-reads (cached ⊆ input).
+            await create_token(
+                conn,
+                redis_client,
+                run_id=run.id,
+                session_id=_session.id,
+                input_tokens=1000,
+                output_tokens=500,
+                cached_input_tokens=300,
+            )
+            await conn.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY runs_mv")
+
+        result = await export_pricing_impl(
+            pool, redis_client, profile_id=profile.artifact_id,
+        )
+        zip_bytes = base64.b64decode(result.content)
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+            runs_csv = archive.read("runs.csv").decode("utf-8")
+        rows = list(csv.DictReader(io.StringIO(runs_csv)))
+        seeded = next(row for row in rows if row["run_id"] == str(run.id))
+
+        assert seeded["input_tokens"] == "1000"
+        assert seeded["output_tokens"] == "500"
+        assert seeded["cached_input_tokens"] == "300"
+        # total = input + output = 1500. The 300 cached are already inside the
+        # 1000 input; adding them again (the old bug) made this 1800.
+        assert seeded["total_tokens"] == "1500"
 
     async def test_export_with_no_runs_returns_empty(
         self, pool, redis_client, profile_identity_factory
