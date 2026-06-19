@@ -173,6 +173,48 @@ class TestExportPricingClient:
         seeded = next(row for row in rows if row["run_id"] == str(run.id))
         assert seeded["group"] == "Pricing Group"
 
+    async def test_cost_prices_deactivated_pricing_at_attached_rate(
+        self, pool, redis_client, profile_identity_factory
+    ):
+        """MED-3: a run is priced at the rate ATTACHED to it even after that
+        ``pricing_resource`` is deactivated — matching the dashboard's
+        ``get_pricing`` (which applies no active filter). Pre-fix,
+        ``_batch_fetch_pricing``'s ``active = TRUE`` dropped the deactivated
+        rows, so the run's cost collapsed to $0 on export while the dashboard
+        still showed it — the same run, two different spends."""
+        profile = await profile_identity_factory()
+
+        async with pool.acquire() as conn:
+            _session, _group, run, _model, _agent = await _seed_pricing_graph(
+                conn, redis_client, profile.profile_resource_id
+            )
+            # A later price change deactivates the rates this run was priced at.
+            await conn.execute(
+                """
+                UPDATE pricing_resource SET active = false
+                WHERE id IN (
+                    SELECT c.pricing_id
+                    FROM run_pricing_pricing_connection c
+                    JOIN run_pricing_entry rp ON rp.id = c.run_pricing_id
+                    WHERE rp.run_id = $1
+                )
+                """,
+                run.id,
+            )
+
+        result = await export_pricing_impl(
+            pool, redis_client, profile_id=profile.artifact_id,
+        )
+        zip_bytes = base64.b64decode(result.content)
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as archive:
+            runs_csv = archive.read("runs.csv").decode("utf-8")
+        rows = list(csv.DictReader(io.StringIO(runs_csv)))
+        seeded = next(row for row in rows if row["run_id"] == str(run.id))
+
+        # Still priced at the attached rate (1500 @ $0.02/1k + 2000 @ $0.03/1k
+        # = 0.09), NOT $0 — the deactivated rows are no longer dropped.
+        assert float(seeded["cost"]) == pytest.approx(0.09)
+
     async def test_total_tokens_excludes_cached_no_double_count(
         self, pool, redis_client, profile_identity_factory
     ):
