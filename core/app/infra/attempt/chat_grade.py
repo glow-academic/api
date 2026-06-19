@@ -82,7 +82,11 @@ async def chat_grade_attempt_impl(
             if rubrics:
                 total_points = rubrics[0].total_points or 0
                 pass_points = rubrics[0].pass_points or 0
-                if total_points > 0 and score > total_points:
+                # A rubric bounds the score to its max — INCLUDING a 0-total
+                # rubric, against which any positive score is invalid (F4: the
+                # old ``total_points > 0`` guard skipped the check at 0, letting
+                # a score > 0 be stored against a 0-max rubric).
+                if score > total_points:
                     raise ValueError(
                         f"Score {score} exceeds maximum of {total_points}. "
                         f"Pass threshold is {pass_points}."

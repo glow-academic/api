@@ -103,9 +103,11 @@ async def create_grade_impl(
         # Step 3: Get rubric → raw point bounds and pass threshold
         total_points = 0
         pass_points = 0
+        has_rubric = False
         if rubric_id:
             rubrics = await get_rubrics(conn, [rubric_id], redis)
             if rubrics:
+                has_rubric = True
                 total_points = rubrics[0].total_points or 0
                 # ``pass_points`` may be NULL on the rubric; coalesce to 0 so the
                 # ``pass_points > 0`` check below doesn't raise on ``None > 0``
@@ -118,7 +120,12 @@ async def create_grade_impl(
         if full:
             score = total_points
 
-        if total_points > 0 and score > total_points:
+        # A resolved rubric bounds the score to its max — INCLUDING a 0-total
+        # rubric, against which any positive score is invalid (F4: the old
+        # ``total_points > 0`` guard skipped the check at 0). Scoped to
+        # ``has_rubric`` so a no-rubric (free-score) test grade — where
+        # ``total_points`` is legitimately 0 with no max — is unaffected.
+        if has_rubric and score > total_points:
             raise ValueError(
                 f"Score {score} exceeds maximum of {total_points}. "
                 f"Pass threshold is {pass_points}."

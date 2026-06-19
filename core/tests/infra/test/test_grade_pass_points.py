@@ -124,3 +124,79 @@ async def test_create_grade_does_not_raise_on_null_pass_points(monkeypatch):
     assert result["score"] == 5
     # NULL threshold → coalesced to 0 → falls through to `score > 0` → passed.
     assert result["passed"] is True
+
+
+def _wire_grade(monkeypatch, *, inv, rubrics):
+    """Stub create_grade_impl's black-box deps (mirrors the test above)."""
+    async def _get_test_invocations(conn, ids, redis):
+        return [inv]
+
+    async def _get_rubrics(conn, ids, redis):
+        return rubrics
+
+    async def _create_call(conn, redis, *, run_id, session_id):
+        return SimpleNamespace(id=uuid4())
+
+    async def _create_test_grade(conn, redis, **kwargs):
+        return SimpleNamespace(id=uuid4())
+
+    async def _refresh_test_impl(pool, redis, **kwargs):
+        return None
+
+    async def _invalidate_tags(tags, *, redis):
+        return None
+
+    async def _resolve(pool, profile_id, redis, *a, **k):
+        return SimpleNamespace(profiles_id=profile_id, role="superadmin")
+
+    async def _enforce(pool, redis, **kwargs):
+        return None
+
+    monkeypatch.setattr(grade_mod, "resolve_profile_identity_context", _resolve)
+    monkeypatch.setattr(grade_mod, "enforce_test_access_by_invocation", _enforce)
+    monkeypatch.setattr(grade_mod, "get_test_invocations", _get_test_invocations)
+    monkeypatch.setattr(grade_mod, "get_rubrics", _get_rubrics)
+    monkeypatch.setattr(grade_mod, "create_call", _create_call)
+    monkeypatch.setattr(grade_mod, "create_test_grade", _create_test_grade)
+    monkeypatch.setattr(grade_mod, "refresh_test_impl", _refresh_test_impl)
+    monkeypatch.setattr(grade_mod, "invalidate_tags", _invalidate_tags)
+
+
+async def test_create_grade_rejects_positive_score_against_zero_total_rubric(monkeypatch):
+    """F4: a resolved rubric with total_points 0 bounds the score to 0 — a
+    positive score is rejected (the old ``total_points > 0`` guard skipped the
+    check at 0, storing a score > 0 against a 0-max rubric)."""
+    rubric_id = uuid4()
+    inv = SimpleNamespace(
+        rubric_id=rubric_id, test_id=None, invocation_created_at=datetime.now(UTC),
+    )
+    _wire_grade(
+        monkeypatch, inv=inv,
+        rubrics=[SimpleNamespace(total_points=0, pass_points=0)],
+    )
+    pool = _FakePool(conn=_FakeConn())
+    with pytest.raises(ValueError) as exc:
+        await create_grade_impl(
+            pool, redis=object(), profile_id=uuid4(), session_id=uuid4(),
+            invocation_id=uuid4(), score=5, run_id=uuid4(),
+        )
+    assert "exceeds maximum of 0" in str(exc.value)
+
+
+async def test_create_grade_allows_positive_score_with_no_rubric(monkeypatch):
+    """Regression-safety for the F4 fix: a test grade with NO rubric has no max
+    to enforce (total_points legitimately 0), so a positive free-score grade is
+    still accepted — the F4 bound is scoped to a RESOLVED rubric (``has_rubric``),
+    not to ``total_points == 0`` (which also means 'no rubric' on this path)."""
+    inv = SimpleNamespace(
+        rubric_id=None, test_id=None, invocation_created_at=datetime.now(UTC),
+    )
+    _wire_grade(monkeypatch, inv=inv, rubrics=[])
+    pool = _FakePool(conn=_FakeConn())
+    result = await create_grade_impl(
+        pool, redis=object(), profile_id=uuid4(), session_id=uuid4(),
+        invocation_id=uuid4(), score=5, run_id=uuid4(),
+    )
+    assert result["success"] is True
+    assert result["score"] == 5
+    assert result["passed"] is True  # no pass_points → score > 0 → passed
