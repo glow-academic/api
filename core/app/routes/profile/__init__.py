@@ -17,6 +17,7 @@ from app.routes.profile.generations import router as generations_router
 from app.routes.profile.get import router as get_router
 from app.routes.profile.group import router as group_router
 from app.routes.profile.problem import router as problem_router
+from app.routes.profile.rate_limit import router as rate_limit_router
 from app.routes.profile.refresh import router as refresh_router
 from app.routes.profile.search import router as search_router
 from app.routes.profile.watch import router as watch_router
@@ -51,6 +52,7 @@ router.include_router(watch_router)
 router.include_router(context_router)
 router.include_router(emulate_router)
 router.include_router(unemulate_router)
+router.include_router(rate_limit_router)
 
 # Typed media operations
 router.include_router(text_download_router)

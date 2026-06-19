@@ -20,6 +20,7 @@ import re
 from uuid import UUID
 
 from fastapi import HTTPException
+from pydantic import BaseModel
 from redis.asyncio import Redis
 
 # interval string ("1 day", "30 minutes", "1 hour", …) → window seconds.
@@ -107,3 +108,91 @@ async def enforce_request_limit(
             ),
             headers={"Retry-After": str(window)},
         )
+
+
+# RL-status (SEC3 read layer): reads the counter + its TTL in ONE passthrough
+# round-trip without mutating it. ``eval`` is not coalesced on BatchedRedis (same
+# as the enforce path), so this is a consistent snapshot. GET on a missing key
+# returns false→None; TTL returns -2 (missing) / -1 (no expire) / >=0 (seconds
+# left). Read-only by construction: checking status never consumes quota.
+_PEEK_LUA = """
+return {redis.call('GET', KEYS[1]), redis.call('TTL', KEYS[1])}
+"""
+
+
+class RequestLimitStatus(BaseModel):
+    """A profile's current request-limit usage for one metered ``operation``.
+
+    The unified "have I exceeded my limit?" read that mirrors what
+    :func:`enforce_request_limit` enforces, so a UI can show remaining quota and
+    a reset countdown without having to provoke a 429.
+    """
+
+    operation: str
+    limit: int | None  # None ⇒ unlimited (no quota on this role)
+    interval: str
+    window_seconds: int
+    used: int
+    remaining: int | None  # None when unlimited
+    exceeded: bool  # True ⇒ quota reached; the next metered call is rejected
+    unlimited: bool
+    reset_seconds: int | None  # seconds until the window resets (None if no live window)
+
+
+async def get_request_limit_status(
+    redis: Redis,
+    *,
+    profile_id: UUID,
+    request_limit: int | None,
+    request_limit_interval: str | None,
+    operation: str = "generate",
+) -> RequestLimitStatus:
+    """Return the caller's :class:`RequestLimitStatus` for ``operation``.
+
+    - Unlimited (``limit`` None/<=0) ⇒ ``unlimited=True``, ``exceeded=False``.
+    - Fail-OPEN on a Redis error (mirrors :func:`enforce_request_limit`): a
+      counter outage reports not-exceeded rather than falsely telling the UI it
+      is blocked.
+    - ``exceeded`` is ``used >= limit`` — i.e. the quota is spent and the next
+      metered call would be the one :func:`enforce_request_limit` rejects.
+    """
+    window = interval_to_seconds(request_limit_interval)
+    interval = request_limit_interval or "1 day"
+
+    if not request_limit or request_limit <= 0:
+        return RequestLimitStatus(
+            operation=operation,
+            limit=None,
+            interval=interval,
+            window_seconds=window,
+            used=0,
+            remaining=None,
+            exceeded=False,
+            unlimited=True,
+            reset_seconds=None,
+        )
+
+    used = 0
+    reset_seconds: int | None = None
+    try:
+        raw_count, raw_ttl = await redis.eval(
+            _PEEK_LUA, 1, f"reqlimit:{profile_id}:{operation}"
+        )
+        used = int(raw_count) if raw_count is not None else 0
+        reset_seconds = int(raw_ttl) if raw_ttl is not None and int(raw_ttl) > 0 else None
+    except Exception:
+        used = 0  # fail-open: don't tell the UI it's blocked on a Redis hiccup
+        reset_seconds = None
+
+    remaining = max(0, request_limit - used)
+    return RequestLimitStatus(
+        operation=operation,
+        limit=request_limit,
+        interval=interval,
+        window_seconds=window,
+        used=used,
+        remaining=remaining,
+        exceeded=remaining == 0,
+        unlimited=False,
+        reset_seconds=reset_seconds,
+    )
