@@ -201,9 +201,10 @@ async def groups_system_impl(
         stats["run_count"] += 1
         stats["total_input_tokens"] += run.input_tokens
         stats["total_output_tokens"] += run.output_tokens
-        stats["total_tokens"] += (
-            run.input_tokens + run.output_tokens + run.cached_input_tokens
-        )
+        # HIGH-1: cached_input_tokens ⊆ input_tokens (litellm folds cache-read
+        # into prompt_tokens for both OpenAI and Anthropic), so a token TOTAL is
+        # input + output — adding cached again double-counts the cached portion.
+        stats["total_tokens"] += run.input_tokens + run.output_tokens
 
         run_cost = Decimal("0")
         for p in run.pricing:
